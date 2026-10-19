@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: auralis-salas
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /healthz
