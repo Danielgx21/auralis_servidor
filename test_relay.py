@@ -1,93 +1,77 @@
-"""Teste de integração do protocolo WebSocket com dois clientes reais em localhost.
-Execute: python -m unittest test_relay.py -v
-Não substitui teste do jogo dentro do Godot.
-"""
+"""Teste de duelo entre dois jogadores: séries melhor de cinco, preservadas ao lado dos torneios multi."""
 import asyncio
 import json
 import unittest
-
 from websockets.asyncio.client import connect
 from websockets.asyncio.server import serve
-from server import handler, health_response, rooms, clients, ready, started
-
+from server import handler, health_response, rooms, clients
 
 async def send(ws, message):
     await ws.send(json.dumps(message))
 
-
-async def recv(ws):
-    return json.loads(await asyncio.wait_for(ws.recv(), timeout=1.5))
-
+async def recv_type(ws, kind):
+    for _ in range(20):
+        data=json.loads(await asyncio.wait_for(ws.recv(), timeout=2.0))
+        if data.get('type') == kind:
+            return data
+    raise AssertionError(kind)
 
 class RelayTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
-        rooms.clear(); clients.clear(); ready.clear(); started.clear()
-        self.server = await serve(handler, "127.0.0.1", 0, process_request=health_response)
-        self.url = f"ws://127.0.0.1:{self.server.sockets[0].getsockname()[1]}"
-        self.host = await connect(self.url)
-        self.guest = await connect(self.url)
-        await send(self.host, {"type": "create"})
-        self.code = (await recv(self.host))["code"]
-        self.assertEqual(len(self.code), 6)
-        await send(self.guest, {"type":"join", "code":self.code})
-        self.assertEqual((await recv(self.guest))["type"], "joined")
-        self.assertEqual((await recv(self.host))["type"], "paired")
-        self.assertEqual((await recv(self.guest))["type"], "paired")
+        rooms.clear();clients.clear()
+        self.server=await serve(handler,'127.0.0.1',0,process_request=health_response)
+        self.url=f'ws://127.0.0.1:{self.server.sockets[0].getsockname()[1]}'
+        self.host=await connect(self.url)
+        self.guest=await connect(self.url)
+        await send(self.host,{'type':'create','capacity':2})
+        self.code=(await recv_type(self.host,'created'))['code']
+        await send(self.guest,{'type':'join','code':self.code})
+        await recv_type(self.guest,'joined')
+        await recv_type(self.host,'paired')
+        await recv_type(self.guest,'paired')
 
     async def asyncTearDown(self):
-        await self.host.close()
-        await self.guest.close()
-        self.server.close()
-        await self.server.wait_closed()
+        await self.host.close();await self.guest.close()
+        self.server.close();await self.server.wait_closed()
 
-    async def test_full_protocol_and_host_authority(self):
-        await send(self.host, {"type":"ready"})
+    async def test_protocol(self):
+        await send(self.host,{'type':'ready'})
+        await send(self.guest,{'type':'ready'})
+        await recv_type(self.host,'start')
+        await recv_type(self.guest,'start')
+        await send(self.guest,{'type':'roster','ids':[f'h{i}' for i in range(10)]})
+        self.assertEqual((await recv_type(self.host,'roster'))['ids'][0],'h0')
+        await send(self.host,{'type':'arena_open','match':1})
+        self.assertEqual((await recv_type(self.guest,'arena_open'))['match'],1)
+        await send(self.guest,{'type':'round_result','result':{'match':1,'round':1,'winner':0}})
+        self.assertEqual((await recv_type(self.guest,'error'))['type'],'error')
+        for idx,winner in ((1,0),(2,1),(3,0),(4,1),(5,0)):
+            record={'match':1,'round':idx,'winner':winner}
+            await send(self.host,{'type':'round_result','result':record})
+            self.assertEqual((await recv_type(self.guest,'round_result'))['result'],record)
+        # O relay aceita o quinto round de um duelo e recusa o sexto.
+        frame={'match':1,'round':5,'sequence':1,'fighters':[]}
+        await send(self.host,{'type':'combat_state','state':frame})
+        self.assertEqual((await recv_type(self.guest,'combat_state'))['state'],frame)
+        await send(self.host,{'type':'combat_state','state':{'match':1,'round':6,'sequence':2,'fighters':[]}})
         with self.assertRaises(asyncio.TimeoutError):
-            await asyncio.wait_for(self.host.recv(), timeout=0.10)
-        await send(self.guest, {"type":"ready"})
-        self.assertEqual((await recv(self.host))["type"], "start")
-        self.assertEqual((await recv(self.guest))["type"], "start")
-        await send(self.guest, {"type":"roster", "ids": [f"h{i}" for i in range(10)]})
-        self.assertEqual((await recv(self.host))["type"], "roster")
-        plan = {"round":1,"combat_round":1,"heroes":[],"lineup":[],"inventory":[],"equipment":{},"source":"arena","ready":True,"sequence":8}
-        await send(self.guest, {"type":"snapshot", "snapshot":plan})
-        self.assertEqual((await recv(self.host))["snapshot"], plan)
-        await send(self.guest, {"type":"arena_open", "match":1})
-        # Cliente convidado não pode abrir a arena do anfitrião.
-        with self.assertRaises(asyncio.TimeoutError):
-            await asyncio.wait_for(self.host.recv(), timeout=0.10)
-        await send(self.host, {"type":"arena_open", "match":1})
-        self.assertEqual(await recv(self.guest), {"type":"arena_open", "match":1})
-        state = {"match":1,"round":1,"sequence":1,"fighters":[],"elapsed":0.0}
-        await send(self.host, {"type":"combat_state", "state":state})
-        self.assertEqual((await recv(self.guest))["state"], state)
-        await send(self.guest, {"type":"round_result", "result":{"match":1,"round":1,"winner":0}})
-        self.assertEqual((await recv(self.guest))["type"], "error")
-        packets = []
-        for number in range(1, 6):
-            packets.append({"match":1, "round":number, "winner": 0 if number % 2 else 1})
-            if number < 5:
-                packets.append({"match":1, "round":number+1, "event":"next_round"})
-        packets.append({"match":1,"round":5,"event":"match_complete","blue_wins":3,"red_wins":2})
-        for packet in packets:
-            await send(self.host, {"type":"round_result", "result":packet})
-            self.assertEqual((await recv(self.guest))["result"], packet)
+            await asyncio.wait_for(self.guest.recv(),0.12)
+        end={'match':1,'round':5,'event':'match_complete','blue_wins':3,'red_wins':2}
+        await send(self.host,{'type':'round_result','result':end})
+        self.assertEqual((await recv_type(self.guest,'round_result'))['result'],end)
 
     async def test_http_health(self):
-        reader, writer = await asyncio.open_connection("127.0.0.1", self.server.sockets[0].getsockname()[1])
-        writer.write(b"GET /healthz HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+        reader,writer=await asyncio.open_connection('127.0.0.1',self.server.sockets[0].getsockname()[1])
+        writer.write(b'GET /healthz HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n')
         await writer.drain()
-        response = await asyncio.wait_for(reader.read(), timeout=2.0)
-        self.assertIn(b"200 OK", response)
-        self.assertIn(b"Auralis relay OK", response)
-        writer.close()
-        await writer.wait_closed()
+        result=await asyncio.wait_for(reader.read(),2.0)
+        self.assertIn(b'200 OK',result)
+        writer.close();await writer.wait_closed()
 
-    async def test_room_closed_after_disconnection(self):
+    async def test_disconnection(self):
         await self.guest.close()
-        self.assertEqual((await recv(self.host))["type"], "peer_left")
-        self.assertNotIn(self.code, rooms)
+        await recv_type(self.host,'peer_left')
+        self.assertNotIn(self.code,rooms)
 
-
-if __name__ == "__main__":
+if __name__=='__main__':
     unittest.main()

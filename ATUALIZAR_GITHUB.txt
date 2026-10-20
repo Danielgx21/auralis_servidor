@@ -1,0 +1,17 @@
+ATUALIZAÇÃO DO SERVIDOR 2.15.46 — DUELO MELHOR DE CINCO
+
+O servidor publicado no Render precisa aceitar até 5 rounds de cada embate 1x1.
+
+1. Abra https://github.com/Danielgx21/auralis_servidor
+2. Substitua o arquivo server.py do repositorio pelo server.py deste pacote.
+   No GitHub, use o botão de editar (lapis) para colar o conteúdo atualizado,
+   ou envie os arquivos extraidos por Add file > Upload files.
+3. Confirme em Commit changes. O Render deve publicar automaticamente.
+4. Confira a nova publicação em https://dashboard.render.com/web/srv-dbbalrk9v7es73ehb1j0
+5. Todos os jogadores devem usar o projeto 2.15.46.
+
+Duelo de 2 jogadores: melhor de 5 (3 vitorias encerram o embate).
+Salas de 3 e 4: cada confronto permanece melhor de 3 (2 vitorias encerram a serie).
+Cada serie vencida soma 1 ponto. Permanecem 5 etapas por partida.
+
+Testes automatizados: python -m unittest test_relay.py -v ; python test_tournament.py
