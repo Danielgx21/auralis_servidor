@@ -11,11 +11,13 @@ import secrets
 import string
 from http import HTTPStatus
 from websockets.asyncio.server import serve
+from websockets.exceptions import ConnectionClosed
 
 rooms = {}
 clients = {}
 ALPHABET = string.ascii_uppercase + string.digits
 MAX_MESSAGE = 131072
+PROTOCOL_VERSION = 2  # Compatibilidade de salas e dos cinco embates online.
 
 async def send(ws, data):
     await ws.send(json.dumps(data, ensure_ascii=False))
@@ -85,6 +87,7 @@ async def handler(ws):
                         'started':False, 'plans':{}, 'stage':1, 'results':[]}
                 rooms[code] = room
                 clients[ws] = code
+                await send(ws, {'type':'server_info', 'protocol':PROTOCOL_VERSION})
                 await send(ws, {'type':'created', 'code':code, 'seat':0, 'capacity':capacity})
                 await broadcast(room, {'type':'members','capacity':capacity,'members':seats(room)})
             elif kind == 'join' and ws not in clients:
@@ -99,6 +102,7 @@ async def handler(ws):
                 seat = len(room['members'])
                 room['members'].append(ws)
                 clients[ws] = code
+                await send(ws, {'type':'server_info', 'protocol':PROTOCOL_VERSION})
                 await send(ws, {'type':'joined','code':code,'seat':seat,'capacity':room['capacity']})
                 await broadcast(room, {'type':'members','capacity':room['capacity'],'members':seats(room)})
                 if len(room['members']) == room['capacity']:
@@ -237,6 +241,10 @@ async def handler(ws):
                         continue
                     payload = {'type':'snapshot','snapshot':snapshot}
                 await broadcast(room, payload, skip=ws)
+    except ConnectionClosed:
+        # Desconexao sem frame de encerramento (queda de rede/Render):
+        # liberar a sala normalmente, sem traceback de erro no relay.
+        pass
     finally:
         code = clients.pop(ws,None)
         room = rooms.pop(code,None)
@@ -252,7 +260,7 @@ async def handler(ws):
 
 def health_response(connection, request):
     if request.path in ('/','/healthz') and request.headers.get('Upgrade','').lower()!='websocket':
-        return connection.respond(HTTPStatus.OK, 'Auralis relay OK\n')
+        return connection.respond(HTTPStatus.OK, f'Auralis relay OK | protocolo {PROTOCOL_VERSION} | salas 2-4\n')
     return None
 
 async def main():
