@@ -1,0 +1,8 @@
+{
+  "game": "fragmentos-de-auralis",
+  "base_revision": 21565,
+  "revision": 21565,
+  "version": "2.15.65",
+  "notes": "Versao inicial com verificacao automatica de atualizacoes.",
+  "patches": []
+}
