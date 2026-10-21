@@ -1,9 +1,9 @@
 {
   "game": "fragmentos-de-auralis",
   "base_revision": 21565,
-  "revision": 21604,
-  "version": "2.15.104",
-  "notes": "Pausa a economia e o relógio da vila durante batalhas e torneios, mantendo o combate e a sincronização online; inclui as melhorias de campeões até Piko.",
+  "revision": 21632,
+  "version": "2.15.132",
+  "notes": "Teste online de dois reinos: mapa compartilhado, invasões, exércitos, civis, reconexão, minimapa, FPS e máquinas de cerco.",
   "patches": [
     {
       "revision": 21604,
@@ -12,6 +12,14 @@
       "url": "https://github.com/Danielgx21/auralis_servidor/releases/download/v2.15.104/auralis_21604.pck",
       "size": 71970840,
       "sha256": "a12e54459c76842817ca38479d071ccbd4f1f2fa898a6c05bef2d9db3b37dda7"
+    },
+    {
+      "revision": 21632,
+      "version": "2.15.132",
+      "file": "auralis_21632.pck",
+      "url": "https://github.com/Danielgx21/auralis_servidor/releases/download/v2.15.132/auralis_21632.pck",
+      "size": 79076440,
+      "sha256": "54737af5ce9660c601e17a72fa10fcec56202e6c2698e270ef1efab334aed2e1"
     }
   ]
 }
