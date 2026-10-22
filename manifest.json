@@ -1,9 +1,9 @@
 {
   "game": "fragmentos-de-auralis",
   "base_revision": 21565,
-  "revision": 21639,
-  "version": "2.15.139",
-  "notes": "Novos equipamentos com penetração física e mágica, itens de magos com efeitos especiais, barras de escudo e melhor utilização das ultimates; inclui modo territorial para três e quatro reinos.",
+  "revision": 21678,
+  "version": "2.15.178",
+  "notes": "PvP online 5x5 com controle direto de um campeão por jogador, cinco heróis por equipe, até três itens por herói, além das melhorias de animação e combate das versões intermediárias.",
   "patches": [
     {
       "revision": 21604,
@@ -36,6 +36,14 @@
       "url": "https://github.com/Danielgx21/auralis_servidor/releases/download/v2.15.139/auralis_21639.pck",
       "size": 79498804,
       "sha256": "c89ea4ac862a6ff5fdb8adde4eeecac8eaefb26428ef0c627e6bbcdd4cbd57a8"
+    },
+    {
+      "revision": 21678,
+      "version": "2.15.178",
+      "file": "auralis_21678.pck",
+      "url": "https://github.com/Danielgx21/auralis_servidor/releases/download/v2.15.178/auralis_21678.pck",
+      "size": 89890880,
+      "sha256": "f9a69a7df76dc008a9ff6bf6c144fdcf6eddc175de92b9308b0134fa3765d8ca"
     }
   ]
 }
