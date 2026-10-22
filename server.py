@@ -26,12 +26,15 @@ TERRITORY_ECONOMY_CAPABILITY = 'territory_economy_v3'
 TERRITORY_LEDGER_CAPABILITY = 'territory_ledger_v4'
 TERRITORY_RESUME_CAPABILITY = 'session_resume_v1'
 MULTI_TERRITORY_CAPABILITY = 'territory_multiseat_v1'
+PVP_CAPABILITY = 'pvp_duel_v1'
+PVP_HERO_IDS = frozenset('cael lyria varek koru ren vela saira dren nyx kaora piko elowen zharon vaelyra calen orven vexor nivra'.split())
+PVP_ITEM_IDS = frozenset('lamina cajado armadura amuleto arco botas orbe luvas calice sanguessuga espinhos praga vitalidade barreira voracidade cetro perfurador ritual geada eco brasas lamina_solar foco'.split())
 RECONNECT_GRACE_SECONDS = 90.0
 
 def _server_features():
     return [TERRITORY_CAPABILITY, TERRITORY_COMBAT_CAPABILITY,
             TERRITORY_ECONOMY_CAPABILITY, TERRITORY_LEDGER_CAPABILITY,
-            TERRITORY_RESUME_CAPABILITY,MULTI_TERRITORY_CAPABILITY]
+            TERRITORY_RESUME_CAPABILITY,MULTI_TERRITORY_CAPABILITY,PVP_CAPABILITY]
 
 async def _expire_paused_room(code, expected_room):
     """Keep an active 2P match for a limited period, then close it cleanly."""
@@ -166,6 +169,42 @@ def _territory_rate_ok(room, ws, kind, minimum_interval):
     return True
 
 
+def _valid_pvp_plan(plan):
+    if not isinstance(plan,dict):
+        return False
+    lineup=plan.get('lineup')
+    chosen=plan.get('control')
+    equipment=plan.get('equipment')
+    if not isinstance(lineup,list) or len(lineup)!=5 or any(type(h) is not str or h not in PVP_HERO_IDS for h in lineup) or len(set(lineup))!=5:
+        return False
+    if type(chosen) is not str or chosen not in lineup:
+        return False
+    if not isinstance(equipment,dict) or any(h not in lineup for h in equipment):
+        return False
+    for hero in lineup:
+        slots=equipment.get(hero,[])
+        if not isinstance(slots,list) or len(slots)>3 or any(type(item) is not str or item not in PVP_ITEM_IDS for item in slots):
+            return False
+    return True
+
+def _valid_pvp_command(msg):
+    if type(msg.get('seq')) is not int or not 0 <= msg['seq'] <= 2147483647:
+        return False
+    action=msg.get('action')
+    if action not in ('move','attack','cast','stop'):
+        return False
+    if action in ('move','attack','cast'):
+        point=msg.get('point')
+        if not isinstance(point,list) or len(point)!=2 or any(type(v) not in (int,float) or not math.isfinite(v) or not 0 <= v <= 945 for v in point):
+            return False
+    if action=='cast' and msg.get('slot') not in ('Q','W','E','R'):
+        return False
+    if action in ('attack','cast') and (type(msg.get('target')) is not str or len(msg.get('target')) > 32 or (msg['target'] and msg['target'] not in PVP_HERO_IDS)):
+        return False
+    if action in ('attack','cast') and (type(msg.get('target_side')) is not int or msg['target_side'] not in (0,1)):
+        return False
+    return True
+
 async def send(ws, data):
     await ws.send(json.dumps(data, ensure_ascii=False))
 
@@ -245,7 +284,7 @@ async def handler(ws):
                 clients[ws] = code
                 await send(ws,{'type':'server_info','protocol':PROTOCOL_VERSION,'features':_server_features()})
                 await send(ws,{'type':'resumed','code':code,'seat':seat,
-                               'capacity':room['capacity'], 'started':True})
+                               'capacity':room['capacity'], 'mode':room.get('mode','classic'),'started':True})
                 if all(member is not None for member in room['members']):
                     task = room.get('reconnect_timer')
                     if task is not None:
@@ -258,16 +297,24 @@ async def handler(ws):
                     cached = room.get('territory_last_world') if seat == 1 else room.get('territory_last_guest')
                     if cached is not None:
                         await send(ws,cached)
+                    if room.get('mode') == 'pvp5':
+                        await send(ws,{'type':'pvp_start','plans':[room['pvp_plans'][i] for i in (0,1)]})
+                        if room.get('pvp_last_state') is not None and seat == 1:
+                            await send(ws, room['pvp_last_state'])
                 continue
             if kind == 'create' and ws not in clients:
                 capacity = msg.get('capacity', 2)
+                mode = msg.get('mode','classic')
+                if mode not in ('classic','pvp5') or (mode == 'pvp5' and capacity != 2):
+                    await send(ws, {'type':'error','message':'Modo de sala invalido'})
+                    continue
                 if type(capacity) is not int or capacity not in (2, 3, 4):
                     await send(ws, {'type':'error','message':'Sala deve ter 2, 3 ou 4 jogadores'})
                     continue
                 code = ''.join(secrets.choice(ALPHABET) for _ in range(6))
                 while code in rooms:
                     code = ''.join(secrets.choice(ALPHABET) for _ in range(6))
-                room = {'capacity':capacity, 'members':[ws], 'ready':set(),
+                room = {'capacity':capacity, 'mode':mode,'pvp_plans':{},'pvp_command_seq':-1,'pvp_world_seq':-1,'pvp_last_state':None, 'members':[ws], 'ready':set(),
                         'started':False, 'plans':{}, 'stage':1, 'results':[],
                         'territory_last_sent':{},'territory_seq':-1,'territory_guest_seq':-1,
                         'territory_command_seq':-1,
@@ -278,7 +325,7 @@ async def handler(ws):
                 rooms[code] = room
                 clients[ws] = code
                 await send(ws, {'type':'server_info', 'protocol':PROTOCOL_VERSION,'features':_server_features()})
-                await send(ws, {'type':'created', 'code':code, 'seat':0, 'capacity':capacity, 'resume_token':room['resume_tokens'][0]})
+                await send(ws, {'type':'created', 'code':code, 'seat':0, 'capacity':capacity, 'mode':mode,'resume_token':room['resume_tokens'][0]})
                 await broadcast(room, {'type':'members','capacity':capacity,'members':seats(room)})
             elif kind == 'join' and ws not in clients:
                 code = str(msg.get('code', '')).strip().upper()
@@ -293,13 +340,62 @@ async def handler(ws):
                 room['members'].append(ws)
                 clients[ws] = code
                 await send(ws, {'type':'server_info', 'protocol':PROTOCOL_VERSION,'features':_server_features()})
-                await send(ws, {'type':'joined','code':code,'seat':seat,'capacity':room['capacity'],'resume_token':room['resume_tokens'][seat]})
+                await send(ws, {'type':'joined','code':code,'seat':seat,'capacity':room['capacity'],'mode':room.get('mode','classic'),'resume_token':room['resume_tokens'][seat]})
                 await broadcast(room, {'type':'members','capacity':room['capacity'],'members':seats(room)})
                 if len(room['members']) == room['capacity']:
                     await broadcast(room, {'type':'paired'})
+            elif kind in ('pvp_plan','pvp_command','pvp_state','pvp_result') and ws in clients:
+                room=rooms.get(clients[ws])
+                if not room or room.get('mode')!='pvp5' or len(room['members'])!=2 or any(m is None for m in room['members']):
+                    continue
+                seat=room['members'].index(ws)
+                if kind=='pvp_plan':
+                    if room['started'] or seat in room['pvp_plans'] or not _valid_pvp_plan(msg.get('plan')):
+                        await send(ws,{'type':'error','message':'Escalacao PvP invalida ou ja enviada'})
+                        continue
+                    incoming=msg['plan']
+                    chosen=list(incoming['lineup'])
+                    room['pvp_plans'][seat]={
+                        'lineup':chosen, 'control':incoming['control'],
+                        'equipment':{hero:list(incoming['equipment'].get(hero,[])) for hero in chosen},
+                        'heroes':[{'id':hero,'level':10} for hero in chosen],
+                        'formation':'2-1-2','formation_slots':chosen[:],
+                        'strategy':'equilibrada'
+                    }
+                    await broadcast(room,{'type':'pvp_ready_count','count':len(room['pvp_plans'])})
+                    if len(room['pvp_plans'])==2:
+                        room['started']=True
+                        await broadcast(room,{'type':'pvp_start','plans':[room['pvp_plans'][i] for i in (0,1)]})
+                elif kind=='pvp_command':
+                    if not room['started'] or seat!=1 or not _valid_pvp_command(msg):
+                        continue
+                    if msg['seq']<=room['pvp_command_seq'] or not _territory_rate_ok(room,ws,kind,0.025):
+                        continue
+                    room['pvp_command_seq']=msg['seq']
+                    await send(room['members'][0],{'type':'pvp_command','seq':msg['seq'],'action':msg['action'],
+                        'point':msg.get('point',[0,0]),'slot':msg.get('slot',''),
+                        'target':msg.get('target',''),'target_side':msg.get('target_side',-1)})
+                elif kind=='pvp_state':
+                    if not room['started'] or seat!=0 or not isinstance(msg.get('state'),dict):
+                        continue
+                    state=msg['state']
+                    if type(state.get('sequence')) is not int or state['sequence']<=room['pvp_world_seq'] or not isinstance(state.get('fighters'),list) or len(state['fighters'])>10:
+                        continue
+                    if not _territory_rate_ok(room,ws,kind,0.060):
+                        continue
+                    room['pvp_world_seq']=state['sequence']
+                    room['pvp_last_state']={'type':'pvp_state','state':state}
+                    await send(room['members'][1],room['pvp_last_state'])
+                else:
+                    if not room['started'] or seat!=0 or not isinstance(msg.get('result'),dict):
+                        continue
+                    result=msg['result']
+                    if type(result.get('round')) is not int or not 1<=result['round']<=5:
+                        continue
+                    await send(room['members'][1],{'type':'pvp_result','result':result})
             elif kind == 'ready' and ws in clients:
                 room = rooms.get(clients[ws])
-                if not room or room['started'] or len(room['members']) != room['capacity']:
+                if not room or room['started'] or room.get('mode') == 'pvp5' or len(room['members']) != room['capacity']:
                     continue
                 room['ready'].add(ws)
                 await broadcast(room, {'type':'ready_count','ready':len(room['ready']),
@@ -532,7 +628,7 @@ async def handler(ws):
                         'seat':owner,'verb':verb,'units':units,'target':target})
             elif kind in ('roster','snapshot','round_result','combat_state','arena_open') and ws in clients:
                 room = rooms.get(clients[ws])
-                if not room or len(room['members']) != 2:
+                if not room or len(room['members']) != 2 or room.get('mode') == 'pvp5':
                     continue
                 if kind == 'arena_open':
                     if room['members'][0] is not ws or not room['started']:
