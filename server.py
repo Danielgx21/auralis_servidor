@@ -25,12 +25,13 @@ TERRITORY_COMBAT_CAPABILITY = 'territory_combat_v2'
 TERRITORY_ECONOMY_CAPABILITY = 'territory_economy_v3'
 TERRITORY_LEDGER_CAPABILITY = 'territory_ledger_v4'
 TERRITORY_RESUME_CAPABILITY = 'session_resume_v1'
+MULTI_TERRITORY_CAPABILITY = 'territory_multiseat_v1'
 RECONNECT_GRACE_SECONDS = 90.0
 
 def _server_features():
     return [TERRITORY_CAPABILITY, TERRITORY_COMBAT_CAPABILITY,
             TERRITORY_ECONOMY_CAPABILITY, TERRITORY_LEDGER_CAPABILITY,
-            TERRITORY_RESUME_CAPABILITY]
+            TERRITORY_RESUME_CAPABILITY,MULTI_TERRITORY_CAPABILITY]
 
 async def _expire_paused_room(code, expected_room):
     """Keep an active 2P match for a limited period, then close it cleanly."""
@@ -144,6 +145,9 @@ def _valid_realm(realm, owner):
                 unit_ids.add(uid)
         if any(type(unit.get(k)) not in (int,float) or not math.isfinite(unit[k]) or not 0 <= unit[k] <= 100000 for k in ('hp','max_hp')):
             return False
+    bridges = realm.get('bridges',[])
+    if not isinstance(bridges,list) or len(bridges)>120 or any(not _safe_vector(cell) for cell in bridges):
+        return False
     bridge_rows = realm.get('bridge_rows',[])
     if not isinstance(bridge_rows,list) or len(bridge_rows)>72 or any(type(row) is not int or row<0 or row>255 for row in bridge_rows):
         return False
@@ -267,6 +271,7 @@ async def handler(ws):
                         'started':False, 'plans':{}, 'stage':1, 'results':[],
                         'territory_last_sent':{},'territory_seq':-1,'territory_guest_seq':-1,
                         'territory_command_seq':-1,
+                        'multi_realm_seq':{},'multi_command_seq':{},'multi_world_seq':-1,
                         'resume_tokens':[secrets.token_urlsafe(32) for _ in range(capacity)],
                         'reconnect_timer':None, 'territory_last_world':None,
                         'territory_last_guest':None}
@@ -380,6 +385,79 @@ async def handler(ws):
                     'results':cleaned,'ranking':ranking,'winners':winners,'finished':stage == 5})
                 room['stage'] += 1
                 room['plans'] = {}
+            elif kind in ('territory_multi_realm','territory_multi_world','territory_multi_command') and ws in clients:
+                room = rooms.get(clients[ws])
+                if not room or not room['started'] or not 3 <= room['capacity'] <= 4 or len(room['members']) != room['capacity']:
+                    continue
+                seat = room['members'].index(ws)
+                seq = msg.get('seq')
+                if type(seq) is not int or not 0 <= seq <= 2_147_483_647:
+                    continue
+                if kind == 'territory_multi_realm':
+                    if seat == 0 or seq <= room['multi_realm_seq'].get(seat,-1):
+                        continue
+                    realm = msg.get('realm')
+                    if not _valid_realm(realm,seat) or not _territory_rate_ok(room,ws,kind,0.30):
+                        continue
+                    room['multi_realm_seq'][seat] = seq
+                    await send(room['members'][0],{'type':kind,'seq':seq,'seat':seat,'realm':realm})
+                elif kind == 'territory_multi_world':
+                    if seat != 0 or seq <= room['multi_world_seq']:
+                        continue
+                    state = msg.get('state')
+                    if not isinstance(state,dict) or state.get('schema') != 1 or state.get('seq') != seq:
+                        continue
+                    realms = state.get('realms')
+                    if not isinstance(realms,list) or not 1 <= len(realms) <= room['capacity']:
+                        continue
+                    ids = set()
+                    valid = True
+                    for realm in realms:
+                        owner = realm.get('owner') if isinstance(realm,dict) else None
+                        if type(owner) is not int or owner not in range(room['capacity']) or owner in ids or not _valid_realm(realm,owner):
+                            valid = False
+                            break
+                        ids.add(owner)
+                    if not valid or 0 not in ids:
+                        continue
+                    bridges = state.get('bridges')
+                    if (not isinstance(bridges,list) or len(bridges)>256 or
+                            any(not _safe_vector(v) for v in bridges)):
+                        continue
+                    if type(state.get('grid_size')) is not int or not 16 <= state['grid_size'] <= 256:
+                        continue
+                    clock = state.get('clock')
+                    if type(clock) not in (int,float) or not math.isfinite(clock) or clock < 0:
+                        continue
+                    okay = True
+                    for tomb_key in ('dead_units','dead_civilians','destroyed'):
+                        tomb = state.get(tomb_key,{})
+                        if not isinstance(tomb,dict) or len(tomb)>room['capacity']:
+                            okay = False
+                            break
+                        for owner,ids_value in tomb.items():
+                            if owner not in tuple(map(str,range(room['capacity']))) or not isinstance(ids_value,dict) or len(ids_value)>512:
+                                okay = False
+                                break
+                            if any(type(v) is not bool or len(str(k))>64 for k,v in ids_value.items()):
+                                okay = False
+                                break
+                    if not okay or not _territory_rate_ok(room,ws,kind,0.32):
+                        continue
+                    room['multi_world_seq'] = seq
+                    await broadcast(room,{'type':kind,'seq':seq,'state':state},skip=ws)
+                else:
+                    if seat == 0 or seq <= room['multi_command_seq'].get(seat,-1):
+                        continue
+                    verb,units,target = msg.get('verb'),msg.get('units'),msg.get('target')
+                    if verb not in ('move','attack','stop') or not isinstance(units,list) or not 1 <= len(units) <= 120:
+                        continue
+                    if any(type(uid) is not int or not 0 <= uid <= 999999 for uid in units) or len(set(units)) != len(units) or not _safe_vector(target):
+                        continue
+                    if not _territory_rate_ok(room,ws,kind,0.07):
+                        continue
+                    room['multi_command_seq'][seat] = seq
+                    await send(room['members'][0],{'type':kind,'seq':seq,'seat':seat,'verb':verb,'units':units,'target':target})
             elif kind in ('territory_guest_state','territory_world_state','territory_command') and ws in clients:
                 room = rooms.get(clients[ws])
                 if not room or not room['started'] or len(room['members']) != 2:
