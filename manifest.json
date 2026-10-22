@@ -1,9 +1,9 @@
 {
   "game": "fragmentos-de-auralis",
   "base_revision": 21565,
-  "revision": 21632,
-  "version": "2.15.132",
-  "notes": "Teste online de dois reinos: mapa compartilhado, invasões, exércitos, civis, reconexão, minimapa, FPS e máquinas de cerco.",
+  "revision": 21635,
+  "version": "2.15.135",
+  "notes": "Correção de interfaces: minimapa e controles do mundo são ocultados ou bloqueados ao abrir Forja, Academia, Mercado, Quartel e demais painéis, permitindo acessar os botões de compra.",
   "patches": [
     {
       "revision": 21604,
@@ -20,6 +20,14 @@
       "url": "https://github.com/Danielgx21/auralis_servidor/releases/download/v2.15.132/auralis_21632.pck",
       "size": 79076440,
       "sha256": "54737af5ce9660c601e17a72fa10fcec56202e6c2698e270ef1efab334aed2e1"
+    },
+    {
+      "revision": 21635,
+      "version": "2.15.135",
+      "file": "auralis_21635.pck",
+      "url": "https://github.com/Danielgx21/auralis_servidor/releases/download/v2.15.135/auralis_21635.pck",
+      "size": 79276200,
+      "sha256": "29a58d6a69dcac1509ba8a04c36a598776a9494ccdddc8eb575d7dca6487141b"
     }
   ]
 }
