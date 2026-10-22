@@ -1,9 +1,9 @@
 {
   "game": "fragmentos-de-auralis",
   "base_revision": 21565,
-  "revision": 21635,
-  "version": "2.15.135",
-  "notes": "Correção de interfaces: minimapa e controles do mundo são ocultados ou bloqueados ao abrir Forja, Academia, Mercado, Quartel e demais painéis, permitindo acessar os botões de compra.",
+  "revision": 21639,
+  "version": "2.15.139",
+  "notes": "Novos equipamentos com penetração física e mágica, itens de magos com efeitos especiais, barras de escudo e melhor utilização das ultimates; inclui modo territorial para três e quatro reinos.",
   "patches": [
     {
       "revision": 21604,
@@ -28,6 +28,14 @@
       "url": "https://github.com/Danielgx21/auralis_servidor/releases/download/v2.15.135/auralis_21635.pck",
       "size": 79276200,
       "sha256": "29a58d6a69dcac1509ba8a04c36a598776a9494ccdddc8eb575d7dca6487141b"
+    },
+    {
+      "revision": 21639,
+      "version": "2.15.139",
+      "file": "auralis_21639.pck",
+      "url": "https://github.com/Danielgx21/auralis_servidor/releases/download/v2.15.139/auralis_21639.pck",
+      "size": 79498804,
+      "sha256": "c89ea4ac862a6ff5fdb8adde4eeecac8eaefb26428ef0c627e6bbcdd4cbd57a8"
     }
   ]
 }
