@@ -23,14 +23,14 @@ if DATABASE_URL:
     import psycopg
     from psycopg.rows import dict_row
     pg = psycopg.connect(DATABASE_URL, autocommit=True, row_factory=dict_row)
-    pg.execute('CREATE TABLE IF NOT EXISTS expedition_rooms (code TEXT PRIMARY KEY, state TEXT NOT NULL, updated BIGINT NOT NULL)')
+    pg.execute('CREATE TABLE IF NOT EXISTS manual_expedition_rooms (code TEXT PRIMARY KEY, state TEXT NOT NULL, updated BIGINT NOT NULL)')
     def db_read(code):
-        row = pg.execute('SELECT state FROM expedition_rooms WHERE code=%s', (code,)).fetchone()
+        row = pg.execute('SELECT state FROM manual_expedition_rooms WHERE code=%s', (code,)).fetchone()
         return json.loads(row['state']) if row else None
     def db_write(state):
-        pg.execute('INSERT INTO expedition_rooms(code,state,updated) VALUES(%s,%s,%s) ON CONFLICT (code) DO UPDATE SET state=EXCLUDED.state, updated=EXCLUDED.updated', (state['code'],json.dumps(state,ensure_ascii=False),int(time.time())))
+        pg.execute('INSERT INTO manual_expedition_rooms(code,state,updated) VALUES(%s,%s,%s) ON CONFLICT (code) DO UPDATE SET state=EXCLUDED.state, updated=EXCLUDED.updated', (state['code'],json.dumps(state,ensure_ascii=False),int(time.time())))
     def db_count():
-        return pg.execute('SELECT count(*) AS n FROM expedition_rooms').fetchone()['n']
+        return pg.execute('SELECT count(*) AS n FROM manual_expedition_rooms').fetchone()['n']
 else:
     db = sqlite3.connect(DB_PATH, check_same_thread=False)
     db.execute('PRAGMA journal_mode=WAL')
@@ -291,11 +291,13 @@ async def socket_handler(request):
     return ws
 
 async def health(request):
-    return web.json_response({'ok':True,'service':'manual-das-criaturas','rooms':db_count(),'persistent':True,'database':'postgres' if DATABASE_URL else 'sqlite'})
+    return web.json_response({'ok':True,'service':'manual-das-criaturas','rooms':db_count(),'persistent':bool(DATABASE_URL),'database':'postgres' if DATABASE_URL else 'sqlite'})
 
 async def index(request):return web.FileResponse(BASE/'index.html')
 
-async def standalone(request):return web.FileResponse(BASE/'Manual_das_Criaturas_V10_Offline_Online.html')
+async def standalone(request):
+    bundled=BASE/'Manual_das_Criaturas_V10_Offline_Online.html'
+    return web.FileResponse(bundled) if bundled.exists() else web.HTTPFound('/')
 
 app=web.Application(client_max_size=160_000)
 app.router.add_get('/ws',socket_handler)
