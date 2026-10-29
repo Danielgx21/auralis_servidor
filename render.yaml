@@ -1,7 +1,11 @@
 services:
   - type: web
-    name: auralis-salas
-    runtime: docker
-    dockerfilePath: ./Dockerfile
-    plan: free
-    healthCheckPath: /healthz
+    name: manual-das-criaturas
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: PYTHONUNBUFFERED
+        value: "1"

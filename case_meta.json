@@ -1,0 +1,436 @@
+{
+  "lago": {
+    "prerequisite": null,
+    "clues": [
+      "fita",
+      "pegadas",
+      "lanterna",
+      "espelho",
+      "radio",
+      "registro",
+      "sino",
+      "manuscrito",
+      "inscricao"
+    ],
+    "witness": [
+      "lembranca",
+      "barqueiro",
+      "promessa"
+    ],
+    "theories": [
+      "espectro",
+      "vampiro",
+      "velaria"
+    ],
+    "outcomes": [
+      "libertar",
+      "negociar",
+      "expor",
+      "selar"
+    ],
+    "minClues": 4
+  },
+  "baile": {
+    "prerequisite": null,
+    "clues": [
+      "taca",
+      "convite",
+      "pegada",
+      "relogio",
+      "mascara",
+      "arco",
+      "flor",
+      "pacto",
+      "prisma"
+    ],
+    "witness": [
+      "nome",
+      "anfitriao",
+      "fuga"
+    ],
+    "theories": [
+      "vampiro",
+      "fada",
+      "prism"
+    ],
+    "outcomes": [
+      "libertar",
+      "negociar",
+      "expor",
+      "selar"
+    ],
+    "minClues": 5
+  },
+  "vampiro": {
+    "prerequisite": null,
+    "clues": [
+      "taca",
+      "assento",
+      "guardanapo",
+      "contrato",
+      "selo",
+      "livro",
+      "urna",
+      "relogio",
+      "luva"
+    ],
+    "witness": [
+      "sangue",
+      "escrivao",
+      "protecao"
+    ],
+    "theories": [
+      "vampiro",
+      "bruxa",
+      "pacto"
+    ],
+    "outcomes": [
+      "libertar",
+      "negociar",
+      "expor",
+      "selar"
+    ],
+    "minClues": 5
+  },
+  "lobo": {
+    "prerequisite": null,
+    "clues": [
+      "cartaz",
+      "trilha",
+      "frasco",
+      "garras",
+      "corrente",
+      "fios",
+      "caderno",
+      "prata",
+      "pegadas"
+    ],
+    "witness": [
+      "ciclo",
+      "terras",
+      "menino"
+    ],
+    "theories": [
+      "fera",
+      "espirito",
+      "guardiao"
+    ],
+    "outcomes": [
+      "libertar",
+      "negociar",
+      "expor",
+      "selar"
+    ],
+    "minClues": 5
+  },
+  "retrato": {
+    "prerequisite": null,
+    "clues": [
+      "pincel",
+      "calendario",
+      "pigmento",
+      "olhos",
+      "etiqueta",
+      "rascunho",
+      "moldura",
+      "assinatura",
+      "recibo"
+    ],
+    "witness": [
+      "irma",
+      "quadro",
+      "dono"
+    ],
+    "theories": [
+      "fantasma",
+      "duplo",
+      "conservador"
+    ],
+    "outcomes": [
+      "libertar",
+      "negociar",
+      "expor",
+      "selar"
+    ],
+    "minClues": 4
+  },
+  "estacao": {
+    "prerequisite": null,
+    "clues": [
+      "placa",
+      "sino",
+      "passagem",
+      "janela",
+      "banco",
+      "mapa",
+      "parafuso",
+      "eco",
+      "alarme"
+    ],
+    "witness": [
+      "trem",
+      "barragem",
+      "voz"
+    ],
+    "theories": [
+      "fantasma",
+      "banshee",
+      "sirene"
+    ],
+    "outcomes": [
+      "libertar",
+      "negociar",
+      "expor",
+      "selar"
+    ],
+    "minClues": 5
+  },
+  "museu": {
+    "prerequisite": null,
+    "clues": [
+      "ingresso",
+      "porta",
+      "placa",
+      "mascara",
+      "negativos",
+      "registro",
+      "espelho",
+      "selo",
+      "chave"
+    ],
+    "witness": [
+      "diretor",
+      "ada",
+      "visita"
+    ],
+    "theories": [
+      "doppel",
+      "maldicao",
+      "curador"
+    ],
+    "outcomes": [
+      "libertar",
+      "negociar",
+      "expor",
+      "selar"
+    ],
+    "minClues": 6
+  },
+  "lago2": {
+    "prerequisite": "lago",
+    "clues": [
+      "placas",
+      "voz",
+      "tinta",
+      "livro",
+      "assinatura",
+      "carimbo",
+      "corda",
+      "copia",
+      "frasco"
+    ],
+    "witness": [
+      "mae",
+      "copista",
+      "nome"
+    ],
+    "theories": [
+      "sino",
+      "copista",
+      "velaria"
+    ],
+    "outcomes": [
+      "libertar",
+      "negociar",
+      "expor",
+      "selar"
+    ],
+    "minClues": 5
+  },
+  "baile2": {
+    "prerequisite": "baile",
+    "clues": [
+      "bilhete",
+      "tesoura",
+      "convite",
+      "aplauso",
+      "sombra",
+      "roteiro",
+      "fio",
+      "espelho",
+      "agulha"
+    ],
+    "witness": [
+      "palco",
+      "festa",
+      "amanha"
+    ],
+    "theories": [
+      "anfitriao",
+      "costureira",
+      "fantasma"
+    ],
+    "outcomes": [
+      "libertar",
+      "negociar",
+      "expor",
+      "selar"
+    ],
+    "minClues": 6
+  },
+  "vampiro2": {
+    "prerequisite": "vampiro",
+    "clues": [
+      "edital",
+      "cera",
+      "sangue",
+      "lances",
+      "selo",
+      "copo",
+      "registro",
+      "rubrica",
+      "chave"
+    ],
+    "witness": [
+      "silas",
+      "crianças",
+      "leilao"
+    ],
+    "theories": [
+      "silas",
+      "conde",
+      "notario"
+    ],
+    "outcomes": [
+      "libertar",
+      "negociar",
+      "expor",
+      "selar"
+    ],
+    "minClues": 6
+  },
+  "lobo2": {
+    "prerequisite": "lobo",
+    "clues": [
+      "juramento",
+      "rastro",
+      "cinza",
+      "picareta",
+      "rocha",
+      "pelo",
+      "tabua",
+      "selo",
+      "lacre"
+    ],
+    "witness": [
+      "menino",
+      "clãs",
+      "juiz"
+    ],
+    "theories": [
+      "fera",
+      "juiz",
+      "lenda"
+    ],
+    "outcomes": [
+      "libertar",
+      "negociar",
+      "expor",
+      "selar"
+    ],
+    "minClues": 5
+  },
+  "retrato2": {
+    "prerequisite": "retrato",
+    "clues": [
+      "chave",
+      "reflexo",
+      "tinta",
+      "sono",
+      "bilhete",
+      "foto",
+      "frasco",
+      "assinatura",
+      "testamento"
+    ],
+    "witness": [
+      "origem",
+      "moradores",
+      "herança"
+    ],
+    "theories": [
+      "conservador",
+      "retrato",
+      "fantasma"
+    ],
+    "outcomes": [
+      "libertar",
+      "negociar",
+      "expor",
+      "selar"
+    ],
+    "minClues": 5
+  },
+  "estacao2": {
+    "prerequisite": "estacao",
+    "clues": [
+      "onda",
+      "fio",
+      "papel",
+      "microfone",
+      "gravacao",
+      "relatorio",
+      "bobina",
+      "agua",
+      "coroa"
+    ],
+    "witness": [
+      "banshee",
+      "radio",
+      "coragem"
+    ],
+    "theories": [
+      "banshee",
+      "oraculo",
+      "empresa"
+    ],
+    "outcomes": [
+      "libertar",
+      "negociar",
+      "expor",
+      "selar"
+    ],
+    "minClues": 6
+  },
+  "museu2": {
+    "prerequisite": "museu",
+    "clues": [
+      "fita",
+      "mascara",
+      "selo",
+      "corrente",
+      "pincel",
+      "bilhete",
+      "espelhos",
+      "contrato",
+      "manual"
+    ],
+    "witness": [
+      "fundacao",
+      "artefatos",
+      "saida"
+    ],
+    "theories": [
+      "curador",
+      "instituto",
+      "arquivista"
+    ],
+    "outcomes": [
+      "libertar",
+      "negociar",
+      "expor",
+      "selar"
+    ],
+    "minClues": 7
+  }
+}

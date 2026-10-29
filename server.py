@@ -1,725 +1,312 @@
-"""Relay privado Auralis: 2–4 participantes, torneios e salas tradicionais.
-
-O anfitriao simula as lutas, mas o relay computa os pontos e a classificacao
-sempre a partir dos confrontos recebidos. Nao possui acesso ao motor Godot.
+"""Manual das Criaturas v1.0 — servidor de expedições persistentes.
+Uso: pip install -r requirements.txt && python server.py
+Acesso: http://localhost:8765  |  WebSocket /ws
 """
-import asyncio
-import itertools
-import json
-import os
-import secrets
-import math
-import time
-import string
-from http import HTTPStatus
-from websockets.asyncio.server import serve
-from websockets.exceptions import ConnectionClosed
+from __future__ import annotations
+import asyncio, hashlib, json, os, random, secrets, sqlite3, string, time
+from pathlib import Path
+from aiohttp import web, WSMsgType
 
-rooms = {}
-clients = {}
-ALPHABET = string.ascii_uppercase + string.digits
-MAX_MESSAGE = 131072
-PROTOCOL_VERSION = 2  # Preserva a compatibilidade dos embates anteriores.
-TERRITORY_CAPABILITY = 'territory_v1'
-TERRITORY_COMBAT_CAPABILITY = 'territory_combat_v2'
-TERRITORY_ECONOMY_CAPABILITY = 'territory_economy_v3'
-TERRITORY_LEDGER_CAPABILITY = 'territory_ledger_v4'
-TERRITORY_RESUME_CAPABILITY = 'session_resume_v1'
-MULTI_TERRITORY_CAPABILITY = 'territory_multiseat_v1'
-PVP_CAPABILITY = 'pvp_duel_v1'
-PVP_HERO_IDS = frozenset('cael lyria varek koru ren vela saira dren nyx kaora piko elowen zharon vaelyra calen orven vexor nivra'.split())
-PVP_ITEM_IDS = frozenset('lamina cajado armadura amuleto arco botas orbe luvas calice sanguessuga espinhos praga vitalidade barreira voracidade cetro perfurador ritual geada eco brasas lamina_solar foco'.split())
-RECONNECT_GRACE_SECONDS = 90.0
+BASE = Path(__file__).resolve().parent
+META = json.loads((BASE / 'case_meta.json').read_text(encoding='utf-8'))
+DATA_DIR = Path(os.environ.get('DATA_DIR', str(BASE / 'data')))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+DB_PATH = DATA_DIR / 'expeditions.sqlite3'
+TTL = 30 * 24 * 3600
+PORT = int(os.environ.get('PORT', '8765'))
+DATABASE_URL = os.environ.get('DATABASE_URL')
+DB_LOCK = asyncio.Lock()
+LIVE: dict[str, dict[int, web.WebSocketResponse]] = {}
 
-def _server_features():
-    return [TERRITORY_CAPABILITY, TERRITORY_COMBAT_CAPABILITY,
-            TERRITORY_ECONOMY_CAPABILITY, TERRITORY_LEDGER_CAPABILITY,
-            TERRITORY_RESUME_CAPABILITY,MULTI_TERRITORY_CAPABILITY,PVP_CAPABILITY]
+# Suporta Postgres para hospedagem sem disco persistente e SQLite com disco local/persistente.
+if DATABASE_URL:
+    import psycopg
+    from psycopg.rows import dict_row
+    pg = psycopg.connect(DATABASE_URL, autocommit=True, row_factory=dict_row)
+    pg.execute('CREATE TABLE IF NOT EXISTS expedition_rooms (code TEXT PRIMARY KEY, state TEXT NOT NULL, updated BIGINT NOT NULL)')
+    def db_read(code):
+        row = pg.execute('SELECT state FROM expedition_rooms WHERE code=%s', (code,)).fetchone()
+        return json.loads(row['state']) if row else None
+    def db_write(state):
+        pg.execute('INSERT INTO expedition_rooms(code,state,updated) VALUES(%s,%s,%s) ON CONFLICT (code) DO UPDATE SET state=EXCLUDED.state, updated=EXCLUDED.updated', (state['code'],json.dumps(state,ensure_ascii=False),int(time.time())))
+    def db_count():
+        return pg.execute('SELECT count(*) AS n FROM expedition_rooms').fetchone()['n']
+else:
+    db = sqlite3.connect(DB_PATH, check_same_thread=False)
+    db.execute('PRAGMA journal_mode=WAL')
+    db.execute('CREATE TABLE IF NOT EXISTS rooms (code TEXT PRIMARY KEY, state TEXT NOT NULL, updated INTEGER NOT NULL)')
+    db.commit()
+    def db_read(code):
+        row=db.execute('SELECT state FROM rooms WHERE code=?',(code,)).fetchone()
+        return json.loads(row[0]) if row else None
+    def db_write(state):
+        db.execute('INSERT INTO rooms(code,state,updated) VALUES(?,?,?) ON CONFLICT(code) DO UPDATE SET state=excluded.state, updated=excluded.updated',(state['code'],json.dumps(state,ensure_ascii=False),int(time.time())))
+        db.commit()
+    def db_count():
+        return db.execute('SELECT count(*) FROM rooms').fetchone()[0]
 
-async def _expire_paused_room(code, expected_room):
-    """Keep an active 2P match for a limited period, then close it cleanly."""
-    try:
-        await asyncio.sleep(RECONNECT_GRACE_SECONDS)
-        room = rooms.get(code)
-        if room is not expected_room or all(ws is not None for ws in room['members']):
-            return
-        rooms.pop(code, None)
-        for other in room['members']:
-            if other is not None:
-                clients.pop(other, None)
-                try:
-                    await send(other, {'type':'peer_left','reason':'resume_timeout'})
-                except ConnectionClosed:
-                    pass
-    finally:
-        if rooms.get(code) is expected_room:
-            expected_room['reconnect_timer'] = None
+def now(): return int(time.time())
+def token_hash(token): return hashlib.sha256(str(token).encode()).hexdigest()
+def clean_name(value): return str(value or 'Pesquisador').strip()[:24] or 'Pesquisador'
+def safe_profile(profile):
+    if not isinstance(profile,dict):return {}
+    # O salvamento local continua autoritativo para compras; cópia opcional para recuperar no MESMO perfil.
+    allow=('wallet','owned','stock','rooms','contracts','paid','dailyPayout','cases','completions','histories','current','economyV1','soundtrack')
+    return {k:profile[k] for k in allow if k in profile} if len(json.dumps(profile,ensure_ascii=False))<120_000 else {}
 
-TERRITORY_MAX_BUILDINGS = 128
-TERRITORY_MAX_TROOPS = 120
-TERRITORY_MAX_VILLAGERS = 160
-TERRITORY_KINDS = frozenset(('centro','casa','deposito','academia','fazenda','porto',
-    'mercado','cristalizador','serraria','pedreira','moinho','armazem','forja',
-    'centro_cristais','quartel'))
-TERRITORY_TROOPS = frozenset(('espadachim','guardiao','arqueiro','canhao','balista','ariete'))
+def public(state):
+    sockets=LIVE.get(state['code'],{})
+    roster=[dict(slot=p['slot'],name=p['name'],connected=(p['slot'] in sockets and not sockets[p['slot']].closed),completed=p['completed'],score=p.get('score',0),finished=p.get('finished',False),rooms=p.get('rooms',{})) for p in state['players']]
+    return dict(code=state['code'],mode=state['mode'],size=state['size'],hostSlot=state['hostSlot'],phase=state['phase'],caseId=state.get('caseId'),startedAt=state.get('startedAt',0),inGame=state['phase']=='case',players=roster,team=state['team'],votes=state['votes'],round=state['round'],firstFinish=state.get('firstFinish'),nominees=state['nominees'],bank=state['bank'],upgrades=state['upgrades'],completedCases=state['completedCases'],updated=state['updated'])
 
-def _safe_vector(value):
-    return (isinstance(value, list) and len(value) == 2 and
-        all(type(n) in (int,float) and math.isfinite(n) and -16.0 <= n <= 256.0 for n in value))
+async def send(ws, payload):
+    if ws and not ws.closed:
+        try: await ws.send_json(payload)
+        except (ConnectionResetError,RuntimeError): pass
 
-def _valid_realm(realm, owner):
-    if not isinstance(realm, dict) or type(realm.get('owner')) is not int or realm['owner'] != owner:
-        return False
-    buildings, troops = realm.get('buildings'), realm.get('troops')
-    if not isinstance(buildings, list) or len(buildings) > TERRITORY_MAX_BUILDINGS:
-        return False
-    if not isinstance(troops, list) or len(troops) > TERRITORY_MAX_TROOPS:
-        return False
-    civilians = realm.get('villagers', [])
-    if not isinstance(civilians, list) or len(civilians) > TERRITORY_MAX_VILLAGERS:
-        return False
-    civilian_ids = set()
-    for person in civilians:
-        if not isinstance(person, dict) or type(person.get('id')) is not int or not 0 <= person['id'] <= 999999:
-            return False
-        if person['id'] in civilian_ids or not _safe_vector(person.get('pos')) or not _safe_vector(person.get('shelter')):
-            return False
-        if type(person.get('hp')) not in (float, int) or not math.isfinite(person['hp']) or not 0 <= person['hp'] <= 34:
-            return False
-        if type(person.get('max_hp')) not in (float, int) or not math.isfinite(person['max_hp']) or not 1 <= person['max_hp'] <= 34:
-            return False
-        if type(person.get('sheltered')) is not bool:
-            return False
-        civilian_ids.add(person['id'])
-    for b in buildings:
-        if not isinstance(b, dict) or type(b.get('kind')) is not str or b['kind'] not in TERRITORY_KINDS or not _safe_vector(b.get('pos')):
-            return False
-        if type(b.get('level')) is not int or not 1 <= b['level'] <= 3:
-            return False
-        if type(b.get('health')) not in (int,float) or not math.isfinite(b['health']) or not 0 <= b['health'] <= 100:
-            return False
-        if type(b.get('done')) is not bool:
-            return False
-        if 'upgrading' in b and type(b['upgrading']) is not bool:
-            return False
-    pending = realm.get('pending_build','')
-    if type(pending) is not str or (pending and pending not in TERRITORY_KINDS) or len(pending)>32:
-        return False
-    market_events = realm.get('market_events',[])
-    if not isinstance(market_events,list) or len(market_events)>64:
-        return False
-    receipt_ids = set()
-    for event in market_events:
-        if not isinstance(event,dict) or type(event.get('id')) is not int or not 1 <= event['id'] <= 999999:
-            return False
-        if event['id'] in receipt_ids or event.get('resource') not in ('wood','stone','food','crystal') or event.get('side') not in ('buy','sell'):
-            return False
-        receipt_ids.add(event['id'])
-    training = realm.get('training',[])
-    if not isinstance(training,list) or len(training)>6:
-        return False
-    job_ids = set()
-    for job in training:
-        if not isinstance(job,dict) or type(job.get('ticket')) is not int or not 1 <= job['ticket'] <= 999999:
-            return False
-        if job['ticket'] in job_ids or job.get('kind') not in TERRITORY_TROOPS:
-            return False
-        job_ids.add(job['ticket'])
-    # Maquinas de cerco exigem Centro e Quartel de nivel 2.
-    center_level = max((b['level'] for b in buildings if b['kind'] == 'centro' and b['done']), default=0)
-    barracks_level = max((b['level'] for b in buildings if b['kind'] == 'quartel' and b['done']), default=0)
-    heavy_unlocked = center_level >= 2 and barracks_level >= 2
-    if not heavy_unlocked and any(job.get('kind') in ('canhao','balista','ariete') for job in training):
-        return False
-    unit_ids = set()
-    for unit in troops:
-        if not isinstance(unit, dict) or type(unit.get('kind')) is not str or unit['kind'] not in TERRITORY_TROOPS or not _safe_vector(unit.get('pos')):
-            return False
-        if not heavy_unlocked and unit['kind'] in ('canhao','balista','ariete'):
-            return False
-        ticket = unit.get('ticket',-1)
-        if type(ticket) is not int or not -1 <= ticket <= 999999:
-            return False
-        if 'id' in unit:
-            uid = unit['id']
-            if type(uid) is not int or not -1 <= uid <= 999999 or (uid >= 0 and uid in unit_ids):
-                return False
-            if uid >= 0:
-                unit_ids.add(uid)
-        if any(type(unit.get(k)) not in (int,float) or not math.isfinite(unit[k]) or not 0 <= unit[k] <= 100000 for k in ('hp','max_hp')):
-            return False
-    bridges = realm.get('bridges',[])
-    if not isinstance(bridges,list) or len(bridges)>120 or any(not _safe_vector(cell) for cell in bridges):
-        return False
-    bridge_rows = realm.get('bridge_rows',[])
-    if not isinstance(bridge_rows,list) or len(bridge_rows)>72 or any(type(row) is not int or row<0 or row>255 for row in bridge_rows):
-        return False
-    stock = realm.get('stock')
-    if not isinstance(stock, dict):
-        return False
-    return all(type(stock.get(k)) in (int,float) and math.isfinite(stock[k]) and 0 <= stock[k] <= 1_000_000_000 for k in ('wood','stone','food','crystal','gold'))
+async def tell_all(state, event='state'):
+    msg={'event':event,'state':public(state)}
+    for ws in list(LIVE.get(state['code'],{}).values()): await send(ws,msg)
 
-def _territory_rate_ok(room, ws, kind, minimum_interval):
-    now = time.monotonic()
-    key = (ws,kind)
-    last = room['territory_last_sent'].get(key, -1e9)
-    if now - last < minimum_interval:
-        return False
-    room['territory_last_sent'][key] = now
-    return True
+async def commit(state):
+    state['updated']=now()
+    db_write(state)
 
+def require_player(state,slot):
+    return next((p for p in state['players'] if p['slot']==slot),None)
 
-def _valid_pvp_plan(plan):
-    if not isinstance(plan,dict):
-        return False
-    lineup=plan.get('lineup')
-    chosen=plan.get('control')
-    equipment=plan.get('equipment')
-    if not isinstance(lineup,list) or len(lineup)!=5 or any(type(h) is not str or h not in PVP_HERO_IDS for h in lineup) or len(set(lineup))!=5:
-        return False
-    if type(chosen) is not str or chosen not in lineup:
-        return False
-    if not isinstance(equipment,dict) or any(h not in lineup for h in equipment):
-        return False
-    for hero in lineup:
-        slots=equipment.get(hero,[])
-        if not isinstance(slots,list) or len(slots)>3 or any(type(item) is not str or item not in PVP_ITEM_IDS for item in slots):
-            return False
-    return True
+def team_default(case):
+    return {'caseId':case,'evidence':[],'witness':[],'boardSolved':False,'puzzleSolved':False,'roleContributions':{},'theory':None,'outcome':None}
 
-def _valid_pvp_command(msg):
-    if type(msg.get('seq')) is not int or not 0 <= msg['seq'] <= 2147483647:
-        return False
-    action=msg.get('action')
-    if action not in ('move','attack','cast','stop'):
-        return False
-    if action in ('move','attack','cast'):
-        point=msg.get('point')
-        if not isinstance(point,list) or len(point)!=2 or any(type(v) not in (int,float) or not math.isfinite(v) or not 0 <= v <= 945 for v in point):
-            return False
-    if action=='cast' and msg.get('slot') not in ('Q','W','E','R'):
-        return False
-    if action in ('attack','cast') and (type(msg.get('target')) is not str or len(msg.get('target')) > 32 or (msg['target'] and msg['target'] not in PVP_HERO_IDS)):
-        return False
-    if action in ('attack','cast') and (type(msg.get('target_side')) is not int or msg['target_side'] not in (0,1)):
-        return False
-    return True
+def sanitize_progress(data,case):
+    meta=META[case]
+    return dict(evidence=[x for x in (data.get('evidence') or []) if x in meta['clues']][:9],witness=[x for x in (data.get('witness') or []) if x in meta['witness']][:3],boardSolved=bool(data.get('boardSolved')),puzzleSolved=bool(data.get('puzzleSolved')),roleContributions={k:str(v)[:400] for k,v in (data.get('roleContributions') or {}).items() if k.startswith('p') and len(k)<5})
 
-async def send(ws, data):
-    await ws.send(json.dumps(data, ensure_ascii=False))
+def unique_str_list(seq, valid):
+    return list(dict.fromkeys(x for x in seq if x in valid))
 
-async def broadcast(room, data, skip=None):
-    for member in list(room['members']):
-        if member is skip:
-            continue
-        if member is not None:
-            await send(member, data)
+def eligible(state,case):
+    parent=META[case]['prerequisite']
+    return not parent or all(parent in p['completed'] for p in state['players'])
 
-def seats(room):
-    return [{'seat': i, 'name': f'Jogador {i + 1}'} for i in range(len(room['members']))]
+def restart_votes(state):
+    state['votes']={'theory':{},'end':{},'next':{}}
+    state['round']={'theory':0,'end':0,'next':0}
 
-def pairs(size):
-    return list(itertools.combinations(range(size), 2))
+def start_case(state,case):
+    state['caseId']=case
+    state['startedAt']=int(time.time()*1000)
+    state['phase']='case'
+    state['team']=team_default(case)
+    state['nominees']={}
+    state['firstFinish']=None
+    restart_votes(state)
+    for p in state['players']:
+        p['finished']=False;p['score']=0
 
-def standings(room):
-    n = room['capacity']
-    pts = [0] * n
-    direct = [[0] * n for _ in range(n)]
-    bout_difference = [0] * n
-    for record in room['results']:
-        a, b = record['a'], record['b']
-        bout_difference[a] += record['wins_a'] - record['wins_b']
-        bout_difference[b] += record['wins_b'] - record['wins_a']
-        if record['winner'] == a:
-            pts[a] += 1
-            direct[a][b] += 1
-        elif record['winner'] == b:
-            pts[b] += 1
-            direct[b][a] += 1
-    def rank_key(i):
-        tied = [j for j in range(n) if pts[j] == pts[i] and j != i]
-        direct_points = sum(direct[i][j] for j in tied)
-        return (-pts[i], -direct_points, -bout_difference[i])
-    ordered = sorted(range(n), key=lambda i: (rank_key(i), i))
-    rank = []
-    for seat in ordered:
-        rank.append({'seat': seat, 'points': pts[seat],
-                     'direct': sum(direct[seat][j] for j in range(n) if pts[j] == pts[seat] and j != seat),
-                     'bout_diff': bout_difference[seat]})
-    leaders = [r['seat'] for r in rank if rank_key(r['seat']) == rank_key(rank[0]['seat'])]
-    return rank, leaders
+def room_new(code,mode,size):
+    return {'code':code,'mode':mode,'size':size,'hostSlot':0,'players':[],'phase':'lobby','caseId':None,'startedAt':0,'team':team_default(None),'votes':{'theory':{},'end':{},'next':{}},'round':{'theory':0,'end':0,'next':0},'nominees':{},'firstFinish':None,'bank':0,'upgrades':{},'completedCases':[],'updated':now(),'ledger':[]}
 
-async def handler(ws):
-    try:
-        async for raw in ws:
-            if len(raw) > MAX_MESSAGE:
-                await send(ws, {'type':'error','message':'Mensagem muito grande'})
-                continue
-            try:
-                msg = json.loads(raw)
-            except (ValueError, TypeError):
-                continue
-            if not isinstance(msg, dict):
-                continue
-            kind = msg.get('type')
-            if ws in clients:
-                active_room = rooms.get(clients[ws])
-                if (active_room and active_room['started'] and active_room['capacity'] == 2
-                        and any(member is None for member in active_room['members'])):
-                    # Congela também o relay durante a interrupção. O único
-                    # pedido aceito de retorno é feito por um NOVO socket.
-                    continue
-            if kind == 'resume' and ws not in clients:
-                code, seat, token = msg.get('code'), msg.get('seat'), msg.get('token')
-                room = rooms.get(code) if type(code) is str else None
-                if (room is None or not room['started'] or room['capacity'] != 2 or
-                        type(seat) is not int or seat not in (0,1) or
-                        type(token) is not str or len(token) < 32 or
-                        not secrets.compare_digest(token,room['resume_tokens'][seat]) or
-                        room['members'][seat] is not None):
-                    await send(ws, {'type':'error','message':'Retorno recusado: sala expirada ou credenciais invalidas'})
-                    await ws.close(code=1008)
-                    continue
-                room['members'][seat] = ws
-                clients[ws] = code
-                await send(ws,{'type':'server_info','protocol':PROTOCOL_VERSION,'features':_server_features()})
-                await send(ws,{'type':'resumed','code':code,'seat':seat,
-                               'capacity':room['capacity'], 'mode':room.get('mode','classic'),'started':True})
-                if all(member is not None for member in room['members']):
-                    task = room.get('reconnect_timer')
-                    if task is not None:
-                        task.cancel()
-                        room['reconnect_timer'] = None
-                    await broadcast(room,{'type':'peer_resumed','seat':seat})
-                    await broadcast(room,{'type':'paired'})
-                    # O cliente que retornou recebe o ultimo estado autoritativo.
-                    # Em seguida ambos retomam snapshots e comandos sequenciais.
-                    cached = room.get('territory_last_world') if seat == 1 else room.get('territory_last_guest')
-                    if cached is not None:
-                        await send(ws,cached)
-                    if room.get('mode') == 'pvp5':
-                        await send(ws,{'type':'pvp_start','plans':[room['pvp_plans'][i] for i in (0,1)]})
-                        if room.get('pvp_last_state') is not None and seat == 1:
-                            await send(ws, room['pvp_last_state'])
-                continue
-            if kind == 'create' and ws not in clients:
-                capacity = msg.get('capacity', 2)
-                mode = msg.get('mode','classic')
-                if mode not in ('classic','pvp5') or (mode == 'pvp5' and capacity != 2):
-                    await send(ws, {'type':'error','message':'Modo de sala invalido'})
-                    continue
-                if type(capacity) is not int or capacity not in (2, 3, 4):
-                    await send(ws, {'type':'error','message':'Sala deve ter 2, 3 ou 4 jogadores'})
-                    continue
-                code = ''.join(secrets.choice(ALPHABET) for _ in range(6))
-                while code in rooms:
-                    code = ''.join(secrets.choice(ALPHABET) for _ in range(6))
-                room = {'capacity':capacity, 'mode':mode,'pvp_plans':{},'pvp_command_seq':-1,'pvp_world_seq':-1,'pvp_last_state':None, 'members':[ws], 'ready':set(),
-                        'started':False, 'plans':{}, 'stage':1, 'results':[],
-                        'territory_last_sent':{},'territory_seq':-1,'territory_guest_seq':-1,
-                        'territory_command_seq':-1,
-                        'multi_realm_seq':{},'multi_command_seq':{},'multi_world_seq':-1,
-                        'resume_tokens':[secrets.token_urlsafe(32) for _ in range(capacity)],
-                        'reconnect_timer':None, 'territory_last_world':None,
-                        'territory_last_guest':None}
-                rooms[code] = room
-                clients[ws] = code
-                await send(ws, {'type':'server_info', 'protocol':PROTOCOL_VERSION,'features':_server_features()})
-                await send(ws, {'type':'created', 'code':code, 'seat':0, 'capacity':capacity, 'mode':mode,'resume_token':room['resume_tokens'][0]})
-                await broadcast(room, {'type':'members','capacity':capacity,'members':seats(room)})
-            elif kind == 'join' and ws not in clients:
-                code = str(msg.get('code', '')).strip().upper()
-                if len(code) != 6 or any(c not in ALPHABET for c in code):
-                    await send(ws, {'type':'error','message':'Codigo de sala invalido'})
-                    continue
-                room = rooms.get(code)
-                if not room or room['started'] or len(room['members']) >= room['capacity']:
-                    await send(ws, {'type':'error','message':'Sala inexistente, cheia ou ja iniciada'})
-                    continue
-                seat = len(room['members'])
-                room['members'].append(ws)
-                clients[ws] = code
-                await send(ws, {'type':'server_info', 'protocol':PROTOCOL_VERSION,'features':_server_features()})
-                await send(ws, {'type':'joined','code':code,'seat':seat,'capacity':room['capacity'],'mode':room.get('mode','classic'),'resume_token':room['resume_tokens'][seat]})
-                await broadcast(room, {'type':'members','capacity':room['capacity'],'members':seats(room)})
-                if len(room['members']) == room['capacity']:
-                    await broadcast(room, {'type':'paired'})
-            elif kind in ('pvp_plan','pvp_command','pvp_state','pvp_result') and ws in clients:
-                room=rooms.get(clients[ws])
-                if not room or room.get('mode')!='pvp5' or len(room['members'])!=2 or any(m is None for m in room['members']):
-                    continue
-                seat=room['members'].index(ws)
-                if kind=='pvp_plan':
-                    if room['started'] or seat in room['pvp_plans'] or not _valid_pvp_plan(msg.get('plan')):
-                        await send(ws,{'type':'error','message':'Escalacao PvP invalida ou ja enviada'})
-                        continue
-                    incoming=msg['plan']
-                    chosen=list(incoming['lineup'])
-                    room['pvp_plans'][seat]={
-                        'lineup':chosen, 'control':incoming['control'],
-                        'equipment':{hero:list(incoming['equipment'].get(hero,[])) for hero in chosen},
-                        'heroes':[{'id':hero,'level':10} for hero in chosen],
-                        'formation':'2-1-2','formation_slots':chosen[:],
-                        'strategy':'equilibrada'
-                    }
-                    await broadcast(room,{'type':'pvp_ready_count','count':len(room['pvp_plans'])})
-                    if len(room['pvp_plans'])==2:
-                        room['started']=True
-                        await broadcast(room,{'type':'pvp_start','plans':[room['pvp_plans'][i] for i in (0,1)]})
-                elif kind=='pvp_command':
-                    if not room['started'] or seat!=1 or not _valid_pvp_command(msg):
-                        continue
-                    if msg['seq']<=room['pvp_command_seq'] or not _territory_rate_ok(room,ws,kind,0.025):
-                        continue
-                    room['pvp_command_seq']=msg['seq']
-                    await send(room['members'][0],{'type':'pvp_command','seq':msg['seq'],'action':msg['action'],
-                        'point':msg.get('point',[0,0]),'slot':msg.get('slot',''),
-                        'target':msg.get('target',''),'target_side':msg.get('target_side',-1)})
-                elif kind=='pvp_state':
-                    if not room['started'] or seat!=0 or not isinstance(msg.get('state'),dict):
-                        continue
-                    state=msg['state']
-                    if type(state.get('sequence')) is not int or state['sequence']<=room['pvp_world_seq'] or not isinstance(state.get('fighters'),list) or len(state['fighters'])>10:
-                        continue
-                    if not _territory_rate_ok(room,ws,kind,0.060):
-                        continue
-                    room['pvp_world_seq']=state['sequence']
-                    room['pvp_last_state']={'type':'pvp_state','state':state}
-                    await send(room['members'][1],room['pvp_last_state'])
-                else:
-                    if not room['started'] or seat!=0 or not isinstance(msg.get('result'),dict):
-                        continue
-                    result=msg['result']
-                    if type(result.get('round')) is not int or not 1<=result['round']<=5:
-                        continue
-                    await send(room['members'][1],{'type':'pvp_result','result':result})
-            elif kind == 'ready' and ws in clients:
-                room = rooms.get(clients[ws])
-                if not room or room['started'] or room.get('mode') == 'pvp5' or len(room['members']) != room['capacity']:
-                    continue
-                room['ready'].add(ws)
-                await broadcast(room, {'type':'ready_count','ready':len(room['ready']),
-                                       'capacity':room['capacity']})
-                if len(room['ready']) == room['capacity']:
-                    room['started'] = True
-                    await broadcast(room, {'type':'start','capacity':room['capacity'],
-                                           'members':seats(room)})
-            elif kind == 'arena_open' and ws in clients and rooms.get(clients[ws],{}).get('capacity',2) >= 3:
-                room = rooms.get(clients[ws])
-                if not room or not room['started'] or room['capacity'] < 3 or room['members'][0] is not ws:
-                    continue
-                stage = msg.get('match')
-                if type(stage) is not int or stage != room['stage']:
-                    continue
-                await broadcast(room,{'type':'arena_open','match':stage},skip=ws)
-            elif kind == 'tournament_plan' and ws in clients:
-                room = rooms.get(clients[ws])
-                if not room or not room['started'] or room['capacity'] < 3:
-                    continue
-                stage, plan = msg.get('stage'), msg.get('plan')
-                if type(stage) is not int or stage != room['stage'] or not isinstance(plan, dict):
-                    continue
-                if not isinstance(plan.get('lineup'), list) or len(plan['lineup']) > 5:
-                    continue
-                if not isinstance(plan.get('heroes'), list) or len(plan['heroes']) > 10:
-                    continue
-                if not isinstance(plan.get('equipment', {}), dict):
-                    continue
-                seat = room['members'].index(ws)
-                if seat not in room['plans']:
-                    room['plans'][seat] = plan
-                    await broadcast(room, {'type':'tournament_ready_count',
-                                           'stage':stage,'ready':len(room['plans']),
-                                           'capacity':room['capacity']})
-                    if len(room['plans']) == room['capacity']:
-                        await broadcast(room, {'type':'tournament_plans','stage':stage,
-                            'plans':[{'seat':i,'plan':room['plans'][i]} for i in range(room['capacity'])]})
-            elif kind == 'tournament_combat_state' and ws in clients:
-                room = rooms.get(clients[ws])
-                if not room or not room['started'] or room['capacity'] < 3 or room['members'][0] is not ws:
-                    continue
-                state = msg.get('state')
-                if not isinstance(state,dict) or type(state.get('stage')) is not int or state['stage'] != room['stage']:
-                    continue
-                if any(type(state.get(k)) is not int for k in ('a','b','bout')):
-                    continue
-                if (state['a'],state['b']) not in pairs(room['capacity']):
-                    continue
-                if not 1 <= state['bout'] <= 3 or not isinstance(state.get('units'),list) or len(state['units']) > 10:
-                    continue
-                await broadcast(room,{'type':'tournament_combat_state','state':state},skip=ws)
-            elif kind == 'tournament_stage' and ws in clients:
-                room = rooms.get(clients[ws])
-                if not room or not room['started'] or room['capacity'] < 3 or room['members'][0] is not ws:
-                    continue
-                stage = msg.get('stage')
-                records = msg.get('results')
-                if (type(stage) is not int or stage != room['stage'] or
-                        len(room['plans']) != room['capacity'] or not isinstance(records, list) or
-                        len(records) != len(pairs(room['capacity']))):
-                    continue
-                expected = set(pairs(room['capacity']))
-                cleaned = []
-                for rec in records:
-                    if not isinstance(rec, dict):
-                        break
-                    a, b, wa, wb = rec.get('a'), rec.get('b'), rec.get('wins_a'), rec.get('wins_b')
-                    if any(type(v) is not int for v in (a,b,wa,wb)) or (a,b) not in expected:
-                        break
-                    if (not (0 <= wa <= 2 and 0 <= wb <= 2) or (wa == 2 and wb == 2)
-                            or wa + wb > 3 or (wa != 2 and wb != 2 and (wa > 1 or wb > 1))):
-                        break
-                    expected.remove((a,b))
-                    winner = a if wa == 2 else (b if wb == 2 else -1)
-                    cleaned.append({'stage':stage,'a':a,'b':b,'wins_a':wa,'wins_b':wb,'winner':winner})
-                if expected or len(cleaned) != len(records):
-                    await send(ws, {'type':'error','message':'Resultados de torneio invalidos'})
-                    continue
-                room['results'].extend(cleaned)
-                ranking, winners = standings(room)
-                await broadcast(room, {'type':'tournament_stage_result','stage':stage,
-                    'results':cleaned,'ranking':ranking,'winners':winners,'finished':stage == 5})
-                room['stage'] += 1
-                room['plans'] = {}
-            elif kind in ('territory_multi_realm','territory_multi_world','territory_multi_command') and ws in clients:
-                room = rooms.get(clients[ws])
-                if not room or not room['started'] or not 3 <= room['capacity'] <= 4 or len(room['members']) != room['capacity']:
-                    continue
-                seat = room['members'].index(ws)
-                seq = msg.get('seq')
-                if type(seq) is not int or not 0 <= seq <= 2_147_483_647:
-                    continue
-                if kind == 'territory_multi_realm':
-                    if seat == 0 or seq <= room['multi_realm_seq'].get(seat,-1):
-                        continue
-                    realm = msg.get('realm')
-                    if not _valid_realm(realm,seat) or not _territory_rate_ok(room,ws,kind,0.30):
-                        continue
-                    room['multi_realm_seq'][seat] = seq
-                    await send(room['members'][0],{'type':kind,'seq':seq,'seat':seat,'realm':realm})
-                elif kind == 'territory_multi_world':
-                    if seat != 0 or seq <= room['multi_world_seq']:
-                        continue
-                    state = msg.get('state')
-                    if not isinstance(state,dict) or state.get('schema') != 1 or state.get('seq') != seq:
-                        continue
-                    realms = state.get('realms')
-                    if not isinstance(realms,list) or not 1 <= len(realms) <= room['capacity']:
-                        continue
-                    ids = set()
-                    valid = True
-                    for realm in realms:
-                        owner = realm.get('owner') if isinstance(realm,dict) else None
-                        if type(owner) is not int or owner not in range(room['capacity']) or owner in ids or not _valid_realm(realm,owner):
-                            valid = False
-                            break
-                        ids.add(owner)
-                    if not valid or 0 not in ids:
-                        continue
-                    bridges = state.get('bridges')
-                    if (not isinstance(bridges,list) or len(bridges)>256 or
-                            any(not _safe_vector(v) for v in bridges)):
-                        continue
-                    if type(state.get('grid_size')) is not int or not 16 <= state['grid_size'] <= 256:
-                        continue
-                    clock = state.get('clock')
-                    if type(clock) not in (int,float) or not math.isfinite(clock) or clock < 0:
-                        continue
-                    okay = True
-                    for tomb_key in ('dead_units','dead_civilians','destroyed'):
-                        tomb = state.get(tomb_key,{})
-                        if not isinstance(tomb,dict) or len(tomb)>room['capacity']:
-                            okay = False
-                            break
-                        for owner,ids_value in tomb.items():
-                            if owner not in tuple(map(str,range(room['capacity']))) or not isinstance(ids_value,dict) or len(ids_value)>512:
-                                okay = False
-                                break
-                            if any(type(v) is not bool or len(str(k))>64 for k,v in ids_value.items()):
-                                okay = False
-                                break
-                    if not okay or not _territory_rate_ok(room,ws,kind,0.32):
-                        continue
-                    room['multi_world_seq'] = seq
-                    await broadcast(room,{'type':kind,'seq':seq,'state':state},skip=ws)
-                else:
-                    if seat == 0 or seq <= room['multi_command_seq'].get(seat,-1):
-                        continue
-                    verb,units,target = msg.get('verb'),msg.get('units'),msg.get('target')
-                    if verb not in ('move','attack','stop') or not isinstance(units,list) or not 1 <= len(units) <= 120:
-                        continue
-                    if any(type(uid) is not int or not 0 <= uid <= 999999 for uid in units) or len(set(units)) != len(units) or not _safe_vector(target):
-                        continue
-                    if not _territory_rate_ok(room,ws,kind,0.07):
-                        continue
-                    room['multi_command_seq'][seat] = seq
-                    await send(room['members'][0],{'type':kind,'seq':seq,'seat':seat,'verb':verb,'units':units,'target':target})
-            elif kind in ('territory_guest_state','territory_world_state','territory_command') and ws in clients:
-                room = rooms.get(clients[ws])
-                if not room or not room['started'] or len(room['members']) != 2:
-                    continue
-                owner = room['members'].index(ws)
-                seq = msg.get('seq')
-                if type(seq) is not int or seq < 0 or seq > 2_147_483_647:
-                    continue
-                if kind == 'territory_guest_state':
-                    if owner != 1 or seq <= room['territory_guest_seq']:
-                        continue
-                    realm = msg.get('realm')
-                    if not _valid_realm(realm,1) or not _territory_rate_ok(room,ws,kind,0.30):
-                        continue
-                    room['territory_guest_seq'] = seq
-                    packet = {'type':'territory_guest_state','seq':seq,'realm':realm}
-                    room['territory_last_guest'] = packet
-                    await send(room['members'][0],packet)
-                elif kind == 'territory_world_state':
-                    if owner != 0 or seq <= room['territory_seq']:
-                        continue
-                    state = msg.get('state')
-                    if not isinstance(state,dict) or state.get('schema') != 1 or state.get('seq') != seq:
-                        continue
-                    realms = state.get('realms')
-                    if not isinstance(realms,list) or len(realms) not in (1,2) or not _valid_realm(realms[0],0):
-                        continue
-                    if len(realms) == 2 and not _valid_realm(realms[1],1):
-                        continue
-                    bridges = state.get('bridges')
-                    if not isinstance(bridges,list) or len(bridges)>256 or any(not _safe_vector(b) for b in bridges):
-                        continue
-                    economy_ack = state.get('economy_ack',-1)
-                    if (type(economy_ack) is not int or economy_ack < -1 or
-                            economy_ack > room['territory_guest_seq']):
-                        continue
-                    destroyed = state.get('destroyed_guest_buildings',[])
-                    if not isinstance(destroyed,list) or len(destroyed)>128 or any(
-                            not isinstance(b,dict) or b.get('kind') not in TERRITORY_KINDS
-                            or b.get('kind') == 'centro' or not _safe_vector(b.get('pos')) for b in destroyed):
-                        continue
-                    loot = state.get('loot',{})
-                    if not isinstance(loot,dict) or len(loot)>2 or any(k not in ('0','1') or type(v) is not int or abs(v)>1000000 for k,v in loot.items()):
-                        continue
-                    if type(state.get('grid_size')) is not int or not 16 <= state['grid_size'] <= 256:
-                        continue
-                    clock = state.get('clock')
-                    if type(clock) not in (int,float) or not math.isfinite(clock) or clock < 0:
-                        continue
-                    if not _territory_rate_ok(room,ws,kind,0.30):
-                        continue
-                    room['territory_seq'] = seq
-                    packet = {'type':'territory_world_state','seq':seq,'state':state}
-                    room['territory_last_world'] = packet
-                    await send(room['members'][1],packet)
-                else:
-                    if owner != 1 or seq <= room['territory_command_seq']:
-                        continue
-                    verb = msg.get('verb')
-                    units = msg.get('units')
-                    target = msg.get('target')
-                    if type(verb) is not str or verb not in ('move','attack','stop') or not isinstance(units,list) or not 1 <= len(units) <= 120:
-                        continue
-                    if any(type(i) is not int or not 0 <= i <= 999999 for i in units):
-                        continue
-                    if len(set(units)) != len(units) or not _safe_vector(target):
-                        continue
-                    if not _territory_rate_ok(room,ws,kind,0.07):
-                        continue
-                    room['territory_command_seq'] = seq
-                    await send(room['members'][0],{'type':'territory_command','seq':seq,
-                        'seat':owner,'verb':verb,'units':units,'target':target})
-            elif kind in ('roster','snapshot','round_result','combat_state','arena_open') and ws in clients:
-                room = rooms.get(clients[ws])
-                if not room or len(room['members']) != 2 or room.get('mode') == 'pvp5':
-                    continue
-                if kind == 'arena_open':
-                    if room['members'][0] is not ws or not room['started']:
-                        continue
-                    number = msg.get('match')
-                    if type(number) is not int or not 1 <= number <= 100:
-                        continue
-                    payload = {'type':'arena_open','match':number}
-                elif kind == 'roster':
-                    ids = msg.get('ids')
-                    if not isinstance(ids,list) or len(ids)!=10:
-                        continue
-                    payload = {'type':'roster','ids':ids}
-                elif kind == 'combat_state':
-                    if room['members'][0] is not ws:
-                        continue
-                    state = msg.get('state')
-                    if not isinstance(state,dict) or not all(type(state.get(k)) is int for k in ('match','round','sequence')):
-                        continue
-                    if not 1 <= state['round'] <= 5 or not isinstance(state.get('fighters'),list) or len(state['fighters'])>10:
-                        continue
-                    payload = {'type':'combat_state','state':state}
-                elif kind == 'round_result':
-                    if room['members'][0] is not ws:
-                        await send(ws, {'type':'error','message':'Apenas o anfitriao confirma resultados'})
-                        continue
-                    result = msg.get('result')
-                    if not isinstance(result,dict) or not all(type(result.get(k)) is int for k in ('match','round')) or not 1 <= result['round'] <= 5:
-                        continue
-                    event = result.get('event','')
-                    if event not in ('','next_round','match_complete'):
-                        continue
-                    if event == '' and (type(result.get('winner')) is not int or result['winner'] not in (-1,0,1)):
-                        continue
-                    if event == 'match_complete' and (type(result.get('blue_wins')) is not int or type(result.get('red_wins')) is not int):
-                        continue
-                    payload = {'type':'round_result','result':result}
-                else:
-                    snapshot = msg.get('snapshot')
-                    if not isinstance(snapshot,dict):
-                        continue
-                    payload = {'type':'snapshot','snapshot':snapshot}
-                await broadcast(room, payload, skip=ws)
-    except ConnectionClosed:
-        # Desconexao sem frame de encerramento (queda de rede/Render):
-        # liberar a sala normalmente, sem traceback de erro no relay.
-        pass
-    finally:
-        code = clients.pop(ws,None)
-        room = rooms.get(code)
-        if room is not None:
-            try:
-                seat = room['members'].index(ws)
-            except ValueError:
-                seat = -1
-            if seat >= 0 and room['started'] and room['capacity'] == 2:
-                room['members'][seat] = None
-                if room.get('reconnect_timer') is None:
-                    room['reconnect_timer'] = asyncio.create_task(_expire_paused_room(code,room))
-                for other in room['members']:
-                    if other is not None:
-                        try:
-                            await send(other,{'type':'peer_paused','seat':seat,
-                                              'seconds':int(RECONNECT_GRACE_SECONDS)})
-                        except ConnectionClosed:
-                            pass
+async def handle(ws,req):
+    if not isinstance(req,dict):return None,None
+    op=req.get('op')
+    token=req.get('token','')
+    if not isinstance(token,str) or not 24<=len(token)<=150:
+        await send(ws,{'event':'error','message':'Identidade inválida. Atualize a página.'});return None,None
+    code=str(req.get('code','')).upper().strip()
+    if op=='create':
+        mode=req.get('mode') if req.get('mode') in ('coop','versus') else 'coop'
+        size=max(2,min(5,int(req.get('size',2))))
+        for i in range(20):
+            code=''.join(secrets.choice(string.ascii_uppercase+string.digits) for _ in range(6))
+            if not db_read(code):break
+        state=room_new(code,mode,size)
+    elif op=='join' and len(code)==6:
+        state=db_read(code)
+        if not state:
+            await send(ws,{'event':'error','message':'Expedição não encontrada. Confira o código.'});return None,None
+    else:
+        await send(ws,{'event':'error','message':'Informe um código válido ou crie uma expedição.'});return None,None
+    identity=token_hash(token)
+    existing=next((p for p in state['players'] if p['secret']==identity),None)
+    if existing:
+        player=existing
+    else:
+        if len(state['players'])>=state['size']:
+            await send(ws,{'event':'error','message':'Expedição cheia. Use a chave de recuperação da sua identidade.'});return None,None
+        slot=next(i for i in range(state['size']) if all(p['slot']!=i for p in state['players']))
+        player={'secret':identity,'slot':slot,'name':clean_name(req.get('name')),'completed':[],'score':0,'finished':False,'rooms':{},'profile':{},'profileUpdated':0}
+        state['players'].append(player)
+    player['name']=clean_name(req.get('name') or player['name'])
+    profile=safe_profile(req.get('profile'))
+    profile_at=int(req.get('profileUpdated') or 0)
+    # Não substituir uma cópia no servidor mais nova com o salvamento antigo de outra aba.
+    if profile and (profile_at>int(player.get('profileUpdated',0)) or not player.get('profile')):
+        player['profile']=profile;player['profileUpdated']=profile_at
+    # Completions do dispositivo importadas em caso de upgrade da 0.9.
+    player['completed']=unique_str_list(player['completed'] + list((player.get('profile',{}).get('completions') or {}).keys()), META)
+    player['rooms']=player.get('profile',{}).get('rooms',player.get('rooms',{}))
+    sockets=LIVE.setdefault(code,{})
+    old=sockets.get(player['slot'])
+    if old and old is not ws and not old.closed:
+        await send(old,{'event':'replaced','message':'Esta identidade entrou em outro aparelho.'})
+        await old.close()
+    sockets[player['slot']]=ws
+    if state['hostSlot'] not in sockets:state['hostSlot']=min(sockets)
+    await commit(state)
+    await send(ws,{'event':'welcome','slot':player['slot'],'token':token,'profile':player.get('profile',{}),'profileUpdated':player.get('profileUpdated',0),'state':public(state)})
+    await tell_all(state)
+    return state,player['slot']
+
+async def mutate(state,slot,m):
+    code=state['code'];player=require_player(state,slot)
+    if not player:return {'event':'error','message':'Pesquisador desconhecido.'}
+    op=m.get('op');case=state.get('caseId')
+    if op=='profile':
+        profile=safe_profile(m.get('profile'))
+        when=int(m.get('profileUpdated') or 0)
+        if profile and when>=int(player.get('profileUpdated',0)):
+            player['profile']=profile;player['profileUpdated']=when
+            player['completed']=unique_str_list(player['completed'] + list((profile.get('completions') or {}).keys()),META)
+            player['rooms']=profile.get('rooms',player['rooms'])
+        await commit(state)
+        return None
+    if op=='start':
+        choice=m.get('caseId')
+        if slot!=state['hostSlot']:return {'event':'error','message':'Somente o coordenador inicia a missão.'}
+        if state['phase'] not in ('lobby','camp'):return {'event':'error','message':'A missão atual ainda está aberta.'}
+        if len(LIVE.get(code,{}))!=state['size']:return {'event':'error','message':'Aguardem todos os jogadores reconectarem.'}
+        if choice not in META or not eligible(state,choice):return {'event':'error','message':'Uma continuação ainda não foi desbloqueada para todos.'}
+        start_case(state,choice)
+    elif op=='camp':
+        if slot!=state['hostSlot']:return {'event':'error','message':'Somente o coordenador encerra a missão coletiva.'}
+        if state['phase']!='case':return None
+        if state['mode']=='coop' and not state['team']['outcome']:return {'event':'error','message':'Concluam a votação do desfecho primeiro.'}
+        if state['mode']=='versus' and not all(p['finished'] for p in state['players']):return {'event':'error','message':'Aguardem todos concluírem a investigação competitiva.'}
+        state['phase']='camp';state['nominees']={};state['votes']['next']={}
+        if case not in state['completedCases']:
+            state['completedCases'].append(case);state['bank']+=50
+    elif op=='nominate':
+        if state['phase'] not in ('camp','lobby'):return {'event':'error','message':'Escolha outro caso no intervalo do Instituto.'}
+        choice=m.get('caseId')
+        if choice not in META or not eligible(state,choice):return {'event':'error','message':'Arquivo ainda bloqueado para alguém do grupo.'}
+        state['nominees'][str(slot)]=choice
+        state['votes']['next'][str(slot)]=choice
+        participants=state['players']
+        if len(participants)==state['size'] and len(state['votes']['next'])==state['size'] and len(LIVE.get(code,{}))==state['size']:
+            from collections import Counter
+            counts=Counter(state['votes']['next'].values())
+            picked,amount=counts.most_common(1)[0]
+            if amount>state['size']/2:
+                start_case(state,picked)
             else:
-                rooms.pop(code,None)
-                task = room.get('reconnect_timer')
-                if task is not None:
-                    task.cancel()
-                for other in room['members']:
-                    if other is None or other is ws:
-                        continue
-                    clients.pop(other,None)
-                    try:
-                        await send(other, {'type':'peer_left'})
-                    except Exception:
-                        pass
-
-def health_response(connection, request):
-    if request.path in ('/','/healthz') and request.headers.get('Upgrade','').lower()!='websocket':
-        return connection.respond(HTTPStatus.OK, f'Auralis relay OK | protocolo {PROTOCOL_VERSION} | salas 2-4\n')
+                state['votes']['next']={};state['round']['next']+=1
+    elif op=='progress':
+        if state['phase']!='case' or m.get('caseId')!=case:return None
+        player['score']=max(0,min(5000,int(m.get('score') or 0)))
+        if state['mode']=='coop':
+            data=sanitize_progress(m,case);team=state['team']
+            team['evidence']=unique_str_list(team['evidence']+data['evidence'],META[case]['clues'])
+            team['witness']=unique_str_list(team['witness']+data['witness'],META[case]['witness'])
+            team['boardSolved']=team['boardSolved'] or data['boardSolved']
+            team['puzzleSolved']=team['puzzleSolved'] or data['puzzleSolved']
+            only_key='p'+str(slot)
+            if only_key in data['roleContributions']:team['roleContributions'][only_key]=data['roleContributions'][only_key]
+        if m.get('completed') and m.get('outcome') in META[case]['outcomes']:
+            player['finished']=True
+            player['completed']=unique_str_list(player['completed']+[case],META)
+            if state['mode']=='versus' and not state['firstFinish']:state['firstFinish']='p'+str(slot)
+    elif op=='vote':
+        if state['phase']!='case' or state['mode']!='coop':return None
+        kind=m.get('kind');choice=m.get('choice')
+        if kind not in ('theory','end'):return None
+        available=META[case]['theories' if kind=='theory' else 'outcomes']
+        if choice not in available:return {'event':'error','message':'Opção de votação inválida.'}
+        if kind=='end' and not state['team']['theory']:return {'event':'error','message':'Primeiro votem na hipótese.'}
+        state['votes'][kind][str(slot)]=choice
+        # Ninguém vence uma votação enquanto alguém estiver desconectado.
+        if len(state['votes'][kind])==state['size'] and len(LIVE.get(code,{}))==state['size']:
+            from collections import Counter
+            counts=Counter(state['votes'][kind].values())
+            winner,count=counts.most_common(1)[0]
+            if count>state['size']/2:
+                state['team']['theory' if kind=='theory' else 'outcome']=winner
+                state['votes'][kind]={}
+                if kind=='end':
+                    for p in state['players']:
+                        p['finished']=True
+                        p['completed']=unique_str_list(p['completed']+[case],META)
+            else:
+                state['votes'][kind]={}
+                state['round'][kind]+=1
+    elif op=='donate':
+        amount=int(m.get('amount') or 0)
+        tx=str(m.get('tx') or '')[:70]
+        if not 1<=amount<=3000 or not tx or tx in state['ledger']:return None
+        state['ledger']=(state['ledger']+[tx])[-300:]
+        state['bank']+=amount
+    elif op=='upgrade':
+        costs={'library':120,'laboratory':150,'observatory':165,'sanctuary':185}
+        item=m.get('item');cost=costs.get(item)
+        if cost is None or state['upgrades'].get(item):return None
+        if slot!=state['hostSlot']:return {'event':'error','message':'A coordenação decide as melhorias coletivas.'}
+        if state['bank']<cost:return {'event':'error','message':'Cofre coletivo insuficiente.'}
+        state['bank']-=cost;state['upgrades'][item]=True
+    else:return None
+    await commit(state)
+    await tell_all(state)
     return None
 
-async def main():
-    host = os.getenv('AURALIS_HOST','0.0.0.0')
-    port = int(os.getenv('PORT','8765'))
-    async with serve(handler,host,port,max_size=MAX_MESSAGE,ping_interval=20,process_request=health_response):
-        print(f'Auralis relay listening on {host}:{port}',flush=True)
-        await asyncio.Future()
+async def socket_handler(request):
+    ws=web.WebSocketResponse(heartbeat=20,max_msg_size=160_000)
+    await ws.prepare(request)
+    code=None;slot=None
+    try:
+        async for item in ws:
+            if item.type==WSMsgType.TEXT:
+                try:payload=json.loads(item.data)
+                except ValueError:continue
+                async with DB_LOCK:
+                    if code is None:
+                        state,slot=await handle(ws,payload)
+                        if state:code=state['code']
+                    else:
+                        state=db_read(code)
+                        if state:
+                            result=await mutate(state,slot,payload)
+                            if result:await send(ws,result)
+            elif item.type in (WSMsgType.ERROR,WSMsgType.CLOSE):break
+    finally:
+        if code is not None:
+            async with DB_LOCK:
+                slots=LIVE.get(code,{})
+                if slots.get(slot) is ws:
+                    slots.pop(slot,None)
+                    state=db_read(code)
+                    if state:
+                        if slots and state['hostSlot'] not in slots:state['hostSlot']=min(slots)
+                        await commit(state)
+                        await tell_all(state)
+                if not slots:LIVE.pop(code,None)
+    return ws
+
+async def health(request):
+    return web.json_response({'ok':True,'service':'manual-das-criaturas','rooms':db_count(),'persistent':True,'database':'postgres' if DATABASE_URL else 'sqlite'})
+
+async def index(request):return web.FileResponse(BASE/'index.html')
+
+async def standalone(request):return web.FileResponse(BASE/'Manual_das_Criaturas_V10_Offline_Online.html')
+
+app=web.Application(client_max_size=160_000)
+app.router.add_get('/ws',socket_handler)
+app.router.add_get('/health',health)
+app.router.add_get('/',index)
+app.router.add_get('/index.html',index)
+app.router.add_get('/versao-unica',standalone)
+app.router.add_static('/assets',BASE/'assets')
+for filename in ('style.css','cases.js','extra_cases.js','gear.js','investigation.js','expansion.js','game.js','campaign.js'):
+    app.router.add_get('/'+filename, lambda req, filename=filename:web.FileResponse(BASE/filename))
 
 if __name__=='__main__':
-    asyncio.run(main())
+    print(f'Manual das Criaturas | http://localhost:{PORT} | database: {"postgres" if DATABASE_URL else str(DB_PATH)}',flush=True)
+    web.run_app(app,host='0.0.0.0',port=PORT,print=None)

@@ -1,1 +1,2 @@
-websockets>=13,<17
+aiohttp>=3.10,<4
+psycopg[binary]>=3.2,<4; platform_python_implementation == "CPython"
