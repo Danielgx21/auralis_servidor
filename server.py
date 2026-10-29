@@ -297,7 +297,7 @@ async def socket_handler(request):
     return ws
 
 async def health(request):
-    return web.json_response({'ok':True,'service':'manual-das-criaturas','rooms':db_count(),'persistent':bool(DATABASE_URL),'database':'postgres' if DATABASE_URL else 'sqlite'})
+    return web.json_response({'ok':True,'service':'manual-das-criaturas','rooms':db_count(),'persistent':bool(DATABASE_URL),'database':'postgres' if DATABASE_URL else 'sqlite','build':os.environ.get('MANUAL_BUILD_VERSION','1.0')})
 
 async def index(request):return web.FileResponse(BASE/'index.html')
 
