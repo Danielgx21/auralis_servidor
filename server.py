@@ -121,6 +121,8 @@ async def handle(ws,req):
             code=''.join(secrets.choice(string.ascii_uppercase+string.digits) for _ in range(6))
             if not db_read(code):break
         state=room_new(code,mode,size)
+        selected=req.get('caseId')
+        state['caseId']=selected if selected in META and META[selected].get('prerequisite') is None else 'lago'
     elif op=='join' and len(code)==6:
         state=db_read(code)
         if not state:
@@ -176,7 +178,8 @@ async def mutate(state,slot,m):
         if slot!=state['hostSlot']:return {'event':'error','message':'Somente o coordenador inicia a missão.'}
         if state['phase'] not in ('lobby','camp'):return {'event':'error','message':'A missão atual ainda está aberta.'}
         if len(LIVE.get(code,{}))!=state['size']:return {'event':'error','message':'Aguardem todos os jogadores reconectarem.'}
-        if choice not in META or not eligible(state,choice):return {'event':'error','message':'Uma continuação ainda não foi desbloqueada para todos.'}
+        if choice not in META:return {'event':'error','message':'Missão inválida. Escolha um caso no catálogo.'}
+        if not eligible(state,choice):return {'event':'error','message':'Uma continuação ainda não foi desbloqueada para todos.'}
         start_case(state,choice)
     elif op=='camp':
         if slot!=state['hostSlot']:return {'event':'error','message':'Somente o coordenador encerra a missão coletiva.'}
