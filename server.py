@@ -122,11 +122,14 @@ async def handle(ws,req):
             if not db_read(code):break
         state=room_new(code,mode,size)
         selected=req.get('caseId')
-        state['caseId']=selected if selected in META and META[selected].get('prerequisite') is None else 'lago'
+        state['caseId']=selected if selected in META else 'lago'
     elif op=='join' and len(code)==6:
         state=db_read(code)
         if not state:
             await send(ws,{'event':'error','message':'Expedição não encontrada. Confira o código.'});return None,None
+        # Salas antigas não registravam o arquivo escolhido no servidor.
+        if state.get('phase')=='lobby' and state.get('caseId') not in META:
+            state['caseId']='lago'
     else:
         await send(ws,{'event':'error','message':'Informe um código válido ou crie uma expedição.'});return None,None
     identity=token_hash(token)
@@ -174,7 +177,7 @@ async def mutate(state,slot,m):
         await commit(state)
         return None
     if op=='start':
-        choice=m.get('caseId')
+        choice=m.get('caseId') or state.get('caseId')
         if slot!=state['hostSlot']:return {'event':'error','message':'Somente o coordenador inicia a missão.'}
         if state['phase'] not in ('lobby','camp'):return {'event':'error','message':'A missão atual ainda está aberta.'}
         if len(LIVE.get(code,{}))!=state['size']:return {'event':'error','message':'Aguardem todos os jogadores reconectarem.'}
