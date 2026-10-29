@@ -42,7 +42,7 @@ function campaignConnect(action,attempt=false){
    campaignBackoff=800;
    const token=campaignLocal.pendingToken||campaignLocal.identities?.[net.room]||cToken();
    campaignLocal.pendingToken=token;cSave();
-   ws.send(JSON.stringify({op:action,code:net.room,token,name:net.name,mode:net.mode,size:net.size,profile:onlineProfile(),profileUpdated:campaignLocal.profileAt||0}));
+   ws.send(JSON.stringify({op:action,code:net.room,token,name:net.name,mode:net.mode,size:net.size,caseId:net.caseId,profile:onlineProfile(),profileUpdated:campaignLocal.profileAt||0}));
  });
  ws.addEventListener('message',evt=>{
    if(connCampaign!==ws||campaignStopped)return;
@@ -78,7 +78,7 @@ function applyCampaign(state,initial=false){
  net.votes=Object.fromEntries(Object.entries(state.votes?.end||{}).map(([k,v])=>['p'+k,v]));
  net.theoryVotes=Object.fromEntries(Object.entries(state.votes?.theory||{}).map(([k,v])=>['p'+k,v]));
  net.nextVotes=state.votes?.next||{};net.voteRounds=state.round||{theory:0,end:0,next:0};
- net.caseId=state.caseId;
+ if(state.caseId&&CASES[state.caseId])net.caseId=state.caseId;
  const started=state.startedAt||0;
  if(state.phase==='case' && CASES[state.caseId]){
    const existing=campaignLocal.roomRuns?.[net.room]||0;
