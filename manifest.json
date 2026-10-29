@@ -1,9 +1,9 @@
 {
   "game": "fragmentos-de-auralis",
   "base_revision": 21565,
-  "revision": 21719,
-  "version": "2.15.219",
-  "notes": "Atualização acumulada até 2.15.219: novo laboratório individual de campeões com estatísticas de cura própria e aliados, testes controlados de formação e posicionamento, aprimoramentos de combate, desempenho, obras, minimapa e portos.",
+  "revision": 21720,
+  "version": "2.15.220",
+  "notes": "Arena central sem as quatro muretas; equipes iniciam um pouco mais afastadas. Sem alterações em campeões, habilidades ou balanceamento.",
   "patches": [
     {
       "revision": 21604,
@@ -52,6 +52,14 @@
       "url": "https://github.com/Danielgx21/auralis_servidor/releases/download/v2.15.219/auralis_21719.pck",
       "size": 92390904,
       "sha256": "19c425c1d395393384c1962f25eca377c9757baa9c615082062c20ce0b9b6d9d"
+    },
+    {
+      "revision": 21720,
+      "version": "2.15.220",
+      "file": "auralis_21720.pck",
+      "url": "https://github.com/Danielgx21/auralis_servidor/releases/download/v.2.15.220/auralis_21720.pck",
+      "size": 92391192,
+      "sha256": "c97bafe069d422aeb277317ad1caa544afa4164eab231a92185cbc222ef60bdb"
     }
   ]
 }
