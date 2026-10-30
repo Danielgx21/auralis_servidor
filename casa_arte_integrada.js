@@ -41,7 +41,8 @@
    const mirrorHot=hotspot('mirror','',[155,214,226,443],mirrorEnabled);
    const radioHot=hotspot('radio','',[721,595,222,151],radioEnabled);
    const curtainImage='<g transform="translate('+curtainDx+' 0)"><image href="'+path+'casa_curtain.webp" x="302" y="156" width="140" height="601" preserveAspectRatio="none" /></g>';
-   const drawerImage='<g transform="translate(0 '+drawerDy+')"><image href="'+path+'casa_drawer.webp" x="588" y="788" width="291" height="158" preserveAspectRatio="none" /></g>';
+   // O recorte da gaveta usa a própria arte aprovada; não precisa de arquivo adicional.
+   const drawerImage='<g transform="translate(0 '+drawerDy+')"><svg x="588" y="788" width="291" height="158" viewBox="588 788 291 158" overflow="hidden"><image href="'+approved+'" x="0" y="0" width="1122" height="1402" preserveAspectRatio="none"/></svg></g>';
    const curtain=hotspot('curtain',curtainImage,[305+curtainDx,162,135,600],curtainEnabled);
    const drawer=hotspot('drawer',drawerImage,[589,788+drawerDy,286,160],drawerEnabled);
    return '<div class="landscapeCanvas casaArteCanvas" aria-label="Casa do barqueiro, cenário interativo">'+
