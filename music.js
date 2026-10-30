@@ -140,16 +140,13 @@ document.addEventListener('visibilitychange',function(){
 app.addEventListener('input',function(ev){
   if(ev.target?.id==='manualMusicVolume')manualSetVolume(ev.target.value);
 });
-const manualRenderPrevious=render;
-render=function(){
-  manualRenderPrevious();
-  const wrap=document.createElement('div');
-  wrap.id='manualAudioDock';
-  wrap.className='manualAudioDock';
-  wrap.setAttribute('aria-label','Controle musical');
-  wrap.innerHTML='<button type="button" data-action="audio" aria-pressed="'+(sound.playing?'true':'false')+'">'+(sound.playing?'♫ Pausar música':'♫ Ligar música')+'</button>'+
-    '<button type="button" data-action="soundtrack" title="Trocar atmosfera musical">'+manualMusicName()+' ↻</button>'+
-    '<label title="Volume da trilha">Vol. <input id="manualMusicVolume" type="range" min="15" max="100" step="5" value="'+Math.round(manualMusic.desired*100)+'" aria-label="Volume da trilha"></label>';
-  app.appendChild(wrap);
+// Música permanece acessível na Sede e no ícone da parte superior.
+// Nenhuma barra fixa é adicionada sobre o menu ou a navegação.
+const manualOriginalOfficePage=officePage;
+officePage=function(){
+  const content=manualOriginalOfficePage();
+  return content.replace(
+    '<div class="audioControl">',
+    '<div class="audioControl"><label class="musicVolumeLabel" for="manualMusicVolume">Volume da música <input id="manualMusicVolume" type="range" min="15" max="100" step="5" value="'+Math.round(manualMusic.desired*100)+'" aria-label="Volume da música"></label>'
+  );
 };
-render();
