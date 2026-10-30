@@ -93,9 +93,9 @@ p{color:var(--soft);line-height:1.74;font-size:14px}
 .theoryCard strong{display:block;color:#f1e6d1;font:23px Georgia,serif;margin-bottom:6px}.theoryCard p{font-size:12px;line-height:1.6;margin:0}
 .theoryBadge{font-size:10px;color:var(--gold);letter-spacing:.11em;text-transform:uppercase}
 /* final */
-.revealPicture{position:relative;height:410px;overflow:hidden;background:url('assets/velaria.png') center 42%/cover}.revealPicture:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#09151b 0%,transparent 50%)}
+.revealPicture{position:relative;height:410px;overflow:hidden;background:url('assets/velaria.svg') center 42%/cover}.revealPicture:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#09151b 0%,transparent 50%)}
 .revealPicture .revealTitle{position:absolute;bottom:15px;left:23px;right:23px;z-index:1;font:34px/1.08 Georgia,serif;color:#fff2db;text-shadow:0 4px 14px #000}
-.endingHero{height:270px;background:url('assets/velaria.png') center 43%/cover;position:relative}.endingHero:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#0d1e25 0%,transparent 85%)}
+.endingHero{height:270px;background:url('assets/velaria.svg') center 43%/cover;position:relative}.endingHero:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#0d1e25 0%,transparent 85%)}
 .endingHero .endingTag{position:absolute;bottom:13px;left:24px;z-index:2;color:var(--gold2);letter-spacing:.20em;font-size:10px}
 .meterBox{border:1px solid var(--line);padding:14px 16px;margin-top:10px;background:#162d33;display:flex;justify-content:space-between;gap:8px}.meterBox b{color:var(--gold2);font-weight:600}
 .creatureArt{width:100%;aspect-ratio:1.3;object-fit:cover;object-position:center 36%;border:1px solid var(--line);border-radius:4px}
