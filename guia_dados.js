@@ -9,14 +9,15 @@
   {id:'pactos',name:'Vínculos e rituais',symbol:'✥',tone:'#a58b69',desc:'Nomes, objetos, promessas e cerimônias podem concentrar relatos sem serem a causa deles.'},
   {id:'noturnos',name:'Errantes da noite',symbol:'☾',tone:'#81859d',desc:'Aparições móveis vistas às margens da luz e geralmente descritas de formas divergentes.'},
   {id:'feericos',name:'Cortes feéricas',symbol:'❀',tone:'#b19b7c',desc:'Presenças ligadas à percepção, às trocas, à música e à alteração da passagem do tempo.'},
-  {id:'limiares',name:'Seres de passagem',symbol:'⌘',tone:'#889a8a',desc:'Figuras associadas a portas, pontes, corredores e lugares em que alguém precisa escolher.'}
+  {id:'limiares',name:'Seres de passagem',symbol:'⌘',tone:'#889a8a',desc:'Figuras associadas a portas, pontes, corredores e lugares em que alguém precisa escolher.'},
+  {id:'retornantes',name:'Coroas e retornantes',symbol:'♛',tone:'#a18d78',desc:'Linhagens e cortes que aparecem em relatos de juramentos, retratos, disputas de memória e sucessão.'}
  ];
  const signs=['Frio inesperado','Vozes sem origem','Interferência em aparelhos','Reflexos discrepantes','Umidade incomum','Ruídos repetidos','Oscilação de luz','Sonhos recorrentes','Memórias contraditórias','Sombras deslocadas','Correntes de ar','Animais inquietos','Objetos fora do lugar','Cheiro metálico','Rastros interrompidos','Silêncio repentino'];
  const affinities={
   ecos:['Desorientação espacial','Relatos de presença'],aguas:['Alteração da água','Desorientação espacial'],
   matas:['Rastros indecisos','Relatos de presença'],mimicos:['Fala repetida','Relatos de presença'],
   pactos:['Fala repetida','Marcas no chão'],noturnos:['Rastros indecisos','Desorientação espacial'],
-  feericos:['Alteração da água','Fala repetida'],limiares:['Marcas no chão','Relatos de presença']
+  feericos:['Alteração da água','Fala repetida'],limiares:['Marcas no chão','Relatos de presença'],retornantes:['Relatos de presença','Fala repetida']
  };
  // Família, nome, alcunha, testemunhos, padrão de comportamento, leitura alternativa, pergunta de campo.
  const raw=[
@@ -67,7 +68,13 @@
  ['limiares','O Andarilho Entre Horas','Um rosto visto antes de chegar','Aparece em narrativas de relógios discordantes e trajetos que parecem ter durado tempo demais.','Não altera necessariamente os relógios: muitas histórias dependem da lembrança de quanto tempo passou.','Falhas de aparelhos, cansaço e atenção fragmentada são alternativas fortes.','Há registros sincronizados por fontes independentes?'],
  ['limiares','A Janela que Escuta','Presença no outro lado do vidro','Uma figura parece responder a conversas ditas perto de janelas. Às vezes está do lado de fora, outras no reflexo.','Não se conhece uma reação consistente a perguntas; respostas podem surgir muito depois.','Reflexos de transeuntes e sons da rua se misturam a falas internas.','O que foi observado ainda ocorre com o vidro coberto?'],
  ['limiares','O Passageiro da Ponte','O encontro no meio da travessia','Descrito como alguém que aparece em pontes desertas e some quando outra pessoa chega ao extremo oposto.','As versões divergem sobre direção, roupa e motivo. Algumas o veem como aviso; outras, como viajante comum.','Nevoeiro, curvas, passarelas laterais e pessoas reais criam desaparecimentos aparentes.','Todos os acessos e saídas foram observados durante o trajeto?'],
- ['limiares','A Sombra do Degrau','Um passo a mais na escada','Há histórias de escadas nas quais um degrau parece existir em dobro. Um vulto costuma ser acrescentado ao relato muito depois.','O fenômeno pode ocorrer de dia ou à noite e nem sempre envolve som ou frio.','Erro de atenção, degraus irregulares e visão periférica explicam passos equivocados.','Foram medidas as alturas e marcas físicas dos degraus?']
+ ['limiares','A Sombra do Degrau','Um passo a mais na escada','Há histórias de escadas nas quais um degrau parece existir em dobro. Um vulto costuma ser acrescentado ao relato muito depois.','O fenômeno pode ocorrer de dia ou à noite e nem sempre envolve som ou frio.','Erro de atenção, degraus irregulares e visão periférica explicam passos equivocados.','Foram medidas as alturas e marcas físicas dos degraus?'],
+ ['retornantes','Os Bolsonaros','Linhagem de soberanos retornantes · Cinzavila','Crônicas da cidade fictícia de Cinzavila descrevem uma dinastia deposta cuja insígnia reaparece em estandartes, retratos e cerimônias. Parte dos depoimentos fala em vários soberanos; outros, em uma única presença que assume suas imagens.','Os relatos não concordam sobre como a corte se manifesta. Alguns moradores descrevem juramentos involuntários; outros somente a repetição de sons e visões em salas antigas.','Objetos históricos reaproveitados, encenações humanas, propaganda e lembranças contraditórias também podem explicar parte dos sinais. Esta ficha é folclore ficcional, não relato sobre pessoas reais.','Os símbolos, as vozes e as testemunhas apontam necessariamente para a mesma origem?','assets/bolsonaros_revelacao.svg'],
+ ['retornantes','A Regente do Limo','A coroa submersa','Um palácio abandonado às margens de um estuário é citado em histórias sobre uma regente que reaparece depois das cheias. Muitos registros não descrevem rosto algum.','A figura pode ser vista perto de objetos úmidos e de portas lacradas, mas as versões diferem sobre suas intenções.','Inundações, reflexos na superfície e visitas clandestinas explicaram diversos relatos associados ao edifício.','As alterações do ambiente começaram antes ou depois da circulação da lenda?'],
+ ['retornantes','O Arauto Sem Língua','Proclamações sem mensageiro','Moradores relatam ouvir anúncios formais em salões vazios. Há versões que atribuem os sons a uma silhueta trajada de mensageiro, mas nem todos a viram.','As palavras variam entre narradores. Algumas frases parecem ser repetições de discursos antigos.','Acústica, gravações, imitações e expectativa coletiva são hipóteses equivalentes até surgir prova independente.','As palavras foram transcritas durante o evento, e não depois?'],
+ ['retornantes','A Casa das Quatro Coroas','Os herdeiros que nunca se encontram','Um conjunto de retratos familiares é associado à aparição de vultos que ocupam, em noites diferentes, o mesmo salão. Não existe consenso sobre quantas figuras são vistas.','A manifestação pode alterar a percepção dos quadros e dos nomes, mas também há relatos sem qualquer mudança material.','Reflexos, restaurações, mudanças na iluminação e versões contraditórias sobre a família dificultam a identificação.','O objeto foi examinado e fotografado antes de os rumores começarem?'],
+ ['retornantes','O Monarca do Vazio','Trono ocupado por uma ausência','Há registros de uma sombra projetada sobre cadeiras vazias em ruínas e tribunais desativados. Em alguns relatos, a sombra responde a sons; em outros, desaparece.','O fenômeno não se limita a coroas: mesas, púlpitos e degraus também figuram nas descrições.','Fontes múltiplas de luz, projeções e manipulação do ambiente podem produzir efeitos semelhantes.','A posição da sombra acompanha de fato a movimentação das fontes luminosas?'],
+ ['retornantes','A Princesa das Testemunhas','A memória dividida','Uma personagem lendária surge em relatos de documentos contestados e famílias que contam histórias incompatíveis de um mesmo acontecimento.','Às vezes é descrita como uma voz, às vezes como reflexo; a identidade da figura não é comprovada por nenhum sinal isolado.','Falhas de memória, erros em documentos e influências mútuas entre testemunhas são parte fundamental da investigação.','Que informação foi registrada antes de as testemunhas conversarem entre si?']
  ];
  const entries=raw.map((row,i)=>{
   const family=families.find(f=>f.id===row[0]);
@@ -82,13 +89,14 @@
    pactos:['Ruídos repetidos','Interferência em aparelhos','Objetos fora do lugar'],
    noturnos:['Frio inesperado','Sombras deslocadas','Silêncio repentino'],
    feericos:['Oscilação de luz','Sonhos recorrentes','Vozes sem origem'],
-   limiares:['Correntes de ar','Sombras deslocadas','Ruídos repetidos']
+   limiares:['Correntes de ar','Sombras deslocadas','Ruídos repetidos'],
+   retornantes:['Memórias contraditórias','Ruídos repetidos','Reflexos discrepantes']
   };
   const core=Array.from({length:5+(i%3)},(_,k)=>signs[(i*7+k*5+(i%4))%signs.length]);
   const familial=familySigns[row[0]].filter((_,j)=>(i+j)%3!==0);
   const traits=[...new Set([...core,...familial,...affinities[row[0]]])];
   return {id:'m'+String(i+1).padStart(2,'0'),n:i+1,family:row[0],familyName:family.name,tone:family.tone,
-   name:row[1],epithet:row[2],story:row[3],behavior:row[4],alternative:row[5],question:row[6],
+   name:row[1],epithet:row[2],story:row[3],behavior:row[4],alternative:row[5],question:row[6],image:row[7]||null,
    signs:traits,source:['Depoimentos recolhidos','Caderno de campo','Tradição oral comparada','Arquivo de correspondência'][i%4],
    confidence:['Registro fragmentário','Versões conflitantes','Múltiplas fontes','Observação não reproduzida'][i%4]};
  });
