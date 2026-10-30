@@ -10,6 +10,7 @@ const descriptions={
  capela:['A pedra do altar está fria.','O sino vibra sem tocar.','Um pacto antigo parece despertar.','A água recua, mas a inscrição permanece.']
 };
 function t(){if(s.caseId!=='lago')return null;
+ if(typeof window.manualWorldMinute==='function'){const tm=window.manualWorldMinute(),idx=tm<720?0:tm<1020?1:tm<1200?2:3;return {phase:idx,clock:String(Math.floor(tm/60)).padStart(2,'0')+':'+String(tm%60).padStart(2,'0')+':00'}}
  let now=Date.now();if(!Number.isFinite(s.lagoRefinedEpoch)){s.lagoRefinedEpoch=now;s.lagoRefinedOrigin=10*60+40;persist(false)}
  let elapsed=Math.max(0,Math.floor((now-s.lagoRefinedEpoch)/1000));
  let time=((s.lagoRefinedOrigin||640)+elapsed)%86400;
