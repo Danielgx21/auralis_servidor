@@ -272,3 +272,44 @@ if(campaignLocal.active&&campaignLocal.currentRoom&&campaignLocal.identities?.[c
  net.room=campaignLocal.currentRoom;net.name=campaignLocal.name||'Pesquisador';net.role='guest';net.mode='coop';net.slot=-1;net.playerId='pending';s.view='room';render();
  setTimeout(()=>campaignConnect('join',true),400);
 }
+
+
+// Navegação direta para o início sem destruir sessão ou progresso.
+const manualNavPreviousRender=render;
+render=function(){
+  manualNavPreviousRender();
+  if(s.view!=='title'){
+    const home=document.createElement('button');
+    home.type='button';home.className='manualHomeQuick';home.dataset.action='manual-home';
+    home.textContent='⌂ Início';home.setAttribute('aria-label','Voltar ao início sem perder progresso');
+    app.append(home);
+  }else{
+    const active=net.inGame||net.online||s.evidence?.length||s.outcome;
+    if(active){
+      const resume=document.createElement('button');resume.type='button';resume.className='manualResumeHome';
+      resume.dataset.action='manual-resume';resume.textContent=net.inGame?'▶ Retomar missão em andamento':net.online?'↩ Voltar à expedição':'▶ Continuar investigação';
+      const titleButton=app.querySelector('.coverInner');
+      if(titleButton)titleButton.append(resume);else app.append(resume);
+    }
+  }
+};
+app.addEventListener('click',function(ev){
+  const button=ev.target.closest('[data-action="manual-home"],[data-action="manual-resume"]');
+  if(!button)return;
+  ev.preventDefault();ev.stopImmediatePropagation();
+  if(button.dataset.action==='manual-home'){
+    missionAway=true;
+    s.modal=null;
+    // Persistir a pesquisa, mas nunca fechar o WebSocket ou sair do grupo.
+    persist(false);
+    s.view='title';render();
+    try{window.scrollTo(0,0)}catch{}
+    return;
+  }
+  missionAway=false;
+  const where=net.inGame
+     ? (s.outcome?'ending':s.theory?'confrontation':s.evidence?.length?'hub':'brief')
+     : net.online?(campaignLastPhase==='camp'?'camp':'room')
+     : (s.outcome?'ending':s.evidence?.length?'hub':'brief');
+  move(where);
+},true);
