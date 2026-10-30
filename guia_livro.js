@@ -4,7 +4,7 @@
  if(!window.MANIFEST_GUIDE||typeof bestiary!=='function')return;
  const atlas=window.MANIFEST_GUIDE;
  const oldBestiary=bestiary;
- let chosen=atlas.entries[0].id, family='all', sign='', q='', mode='details', indexOpen=true;
+ let chosen=atlas.entries[0].id, family='all', sign='', q='';
  const h=s=>esc(String(s??''));
  const f=id=>atlas.families.find(x=>x.id===id);
  const current=()=>atlas.entries.find(x=>x.id===chosen)||atlas.entries[0];
@@ -36,20 +36,36 @@
    feericos:'<path d="M151 271Q90 157 42 178Q15 208 52 257Q14 294 61 338Q113 350 153 284M189 271Q252 156 302 180Q335 222 285 262Q334 292 280 338Q225 345 189 285" fill="'+primary+'" opacity=".24" stroke="'+light+'" stroke-width="4"/><ellipse cx="76" cy="237" rx="14" ry="25" fill="'+light+'" opacity=".23"/><ellipse cx="263" cy="237" rx="14" ry="25" fill="'+light+'" opacity=".23"/>',
    limiares:'<path d="M66 432V97Q66 50 171 48Q276 50 276 97V432M92 432V115Q92 70 171 72Q250 70 250 115V432" fill="none" stroke="'+primary+'" stroke-width="12" opacity=".7"/><path d="M73 121Q171 18 269 121" stroke="'+light+'" stroke-width="3" fill="none" opacity=".38"/>'
   };
+  // Elementos de cena individualizam as gravuras dentro de cada linhagem.
+  const emblems=[
+   '<ellipse cx="0" cy="0" rx="40" ry="57" fill="none" stroke="currentColor" stroke-width="5"/><path d="M-28-17L-3 4L24-22M-14 16L12 34" fill="none" stroke="currentColor" stroke-width="3"/>',
+   '<path d="M-48 10H45L25 36H-26Z M-10 10V-59M-10-45L35-5H-10Z" fill="none" stroke="currentColor" stroke-width="5"/>',
+   '<path d="M-30-28Q-2-66 30-27Q47 7 0 40Q-49 7-30-28Z" fill="none" stroke="currentColor" stroke-width="5"/><circle cy="-8" r="11" fill="none" stroke="currentColor" stroke-width="3"/>',
+   '<path d="M-16-65V12M16-65V12M-38 13Q0 57 38 13M-42-53Q0-81 42-53" fill="none" stroke="currentColor" stroke-width="5"/>',
+   '<path d="M-8-63L17-22L-8 13L17 55M-43-25L-8-12L28-23M-20 13L-48 38" fill="none" stroke="currentColor" stroke-width="5"/>',
+   '<path d="M-38-37H38V37H-38Z M-20-23L25 27M22-24L-22 27" fill="none" stroke="currentColor" stroke-width="5"/>',
+   '<circle cx="-24" cy="-20" r="15" fill="none" stroke="currentColor" stroke-width="5"/><path d="M-9-20H45V-6H30V8H15V-6H-9" fill="none" stroke="currentColor" stroke-width="5"/>',
+   '<path d="M0-62Q-55-30-42 20Q-8 67 30 25Q43-1 0-62Z M-25 5L26-21" fill="none" stroke="currentColor" stroke-width="5"/>',
+   '<path d="M-40 39V-27Q-37-57 0-57Q37-57 40-27V39 M-23 39V-27Q0-59 23-27V39" fill="none" stroke="currentColor" stroke-width="5"/>',
+   '<path d="M-41-37H41V40H-41Z M-20-20H20M-20-2H20M-20 16H11" fill="none" stroke="currentColor" stroke-width="5"/>',
+   '<path d="M-42-20Q-20-70 0-20Q20-70 42-20Q14 6 0 49Q-14 6-42-20Z" fill="none" stroke="currentColor" stroke-width="5"/>',
+   '<path d="M-15-55Q36-53 31-9Q15 16-14 23Q-25 39-14 57M-14 23Q-44-2-27-31" fill="none" stroke="currentColor" stroke-width="5"/>'
+  ];
+  const prop='<g transform="translate('+(258+(i%2?8:-8))+' '+(280+(i%4)*11)+') scale('+(i%3===0?0.62:0.8)+')" color="'+light+'" opacity=".54">'+emblems[(i-1)%emblems.length]+'</g>';
   const crest=['✦','⌘','◈','❧','◇','✧'][variant];
   return '<svg class="atlasArtwork '+(small?'atlasMiniArt':'atlasFullArt')+'" viewBox="0 0 340 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Prancha artística de '+h(e.name)+'">'+
    '<defs><radialGradient id="'+unique+'"><stop stop-color="'+primary+'" stop-opacity=".55"/><stop offset="1" stop-color="'+dark+'" stop-opacity="0"/></radialGradient><linearGradient id="'+unique+'b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="'+dark+'"/><stop offset="1" stop-color="#0a1119"/></linearGradient></defs>'+
    '<rect width="340" height="440" fill="url(#'+unique+'b)"/><circle cx="172" cy="202" r="164" fill="url(#'+unique+')"/>'+
    '<g opacity=".55">'+marks+'</g><path d="M18 28H322V412H18Z" fill="none" stroke="'+light+'" opacity=".38" stroke-width="2"/>'+
    '<path d="M27 36H53M287 36H313M27 404H53M287 404H313" stroke="'+light+'" stroke-width="4"/>'+
-   variants[group]+body+
+   variants[group]+prop+body+
    '<text x="170" y="89" text-anchor="middle" fill="'+light+'" opacity=".55" font-family="serif" font-size="45">'+crest+'</text>'+
    '<rect x="30" y="374" width="280" height="33" rx="2" fill="#08151c" opacity=".83"/>'+
    '<text x="170" y="396" text-anchor="middle" fill="'+light+'" font-family="Georgia,serif" font-size="15" letter-spacing="1.1">'+h('PRANCHA '+String(i).padStart(2,'0'))+'</text></svg>';
  }
  function indexHTML(){
   const rows=filtered();
-  const families=f;
+  // O índice preserva a ordem editorial das famílias.
   return '<div class="atlasIndexMeta"><span>'+rows.length+' entradas neste recorte</span><button type="button" data-atlas-reset>Limpar filtros</button></div>'+
    '<div class="atlasCatalogGrid">'+rows.map(e=>'<button class="atlasTile '+(e.id===chosen?'is-active':'')+'" type="button" data-atlas-entry="'+e.id+'" aria-label="Abrir verbete '+h(e.name)+'">'+
    '<span class="atlasTileArt">'+art(e,true)+'</span><span class="atlasTileText"><small>Nº '+String(e.n).padStart(2,'0')+' · '+h(e.familyName)+'</small><strong>'+h(e.name)+'</strong><em>'+h(e.epithet)+'</em></span></button>').join('')+
@@ -88,7 +104,7 @@
    '<div class="atlasFamilyScroll"><button data-atlas-family="all" class="'+(family==='all'?'active':'')+'">Todos</button>'+
    atlas.families.map(x=>'<button type="button" data-atlas-family="'+x.id+'" class="'+(family===x.id?'active':'')+'">'+h(x.symbol)+' '+h(x.name)+'</button>').join('')+'</div>'+
    (sign?'<div class="atlasSelectedFilter">Comparando indício: <b>'+h(sign)+'</b> <button type="button" data-atlas-sign="">Remover ×</button></div>':'')+
-   '</div><div class="atlasPages"><aside class="atlasIndex"><div class="atlasIndexHeading"><span>Índice alfabético de campo</span><small>Selecione uma ficha para ler</small></div><div class="atlasIndexBody">'+indexHTML()+'</div></aside>'+
+   '</div><div class="atlasPages"><aside class="atlasIndex"><div class="atlasIndexHeading"><span>Índice de verbetes</span><small>Selecione uma ficha para ler</small></div><div class="atlasIndexBody">'+indexHTML()+'</div></aside>'+
    '<div class="atlasReading">'+detailHTML()+'</div></div></div>'+
    '<div class="atlasClosing"><span>✧</span><p>As ilustrações são reconstruções artísticas. O arquivo não nomeia a resposta de nenhum caso, não atribui probabilidades a criaturas e não registra automaticamente as pistas da investigação.</p></div></section>';
  }
@@ -109,7 +125,7 @@
   if(!x)return;
   if(!app.querySelector('.atlasRoot'))return;
   e.preventDefault();e.stopImmediatePropagation();
-  if(x.hasAttribute('data-atlas-entry')){chosen=x.dataset.atlasEntry;mode='details';}
+  if(x.hasAttribute('data-atlas-entry')){chosen=x.dataset.atlasEntry;}
   if(x.hasAttribute('data-atlas-family')){family=x.dataset.atlasFamily;sign='';}
   if(x.hasAttribute('data-atlas-sign')){sign=x.dataset.atlasSign;}
   if(x.hasAttribute('data-atlas-reset')){family='all';sign='';q='';}
