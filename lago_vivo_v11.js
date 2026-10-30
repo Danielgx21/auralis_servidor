@@ -27,7 +27,7 @@ function create(){
  const main=app.querySelector('main');if(!main)return;
  const panel=document.createElement('section');panel.className='lakeLife';panel.setAttribute('aria-label','Ambiente vivo da investigação');
  if(s.view==='scene'){
-  panel.innerHTML=shared()+'<div class="lakeLifeMoment" data-lake-event hidden><div class="lakeLifeMomentIcon">◌</div><div><strong>00h17 · Uma voz atravessa o lago</strong><p>A superfície devolve uma voz familiar, mas o sino soa antes de qualquer movimento. Um detalhe que pode ajudar a reconstruir o ritual.</p><button type="button" data-lake-observe>Observar e registrar no caderno</button></div></div><div class="lakeLifeActions"><span data-lake-danger></span><small>O ambiente evolui enquanto você examina os objetos.</small></div>';
+  panel.innerHTML=shared()+'<div class="lakeLifeMoment" data-lake-event hidden><div class="lakeLifeMomentIcon">◌</div><div><strong>Um som percorre a água</strong><p>Uma voz parece atravessar a superfície. Instantes depois, algo vibra entre as árvores; é difícil dizer de onde veio primeiro.</p></div></div><div class="lakeLifeActions"><span data-lake-danger></span><small>O ambiente muda com o passar das horas.</small></div>';
   const hook=app.querySelector('.timeWorldScene,.landscapeHelp,.sceneIntro');(hook||main).insertAdjacentElement(hook?'afterend':'afterbegin',panel);
   const canvas=app.querySelector('.landscapeCanvas,.lakeBoard,.sceneFrame');if(canvas&&!canvas.querySelector('.lakeLifeFx')){const fx=document.createElement('div');fx.className='lakeLifeFx';fx.setAttribute('aria-hidden','true');fx.innerHTML='<span class="lakeLifeFog"></span><span class="lakeLifeGlint"></span>';canvas.append(fx);}
  }else{
@@ -59,18 +59,7 @@ app.addEventListener('click',ev=>{
   s.timeElapsed=Math.max(0,Number(s.timeElapsed)||0)+15000;
   persist(false);render();toast('Trinta minutos se passaram. O prazo da investigação também avançou.');return;
  }
- const observe=ev.target.closest('[data-lake-observe]');
- if(observe&&live()&&s.view==='scene'&&s.activeScene==='lago'){
-  const n=minute();if(n===null||n<17||n>=30||s.lagoMidnightSeen)return;
-  ev.preventDefault();ev.stopImmediatePropagation();
-  if(net.inGame&&net.paused)return toast('Aguardando os pesquisadores reconectarem.');
-  s.lagoMidnightSeen=true;s.lagoFieldNotes=Array.isArray(s.lagoFieldNotes)?s.lagoFieldNotes:[];
-  const note='Às 00h17, a voz surgiu na água e o som do sino a precedeu. A ordem dos sons pode revelar quem iniciou o chamado.';
-  if(!s.lagoFieldNotes.includes(note))s.lagoFieldNotes.unshift(note);
-  s.lagoFieldNotes=s.lagoFieldNotes.slice(0,18);persist(false);
-  if(net.inGame&&net.mode==='coop'&&typeof campaignPush==='function')campaignPush({op:'investigation',kind:'note',text:note});
-  render();toast('Manifestação observada. A sequência foi anotada, sem concluir a teoria por você.');
- }
+
 },true);
 setInterval(()=>{if(!document.hidden&&live())refresh()},1000);
 render();
