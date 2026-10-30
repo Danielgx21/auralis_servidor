@@ -114,7 +114,7 @@ def require_player(state,slot):
     return next((p for p in state['players'] if p['slot']==slot),None)
 
 def team_default(case):
-    return {'caseId':case,'evidence':[],'witness':[],'boardSolved':False,'puzzleSolved':False,'roleContributions':{},'theory':None,'outcome':None}
+    return {'caseId':case,'evidence':[],'witness':[],'boardSolved':False,'puzzleSolved':False,'roleContributions':{},'theory':None,'outcome':None,'investigation':{'notes':[],'connections':[]}}
 
 def sanitize_progress(data,case):
     meta=META[case]
@@ -270,6 +270,22 @@ async def mutate(state,slot,m):
                 start_case(state,picked)
             else:
                 state['votes']['next']={};state['round']['next']+=1
+    elif op=='investigation':
+        if state['phase']!='case' or case!='lago':return None
+        if len(LIVE.get(code,{}))!=state['size']:return None
+        inv=state['team'].setdefault('investigation',{'notes':[],'connections':[]})
+        kind=m.get('kind')
+        if kind=='note':
+            body=str(m.get('text') or '').strip()[:250]
+            if len(body)<5:return None
+            inv['notes']=(inv['notes']+[{'text':body,'by':player['name']}])[-30:]
+        elif kind=='connection':
+            a,b=str(m.get('a','')),str(m.get('b',''))
+            if a==b or a not in META[case]['clues'] or b not in META[case]['clues']:return None
+            if a not in state['team']['evidence'] or b not in state['team']['evidence']:return None
+            if not any(set((x['a'],x['b']))==set((a,b)) for x in inv['connections']):
+                inv['connections']=(inv['connections']+[{'a':a,'b':b,'by':player['name']}])[-20:]
+        else:return None
     elif op=='progress':
         if state['phase']!='case' or m.get('caseId')!=case:return None
         player['score']=max(0,min(5000,int(m.get('score') or 0)))
@@ -385,7 +401,7 @@ app.router.add_get('/',index)
 app.router.add_get('/index.html',index)
 app.router.add_get('/versao-unica',standalone)
 app.router.add_static('/assets',BASE/'assets')
-for filename in ('style.css','cases.js','extra_cases.js','gear.js','investigation.js','expansion.js','game.js','campaign.js','music.js','tutorial.js','lago_rework.js','lago_scenery.js','lago_visual_refino.js','lago_visual_refino.css','immersion.js','immersion.css','tempo_imersao.js'):
+for filename in ('style.css','cases.js','extra_cases.js','gear.js','investigation.js','expansion.js','game.js','campaign.js','music.js','tutorial.js','lago_rework.js','lago_scenery.js','lago_visual_refino.js','lago_visual_refino.css','immersion.js','immersion.css','tempo_imersao.js','lago_quadro_coletivo.js','lago_quadro_coletivo.css'):
     app.router.add_get('/'+filename, lambda req, filename=filename:web.FileResponse(BASE/filename, headers={'Cache-Control':'no-store, max-age=0'}))
 
 if __name__=='__main__':
