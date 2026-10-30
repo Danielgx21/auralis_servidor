@@ -304,15 +304,26 @@ body{background:radial-gradient(ellipse at 50% 2%,#28414a,#08151b 61%,#040b10 10
 .missionExitQuick{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 78px);z-index:85;border:1px solid #c5a46c;background:#1c3039;color:#ffe1a4;border-radius:18px;padding:12px 17px;font:700 14px/1.25 system-ui;box-shadow:0 7px 26px #0009;cursor:pointer;max-width:calc(100vw - 28px)}
 .missionExitPage .btn{margin-top:12px}
 
-/* Controles de música v1.0.6: acessíveis em celular e desktop */
-.manualAudioDock{position:fixed;left:8px;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 4px);z-index:98;display:flex;align-items:center;justify-content:center;gap:7px;border:1px solid #997c4f;border-radius:12px;padding:7px;background:#0c2129f5;box-shadow:0 4px 22px #0009;color:#f0d6a2;font:600 12px/1.25 system-ui}
-.manualAudioDock button{border:1px solid #8f7956;border-radius:7px;background:#1b3540;color:#f3d9a6;padding:9px 7px;font:inherit;cursor:pointer;white-space:nowrap}
-.manualAudioDock button[aria-pressed="true"]{background:#34514e;border-color:#85c6ad}
-.manualAudioDock label{display:flex;align-items:center;gap:5px;flex:1;min-width:70px;max-width:155px;font-size:11px}
-.manualAudioDock input{width:100%;min-width:40px;accent-color:#d1b47e}
-@media(max-width:365px){.manualAudioDock{gap:3px;padding:5px}.manualAudioDock button{font-size:10px;padding:8px 5px}.manualAudioDock label{font-size:10px}}
 
 
 .manualHomeQuick{position:fixed;top:calc(env(safe-area-inset-top,0px) + 45px);right:10px;z-index:105;border:1px solid #d0ad77;border-radius:12px;background:#112831f5;color:#f5d7a2;padding:11px 15px;font:700 14px system-ui;box-shadow:0 3px 14px #0009;cursor:pointer}
 .manualResumeHome{display:block;width:100%;margin-top:16px;padding:17px 12px;background:#d7b782;color:#10242a;border:0;border-radius:12px;font:800 16px system-ui;cursor:pointer}
 @media(max-width:390px){.manualHomeQuick{top:calc(env(safe-area-inset-top,0px) + 40px);padding:9px 11px}}
+
+/* Tutorial guiado v1.0.8 — não cobre o jogo fora da interação ativa */
+.manualTutorialStart{display:block;width:100%;margin-top:12px;padding:15px;border-radius:12px;background:#203a43;color:#f4d9a8;border:1px solid #c7aa78;font:700 15px system-ui;cursor:pointer}
+.manualHelpQuick{position:fixed;top:calc(env(safe-area-inset-top,0px) + 45px);left:10px;z-index:106;border:1px solid #c7a675;border-radius:12px;background:#112831ef;color:#ffe0a7;padding:11px 14px;font:700 14px system-ui;box-shadow:0 4px 18px #000a;cursor:pointer}
+.tutorialOverlay{position:fixed;inset:0;z-index:1000;background:#030b0fe8;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
+.tutorialPanel{width:min(100%,550px);max-height:calc(100dvh - 32px);overflow-y:auto;background:linear-gradient(150deg,#17313a,#0e1b25);border:1px solid #b99b6d;border-radius:17px;padding:20px;color:#efe6d6;box-shadow:0 18px 90px #000d;font:15px/1.55 system-ui}
+.tutorialHead{display:flex;justify-content:space-between;align-items:center;color:#d4b77e;font-weight:800;letter-spacing:.07em;font-size:12px;gap:12px}
+.tutorialHead button{background:transparent;border:1px solid #8d8277;border-radius:8px;color:#ffdfb7;font-size:20px;padding:2px 11px}
+.tutorialCount{margin-top:14px;font-size:11px;letter-spacing:.1em;color:#b7c6c3}
+.tutorialBar{height:5px;margin-top:8px;border-radius:9px;background:#34515b;overflow:hidden}.tutorialBar span{display:block;height:100%;background:#d7b67c;transition:width .15s}
+.tutorialPanel h2{color:#f6dcad;font:700 clamp(22px,5vw,30px)/1.15 system-ui;margin:20px 0 16px}
+.tutorialExample{background:linear-gradient(130deg,#274752,#162b35);min-height:100px;border:1px solid #456f72;border-radius:13px;display:flex;align-items:center;justify-content:center;text-align:center;padding:22px;color:#e4c892;font:700 clamp(14px,3vw,20px)/1.7 system-ui;letter-spacing:.04em;word-break:break-word}
+.tutorialPanel p{margin:17px 0;font-size:15px}
+.tutorialTip{border-left:3px solid #c9ad78;background:#283d41a6;padding:10px 12px;border-radius:0 7px 7px 0;font-size:13px}
+.tutorialActions{display:flex;gap:10px;margin-top:22px}.tutorialActions button{flex:1;min-height:47px;border:1px solid #ad9876;border-radius:10px;background:#243d46;color:#f5dec0;font:700 14px system-ui}.tutorialActions button:last-child{background:#d7b781;color:#12252b}.tutorialActions button:disabled{opacity:.4}
+.tutorialSkip{display:block;margin:15px auto 0;padding:8px;border:0;background:transparent;color:#b4c6c9;text-decoration:underline;font:13px system-ui}
+.musicVolumeLabel{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#eee2c5;font:600 13px system-ui}.musicVolumeLabel input{accent-color:#d3b27d;min-width:160px}
+@media(max-width:390px){.manualHelpQuick{top:calc(env(safe-area-inset-top,0px) + 40px);padding:9px 11px}.tutorialPanel{padding:15px}}
