@@ -47,6 +47,7 @@ if(!Number.isFinite(s.timeElapsed))s.timeElapsed=0;
 return Math.max(0,s.timeElapsed+(s.timeFrom?Date.now()-s.timeFrom:0));
 }
 function min(){return ((ORIGIN[s.caseId]||20*60)+Math.floor(ms()/1000)*SPEED)%DAY}
+window.manualWorldMinute=min;
 function night(){let t=min();return t<6*60||t>=19*60}
 function formatTime(){let m=min();return pad(Math.floor(m/60))+':'+pad(m%60)}
 function formatLeft(){let left=Math.max(0,(runtime.cloud?.durationMs&&net.inGame?runtime.cloud.durationMs:limit(s.caseId))-ms());return pad(Math.floor(left/60000))+':'+pad(Math.floor(left/1000)%60)}
@@ -121,7 +122,7 @@ app.append(node);
 }
 function syncScene(){
 const newScene=s.view==='scene'?s.caseId+'/'+s.activeScene:'';
-if(newScene!==runtime.scene){if(!newScene)stopSound();runtime.scene=newScene;runtime.since=Date.now();runtime.risktick=Date.now();runtime.nextEvent=Date.now()+35000;}
+if(newScene!==runtime.scene){if(!newScene)stopSound();else if(runtime.ambient)adaptSound();runtime.scene=newScene;runtime.since=Date.now();runtime.risktick=Date.now();runtime.nextEvent=Date.now()+35000;}
 }
 const previousRender=render;
 render=function(){previousRender();if(!CASES[s.caseId])return;initSolo();syncScene();hud();scenePanel();witnessPanel();failure();refresh()};
@@ -145,7 +146,7 @@ if(b.hasAttribute('data-time-retry')){if(net.inGame)return toast('O grupo escolh
 if(b.hasAttribute('data-time-exit'))move('collection');
 },true);
 const CSS='.timeWorldHud{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;padding:12px;margin:8px 12px 15px;background:linear-gradient(120deg,#102e36,#091a22);border:1px solid #bd9a6c77;border-radius:12px}.timeWorldHud small{display:block;font:700 9px system-ui;letter-spacing:.09em;color:#a9bec1}.timeWorldHud strong{font:700 21px ui-monospace,monospace;color:#f0d7aa;display:block;margin-top:4px}.timeWorldHud>span{font:700 10px system-ui;color:#e9c995;background:#30424a;padding:8px;border-radius:99px}.timeWorldScene{margin:13px 11px;padding:14px;border:1px solid #b9a07377;border-radius:13px;background:linear-gradient(120deg,#122c35,#0c1c27);color:#eadac5}.timeWorldSceneHead{display:flex;justify-content:space-between;gap:10px;align-items:center}.timeWorldSceneHead small{color:#b2c5c8;letter-spacing:.11em;font:700 9px system-ui}.timeWorldSceneHead strong{display:block;margin-top:6px;font:600 15px system-ui}.timeWorldSceneHead p,.timeWorldScene>p{color:#c9d0cc;font:12px/1.6 system-ui}.timeWorldScene button{min-width:102px;padding:10px;border-radius:9px;background:#354d58;border:1px solid #e1c39788;color:#f8e2ba}.timeWorldRisk{display:flex;gap:8px;align-items:center}.timeWorldRisk span{font:700 9px system-ui;flex:1}.timeWorldRisk>i{height:8px;background:#071620;border-radius:99px;overflow:hidden;flex:1}.timeWorldRisk>i>b{display:block;height:100%;background:linear-gradient(90deg,#85a6a7,#d6a86d,#ae5551)}.timeWorldRisk>strong{font:700 12px monospace}.timeWorldLighting{position:absolute;inset:0;pointer-events:none;z-index:1}body[data-time-light=night] .timeWorldLighting{background:linear-gradient(135deg,#02142445,#000d2770)}body[data-time-light=day] .timeWorldLighting{background:radial-gradient(circle at 16% 14%,#ecdf9b24,transparent 65%)}.timeWorldWitness{padding:12px;background:#152c33;border:1px solid #d3ae7b6f;border-radius:10px;margin:12px 0}.timeWorldWitness b{color:#f3d9a7;font-size:12px}.timeWorldWitness p{font-size:11px;line-height:1.5}.timeWitnessAbsent{opacity:.45}.timeEvent,.timeWorldFailure{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#020a11de;padding:20px;backdrop-filter:blur(7px)}.timeEvent article,.timeWorldFailure article{max-width:430px;width:100%;padding:26px;background:linear-gradient(145deg,#182e37,#201925);border:1px solid #d5b68188;border-radius:15px;box-shadow:0 20px 60px #000a}.timeEvent small,.timeWorldFailure small{color:#e0b983;font:700 10px system-ui;letter-spacing:.14em}.timeEvent h2,.timeWorldFailure h2{font:600 25px/1.28 Georgia,serif;color:#f3ddbc}.timeEvent p,.timeWorldFailure p{color:#d3d0cd;line-height:1.6}.timeEvent article>div{display:flex;gap:9px}.timeEvent button,.timeWorldFailure button{padding:13px;border-radius:9px;background:#71553f;border:1px solid #dcc28d9a;color:#f7e2c6;font:700 12px system-ui;flex:1}.timeWorldFailure button{width:100%;margin-top:10px}@media(max-width:380px){.timeWorldSceneHead{flex-direction:column;align-items:stretch}.timeWorldHud strong{font-size:18px}.timeEvent article>div{flex-direction:column}}';
-const sheet=document.createElement('style');sheet.textContent=CSS;document.head.append(sheet);
+const sheet=document.createElement('style');sheet.textContent=CSS+'.refinePanel{display:none!important}';document.head.append(sheet);
 function pulse(f,d=0.5,v=.06){const a=runtime.ambient;if(!a)return;try{let t=a.ctx.currentTime;let o=a.ctx.createOscillator(),g=a.ctx.createGain();o.type='sine';o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(Math.max(40,f*.72),t+d);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v,t+.04);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(a.master);o.start(t);o.stop(t+d+.04)}catch(e){}}
 function stopSound(){let a=runtime.ambient;if(!a)return;try{a.source.stop();a.drone.stop();a.ctx.close()}catch(e){}runtime.ambient=null}
 function toggleSound(){
@@ -155,9 +156,10 @@ try{if(typeof ambientStop==='function'&&sound.playing)ambientStop();let ctx=new 
 let buffer=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate),arr=buffer.getChannelData(0),sum=0;
 for(let i=0;i<arr.length;i++){sum=(sum+(Math.random()*2-1)*.025)/1.025;arr[i]=sum*3}
 let source=ctx.createBufferSource();source.buffer=buffer;source.loop=true;let filter=ctx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=kind()==='woods'?1800:kind()==='lake'?550:900;source.connect(filter);filter.connect(master);source.start();
-let drone=ctx.createOscillator(),gain=ctx.createGain();drone.frequency.value=kind()==='sacred'?92:kind()==='interior'?65:100;drone.type='sine';gain.gain.value=.035;drone.connect(gain);gain.connect(master);drone.start();ctx.resume();runtime.ambient={ctx,master,source,drone};toast('Som ambiente ligado. Use o volume de mídia do celular.');
+let drone=ctx.createOscillator(),gain=ctx.createGain();drone.frequency.value=kind()==='sacred'?92:kind()==='interior'?65:100;drone.type='sine';gain.gain.value=.035;drone.connect(gain);gain.connect(master);drone.start();ctx.resume();runtime.ambient={ctx,master,source,drone,filter};toast('Som ambiente ligado. Use o volume de mídia do celular.');
 }catch(e){stopSound();toast('Toque novamente para permitir o áudio.')}
 }
+function adaptSound(){const a=runtime.ambient;if(!a)return;let cfg=kind(),filterHz=cfg==='woods'?1800:cfg==='lake'?550:cfg==='sacred'?660:900;let freq=cfg==='sacred'?92:cfg==='interior'?65:cfg==='lake'?75:cfg==='woods'?125:100;try{a.filter.frequency.setTargetAtTime(filterHz,a.ctx.currentTime,.35);a.drone.frequency.setTargetAtTime(freq,a.ctx.currentTime,.35)}catch(e){}}
 function suspendSound(){try{runtime.ambient?.ctx.suspend()}catch(e){}}
 function resumeSound(){try{runtime.ambient?.ctx.resume()}catch(e){}}
 setInterval(()=>{if(net.inGame&&net.online&&typeof campaignPush==='function'&&campaignReady()&&Date.now()-runtime.heartbeat>7000){runtime.heartbeat=Date.now();campaignPush({op:'heartbeat'})}if(!document.hidden)refresh()},1000);
