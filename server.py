@@ -184,6 +184,22 @@ async def mutate(state,slot,m):
         if choice not in META:return {'event':'error','message':'Missão inválida. Escolha um caso no catálogo.'}
         if not eligible(state,choice):return {'event':'error','message':'Uma continuação ainda não foi desbloqueada para todos.'}
         start_case(state,choice)
+    elif op=='abort':
+        if slot!=state['hostSlot']:return {'event':'error','message':'Somente a coordenação pode abandonar a missão para todos.'}
+        if state['phase']!='case':return {'event':'error','message':'Não há missão em andamento.'}
+        if state['mode']=='coop' and state['team'].get('outcome'):
+            return {'event':'error','message':'A missão já foi concluída. Use Encerrar e ir ao Instituto.'}
+        # Abandono não concede créditos, conclusão ou desbloqueios ao grupo.
+        state['phase']='camp'
+        state['caseId']=None
+        state['startedAt']=0
+        state['team']=team_default(None)
+        state['nominees']={}
+        state['firstFinish']=None
+        restart_votes(state)
+        for p in state['players']:
+            p['finished']=False
+            p['score']=0
     elif op=='camp':
         if slot!=state['hostSlot']:return {'event':'error','message':'Somente o coordenador encerra a missão coletiva.'}
         if state['phase']!='case':return None
