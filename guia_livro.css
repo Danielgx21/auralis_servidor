@@ -114,3 +114,9 @@
 }
 @media(max-width:390px){.atlasCatalogGrid{grid-template-columns:1fr 1fr}.atlasTileArt{width:38px}.atlasTileText strong{font-size:12px}.atlasBookCover{min-height:270px}.atlasCoverCenter h2{font-size:32px}}
 @media(prefers-reduced-motion:reduce){.atlasRoot *{scroll-behavior:auto!important;transition:none!important}}
+
+/* Gravuras publicadas nunca ultrapassam a página, mesmo com SVG de tamanho intrínseco grande. */
+.atlasRoot .atlasArtFrame{display:block;width:min(100%,345px);max-width:100%;min-width:0;overflow:hidden}
+.atlasRoot .atlasArtFrame .atlasArtwork,.atlasRoot .atlasArtFrame .atlasPublishedArt,.atlasRoot .atlasArtFrame img,.atlasRoot .atlasArtFrame svg{display:block;box-sizing:border-box;width:100%!important;max-width:100%!important;height:auto!important;max-height:420px!important;object-fit:contain!important;object-position:center center;overflow:hidden;margin-inline:auto}
+.atlasRoot .atlasTileArt .atlasPublishedArt{display:block;width:100%!important;max-width:100%!important;height:100%!important;max-height:100%!important;object-fit:cover!important}
+.atlasRoot .atlasReading,.atlasRoot .atlasLeaf,.atlasRoot .atlasArtFrame{min-width:0}
