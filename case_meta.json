@@ -432,5 +432,36 @@
       "selar"
     ],
     "minClues": 7
+  },
+  "bolsonaros": {
+    "prerequisite": null,
+    "clues": [
+      "estatua",
+      "cartaz",
+      "brasao",
+      "ata",
+      "retratos",
+      "lacres",
+      "coroa",
+      "juramento",
+      "espelho"
+    ],
+    "witness": [
+      "passado",
+      "retorno",
+      "testemunhas"
+    ],
+    "theories": [
+      "fantasma",
+      "bolsonaros",
+      "fraude"
+    ],
+    "outcomes": [
+      "libertar",
+      "negociar",
+      "expor",
+      "selar"
+    ],
+    "minClues": 5
   }
 }
