@@ -15,6 +15,11 @@
   return atlas.entries.filter(e=>(family==='all'||e.family===family)&&(!sign||e.signs.includes(sign))&&(!search||strip([e.name,e.epithet,e.familyName,e.story,e.behavior,traits(e)].join(' ')).includes(search)));
  }
  function art(e,small=false){
+  // Quando houver retrato ilustrado próprio da história, utilizá-lo em vez
+  // da silhueta genérica do atlas.
+  if(e.image&&/^assets\/[a-z0-9_-]+\.(?:svg|webp|png)$/i.test(e.image)){
+   return '<img class="atlasArtwork atlasPublishedArt '+(small?'atlasMiniArt':'atlasFullArt')+'" src="'+h(e.image)+'" alt="Representação ilustrada de '+h(e.name)+'" loading="lazy" decoding="async"/>';
+  }
   const i=e.n,group=e.family,seed=i*13,unique='a'+i+(small?'m':'d');
   const palettes={
    ecos:['#738d91','#1c3a42','#bdc7bd'],aguas:['#538c9a','#173d4c','#a7d4d5'],
@@ -97,7 +102,7 @@
   return '<section class="atlasRoot"><div class="atlasBookCover"><div class="atlasCoverOrnament">✥ <span>INSTITUTO DE ESTUDOS DO VÉU</span> ✥</div>'+
    '<div class="atlasCoverCenter"><span>VOLUME I · EDIÇÃO DE CAMPO</span><h2>Atlas das<br><em>Manifestações</em></h2><div class="atlasCoverRule">❧ ✧ ❧</div>'+
    '<p>Um compêndio ilustrado de testemunhos, hipóteses e fenômenos que raramente se deixam nomear.</p></div>'+
-   '<div class="atlasCoverFoot"><span>'+atlas.entries.length+' verbetes ilustrados</span><span>VIII linhagens</span><span>Identidades não confirmadas</span></div></div>'+
+   '<div class="atlasCoverFoot"><span>'+atlas.entries.length+' verbetes ilustrados</span><span>IX linhagens</span><span>Identidades não confirmadas</span></div></div>'+
    '<div class="atlasBookShell"><div class="atlasBookToolbar"><div class="atlasToolbarTitle"><small>CONSULTA LIVRE · ÍNDICE DE CAMPO</small><strong>Leia, compare, duvide.</strong></div>'+
    '<div class="atlasLegend">O mesmo indício pode aparecer em muitas manifestações. Não existe identificação por um único sinal.</div></div>'+
    '<div class="atlasFilters"><label for="atlasSearch">Localizar nome, fenômeno ou relato</label><input id="atlasSearch" type="search" spellcheck="false" autocomplete="off" placeholder="Ex.: frio, sinos, vultos, água…" value="'+h(q)+'"/>'+
