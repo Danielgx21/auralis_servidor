@@ -108,14 +108,57 @@ function examination(){
  (focused==='radio'?'<label>Sintonize o rádio: <b data-landscape-frequency>'+String(s.lagoRadioFreq||0).padStart(2,'0')+'</b><input id="landscapeFreq" type="range" min="0" max="30" value="'+(s.lagoRadioFreq||0)+'"></label><p>Procure nos depoimentos o horário que pode corresponder à frequência.</p>':'')+
  '<button data-landscape-apply="'+focused+'" class="landscapeInspectApply">'+(type==='move'?'Arrastar objeto':'Examinar com a ferramenta selecionada')+'</button></section></div>';
 }
+// Objetos únicos pertencem ao próprio cenário SVG, sem réplicas por cima.
+const sceneTemplates={};
+const sceneFiles={lago:'assets/lago.svg',casa:'assets/casa.svg',capela:'assets/capela.svg'};
+const movesOnArt={curtain:[145,0],drawer:[0,88],cloth:[220,-30],crate:[135,0],reeds:[160,0]};
+function sceneCanvas(){
+ const template=sceneTemplates[s.activeScene];
+ if(template){
+  const svg=template.cloneNode(true);
+  svg.classList.add('landscapeSvg','landscapeNativeSvg');
+  svg.setAttribute('aria-label',CASES.lago.scenes[s.activeScene].name);
+  svg.querySelectorAll('[data-landscape]').forEach(node=>{
+   const id=node.getAttribute('data-landscape');
+   const isExtra=Object.prototype.hasOwnProperty.call(extras,id);
+   const accessible=available(id);
+   const wasMoved=!!moved()[id];
+   if(isExtra&&!accessible){node.setAttribute('display','none');return;}
+   if(wasMoved&&movesOnArt[id]){
+    const [dx,dy]=movesOnArt[id];
+    node.querySelector('[data-landscape-art]')?.setAttribute('transform','translate('+dx+' '+dy+')');
+   }
+   if(!accessible){
+    node.style.pointerEvents='none';
+    node.setAttribute('aria-disabled','true');
+    node.setAttribute('tabindex','-1');
+    node.removeAttribute('data-landscape');
+   }
+  });
+  return '<div class="landscapeCanvas landscapeNativeCanvas">'+new XMLSerializer().serializeToString(svg)+'</div>';
+ }
+ // Durante carregamento ou falta de rede: fundo original + hotspots invisíveis.
+ const base=CASES.lago.scenes[s.activeScene].image;
+ const objects=(items[s.activeScene]||[]).filter(o=>available(o[0]));
+ for(const [id,info] of Object.entries(extras))if(info[0]===s.activeScene&&available(id))objects.push(data(id));
+ return '<div class="landscapeCanvas" style="background-image:url('+base+')"><svg viewBox="0 0 1000 1340" class="landscapeSvg" xmlns="http://www.w3.org/2000/svg">'+objects.map(o=>'<g data-landscape="'+o[0]+'" role="button" tabindex="0" aria-label="'+(extras[o[0]]?.[4]||labels[o[0]]||o[0])+'"><rect x="'+(o[1]*10-80)+'" y="'+(Math.round(o[2]*13.4)-100)+'" width="160" height="200" fill="transparent" pointer-events="all"/></g>').join('')+'</svg></div>';
+}
 scene=function(){
  if(s.caseId!=='lago')return originalScene();
  const loc=CASES.lago.scenes[s.activeScene];if(!loc)return originalScene();
- const o=(items[s.activeScene]||[]).filter(x=>available(x[0]));
- for(const [id,x] of Object.entries(extras))if(x[0]===s.activeScene&&available(id))o.push(data(id));
  const tools=[['inspect','◉','Observar'],['glass','⌕','Lupa'],['brush','╱','Pincel'],...(s.lagoKey?[['key','⚿','Chave']]:[])];
- return '<section class="landscapePage"><button class="backBtn" data-view="hub">← Voltar aos locais</button><div class="eyebrow">INVESTIGAÇÃO PRÁTICA · '+esc(loc.name)+'</div><h2>'+esc(loc.name)+'</h2><p>'+esc(loc.intro)+'</p><p class="landscapeHelp">Arraste objetos para descobrir o que escondem. Examine-os de perto, gire peças e escolha a ferramenta adequada.</p><div class="landscapeCanvas" style="background-image:url('+loc.image+')"><svg viewBox="0 0 1000 1340" xmlns="http://www.w3.org/2000/svg" class="landscapeSvg">'+o.map(objectShape).join('')+'</svg></div><div class="landscapeInventory"><strong>Bolsa de investigação</strong><div>'+tools.map(t=>'<button type="button" class="landscapeTool '+(selected===t[0]?'chosen':'')+'" data-landscape-tool="'+t[0]+'" aria-label="'+t[2]+'"><span>'+t[1]+'</span><small>'+t[2]+'</small></button>').join('')+'</div></div><div class="landscapeFieldNotes"><strong>Anotações de campo</strong>'+(notes().length?notes().slice(0,3).map(t=>'<p>'+esc(t)+'</p>').join(''):'<p>As observações não revelam automaticamente o significado das pistas.</p>')+'</div><button class="btn" data-view="board">Interpretar as provas no quadro →</button>'+examination()+'</section>';
+ return '<section class="landscapePage"><button class="backBtn" data-view="hub">← Voltar aos locais</button><div class="eyebrow">INVESTIGAÇÃO PRÁTICA · '+esc(loc.name)+'</div><h2>'+esc(loc.name)+'</h2><p>'+esc(loc.intro)+'</p><p class="landscapeHelp">Toque nos elementos do próprio cenário. Arraste objetos para descobrir o que escondem, examine-os de perto e escolha a ferramenta adequada.</p>'+sceneCanvas()+'<div class="landscapeInventory"><strong>Bolsa de investigação</strong><div>'+tools.map(t=>'<button type="button" class="landscapeTool '+(selected===t[0]?'chosen':'')+'" data-landscape-tool="'+t[0]+'" aria-label="'+t[2]+'"><span>'+t[1]+'</span><small>'+t[2]+'</small></button>').join('')+'</div></div><div class="landscapeFieldNotes"><strong>Anotações de campo</strong>'+(notes().length?notes().slice(0,3).map(t=>'<p>'+esc(t)+'</p>').join(''):'<p>As observações não revelam automaticamente o significado das pistas.</p>')+'</div><button class="btn" data-view="board">Interpretar as provas no quadro →</button>'+examination()+'</section>';
 };
+for(const [id,url] of Object.entries(sceneFiles)){
+ fetch(url,{cache:'no-cache'}).then(response=>{if(!response.ok)throw Error('HTTP '+response.status);return response.text();}).then(source=>{
+  const parsed=new DOMParser().parseFromString(source,'image/svg+xml');
+  const svg=parsed.documentElement;
+  if(svg.tagName.toLowerCase()!=='svg'||parsed.querySelector('parsererror'))throw Error('SVG inválido: '+url);
+  sceneTemplates[id]=svg;
+  if(s.caseId==='lago'&&s.view==='scene'&&s.activeScene===id)render();
+ }).catch(err=>console.warn('Fallback de hotspots invisíveis para:',url,err));
+}
+
 document.addEventListener('pointerdown',e=>{
  if(s.caseId!=='lago'||s.view!=='scene'||focused)return;
  const obj=e.target.closest('[data-landscape],[data-landscape-tool]');if(!obj)return;
@@ -164,6 +207,7 @@ document.addEventListener('keydown',e=>{
 },true);
 const landscapeV2Styles=document.createElement('style');
 landscapeV2Styles.textContent='.landscapeNewObject{cursor:grab;touch-action:none}.landscapeNewObject:active{cursor:grabbing}.landscapeNewObject>g{filter:drop-shadow(0 5px 7px #000a);transition:filter .17s}.landscapeNewObject:is(:hover,:focus-visible)>g{filter:drop-shadow(0 0 13px #e8ca9b) drop-shadow(0 5px 7px #000a)}.landscapeNewObject:focus-visible{outline:3px solid #f0d3a6}.landscapeFieldNotes{border:1px solid #b49f7c77;border-radius:11px;background:#142a32;padding:15px;margin:12px 0}.landscapeFieldNotes strong{color:#f0d6ad}.landscapeFieldNotes p{font:12px/1.6 system-ui;margin:9px 0;color:#ced9d2}.landscapeInspectBackdrop{position:fixed;inset:0;display:grid;place-items:center;background:#031019e8;backdrop-filter:blur(8px);z-index:10003;padding:12px}.landscapeInspect{position:relative;width:min(460px,100%);max-height:92vh;overflow:auto;border:1px solid #c9ad7c;border-radius:15px;background:linear-gradient(135deg,#21363f,#0f212b);padding:24px;box-shadow:0 14px 50px #0009}.landscapeInspect h2{color:#f5dab5}.landscapeInspectX{position:absolute;right:12px;top:10px;background:transparent;border:0;color:#fff;font-size:28px}.landscapeZoom{display:grid;place-items:center;min-height:175px;background:radial-gradient(circle,#526164,#0c1e27);border-radius:12px;margin:12px 0}.landscapeZoom svg{height:175px;max-width:100%;transition:transform .12s}.landscapeInspect p{color:#dce0d8;line-height:1.6;font-size:13px}.landscapeInspect label{display:block;color:#e2cda9;font-size:12px}.landscapeInspect input{display:block;width:100%;accent-color:#d4b37b;margin:15px 0}.landscapeInspectApply{width:100%;padding:12px;border-radius:9px;background:#c9ad78;color:#12252a;font-weight:750;border:0;margin:9px 0}';
+landscapeV2Styles.textContent += '.landscapeNativeCanvas{background-image:none!important}.sceneNativeObject{cursor:pointer;touch-action:none}.sceneNativeObject [data-landscape-art]{transition:filter .16s ease}.sceneNativeObject:is(:hover,:focus-visible) [data-landscape-art]{filter:drop-shadow(0 0 13px #edc98b66)}';
 document.head.append(landscapeV2Styles);
 const oldRender=render;
 render=function(){oldRender();if(!['title','collection','ending'].includes(s.view))return;const previous=saved.cases?.lago||{};if(!(previous.evidence?.length||previous.outcome||saved.histories?.lago))return;
