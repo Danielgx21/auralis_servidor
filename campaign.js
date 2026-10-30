@@ -82,7 +82,7 @@ function applyCampaign(state,initial=false){
  if(state.caseId&&CASES[state.caseId])net.caseId=state.caseId;
  const started=state.startedAt||0;
  if(state.phase==='case' && CASES[state.caseId]){
-    if(missionAway && s.view==='missionExit' && !initial){campaignLastPhase=state.phase;render();return;}
+    if(missionAway && !initial && ['missionExit','shop','office','contracts','bestiary','collection'].includes(s.view)){campaignLastPhase=state.phase;render();return;}
    const existing=campaignLocal.roomRuns?.[net.room]||0;
    if(started!==existing || oldCase!==state.caseId){
      campaignRestoring=true;
@@ -214,6 +214,10 @@ render=function(){
   oldRenderCampaign();
   app.innerHTML='<main class="noNav">'+missionExitPanel()+'</main>';
   return;
+ }
+ if(isMulti()&&net.inGame&&missionAway&&['shop','office','contracts','bestiary','collection'].includes(s.view)){
+   oldRenderCampaign();
+   const back=document.createElement('button');back.className='missionExitQuick';back.dataset.action='resume-mission';back.textContent='↩ Voltar à missão';app.append(back);return;
  }
  if(s.view==='camp'){
  const original=oldRenderCampaign; // preserva a mesma moldura visual das demais telas
