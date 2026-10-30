@@ -1,0 +1,30 @@
+
+/* Manual das Criaturas — Imersão: relógio, riscos, áudio e suspense. */
+.immHud{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border:1px solid #c0a57770;border-radius:11px;background:linear-gradient(120deg,#0e222c,#1c3840);margin:8px 12px 15px;box-shadow:0 8px 18px #0005;flex-wrap:wrap}
+.immHud small{display:block;font:700 9px/1.3 system-ui;letter-spacing:.1em;color:#bcd0d1}.immHud strong{display:block;color:#f3dfbb;font:700 21px/1.25 ui-monospace,Consolas,monospace;margin-top:4px}
+.immHud>span{font:700 9px/1.3 system-ui;color:#f2e0ae;background:#33454a;border:1px solid #c5af7b57;padding:8px 10px;border-radius:18px;text-align:center;max-width:130px}
+.immScene{margin:14px 11px 18px;padding:14px 15px;background:linear-gradient(120deg,#142f35,#0d1b25);border:1px solid #c4aa7773;border-radius:12px;color:#e5e4d9;box-shadow:0 10px 24px #0004}
+.immSceneTop{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.immSceneTop small{display:block;font:700 9px/1.4 system-ui;letter-spacing:.12em;color:#b1cbcf}
+.immSceneTop strong{display:block;font:600 15px/1.3 system-ui;color:#f4e1bf;margin-top:5px}
+.immSceneTop p{margin:6px 0 0;font:400 11px/1.45 system-ui;color:#c2d0ce}
+.immSceneTop button{border:1px solid #deb9837a;border-radius:9px;background:#384d54;color:#f9e5c4;padding:11px;font:700 12px system-ui;min-width:105px}
+.immDanger{display:flex;align-items:center;gap:9px;margin-top:14px}.immDanger>span{color:#cbdad3;font:700 9px/1.3 system-ui;letter-spacing:.05em;flex:1;min-width:90px}.immDanger>b{font:700 12px ui-monospace,monospace;color:#ebcb9d}
+.immDanger>div{height:8px;border-radius:9px;background:#09141b;overflow:hidden;border:1px solid #bd99736a;flex:1;max-width:160px}
+.immDanger i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,#82b3a1,#caa060,#b8564d);transition:width .5s}
+.immScene [data-imm-advice]{font:400 11px/1.55 system-ui;color:#c8d6d1;margin:11px 0 0}
+.immFX{position:absolute;inset:0;pointer-events:none;z-index:1;transition:background 1s}
+body[data-imm-light="night"] .immFX{background:radial-gradient(ellipse at 68% 23%,#b0daf01e,transparent 37%),linear-gradient(110deg,#03172526,#01081761 80%)}
+body[data-imm-light="day"] .immFX{background:linear-gradient(115deg,#f6d8991b,#f5e6be17 54%,transparent)}
+.immWitness{padding:13px 14px;margin:12px 0 15px;background:linear-gradient(125deg,#1e383c,#10252e);border-radius:11px;border:1px solid #d4b78875;color:#e9e6dc}
+.immWitness strong{color:#f1d4a0;font:700 13px/1.35 system-ui}.immWitness p{font:400 11px/1.6 system-ui;color:#cbd5ce;margin:8px 0 0}.immUnavailable{opacity:.48;cursor:not-allowed!important}
+.immIncident,.immFailure{position:fixed;z-index:99999;inset:0;background:#04111cdd;backdrop-filter:blur(9px);display:flex;align-items:center;justify-content:center;padding:18px}
+.immIncidentCard,.immFailure>div{background:linear-gradient(155deg,#233642,#111d29 65%,#342338);border:1px solid #d6b684a3;box-shadow:0 22px 80px #000c;max-width:450px;width:100%;padding:27px 24px;border-radius:16px}
+.immIncidentCard>small,.immFailure>div>small{font:700 10px/1.4 system-ui;color:#f1c382;letter-spacing:.15em}
+.immIncidentCard h2,.immFailure h2{font:600 25px/1.25 Georgia,serif;color:#f4dec2;margin:13px 0}.immIncidentCard p,.immFailure p{font:400 13px/1.65 system-ui;color:#d6d6d0}
+.immIncidentCard>div{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
+.immIncidentCard button,.immFailure button{padding:13px;border-radius:9px;border:1px solid #cdb08379;background:#45585e;color:#f7ead0;font:700 12px/1.35 system-ui}
+.immIncidentCard button:first-child,.immFailure button:first-of-type{background:#8f6b4f;color:white}
+.immFailure button{width:100%;margin-top:10px}
+@media(max-width:370px){.immHud strong{font-size:17px}.immHud>span{font-size:8px}.immSceneTop{flex-direction:column;align-items:stretch}.immIncidentCard>div{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.immDanger i,.immFX{transition:none}}
