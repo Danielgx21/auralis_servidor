@@ -69,6 +69,7 @@ function applyCloudProfile(remote,remoteAt){
 function applyCampaign(state,initial=false){
  if(!state||state.code!==net.room)return;
  const oldPhase=campaignLastPhase,wasCase=net.inGame,oldCase=s.caseId;
+  if(state.phase!=='case')missionAway=false;
  net.mode=state.mode;net.size=state.size;net.players=state.players;net.slot=Number(net.slot);net.playerId='p'+net.slot;
  net.role=net.slot===state.hostSlot?'host':'guest';net.specialty=roleAt(net.slot).id;
  net.online=true;net.status='Expedição restaurada do servidor.';net.inGame=state.phase==='case';
@@ -81,6 +82,7 @@ function applyCampaign(state,initial=false){
  if(state.caseId&&CASES[state.caseId])net.caseId=state.caseId;
  const started=state.startedAt||0;
  if(state.phase==='case' && CASES[state.caseId]){
+    if(missionAway && s.view==='missionExit' && !initial){campaignLastPhase=state.phase;render();return;}
    const existing=campaignLocal.roomRuns?.[net.room]||0;
    if(started!==existing || oldCase!==state.caseId){
      campaignRestoring=true;
@@ -191,8 +193,29 @@ roomMenu=function(){
 };
 const oldEnding=ending;
 ending=function(){let h=oldEnding();if(isMulti())h=h.replace('</section>',`<div class="notice">Esta expedição continua aberta mesmo após o caso. Na próxima etapa vocês podem comprar ferramentas, ampliar o Instituto e votar na próxima investigação.</div><button class="btn" data-action="return-camp" ${net.role==='host'?'':'disabled'}>${net.role==='host'?'♜ Encerrar a missão e ir ao Instituto':'Aguardando a coordenação abrir o intervalo'}</button></section>`);return h};
+// Botão de saída acessível de qualquer etapa de uma investigação ativa.
+const MISSION_VIEWS=new Set(['brief','ritual','hub','scene','witness','dossier','board','theory','confrontation','puzzle','interlude','ending']);
+let missionAway=false;
+function missionExitPanel(){
+ return '<section class="section roomPage missionExitPage"><div class="eyebrow">♜ Expedição '+esc(net.room)+'</div><h2>Você saiu da investigação</h2><p>Sua vaga, seu inventário e as pistas coletadas continuam preservados. Os outros pesquisadores seguem na mesma sala.</p><div class="notice">A missão ainda está em andamento. Volte quando desejar; o avanço coletivo será recuperado.</div><button class="btn" data-action="resume-mission">↩ Voltar à missão</button><button class="btn outline" data-view="shop">✧ Visitar a loja</button><button class="btn outline" data-view="office">♜ Visitar minha sede</button>${net.role==='host'?'<button class="btn ghost" data-action="abort-mission">Encerrar a missão para todos (sem recompensas)</button>':''}<button class="btn ghost" data-action="leave-room">Desconectar e sair da sala</button></section>';
+}
 const oldRenderCampaign=render;
-render=function(){if(s.view==='camp'){
+render=function(){
+ if(isMulti()&&net.inGame&&!missionAway&&MISSION_VIEWS.has(s.view)){
+  oldRenderCampaign();
+  const button=document.createElement('button');
+  button.className='missionExitQuick';
+  button.dataset.action='exit-mission';
+  button.textContent='← Sair da missão';
+  app.append(button);
+  return;
+ }
+ if(s.view==='missionExit'&&isMulti()&&net.inGame){
+  oldRenderCampaign();
+  app.innerHTML='<main class="noNav">'+missionExitPanel()+'</main>';
+  return;
+ }
+ if(s.view==='camp'){
  const original=oldRenderCampaign; // preserva a mesma moldura visual das demais telas
  oldRender();app.innerHTML=`<main class="noNav">${campPage()}</main>`;
  if(isMulti()){const banner=document.createElement('div');banner.className='connectionBanner '+(net.paused?'paused':'connected');banner.innerHTML=`<span>${net.paused?'◷ Aguardando reconexão':'● Sala '+esc(net.room)+' · '+connectedPlayers().length+'/'+net.size+' online'}</span>`;app.prepend(banner)}
@@ -204,9 +227,16 @@ app.addEventListener('click',evt=>{
  const a=target.dataset.action;
  if(target.dataset.teamUpgrade){evt.stopImmediatePropagation();evt.preventDefault();campaignPush({op:'upgrade',item:target.dataset.teamUpgrade});return}
  if(target.dataset.nominate){evt.stopImmediatePropagation();evt.preventDefault();chooseCase(target.dataset.nominate);return}
- if(['donate-team','return-camp','show-recovery','resume-expedition','reconnect-expedition','leave-room','go-camp'].includes(a)){
+ if(['exit-mission','resume-mission','abort-mission','donate-team','return-camp','show-recovery','resume-expedition','reconnect-expedition','leave-room','go-camp'].includes(a)){
    evt.stopImmediatePropagation();evt.preventDefault();
-   if(a==='leave-room'){campaignLocal.active=false;cSave();closeNet();s=hydrate(saved.current);move('collection');return}
+   if(a==='exit-mission'){if(!net.inGame)return;missionAway=true;move('missionExit');return}
+    if(a==='resume-mission'){missionAway=false;move(s.outcome?'ending':s.theory?'confrontation':s.evidence.length?'hub':'brief');return}
+    if(a==='abort-mission'){
+      if(net.role!=='host'||!campaignReady())return toast('Apenas a coordenação conectada pode encerrar.');
+      if(!confirm('Abandonar esta missão para TODOS os jogadores? A expedição voltará ao Instituto sem recompensa, sem conclusão e sem desbloquear a continuação.'))return;
+      campaignPush({op:'abort'});return;
+    }
+    if(a==='leave-room'){campaignLocal.active=false;cSave();closeNet();s=hydrate(saved.current);move('collection');return}
    if(a==='donate-team'){if(!campaignReady()||net.paused)return toast('Aguardem a reconexão.');if(saved.wallet<25)return toast('Créditos individuais insuficientes.');saved.wallet-=25;saveWallet();campaignPush({op:'donate',amount:25,tx:cToken()});toast('25 créditos enviados ao cofre coletivo.');return}
    if(a==='return-camp'){campaignPush({op:'camp'});return}
    if(a==='show-recovery'){const secret=recoverIdentity();if(!secret)return toast('Aguardando a identidade da sala.');if(navigator.clipboard?.writeText)navigator.clipboard.writeText(secret).then(()=>toast('Chave copiada. Guarde-a em local privado.')).catch(()=>window.prompt('Sua chave privada de recuperação:',secret));else window.prompt('Sua chave privada de recuperação:',secret);return}
