@@ -45,7 +45,7 @@ const detail={
  cloth:['O pano sobre o sino','O tecido abafou a vibração do bronze por muito tempo.']
 };
 function notes(){return s.lagoFieldNotes||(s.lagoFieldNotes=[])}
-function memo(t){if(!notes().includes(t)){notes().unshift(t);notes().length=Math.min(notes().length,18);persist(false)}}
+function memo(t){/* Não transformar ações ou frases automaticamente em anotações. O jogador escreve no Diário. */}
 function seen(){return s.lagoSteps||(s.lagoSteps={})}
 function available(id){
  const m=moved(),x=extras[id];
@@ -147,7 +147,7 @@ scene=function(){
  if(s.caseId!=='lago')return originalScene();
  const loc=CASES.lago.scenes[s.activeScene];if(!loc)return originalScene();
  const tools=[['inspect','◉','Observar'],['glass','⌕','Lupa'],['brush','╱','Pincel'],...(s.lagoKey?[['key','⚿','Chave']]:[])];
- return '<section class="landscapePage"><button class="backBtn" data-view="hub">← Voltar aos locais</button><div class="eyebrow">INVESTIGAÇÃO PRÁTICA · '+esc(loc.name)+'</div><h2>'+esc(loc.name)+'</h2><p>'+esc(loc.intro)+'</p><p class="landscapeHelp">Toque nos elementos do próprio cenário. Arraste objetos para descobrir o que escondem, examine-os de perto e escolha a ferramenta adequada.</p>'+sceneCanvas()+'<div class="landscapeInventory"><strong>Bolsa de investigação</strong><div>'+tools.map(t=>'<button type="button" class="landscapeTool '+(selected===t[0]?'chosen':'')+'" data-landscape-tool="'+t[0]+'" aria-label="'+t[2]+'"><span>'+t[1]+'</span><small>'+t[2]+'</small></button>').join('')+'</div></div><div class="landscapeFieldNotes"><strong>Anotações de campo</strong>'+(notes().length?notes().slice(0,3).map(t=>'<p>'+esc(t)+'</p>').join(''):'<p>As observações não revelam automaticamente o significado das pistas.</p>')+'</div><button class="btn" data-view="board">Interpretar as provas no quadro →</button>'+examination()+'</section>';
+ return '<section class="landscapePage"><button class="backBtn" data-view="hub">← Voltar aos locais</button><div class="eyebrow">INVESTIGAÇÃO PRÁTICA · '+esc(loc.name)+'</div><h2>'+esc(loc.name)+'</h2><p>'+esc(loc.intro)+'</p><p class="landscapeHelp">Toque nos elementos do próprio cenário. Arraste objetos para descobrir o que escondem, examine-os de perto e escolha a ferramenta adequada.</p>'+sceneCanvas()+'<div class="landscapeInventory"><strong>Bolsa de investigação</strong><div>'+tools.map(t=>'<button type="button" class="landscapeTool '+(selected===t[0]?'chosen':'')+'" data-landscape-tool="'+t[0]+'" aria-label="'+t[2]+'"><span>'+t[1]+'</span><small>'+t[2]+'</small></button>').join('')+'</div></div><div class="landscapeFieldNotes"><strong>Diário de investigação</strong><p>Decida quais detalhes registrar. Abra o Diário e escreva com suas palavras.</p></div><button class="btn" data-view="board">Interpretar as provas no quadro →</button>'+examination()+'</section>';
 };
 for(const [id,url] of Object.entries(sceneFiles)){
  fetch(url,{cache:'no-cache'}).then(response=>{if(!response.ok)throw Error('HTTP '+response.status);return response.text();}).then(source=>{
