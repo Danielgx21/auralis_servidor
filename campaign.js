@@ -279,10 +279,27 @@ const manualNavPreviousRender=render;
 render=function(){
   manualNavPreviousRender();
   if(s.view!=='title'){
+    // Os atalhos fazem parte do layout; nenhum botão fica flutuando sobre textos.
+    const shortcuts=document.createElement('nav');
+    shortcuts.className='manualQuickBar';
+    shortcuts.setAttribute('aria-label','Atalhos de navegação');
+    app.prepend(shortcuts);
+    const bottomNav=app.querySelector('.bottomNav');
     const home=document.createElement('button');
-    home.type='button';home.className='manualHomeQuick';home.dataset.action='manual-home';
-    home.textContent='⌂ Início';home.setAttribute('aria-label','Voltar ao início sem perder progresso');
-    app.append(home);
+    home.type='button';home.dataset.action='manual-home';
+    home.setAttribute('aria-label','Voltar à tela inicial sem perder progresso');
+    if(bottomNav){
+      // Durante a investigação, Início permanece no menu inferior.
+      bottomNav.classList.add('manualBottomHome');
+      home.className='navButton';
+      home.innerHTML='<span class="navGlyph" aria-hidden="true">⌂</span><span>Início</span>';
+      bottomNav.append(home);
+    }else{
+      // Nas páginas sem menu inferior, há uma faixa própria no começo do conteúdo.
+      home.className='manualHomeQuick';
+      home.textContent='⌂ Início';
+      shortcuts.append(home);
+    }
   }else{
     const active=net.inGame||net.online||s.evidence?.length||s.outcome;
     if(active){
