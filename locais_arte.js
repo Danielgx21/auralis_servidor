@@ -32,7 +32,7 @@
    '<header><div><small>PRANCHA DE CAMPO · '+encode(CASES[s.caseId].number)+'</small><h2>'+encode(art.title)+'</h2></div><button type="button" data-locations-close aria-label="Fechar ampliação">×</button></header>'+
    '<div class="locationsArtViewport"><img src="'+encode(art.src)+'" alt="Cenário ilustrado: '+encode(art.title)+'" style="width:'+Math.round(zoomLevel*100)+'%;height:auto;max-height:none;max-width:none;transform:none" draggable="false"/></div>'+
    '<footer><button type="button" data-locations-zoom="-1" aria-label="Diminuir zoom">−</button><span>Ampliação: '+Math.round(zoomLevel*100)+'%</span><button type="button" data-locations-zoom="1" aria-label="Aumentar zoom">+</button></footer>'+
-   '<p>Esta é a própria arte do local; objetos interativos permanecem na cena normal da investigação.</p></section></div>';
+   '<p>Esta é a pintura do local, preservada. Arraste a imagem ampliada para observar cada canto.</p></section></div>';
  }
  function decorate(){
   if(s.view!=='scene')return;
@@ -42,7 +42,7 @@
   if(!outer||outer.querySelector('[data-locations-open]'))return;
   const toolbar=document.createElement('div');
   toolbar.className='locationsArtActions';
-  toolbar.innerHTML='<button type="button" data-locations-open><span aria-hidden="true">⛶</span> Ver arte do local</button><span>Ilustração do próprio cenário · sem objetos duplicados</span>';
+  toolbar.innerHTML='<button type="button" data-locations-open><span aria-hidden="true">⛶</span> Ver arte do local</button><span>Pintura intacta · amplie sem deslocar objetos</span>';
   sceneArea.insertAdjacentElement('afterend',toolbar);
   if(zoomOpen){
    app.insertAdjacentHTML('beforeend',viewer());
