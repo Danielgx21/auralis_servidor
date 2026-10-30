@@ -327,3 +327,11 @@ body{background:radial-gradient(ellipse at 50% 2%,#28414a,#08151b 61%,#040b10 10
 .tutorialSkip{display:block;margin:15px auto 0;padding:8px;border:0;background:transparent;color:#b4c6c9;text-decoration:underline;font:13px system-ui}
 .musicVolumeLabel{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#eee2c5;font:600 13px system-ui}.musicVolumeLabel input{accent-color:#d3b27d;min-width:160px}
 @media(max-width:390px){.manualHelpQuick{top:calc(env(safe-area-inset-top,0px) + 40px);padding:9px 11px}.tutorialPanel{padding:15px}}
+
+/* Navegação no fluxo do layout: nenhum atalho flutuante cobre textos. */
+.manualQuickBar{display:flex;align-items:center;justify-content:flex-start;gap:8px;position:relative;z-index:3;padding:8px 14px;background:#10232b;border-bottom:1px solid #544c3e;min-height:52px}
+.manualQuickBar:empty{display:none}
+.manualHomeQuick,.manualHelpQuick{position:static!important;top:auto!important;left:auto!important;right:auto!important;z-index:auto!important;box-shadow:none!important;border:1px solid #b69b6f;border-radius:9px;background:#1b333e;color:#f1d6a6;padding:9px 13px;font:700 13px system-ui}
+.bottomNav.manualBottomHome{grid-template-columns:repeat(6,minmax(0,1fr))}
+.bottomNav.manualBottomHome .navButton{min-width:0;font-size:9px;letter-spacing:0}
+.bottomNav.manualBottomHome .navGlyph{font-size:22px;line-height:23px}
