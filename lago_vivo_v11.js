@@ -21,7 +21,7 @@ function condition(n){
  return {name:'Luz cinzenta',kind:'day',desc:'O movimento da vila disfarça os sons da represa.'};
 }
 function sceneText(n){const a=scenes[s.activeScene]||scenes.lago;return a[Math.floor((n+(s.activeScene==='capela'?16:s.activeScene==='casa'?7:0))/11)%a.length]}
-function shared(){return '<div class="lakeLifeTop"><span class="lakeLifeMark">◈ RELATÓRIO DE CAMPO · AO VIVO</span><strong data-lake-live-clock>--:--</strong></div><div class="lakeLifeForecast"><div><small>CONDIÇÕES</small><b data-lake-weather>Consultando o ambiente…</b></div><div><small>PRÓXIMA MANIFESTAÇÃO</small><b data-lake-next-bell>--</b></div></div><p class="lakeLifeDescription" data-lake-description></p><div class="lakeLifeNpc"><span class="lakeLifeDot" aria-hidden="true"></span><div><b>Iria Vilar</b><small data-lake-npc>Verificando o paradeiro…</small></div></div>'}
+function shared(){return '<div class="lakeLifeTop"><span class="lakeLifeMark">◈ RELATÓRIO DE CAMPO · AO VIVO</span><strong data-lake-live-clock>--:--</strong></div><div class="lakeLifeForecast"><div><small>CONDIÇÕES</small><b data-lake-weather>Consultando o ambiente…</b></div><div><small>SINAIS DO AMBIENTE</small><b>Ouça e observe</b></div></div><p class="lakeLifeDescription" data-lake-description></p><div class="lakeLifeNpc"><span class="lakeLifeDot" aria-hidden="true"></span><div><b>Iria Vilar</b><small data-lake-npc>Verificando o paradeiro…</small></div></div>'}
 function create(){
  if(!live()||app.querySelector('.lakeLife'))return;
  const main=app.querySelector('main');if(!main)return;
@@ -43,7 +43,7 @@ function refresh(){
  app.querySelectorAll('[data-lake-live-clock]').forEach(e=>e.textContent=clock(n));
  app.querySelectorAll('[data-lake-weather]').forEach(e=>e.textContent=weather.name);
  app.querySelectorAll('[data-lake-description]').forEach(e=>e.textContent=s.view==='scene'?sceneText(n):weather.desc);
- app.querySelectorAll('[data-lake-next-bell]').forEach(e=>e.textContent=((17-n+1440)%1440||1440)+' min. do jogo');
+ // O ambiente não antecipa quando um fenômeno acontecerá.
  app.querySelectorAll('[data-lake-npc]').forEach(e=>e.textContent=present?'Presente para entrevista · até '+(n>=1200?'00h00':'09h00'):'Ausente · próximo retorno em '+nextNpc(n)+' min. do jogo');
  app.querySelectorAll('.lakeLifeNpc').forEach(e=>e.classList.toggle('isAway',!present));
  app.querySelectorAll('[data-lake-danger]').forEach(e=>e.textContent=n>=1140||n<300?'◈ Área hostil: permanência prolongada aumenta o risco.':'◈ Exposição moderada: examine o local com atenção.');
