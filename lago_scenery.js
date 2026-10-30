@@ -110,7 +110,7 @@ function examination(){
 }
 // Objetos únicos pertencem ao próprio cenário SVG, sem réplicas por cima.
 const sceneTemplates={};
-const sceneFiles={lago:'assets/lago.svg',casa:'assets/casa.svg',capela:'assets/capela.svg'};
+const sceneFiles={lago:'assets/lago_cinematico.svg',casa:'assets/casa.svg',capela:'assets/capela_cinematica.svg'};
 const movesOnArt={curtain:[145,0],drawer:[0,88],cloth:[220,-30],crate:[135,0],reeds:[160,0]};
 function sceneCanvas(){
  const template=sceneTemplates[s.activeScene];
@@ -151,7 +151,7 @@ scene=function(){
 };
 // Utiliza exatamente a mesma arte validada no mapa e no cenário, sem camadas duplicadas.
 for(const [id,url] of Object.entries(sceneFiles)){
- const versioned=url+'?v=20261030-assets-integrados';
+ const versioned=url+'?v=20261030-cenarios-cinematicos';
  if(id!=='casa'&&CASES.lago?.scenes?.[id])CASES.lago.scenes[id].image=versioned;
  fetch(versioned,{cache:'no-store'})
   .then(response=>{if(!response.ok)throw Error('HTTP '+response.status);return response.text();})
