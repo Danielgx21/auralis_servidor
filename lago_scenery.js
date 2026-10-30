@@ -134,51 +134,51 @@ function pictureDetail(id){
   '</svg>';
 }
 
-/* Elementos cinematográficos manipuláveis: recortes da própria pintura,
-   com restauração suave da textura do cenário quando se deslocam. */
+/* Interações reais da pintura: a região original é ocultada antes de mover
+ * o recorte do MESMO objeto. Posições finais são limitadas a movimentos
+ * naturais em torno do ponto original, evitando objetos flutuantes. */
 const cinemaMoveArt={
  lago:{
-  reeds:{shape:'M796 750Q835 765 881 750Q947 774 999 736L1010 1340H774Q791 1127 781 962Z',repair:[220,0],rest:[-120,-390]},
-  crate:{shape:'M4 688Q159 666 340 687L349 946Q188 966 6 943Z',repair:[-380,-25],rest:[355,-220]}
+  // Os juncos se afastam para a margem; o caixote escorrega no cais.
+  reeds:{shape:'M793 748Q825 761 842 741Q884 775 901 756Q954 781 1010 736L1010 1348L781 1348Q782 1193 777 1070Q789 915 793 748Z',repair:[265,-15],rest:[75,-12]},
+  crate:{shape:'M-10 704L52 687Q167 685 253 687L341 706L350 925Q208 947 5 961L-10 941Z',repair:[-275,-330],rest:[155,-22]}
  },
- capela:{cloth:{shape:'M208 56Q258 80 346 46Q395 30 419 58L428 499Q377 586 272 564L195 512Z',repair:[-255,-20],rest:[488,20]}}
+ capela:{
+  // O pano é deslocado ao longo da viga, sem recortar o corpo do sino.
+  cloth:{shape:'M247 49Q275 28 307 63L336 108Q371 153 376 209L382 270Q408 371 411 449L416 536L404 587L365 554L328 519Q319 456 306 413L291 346L270 294Q262 216 252 166Z',repair:[-180,-5],rest:[125,-12]}
+ }
 };
-function cinemaMotionOffset(id,name){
- const config=cinemaMoveArt[id]?.[name],position=s.lagoObjectOffsets?.[name];
- return Array.isArray(position)&&position.length===2&&position.every(Number.isFinite)?position:(config?.rest||[0,0]);
-}
-function cinemaMovedArtwork(id,file){
- const group=cinemaMoveArt[id];if(!group)return '';
- let masks='<defs><filter id="cinemaSoftEdge" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="8"/></filter></defs>';
- let restored='',placed='';
- for(const [name,config] of Object.entries(group)){
-  const hit=cinemaHits[id][name],active=!!moved()[name];
-  const [x,y,w,h]=hit,mask='cinemaRestore-'+name,cut='cinemaCut-'+name;
-  const offset=cinemaMotionOffset(id,name);
-  masks+='<mask id="'+mask+'" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="1000" height="1340"><rect x="'+(x-11)+'" y="'+(y-11)+'" width="'+(w+22)+'" height="'+(h+22)+'" rx="24" fill="white" filter="url(#cinemaSoftEdge)"/></mask>'+
-   '<mask id="'+cut+'" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="1000" height="1340"><path d="'+config.shape+'" fill="white" filter="url(#cinemaSoftEdge)"/></mask>';
-  restored+='<g data-cinema-repair="'+name+'" style="'+(active?'':'display:none')+'" mask="url(#'+mask+')" pointer-events="none"><image href="'+file+'" x="'+config.repair[0]+'" y="'+config.repair[1]+'" width="1000" height="1340" preserveAspectRatio="none"/></g>';
-  placed+='<g data-cinema-cut="'+name+'" class="cinemaShiftedObject" style="'+(active?'':'display:none')+'" transform="translate('+offset[0]+' '+offset[1]+')" mask="url(#'+cut+')" pointer-events="none"><image href="'+file+'" width="1000" height="1340" preserveAspectRatio="none"/></g>';
+function cinemaMovedArtwork(sceneId,file){
+ const group=cinemaMoveArt[sceneId];if(!group)return '<image href="'+file+'" width="1000" height="1340" preserveAspectRatio="none"/>';
+ const names=Object.keys(group);
+ let defs='<defs><filter id="cinemaFeather" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3"/></filter>'+
+  '<filter id="cinemaBackdropBlur" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="13"/></filter>'+
+  '<mask id="cinemaPaintingBase" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="1000" height="1340"><rect width="1000" height="1340" fill="white"/>';
+ let repairs='',shifted='';
+ for(const name of names){
+  const cfg=group[name],active=!!moved()[name],enabled=active?'':'display:none';
+  const shape=cfg.shape,maskName='cinemaObject-'+name;
+  defs+='<path data-cinema-erase="'+name+'" style="'+enabled+'" d="'+shape+'" fill="black" filter="url(#cinemaFeather)"/>';
+  defs+='<mask id="'+maskName+'" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="1000" height="1340"><path d="'+shape+'" fill="white" filter="url(#cinemaFeather)"/></mask>';
+  const backMask='cinemaBack-'+name;
+  defs+='<mask id="'+backMask+'" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="1000" height="1340"><path d="'+shape+'" fill="white" filter="url(#cinemaFeather)"/></mask>';
+  const repair=cfg.repair,offset=cfg.rest;
+  repairs+='<g data-cinema-repair="'+name+'" style="'+enabled+'" pointer-events="none" mask="url(#'+backMask+')">'+
+   '<image href="'+file+'" x="'+repair[0]+'" y="'+repair[1]+'" width="1000" height="1340" preserveAspectRatio="none" filter="url(#cinemaBackdropBlur)"/></g>';
+  shifted+='<g data-cinema-cut="'+name+'" style="'+enabled+'" transform="translate('+offset[0]+' '+offset[1]+')" mask="url(#'+maskName+')" pointer-events="none"><image href="'+file+'" width="1000" height="1340" preserveAspectRatio="none"/></g>';
  }
- return masks+restored+placed;
+ // SVG masks precisam estar completos antes do fechamento de <defs>.
+ defs=defs.replace('</defs>','')+'</mask></defs>';
+ return defs+repairs+'<image href="'+file+'" width="1000" height="1340" preserveAspectRatio="none" mask="url(#cinemaPaintingBase)"/>'+shifted;
 }
-function cinemaDragOffset(d,clientX,clientY){
- const svg=d.svg,ctm=svg?.getScreenCTM?.();
- if(ctm){
-  const point=svg.createSVGPoint(),inv=ctm.inverse();
-  point.x=d.x;point.y=d.y;const first=point.matrixTransform(inv);
-  point.x=clientX;point.y=clientY;const last=point.matrixTransform(inv);
-  return [last.x-first.x,last.y-first.y];
- }
- const rect=svg.getBoundingClientRect();
- return [(clientX-d.x)*1000/Math.max(1,rect.width),(clientY-d.y)*1340/Math.max(1,rect.height)];
-}
-function cinemaClampOffset(sceneId,name,offset){
- const [x,y,w,h]=cinemaHits[sceneId][name];
- const clamp=(n,min,max)=>Math.round(Math.max(min,Math.min(max,n)));
- return [clamp(offset[0],-x-w*.55,1000-x-w*.45),clamp(offset[1],-y-h*.55,1340-y-h*.45)];
+function dragProgress(d,clientX,clientY){
+ const travelled=Math.hypot(clientX-d.x,clientY-d.y);
+ const amount=Math.min(1,travelled/90);
+ const offset=cinemaMoveArt[s.activeScene][d.id].rest;
+ return [Math.round(offset[0]*amount),Math.round(offset[1]*amount)];
 }
 function resetDragArt(d){
+ if(d?.erase)d.erase.style.display='none';
  if(d?.repair)d.repair.style.display='none';
  if(d?.cut)d.cut.style.display='none';
 }
@@ -187,7 +187,7 @@ function pictureCanvas(){
  const id=s.activeScene,file=cinemaPictures[id],hits=cinemaHits[id];
  if(!file)return '';
  // A pintura permanece como base; objetos deslocados usam recortes dela própria.
- let art='<image href="'+file+'" width="1000" height="1340" preserveAspectRatio="none"/>'+cinemaMovedArtwork(id,file);
+ let art=cinemaMovedArtwork(id,file);
  const names=[...(items[id]||[]).map(item=>item[0]),...Object.keys(extras).filter(key=>extras[key][0]===id)];
  for(const name of [...new Set(names)]){
   if(!available(name))continue;
@@ -257,8 +257,9 @@ document.addEventListener('pointerdown',e=>{
  const svg=obj.closest('.cinemaPainting')?.querySelector('svg');
  const repair=svg?.querySelector('[data-cinema-repair="'+id+'"]');
  const cut=svg?.querySelector('[data-cinema-cut="'+id+'"]');
- dragging={id,tool:!!obj.dataset.landscapeTool,x:e.clientX,y:e.clientY,pid:e.pointerId,el:obj,svg,repair,cut};
- if(repair&&cut){repair.style.display='';cut.style.display='';cut.setAttribute('transform','translate(0 0)');}
+ const erase=svg?.querySelector('[data-cinema-erase="'+id+'"]');
+ dragging={id,tool:!!obj.dataset.landscapeTool,x:e.clientX,y:e.clientY,pid:e.pointerId,el:obj,svg,repair,cut,erase};
+ if(repair&&cut&&erase){erase.style.display='';repair.style.display='';cut.style.display='';cut.setAttribute('transform','translate(0 0)');}
  if(!dragging.tool)e.preventDefault();
 },true);
 window.addEventListener('pointermove',e=>{
@@ -266,7 +267,7 @@ window.addEventListener('pointermove',e=>{
  const dx=e.clientX-dragging.x,dy=e.clientY-dragging.y;
  if(Math.hypot(dx,dy)<10)return;
  if(dragging.cut){
-  e.preventDefault();const delta=cinemaDragOffset(dragging,e.clientX,e.clientY);
+  e.preventDefault();const delta=dragProgress(dragging,e.clientX,e.clientY);
   dragging.cut.setAttribute('transform','translate('+delta[0]+' '+delta[1]+')');
  }else{dragging.el.style.opacity='.75';dragging.el.style.transform='translate('+dx+'px,'+dy+'px)';}
 },true);
@@ -278,12 +279,6 @@ window.addEventListener('pointerup',e=>{
  d.el.style.transform='';d.el.style.opacity='';
  if(d.tool){if(distance<30){selected=d.id;render()}else if(hit){selected=d.id;act(hit.dataset.landscape,d.id,false)}else toast('Arraste a ferramenta sobre o objeto.');return}
  e.preventDefault();e.stopImmediatePropagation();
- if(d.cut&&distance>43){
-  let offset=cinemaClampOffset(s.activeScene,d.id,cinemaDragOffset(d,e.clientX,e.clientY));
-  if(Math.hypot(...offset)<65)offset=cinemaMoveArt[s.activeScene][d.id].rest;
-  if(!s.lagoObjectOffsets||typeof s.lagoObjectOffsets!=='object')s.lagoObjectOffsets={};
-  s.lagoObjectOffsets[d.id]=offset;
- }
  if(d.cut&&distance<=43)resetDragArt(d);
  act(d.id,selected,distance>43);
 },true);
