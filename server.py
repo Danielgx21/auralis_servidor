@@ -54,10 +54,48 @@ def safe_profile(profile):
     allow=('wallet','owned','stock','rooms','contracts','paid','dailyPayout','cases','completions','histories','current','economyV1','soundtrack')
     return {k:profile[k] for k in allow if k in profile} if len(json.dumps(profile,ensure_ascii=False))<120_000 else {}
 
+
+# Relógio autoritativo, preservado em banco. Pausa se um participante desconectar.
+MISSION_TIME_MS = {'lago': 20*60*1000, 'lago2': 23*60*1000}
+def mission_limit_ms(case):
+    if case in MISSION_TIME_MS: return MISSION_TIME_MS[case]
+    difficulty = META.get(case,{}).get('difficulty','Intermediário')
+    return {'Iniciante': 20,'Intermediário': 23,'Avançado': 26}.get(difficulty,23)*60*1000
+def clock_elapsed(state):
+    t = state.get('worldClock') or {}
+    elapsed = max(0,int(t.get('elapsedMs',0)))
+    if state.get('phase')=='case' and t.get('runFrom'):
+        elapsed += max(0,int(time.time()*1000)-int(t['runFrom']))
+    return elapsed
+def clock_sync(state):
+    if state.get('phase')!='case': return
+    t = state.setdefault('worldClock', {'elapsedMs':0,'runFrom':None})
+    running = len(LIVE.get(state['code'],{}))==state['size'] and not state['team'].get('outcome')
+    if running and not t.get('runFrom'):
+        t['runFrom']=int(time.time()*1000)
+    elif not running and t.get('runFrom'):
+        t['elapsedMs']=clock_elapsed(state)
+        t['runFrom']=None
+def fail_expired(state):
+    if state.get('phase')!='case' or clock_elapsed(state)<mission_limit_ms(state.get('caseId')): return False
+    if state['mode']=='coop' and state['team'].get('outcome'): return False
+    if state['mode']=='versus' and all(p.get('finished') for p in state['players']): return False
+    state['lastFailure']={'caseId':state['caseId'],'reason':'deadline','timestamp':int(time.time()*1000)}
+    state['phase']='camp'
+    state['worldClock']={'elapsedMs':mission_limit_ms(state['caseId']),'runFrom':None}
+    state['team']=team_default(None)
+    state['caseId']=None
+    state['startedAt']=0
+    state['nominees']={}
+    restart_votes(state)
+    for p in state['players']:
+        p['finished']=False;p['score']=0
+    return True
+
 def public(state):
     sockets=LIVE.get(state['code'],{})
     roster=[dict(slot=p['slot'],name=p['name'],connected=(p['slot'] in sockets and not sockets[p['slot']].closed),completed=p['completed'],score=p.get('score',0),finished=p.get('finished',False),rooms=p.get('rooms',{})) for p in state['players']]
-    return dict(code=state['code'],mode=state['mode'],size=state['size'],hostSlot=state['hostSlot'],phase=state['phase'],caseId=state.get('caseId'),startedAt=state.get('startedAt',0),inGame=state['phase']=='case',players=roster,team=state['team'],votes=state['votes'],round=state['round'],firstFinish=state.get('firstFinish'),nominees=state['nominees'],bank=state['bank'],upgrades=state['upgrades'],completedCases=state['completedCases'],updated=state['updated'])
+    return dict(code=state['code'],mode=state['mode'],size=state['size'],hostSlot=state['hostSlot'],phase=state['phase'],caseId=state.get('caseId'),startedAt=state.get('startedAt',0),inGame=state['phase']=='case',players=roster,team=state['team'],votes=state['votes'],round=state['round'],firstFinish=state.get('firstFinish'),nominees=state['nominees'],bank=state['bank'],upgrades=state['upgrades'],completedCases=state['completedCases'],updated=state['updated'],worldClock={'elapsedMs':clock_elapsed(state),'running':bool((state.get('worldClock') or {}).get('runFrom')),'durationMs':mission_limit_ms(state.get('caseId')) if state.get('caseId') in META else 0},serverNow=int(time.time()*1000),lastFailure=state.get('lastFailure'))
 
 async def send(ws, payload):
     if ws and not ws.closed:
@@ -97,6 +135,8 @@ def start_case(state,case):
     state['caseId']=case
     state['startedAt']=int(time.time()*1000)
     state['phase']='case'
+    state['worldClock']={'elapsedMs':0,'runFrom':int(time.time()*1000)}
+    state['lastFailure']=None
     state['team']=team_default(case)
     state['nominees']={}
     state['firstFinish']=None
@@ -158,6 +198,7 @@ async def handle(ws,req):
         await old.close()
     sockets[player['slot']]=ws
     if state['hostSlot'] not in sockets:state['hostSlot']=min(sockets)
+    clock_sync(state)
     await commit(state)
     await send(ws,{'event':'welcome','slot':player['slot'],'token':token,'profile':player.get('profile',{}),'profileUpdated':player.get('profileUpdated',0),'state':public(state)})
     await tell_all(state)
@@ -167,6 +208,11 @@ async def mutate(state,slot,m):
     code=state['code'];player=require_player(state,slot)
     if not player:return {'event':'error','message':'Pesquisador desconhecido.'}
     op=m.get('op');case=state.get('caseId')
+    if fail_expired(state):
+        await commit(state);await tell_all(state)
+        return {'event':'error','message':'O prazo da investigação terminou. O grupo voltou ao Instituto sem a recompensa.'}
+    if op=='heartbeat':
+        return None
     if op=='profile':
         profile=safe_profile(m.get('profile'))
         when=int(m.get('profileUpdated') or 0)
@@ -184,6 +230,7 @@ async def mutate(state,slot,m):
         if choice not in META:return {'event':'error','message':'Missão inválida. Escolha um caso no catálogo.'}
         if not eligible(state,choice):return {'event':'error','message':'Uma continuação ainda não foi desbloqueada para todos.'}
         start_case(state,choice)
+        clock_sync(state)
     elif op=='abort':
         if slot!=state['hostSlot']:return {'event':'error','message':'Somente a coordenação pode abandonar a missão para todos.'}
         if state['phase']!='case':return {'event':'error','message':'Não há missão em andamento.'}
@@ -307,6 +354,7 @@ async def socket_handler(request):
                     state=db_read(code)
                     if state:
                         if slots and state['hostSlot'] not in slots:state['hostSlot']=min(slots)
+                        clock_sync(state)
                         await commit(state)
                         await tell_all(state)
                 if not slots:LIVE.pop(code,None)
@@ -337,7 +385,7 @@ app.router.add_get('/',index)
 app.router.add_get('/index.html',index)
 app.router.add_get('/versao-unica',standalone)
 app.router.add_static('/assets',BASE/'assets')
-for filename in ('style.css','cases.js','extra_cases.js','gear.js','investigation.js','expansion.js','game.js','campaign.js','music.js','tutorial.js','lago_rework.js','lago_scenery.js'):
+for filename in ('style.css','cases.js','extra_cases.js','gear.js','investigation.js','expansion.js','game.js','campaign.js','music.js','tutorial.js','lago_rework.js','lago_scenery.js','lago_visual_refino.js','lago_visual_refino.css','immersion.js','immersion.css'):
     app.router.add_get('/'+filename, lambda req, filename=filename:web.FileResponse(BASE/filename, headers={'Cache-Control':'no-store, max-age=0'}))
 
 if __name__=='__main__':
