@@ -73,14 +73,15 @@ render=function(){
  if(container){
    const b=document.createElement('button');
    b.type='button';b.className='manualTutorialStart';b.dataset.tutorial='open';
-   b.textContent='? Tutorial: aprenda a jogar';container.append(b);
+   b.textContent='Tutorial: aprenda a jogar';container.append(b);
  }
  // A ajuda fica disponível de qualquer tela, em conjunto com o botão Início.
  if(s.view!=='title'){
    const b=document.createElement('button');
    b.type='button';b.className='manualHelpQuick';b.dataset.tutorial='open';
-   b.textContent='? Ajuda';b.setAttribute('aria-label','Abrir tutorial do jogo');
-   app.append(b);
+   b.textContent='Ajuda';b.setAttribute('aria-label','Abrir tutorial do jogo');
+   const quickBar=app.querySelector('.manualQuickBar');
+   if(quickBar)quickBar.append(b);else app.prepend(b);
  }
  if(tutorialVisible)renderTutorial();
 };
