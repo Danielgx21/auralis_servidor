@@ -19,7 +19,7 @@ const fmt=n=>String(Math.max(0,n)).padStart(2,'0');
 const restrict=(v,a,b)=>Math.max(a,Math.min(b,v));
 const clockDuration=()=> (X.cloud&&net.inGame&&X.cloud.durationMs)?X.cloud.durationMs:(D[CASES[s.caseId]?.difficulty]||23)*60000;
 function initSolo(){
- if(net.inGame||s.outcome||s.imFailure||document.hidden)return;
+ if(net.inGame||s.outcome||s.imFailure||document.hidden||!['brief','hub','scene','witness','board','dossier','theory','confrontation'].includes(s.view))return;
  if(!Number.isFinite(s.imElapsed))s.imElapsed=0;
  if(!s.imRunning){s.imRunning=Date.now();oldPersist(false)}
 }
