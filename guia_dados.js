@@ -76,6 +76,13 @@
  ['retornantes','O Monarca do Vazio','Trono ocupado por uma ausência','Há registros de uma sombra projetada sobre cadeiras vazias em ruínas e tribunais desativados. Em alguns relatos, a sombra responde a sons; em outros, desaparece.','O fenômeno não se limita a coroas: mesas, púlpitos e degraus também figuram nas descrições.','Fontes múltiplas de luz, projeções e manipulação do ambiente podem produzir efeitos semelhantes.','A posição da sombra acompanha de fato a movimentação das fontes luminosas?'],
  ['retornantes','A Princesa das Testemunhas','A memória dividida','Uma personagem lendária surge em relatos de documentos contestados e famílias que contam histórias incompatíveis de um mesmo acontecimento.','Às vezes é descrita como uma voz, às vezes como reflexo; a identidade da figura não é comprovada por nenhum sinal isolado.','Falhas de memória, erros em documentos e influências mútuas entre testemunhas são parte fundamental da investigação.','Que informação foi registrada antes de as testemunhas conversarem entre si?']
  ];
+ // Arquivo 015: linhagem de sátira política inteiramente ficcional, com imagem própria.
+ // Os indícios não identificam a linhagem por si só; cruzam-se com outras fichas.
+ raw.push(['pactos','Os Bolsonaros','A dinastia de Cinzavila que insiste em retornar',
+ 'No folclore fictício de Cinzavila, a dinastia deposta reaparece em retratos, juramentos, discursos e lembranças que os moradores não reconhecem como suas. Pessoas de diferentes gerações descrevem rostos distintos: nunca se observou um único corpo estável.',
+ 'Relatos incluem uma multidão que repete frases idênticas, estandartes movidos sem vento e vozes vindas de salas vazias. Nem todos os testemunhos são confiáveis: cronistas e famílias discordam sobre o que foi visto, e as narrativas evoluem conforme a disputa pelo poder.',
+ 'Propaganda, sugestão coletiva, gravações, fraude de arquivos e disputas entre facções explicam parte das ocorrências. Na própria tradição, a figura pode funcionar mais como memória compartilhada do que como ser literal.',
+ 'O fenômeno continuaria existindo sem a cerimônia, as testemunhas e a repetição dos mesmos símbolos?']);
  const entries=raw.map((row,i)=>{
   const family=families.find(f=>f.id===row[0]);
   // Um mesmo indício atravessa múltiplas linhagens; nenhum sinal é exclusivo.
