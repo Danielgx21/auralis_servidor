@@ -71,7 +71,7 @@ function act(id,chosen,dragged){
  const type=o[3],clue=o[4],m=moved();
  if(type==='move'){
   if(!dragged){focused=id;render();return}
-  m[id]=true;memo('O objeto foi erguido, examinado e recolocado: '+(labels[id]||id)+'.');
+  m[id]=true;memo('Objeto deslocado no ambiente: '+(labels[id]||id)+'.');
   persist(false);focused=null;render();return;
  }
  if(type==='found'){
@@ -133,13 +133,61 @@ function pictureDetail(id){
   '<image href="'+file+'" width="1000" height="1340" preserveAspectRatio="none"/>'+
   '</svg>';
 }
+
+/* Elementos cinematográficos manipuláveis: recortes da própria pintura,
+   com restauração suave da textura do cenário quando se deslocam. */
+const cinemaMoveArt={
+ lago:{
+  reeds:{shape:'M796 750Q835 765 881 750Q947 774 999 736L1010 1340H774Q791 1127 781 962Z',repair:[220,0],rest:[-120,-390]},
+  crate:{shape:'M4 688Q159 666 340 687L349 946Q188 966 6 943Z',repair:[-380,-25],rest:[355,-220]}
+ },
+ capela:{cloth:{shape:'M208 56Q258 80 346 46Q395 30 419 58L428 499Q377 586 272 564L195 512Z',repair:[-255,-20],rest:[488,20]}}
+};
+function cinemaMotionOffset(id,name){
+ const config=cinemaMoveArt[id]?.[name],position=s.lagoObjectOffsets?.[name];
+ return Array.isArray(position)&&position.length===2&&position.every(Number.isFinite)?position:(config?.rest||[0,0]);
+}
+function cinemaMovedArtwork(id,file){
+ const group=cinemaMoveArt[id];if(!group)return '';
+ let masks='<defs><filter id="cinemaSoftEdge" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="8"/></filter></defs>';
+ let restored='',placed='';
+ for(const [name,config] of Object.entries(group)){
+  const hit=cinemaHits[id][name],active=!!moved()[name];
+  const [x,y,w,h]=hit,mask='cinemaRestore-'+name,cut='cinemaCut-'+name;
+  const offset=cinemaMotionOffset(id,name);
+  masks+='<mask id="'+mask+'" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="1000" height="1340"><rect x="'+(x-11)+'" y="'+(y-11)+'" width="'+(w+22)+'" height="'+(h+22)+'" rx="24" fill="white" filter="url(#cinemaSoftEdge)"/></mask>'+
+   '<mask id="'+cut+'" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="1000" height="1340"><path d="'+config.shape+'" fill="white" filter="url(#cinemaSoftEdge)"/></mask>';
+  restored+='<g data-cinema-repair="'+name+'" style="'+(active?'':'display:none')+'" mask="url(#'+mask+')" pointer-events="none"><image href="'+file+'" x="'+config.repair[0]+'" y="'+config.repair[1]+'" width="1000" height="1340" preserveAspectRatio="none"/></g>';
+  placed+='<g data-cinema-cut="'+name+'" class="cinemaShiftedObject" style="'+(active?'':'display:none')+'" transform="translate('+offset[0]+' '+offset[1]+')" mask="url(#'+cut+')" pointer-events="none"><image href="'+file+'" width="1000" height="1340" preserveAspectRatio="none"/></g>';
+ }
+ return masks+restored+placed;
+}
+function cinemaDragOffset(d,clientX,clientY){
+ const svg=d.svg,ctm=svg?.getScreenCTM?.();
+ if(ctm){
+  const point=svg.createSVGPoint(),inv=ctm.inverse();
+  point.x=d.x;point.y=d.y;const first=point.matrixTransform(inv);
+  point.x=clientX;point.y=clientY;const last=point.matrixTransform(inv);
+  return [last.x-first.x,last.y-first.y];
+ }
+ const rect=svg.getBoundingClientRect();
+ return [(clientX-d.x)*1000/Math.max(1,rect.width),(clientY-d.y)*1340/Math.max(1,rect.height)];
+}
+function cinemaClampOffset(sceneId,name,offset){
+ const [x,y,w,h]=cinemaHits[sceneId][name];
+ const clamp=(n,min,max)=>Math.round(Math.max(min,Math.min(max,n)));
+ return [clamp(offset[0],-x-w*.55,1000-x-w*.45),clamp(offset[1],-y-h*.55,1340-y-h*.45)];
+}
+function resetDragArt(d){
+ if(d?.repair)d.repair.style.display='none';
+ if(d?.cut)d.cut.style.display='none';
+}
+
 function pictureCanvas(){
  const id=s.activeScene,file=cinemaPictures[id],hits=cinemaHits[id];
  if(!file)return '';
- // A pintura é sempre preservada intacta. Ao erguer uma caixa ou afastar
- // um pano, o jogador inspeciona a pista e recoloca o objeto em seu lugar.
- // Nenhum retângulo opaco e nenhuma réplica do objeto são desenhados.
- let art='<image href="'+file+'" width="1000" height="1340" preserveAspectRatio="none"/>';
+ // A pintura permanece como base; objetos deslocados usam recortes dela própria.
+ let art='<image href="'+file+'" width="1000" height="1340" preserveAspectRatio="none"/>'+cinemaMovedArtwork(id,file);
  const names=[...(items[id]||[]).map(item=>item[0]),...Object.keys(extras).filter(key=>extras[key][0]===id)];
  for(const name of [...new Set(names)]){
   if(!available(name))continue;
@@ -205,14 +253,22 @@ for(const [id,url] of Object.entries(sceneFiles)){
 document.addEventListener('pointerdown',e=>{
  if(s.caseId!=='lago'||s.view!=='scene'||focused)return;
  const obj=e.target.closest('[data-landscape],[data-landscape-tool]');if(!obj)return;
- dragging={id:obj.dataset.landscape||obj.dataset.landscapeTool,tool:!!obj.dataset.landscapeTool,x:e.clientX,y:e.clientY,pid:e.pointerId,el:obj};
+ const id=obj.dataset.landscape||obj.dataset.landscapeTool;
+ const svg=obj.closest('.cinemaPainting')?.querySelector('svg');
+ const repair=svg?.querySelector('[data-cinema-repair="'+id+'"]');
+ const cut=svg?.querySelector('[data-cinema-cut="'+id+'"]');
+ dragging={id,tool:!!obj.dataset.landscapeTool,x:e.clientX,y:e.clientY,pid:e.pointerId,el:obj,svg,repair,cut};
+ if(repair&&cut){repair.style.display='';cut.style.display='';cut.setAttribute('transform','translate(0 0)');}
  if(!dragging.tool)e.preventDefault();
 },true);
 window.addEventListener('pointermove',e=>{
  if(!dragging||dragging.pid!==e.pointerId)return;
  const dx=e.clientX-dragging.x,dy=e.clientY-dragging.y;
  if(Math.hypot(dx,dy)<10)return;
- dragging.el.style.opacity='.75';dragging.el.style.transform='translate('+dx+'px,'+dy+'px)';
+ if(dragging.cut){
+  e.preventDefault();const delta=cinemaDragOffset(dragging,e.clientX,e.clientY);
+  dragging.cut.setAttribute('transform','translate('+delta[0]+' '+delta[1]+')');
+ }else{dragging.el.style.opacity='.75';dragging.el.style.transform='translate('+dx+'px,'+dy+'px)';}
 },true);
 window.addEventListener('pointerup',e=>{
  if(!dragging||dragging.pid!==e.pointerId)return;
@@ -222,8 +278,16 @@ window.addEventListener('pointerup',e=>{
  d.el.style.transform='';d.el.style.opacity='';
  if(d.tool){if(distance<30){selected=d.id;render()}else if(hit){selected=d.id;act(hit.dataset.landscape,d.id,false)}else toast('Arraste a ferramenta sobre o objeto.');return}
  e.preventDefault();e.stopImmediatePropagation();
+ if(d.cut&&distance>43){
+  let offset=cinemaClampOffset(s.activeScene,d.id,cinemaDragOffset(d,e.clientX,e.clientY));
+  if(Math.hypot(...offset)<65)offset=cinemaMoveArt[s.activeScene][d.id].rest;
+  if(!s.lagoObjectOffsets||typeof s.lagoObjectOffsets!=='object')s.lagoObjectOffsets={};
+  s.lagoObjectOffsets[d.id]=offset;
+ }
+ if(d.cut&&distance<=43)resetDragArt(d);
  act(d.id,selected,distance>43);
 },true);
+window.addEventListener('pointercancel',e=>{if(dragging&&dragging.pid===e.pointerId){resetDragArt(dragging);dragging=null;}},true);
 document.addEventListener('click',e=>{
  if(s.caseId!=='lago')return;
  const close=e.target.closest('[data-landscape-close]');

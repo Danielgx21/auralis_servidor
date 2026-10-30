@@ -2,7 +2,19 @@
 /* Visualização das artes reais dos locais; não replica nenhum objeto sobre as cenas. */
 (function(){
  if(typeof render!=='function'||typeof app==='undefined')return;
- let zoomOpen=false, zoomLevel=1;
+ let zoomOpen=false, zoomLevel=1, zoomFocus={x:.5,y:0};
+ function saveCenter(){
+  const view=app.querySelector('.locationsArtViewport');if(!view)return;
+  zoomFocus={x:(view.scrollLeft+view.clientWidth/2)/Math.max(1,view.scrollWidth),y:(view.scrollTop+view.clientHeight/2)/Math.max(1,view.scrollHeight)};
+ }
+ function restoreCenter(view){
+  const move=()=>{
+   if(!view.isConnected)return;
+   view.scrollLeft=Math.max(0,view.scrollWidth*zoomFocus.x-view.clientWidth/2);
+   view.scrollTop=Math.max(0,view.scrollHeight*zoomFocus.y-view.clientHeight/2);
+  };
+  move();view.querySelector('img')?.addEventListener('load',move,{once:true});
+ }
  const priorRender=render;
  const encode=(value)=>esc(String(value??''));
  function currentImage(){
@@ -18,7 +30,7 @@
   return '<div class="locationsArtOverlay" data-locations-close-outer>'+
    '<section class="locationsArtDialog" role="dialog" aria-modal="true" aria-label="Ilustração do local">'+
    '<header><div><small>PRANCHA DE CAMPO · '+encode(CASES[s.caseId].number)+'</small><h2>'+encode(art.title)+'</h2></div><button type="button" data-locations-close aria-label="Fechar ampliação">×</button></header>'+
-   '<div class="locationsArtViewport"><img src="'+encode(art.src)+'" alt="Cenário ilustrado: '+encode(art.title)+'" style="transform:scale('+zoomLevel+')" draggable="false"/></div>'+
+   '<div class="locationsArtViewport"><img src="'+encode(art.src)+'" alt="Cenário ilustrado: '+encode(art.title)+'" style="width:'+Math.round(zoomLevel*100)+'%;height:auto;max-height:none;max-width:none;transform:none" draggable="false"/></div>'+
    '<footer><button type="button" data-locations-zoom="-1" aria-label="Diminuir zoom">−</button><span>Ampliação: '+Math.round(zoomLevel*100)+'%</span><button type="button" data-locations-zoom="1" aria-label="Aumentar zoom">+</button></footer>'+
    '<p>Esta é a própria arte do local; objetos interativos permanecem na cena normal da investigação.</p></section></div>';
  }
@@ -32,7 +44,13 @@
   toolbar.className='locationsArtActions';
   toolbar.innerHTML='<button type="button" data-locations-open><span aria-hidden="true">⛶</span> Ver arte do local</button><span>Ilustração do próprio cenário · sem objetos duplicados</span>';
   sceneArea.insertAdjacentElement('afterend',toolbar);
-  if(zoomOpen)app.insertAdjacentHTML('beforeend',viewer());
+  if(zoomOpen){
+   app.insertAdjacentHTML('beforeend',viewer());
+   const view=app.querySelector('.locationsArtViewport');if(view){
+    restoreCenter(view);
+    view.addEventListener('scroll',()=>{zoomFocus={x:(view.scrollLeft+view.clientWidth/2)/Math.max(1,view.scrollWidth),y:(view.scrollTop+view.clientHeight/2)/Math.max(1,view.scrollHeight)};},{passive:true});
+   }
+  }
  }
  render=function(){priorRender();decorate()};
  document.addEventListener('click',e=>{
@@ -44,16 +62,16 @@
   const outer=button.hasAttribute('data-locations-close-outer')&&e.target===button;
   if(!(open||close||change||outer))return;
   e.preventDefault();e.stopImmediatePropagation();
-  if(open){zoomOpen=true;zoomLevel=1}
+  if(open){zoomOpen=true;zoomLevel=1;zoomFocus={x:.5,y:0}}
   else if(close||outer){zoomOpen=false}
-  else if(change){zoomLevel=Math.max(1,Math.min(3,Math.round((zoomLevel+Number(change.dataset.locationsZoom)*.25)*100)/100))}
+  else if(change){saveCenter();zoomLevel=Math.max(1,Math.min(3,Math.round((zoomLevel+Number(change.dataset.locationsZoom)*.25)*100)/100))}
   render();
  },true);
  document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&zoomOpen){zoomOpen=false;e.preventDefault();render()}
  },true);
  const style=document.createElement('style');
- style.textContent='.locationsArtActions{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:8px 14px 20px;flex-wrap:wrap}.locationsArtActions button{background:#203940;color:#ebd5ad;border:1px solid #9f875d;border-radius:7px;font:700 12px system-ui;padding:10px 13px;cursor:pointer}.locationsArtActions span{font:11px/1.5 system-ui;color:#9eaaa5}.locationsArtOverlay{position:fixed;inset:0;z-index:17000;background:#030c12ee;display:flex;align-items:center;justify-content:center;padding:10px;backdrop-filter:blur(5px)}.locationsArtDialog{color:#ecddc4;width:min(650px,100%);max-height:94dvh;display:flex;flex-direction:column;border:1px solid #b3996b;background:#10242b;border-radius:11px;padding:11px;box-shadow:0 15px 50px #000d}.locationsArtDialog header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px}.locationsArtDialog h2{font:normal 23px Georgia,serif;color:#ecd3a9;margin:4px 0}.locationsArtDialog small{font:700 10px system-ui;letter-spacing:.12em;color:#bba47d}.locationsArtDialog header button{font:29px system-ui;border:0;background:transparent;color:#f2d7ac;cursor:pointer}.locationsArtViewport{flex:1;min-height:180px;max-height:68dvh;overflow:auto;background:#07161b;text-align:center;touch-action:pan-x pan-y}.locationsArtViewport img{display:block;width:100%;height:auto;max-height:69dvh;object-fit:contain;transform-origin:center top;transition:transform .13s}.locationsArtDialog footer{display:flex;align-items:center;justify-content:center;gap:24px;padding:9px}.locationsArtDialog footer button{height:36px;width:42px;background:#293f40;border:1px solid #907b53;border-radius:5px;color:#ebd5a9;font:25px system-ui;cursor:pointer}.locationsArtDialog footer span{font:12px system-ui}.locationsArtDialog>p{font:11px/1.5 system-ui;color:#b3c0b9;margin:0 8px 8px;text-align:center}@media(max-width:480px){.locationsArtActions>span{font-size:10px}.locationsArtDialog{padding:6px}.locationsArtDialog h2{font-size:20px}}';
+ style.textContent='.locationsArtActions{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:8px 14px 20px;flex-wrap:wrap}.locationsArtActions button{background:#203940;color:#ebd5ad;border:1px solid #9f875d;border-radius:7px;font:700 12px system-ui;padding:10px 13px;cursor:pointer}.locationsArtActions span{font:11px/1.5 system-ui;color:#9eaaa5}.locationsArtOverlay{position:fixed;inset:0;z-index:17000;background:#030c12ee;display:flex;align-items:center;justify-content:center;padding:10px;backdrop-filter:blur(5px)}.locationsArtDialog{color:#ecddc4;width:min(650px,100%);max-height:94dvh;display:flex;flex-direction:column;border:1px solid #b3996b;background:#10242b;border-radius:11px;padding:11px;box-shadow:0 15px 50px #000d}.locationsArtDialog header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px}.locationsArtDialog h2{font:normal 23px Georgia,serif;color:#ecd3a9;margin:4px 0}.locationsArtDialog small{font:700 10px system-ui;letter-spacing:.12em;color:#bba47d}.locationsArtDialog header button{font:29px system-ui;border:0;background:transparent;color:#f2d7ac;cursor:pointer}.locationsArtViewport{flex:1;min-height:180px;max-height:68dvh;overflow:auto;background:#07161b;text-align:center;touch-action:pan-x pan-y}.locationsArtViewport img{display:block;height:auto;max-height:none;max-width:none;object-fit:contain;transform:none!important}.locationsArtDialog footer{display:flex;align-items:center;justify-content:center;gap:24px;padding:9px}.locationsArtDialog footer button{height:36px;width:42px;background:#293f40;border:1px solid #907b53;border-radius:5px;color:#ebd5a9;font:25px system-ui;cursor:pointer}.locationsArtDialog footer span{font:12px system-ui}.locationsArtDialog>p{font:11px/1.5 system-ui;color:#b3c0b9;margin:0 8px 8px;text-align:center}@media(max-width:480px){.locationsArtActions>span{font-size:10px}.locationsArtDialog{padding:6px}.locationsArtDialog h2{font-size:20px}}';
  document.head.appendChild(style);
  render();
 })();
