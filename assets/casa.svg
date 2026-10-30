@@ -24,14 +24,24 @@
 <path d="M142 235V628 M179 235V596" stroke="#a28d70" stroke-width="5"/>
 <path d="M125 520L160 520L150 613L139 613Z" fill="#826c55" stroke="#d2b47f" stroke-width="5"/>
 <path d="M176 600Q147 648 182 663Q211 648 176 600Z" fill="none" stroke="#9b8770" stroke-width="10"/>
-<!-- mirror left -->
+<!-- Um único espelho, parte real do cenário -->
+<g data-landscape="mirror" role="button" tabindex="0" aria-label="Espelho" class="sceneNativeObject"><g data-landscape-art>
 <ellipse cx="157" cy="427" rx="113" ry="187" fill="#6d5941" stroke="#b7996c" stroke-width="11"/>
 <ellipse cx="157" cy="427" rx="93" ry="167" fill="#26444d" stroke="#1e2e32" stroke-width="7"/>
 <path d="M124 363Q160 315 200 375L170 511Q145 533 116 483Z" fill="#9bb5aa" opacity=".18"/>
-<!-- radio right -->
+</g><ellipse cx="157" cy="427" rx="116" ry="188" fill="transparent" pointer-events="all"/></g>
+<g data-landscape="curtain" role="button" tabindex="0" aria-label="Cortina" class="sceneNativeObject"><g data-landscape-art><path d="M184 224Q226 202 282 231L295 640Q267 669 225 631Q239 550 211 466Q235 356 184 224Z" fill="#a0a699" stroke="#625f52" stroke-width="8"/><path d="M215 240Q245 341 240 470Q260 554 244 626M258 234Q267 405 280 613" fill="none" stroke="#e2d5bd" stroke-width="6" opacity=".4"/><path d="M187 219Q233 208 285 225" fill="none" stroke="#896c4e" stroke-width="10"/></g><rect x="189" y="215" width="108" height="437" fill="transparent" pointer-events="all"/></g>
+<!-- Um único rádio, parte real do cenário -->
+<g data-landscape="radio" role="button" tabindex="0" aria-label="Rádio antigo" class="sceneNativeObject"><g data-landscape-art>
 <rect x="738" y="467" width="219" height="161" rx="10" fill="#493a31" stroke="#a28865" stroke-width="10"/>
 <rect x="757" y="489" width="145" height="66" fill="#192c2b" stroke="#d0ac79" stroke-width="5"/>
 <path d="M770 492V552" stroke="#bda479" stroke-width="2" opacity=".5"/><path d="M780 492V552" stroke="#bda479" stroke-width="2" opacity=".5"/><path d="M790 492V552" stroke="#bda479" stroke-width="2" opacity=".5"/><path d="M800 492V552" stroke="#bda479" stroke-width="2" opacity=".5"/><path d="M810 492V552" stroke="#bda479" stroke-width="2" opacity=".5"/><path d="M820 492V552" stroke="#bda479" stroke-width="2" opacity=".5"/><path d="M830 492V552" stroke="#bda479" stroke-width="2" opacity=".5"/><path d="M840 492V552" stroke="#bda479" stroke-width="2" opacity=".5"/><path d="M850 492V552" stroke="#bda479" stroke-width="2" opacity=".5"/><path d="M860 492V552" stroke="#bda479" stroke-width="2" opacity=".5"/><path d="M870 492V552" stroke="#bda479" stroke-width="2" opacity=".5"/><path d="M880 492V552" stroke="#bda479" stroke-width="2" opacity=".5"/><path d="M890 492V552" stroke="#bda479" stroke-width="2" opacity=".5"/><path d="M900 492V552" stroke="#bda479" stroke-width="2" opacity=".5"/><circle cx="780" cy="588" r="18" fill="#bda078"/><circle cx="913" cy="589" r="18" fill="#bda078"/>
+</g><rect x="725" y="454" width="249" height="189" fill="transparent" pointer-events="all"/></g>
+<!-- Prateleira e gaveta embutidas na parede, não objetos sobrepostos ao cenário -->
+<path d="M705 633Q829 621 978 636L979 661H703Z" fill="#564334" stroke="#9c7656" stroke-width="7"/>
+<path d="M719 653H962V808H719Z" fill="#392d28" stroke="#6f5642" stroke-width="13"/>
+<g data-landscape="papers" role="button" tabindex="0" aria-label="Documentos escondidos" class="sceneNativeObject"><g data-landscape-art><path d="M755 685H904L927 706V788H755Z" fill="#c9ba96" stroke="#a38762" stroke-width="7"/><path d="M783 713H899M778 739H902M780 762H869" fill="none" stroke="#86795f" stroke-width="5"/></g><rect x="748" y="677" width="192" height="121" fill="transparent" pointer-events="all"/></g>
+<g data-landscape="drawer" role="button" tabindex="0" aria-label="Gaveta com documentos" class="sceneNativeObject"><g data-landscape-art><rect x="730" y="680" width="222" height="112" rx="10" fill="#694e39" stroke="#ae8559" stroke-width="10"/><rect x="755" y="700" width="173" height="65" fill="#4c362c" stroke="#926e4b" stroke-width="4"/><ellipse cx="842" cy="736" rx="20" ry="12" fill="#c5a276" stroke="#614937" stroke-width="4"/></g><rect x="725" y="675" width="233" height="125" fill="transparent" pointer-events="all"/></g>
 <!-- foreground work table -->
 <path d="M-40 810L1040 810L1140 1198L-140 1198Z" fill="#382e28" stroke="#84684c" stroke-width="11"/>
 <path d="M-80 925L1080 925 M-100 1077L1100 1077" stroke="#886e50" stroke-width="4" opacity=".5"/>
