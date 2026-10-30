@@ -315,7 +315,16 @@ async def socket_handler(request):
 async def health(request):
     return web.json_response({'ok':True,'service':'manual-das-criaturas','rooms':db_count(),'persistent':bool(DATABASE_URL),'database':'postgres' if DATABASE_URL else 'sqlite','build':os.environ.get('MANUAL_BUILD_VERSION','1.0')})
 
-async def index(request):return web.FileResponse(BASE/'index.html')
+async def index(request):
+    # A versão da página e do módulo multiplayer precisam ser a mesma.
+    # Módulo inline evita versões antigas de campaign.js mantidas pelo cache móvel.
+    html = (BASE / 'index.html').read_text(encoding='utf-8')
+    marker = '<script src="campaign.js?v=1.0.4"></script>'
+    script = (BASE / 'campaign.js').read_text(encoding='utf-8')
+    if marker not in html:
+        return web.Response(text='Erro de integridade da versão. Atualize a página.', status=500)
+    html = html.replace(marker, '<script>' + script.replace('</script', '<\\/script') + '</script>')
+    return web.Response(text=html, content_type='text/html', headers={'Cache-Control':'no-store, max-age=0','Pragma':'no-cache'})
 
 async def standalone(request):
     bundled=BASE/'Manual_das_Criaturas_V10_Offline_Online.html'
@@ -329,7 +338,7 @@ app.router.add_get('/index.html',index)
 app.router.add_get('/versao-unica',standalone)
 app.router.add_static('/assets',BASE/'assets')
 for filename in ('style.css','cases.js','extra_cases.js','gear.js','investigation.js','expansion.js','game.js','campaign.js'):
-    app.router.add_get('/'+filename, lambda req, filename=filename:web.FileResponse(BASE/filename))
+    app.router.add_get('/'+filename, lambda req, filename=filename:web.FileResponse(BASE/filename, headers={'Cache-Control':'no-store, max-age=0'}))
 
 if __name__=='__main__':
     print(f'Manual das Criaturas | http://localhost:{PORT} | database: {"postgres" if DATABASE_URL else str(DB_PATH)}',flush=True)
