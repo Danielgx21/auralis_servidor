@@ -87,7 +87,7 @@
   return '<section class="atlasLeaf" aria-label="Ficha ilustrada da manifestação">'+
    '<div class="atlasLeafTop"><span>INSTITUTO DO VÉU · ARQUIVO COMPARATIVO</span><span>FOLHA '+String(e.n).padStart(2,'0')+' / '+atlas.entries.length+'</span></div>'+
    '<div class="atlasLeafTitle"><span class="atlasRoman">'+h(fam.symbol)+' · '+h(fam.name)+'</span><h3>'+h(e.name)+'</h3><p>'+h(e.epithet)+'</p></div>'+
-   '<div class="atlasArtFrame">'+(e.name==='Os Bolsonaros'?'<img src="assets/bolsonaros_revelacao.svg" class="atlasFullArt" alt="Gravura da linhagem ficcional dos Bolsonaros" loading="lazy"/>':art(e,false))+'<div class="atlasArtCaption">Representação conjectural · Não corresponde a registro fotográfico</div></div>'+
+   '<div class="atlasArtFrame">'+art(e,false)+'<div class="atlasArtCaption">Representação conjectural · Não corresponde a registro fotográfico</div></div>'+
    '<div class="atlasSmallPrint"><span>'+h(e.source)+'</span><span>'+h(e.confidence)+'</span></div>'+
    '<article class="atlasSection"><h4>Primeiros testemunhos</h4><p>'+h(e.story)+'</p></article>'+
    '<article class="atlasSection"><h4>Comportamento descrito</h4><p>'+h(e.behavior)+'</p></article>'+
