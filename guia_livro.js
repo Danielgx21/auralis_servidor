@@ -25,7 +25,7 @@
    ecos:['#738d91','#1c3a42','#bdc7bd'],aguas:['#538c9a','#173d4c','#a7d4d5'],
    matas:['#748962','#293b31','#c5c5a0'],mimicos:['#a58ca0','#382e40','#d7c2c6'],
    pactos:['#b69a6c','#43392f','#dfc7a0'],noturnos:['#8c8ba9','#292b42','#bebecf'],
-   feericos:['#ba9c83','#473e4a','#e0c8b0'],limiares:['#8ca6a0','#263e40','#d5d4ba']};
+   feericos:['#ba9c83','#473e4a','#e0c8b0'],limiares:['#8ca6a0','#263e40','#d5d4ba'],retornantes:['#ad9175','#342e30','#ead6b3']};
   const [primary,dark,light]=palettes[group];
   const variant=i%6,faceX=170+(i%3-1)*9,headY=155+(i%4)*3,eye=(i%2===0?3:0),marks=Array.from({length:14},(_,j)=>{const x=(j*67+seed*11)%335+4,y=(j*113+seed*3)%426+12;return '<circle cx="'+x+'" cy="'+y+'" r="'+(j%3+1)+'" fill="'+light+'" opacity="'+(.1+(j%4)*.06)+'"/>'}).join('');
   const body='<path d="M55 428Q77 337 115 298Q119 250 137 232L134 201Q130 170 145 158Q166 134 191 161Q217 186 196 216L204 252Q235 278 256 337L287 428Z" fill="'+dark+'" stroke="'+primary+'" stroke-width="3" opacity=".95"/>'+
