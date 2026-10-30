@@ -23,30 +23,148 @@ const labels={reeds:'Juncos',crate:'Caixote',lantern:'Lanterna',curtain:'Cortina
 let selected=null,drag=null,radio=false;
 function moved(){return s.lagoMoved||(s.lagoMoved={});}
 function find(id){if(s.evidence.includes(id))return;if(net.inGame&&net.paused)return toast('Aguardando a equipe.');if(net.inGame&&net.mode==='coop'&&!canInspect(id))return toast('Outro especialista precisa examinar esta pista.');s.evidence.push(id);s.modal=id;persist();render();}
-function act(id,tool,dragged){
- const o=(items[s.activeScene]||[]).find(x=>x[0]===id);if(!o)return;
- const [name,x,y,type,clue,requires]=o;
- if(requires&&!moved()[requires])return toast('Afaste primeiro o que está cobrindo esta parte.');
- if(type==='move'){if(!dragged)return toast('Arraste '+labels[id].toLowerCase()+' para o lado.');moved()[id]=true;if(id==='crate')s.lagoKey=true;persist();render();return;}
- if(type==='radio'){radio=true;render();return;}
- if(!tool)return toast('Escolha uma ferramenta na bolsa e use sobre o objeto.');
- if(type==='key'&&!s.lagoKey)return toast('Encontre a chave primeiro, atrás do caixote.');
- if(tool!==type&&!(tool==='lens'&&type==='glass')&&!(tool==='powder'&&type==='brush'))return toast('Essa ferramenta não funciona aqui.');
- if(tool==='powder'){if(!charges('powder'))return toast('Você não tem pó.');saved.stock.powder--;}
+
+let focused=null,turn=0,activeTool=null,dragging=null;
+const extras={
+ ribbon:['lago',77,71,'fita','Fita azul','<path d="M-59-39Q-15-57 35-17Q71 5 42 54Q14 26-1 7Q-33 29-59 6Z" fill="#4a72a9" stroke="#aabbd6" stroke-width="7"/>'],
+ footprints:['lago',42,80,'pegadas','Pegadas','<ellipse cx="-33" cy="-24" rx="17" ry="32" transform="rotate(-26 -33 -24)" fill="#4d4031"/><ellipse cx="35" cy="29" rx="16" ry="30" transform="rotate(20 35 29)" fill="#4d4031"/>'],
+ keypiece:['lago',44,86,null,'Peça metálica','<circle cx="-32" cy="-18" r="22" fill="none" stroke="#c4a677" stroke-width="12"/><path d="M-8-17H64V3H45V20H26V3H-8" fill="#c4a677"/>'],
+ papers:['casa',69,77,'registro','Papéis escondidos','<path d="M-75-81H49L74-54V82H-75Z" fill="#decba9" stroke="#897256" stroke-width="10"/><path d="M-45-35H37M-45-12H43M-45 13H36M-45 39H29" fill="none" stroke="#816d54" stroke-width="6"/>']
+};
+const detail={
+ lantern:['A lanterna fechada','Existe água do lado interno. Gire o objeto para verificar a tampa.'],
+ mirror:['O espelho','As marcas parecem estar do outro lado do vidro. A luz rasante ajuda a identificar sua origem.'],
+ stone:['A pedra inscrita','A sujeira cobre símbolos que podem ter sido apagados intencionalmente.'],
+ bell:['O sino','Há riscos regulares na parte interna do bronze. O instrumento pode ter servido a um ritual.'],
+ chest:['O baú','Uma fechadura antiga impede o acesso. Uma chave foi perdida perto do cais.'],
+ radio:['O aparelho de rádio','O mostrador vai de 0 a 30. Um depoimento pode indicar a frequência correta.'],
+ reeds:['Os juncos','As plantas foram amassadas e escondem algo. Talvez seja necessário afastá-las mais de uma vez.'],
+ crate:['O caixote','A madeira está pesada e bloqueia marcas no cais. Há algo brilhando atrás dele.'],
+ curtain:['A cortina','O tecido está preso ao suporte. Por trás, o vidro tem marcas de umidade.'],
+ drawer:['A gaveta','Ela está emperrada. Há um compartimento debaixo das folhas.'],
+ cloth:['O pano sobre o sino','O tecido abafou a vibração do bronze por muito tempo.']
+};
+function notes(){return s.lagoFieldNotes||(s.lagoFieldNotes=[])}
+function memo(t){if(!notes().includes(t)){notes().unshift(t);notes().length=Math.min(notes().length,18);persist(false)}}
+function seen(){return s.lagoSteps||(s.lagoSteps={})}
+function available(id){
+ const m=moved(),x=extras[id];
+ if(x){if(id==='ribbon')return !!m.reeds&&!s.evidence.includes('fita');if(id==='footprints')return !!m.crate&&!s.evidence.includes('pegadas');if(id==='keypiece')return !!m.crate&&!s.lagoKey;if(id==='papers')return !!m.drawer&&!s.evidence.includes('registro');return false}
+ if(['reeds','crate','curtain','drawer','cloth'].includes(id))return !m[id];
+ if(id==='mirror'&&!m.curtain||id==='bell'&&!m.cloth)return false;
+ const item=(items[s.activeScene]||[]).find(o=>o[0]===id);
+ return !!item&&!item[4]||!!item&&!s.evidence.includes(item[4]);
+}
+function data(id){
+ if(extras[id]){const x=extras[id];return [id,x[1],x[2],'found',x[3]]}
+ return (items[s.activeScene]||[]).find(o=>o[0]===id);
+}
+function getType(id){return data(id)?.[3]}
+function objectShape(o){
+ const id=o[0],x=o[1],y=o[2],found=!!extras[id],shape=found?extras[id][5]:shapes[id];
+ const label=extras[id]?.[4]||labels[id]||id;
+ return '<g data-landscape="'+id+'" role="button" tabindex="0" aria-label="'+label+'" transform="translate('+x*10+' '+Math.round(y*13.4)+')" class="landscapeNewObject"><g data-landscape-art>'+shape+'</g><rect x="-106" y="-133" width="212" height="263" fill="transparent"/><title>'+label+'</title></g>';
+}
+function act(id,chosen,dragged){
+ if(net.inGame&&net.paused)return toast('Investigação pausada. Aguardando reconexão.');
+ const o=data(id);if(!o)return;
+ const type=o[3],clue=o[4],m=moved();
+ if(type==='move'){
+  if(!dragged){focused=id;render();return}
+  const stages=seen();if(!stages[id]){
+   stages[id]=1;memo('O primeiro movimento revelou marcas de uso em '+(labels[id]||id).toLowerCase()+'.');
+   toast('Você afastou parte do objeto. Arraste novamente para olhar atrás.');render();return;
+  }
+  m[id]=true;memo('Objeto deslocado: '+(labels[id]||id)+'. Agora é possível procurar o que estava escondido.');
+  persist(false);focused=null;render();return;
+ }
+ if(type==='found'){
+  focused=null;
+  if(id==='keypiece'){s.lagoKey=true;memo('Uma chave metálica estava atrás do caixote.');persist();render();return}
+  if(id==='footprints')memo('Duas trilhas seguem até a água; nenhuma mostra sinais claros de arrasto.');
+  if(id==='ribbon')memo('O nó na fita foi feito por alguém. Quem a utilizava?');
+  if(id==='papers')memo('O documento associa a obra da represa à instalação do sino.');
+  find(clue);return;
+ }
+ if(type==='radio'){
+  focused='radio';render();return;
+ }
+ if(type==='key'&&!s.lagoKey){focused=id;render();return}
+ if(type==='glass'&&id==='lantern'&&!s.lagoLanternTurned){focused=id;render();return}
+ if(!chosen||chosen==='inspect'){focused=id;render();return}
+ if(type==='key'&&chosen!=='key')return toast('Experimente a chave encontrada sob o caixote.');
+ if(type==='glass'&&!['glass','lens'].includes(chosen))return toast('Use a lupa para observar essas marcas.');
+ if(type==='brush'&&!['brush','powder'].includes(chosen))return toast('Use o pincel para remover a camada superficial.');
+ focused=null;memo('Exame de '+(labels[id]||id)+': '+(detail[id]?.[1]||'uma nova pista foi identificada.'));
  find(clue);
 }
-function sceneSvg(o){const [id,x,y,type,clue,req]=o;if(req&&!moved()[req])return '';let done=moved()[id]&&type==='move',found=clue&&s.evidence.includes(clue);if(found&&type!=='move')return '';let offset=done?'translate(200 45)':'';return '<g data-landscape="'+id+'" role="button" tabindex="0" aria-label="'+labels[id]+'" transform="translate('+x*10+' '+Math.round(y*13.4)+')"><g transform="'+offset+'">'+shapes[id]+'</g><rect x="-105" y="-120" width="210" height="235" fill="transparent"/></g>';}
+function examination(){
+ if(!focused)return '';
+ const label=extras[focused]?.[4]||detail[focused]?.[0]||labels[focused]||'Objeto';
+ const d=detail[focused]?.[1]||'Observe as marcas e use uma ferramenta adequada.';
+ const type=getType(focused);
+ return '<div class="landscapeInspectBackdrop" data-landscape-modal><section class="landscapeInspect" role="dialog" aria-modal="true" aria-label="Exame detalhado"><button data-landscape-close="1" class="landscapeInspectX">×</button><div class="eyebrow">EXAME MATERIAL · '+esc(s.activeScene)+'</div><h2>'+label+'</h2><div class="landscapeZoom"><svg viewBox="-135 -165 270 330" style="transform:rotate('+turn+'deg)"><g>'+(extras[focused]?.[5]||shapes[focused]||'')+'</g></svg></div><p>'+d+'</p>'+
+ (focused==='lantern'&&!s.lagoLanternTurned?'<label>Gire a lanterna para examinar a base<input data-landscape-turn type="range" min="0" max="360" value="'+turn+'"></label>':'')+
+ (focused==='radio'?'<label>Sintonize o rádio: <b data-landscape-frequency>'+String(s.lagoRadioFreq||0).padStart(2,'0')+'</b><input id="landscapeFreq" type="range" min="0" max="30" value="'+(s.lagoRadioFreq||0)+'"></label><p>Procure nos depoimentos o horário que pode corresponder à frequência.</p>':'')+
+ '<button data-landscape-apply="'+focused+'" class="landscapeInspectApply">'+(type==='move'?'Arrastar objeto':'Examinar com a ferramenta selecionada')+'</button></section></div>';
+}
 scene=function(){
  if(s.caseId!=='lago')return originalScene();
- const loc=CASES.lago.scenes[s.activeScene],o=items[s.activeScene]||[],tools=[['glass','⌕','Lupa'],['brush','╱','Pincel'],...(s.lagoKey?[['key','⚿','Chave']]:[]),...(own('lens')?[['lens','◉','Lente']]:[])];
- return '<section class="landscapePage"><button class="backBtn" data-view="hub">← Outros locais</button><h2>'+esc(loc.name)+'</h2><p>'+esc(loc.intro)+'</p><p class="landscapeHelp">Observe o cenário: arraste objetos ou selecione uma ferramenta e toque na parte que quer examinar.</p><div class="landscapeCanvas" style="background-image:url('+loc.image+')"><svg viewBox="0 0 1000 1340" xmlns="http://www.w3.org/2000/svg" class="landscapeSvg">'+o.map(sceneSvg).join('')+'</svg></div><div class="landscapeInventory"><strong>Ferramentas</strong><div>'+tools.map(t=>'<button type="button" class="landscapeTool '+(selected===t[0]?'chosen':'')+'" data-landscape-tool="'+t[0]+'" aria-label="'+t[2]+'"><span>'+t[1]+'</span><small>'+t[2]+'</small></button>').join('')+'</div></div>'+
- (s.activeScene==='casa'&&radio?'<div class="landscapeRadio"><h3>Rádio do barqueiro</h3><p>Qual horário Iria mencionou? Ajuste a frequência.</p><input type="range" id="landscapeFreq" min="0" max="30" value="'+(s.lagoRadioFreq||0)+'"><strong id="landscapeValue">'+(s.lagoRadioFreq||0)+'</strong><button data-landscape-close="1">Fechar</button></div>':'')+
- '<button class="btn" data-view="dossier">Rever provas · '+s.evidence.length+'/9</button></section>';
+ const loc=CASES.lago.scenes[s.activeScene];if(!loc)return originalScene();
+ const o=(items[s.activeScene]||[]).filter(x=>available(x[0]));
+ for(const [id,x] of Object.entries(extras))if(x[0]===s.activeScene&&available(id))o.push(data(id));
+ const tools=[['inspect','◉','Observar'],['glass','⌕','Lupa'],['brush','╱','Pincel'],...(s.lagoKey?[['key','⚿','Chave']]:[])];
+ return '<section class="landscapePage"><button class="backBtn" data-view="hub">← Voltar aos locais</button><div class="eyebrow">INVESTIGAÇÃO PRÁTICA · '+esc(loc.name)+'</div><h2>'+esc(loc.name)+'</h2><p>'+esc(loc.intro)+'</p><p class="landscapeHelp">Arraste objetos para descobrir o que escondem. Examine-os de perto, gire peças e escolha a ferramenta adequada.</p><div class="landscapeCanvas" style="background-image:url('+loc.image+')"><svg viewBox="0 0 1000 1340" xmlns="http://www.w3.org/2000/svg" class="landscapeSvg">'+o.map(objectShape).join('')+'</svg></div><div class="landscapeInventory"><strong>Bolsa de investigação</strong><div>'+tools.map(t=>'<button type="button" class="landscapeTool '+(selected===t[0]?'chosen':'')+'" data-landscape-tool="'+t[0]+'" aria-label="'+t[2]+'"><span>'+t[1]+'</span><small>'+t[2]+'</small></button>').join('')+'</div></div><div class="landscapeFieldNotes"><strong>Anotações de campo</strong>'+(notes().length?notes().slice(0,3).map(t=>'<p>'+esc(t)+'</p>').join(''):'<p>As observações não revelam automaticamente o significado das pistas.</p>')+'</div><button class="btn" data-view="board">Interpretar as provas no quadro →</button>'+examination()+'</section>';
 };
-document.addEventListener('pointerdown',e=>{if(s.caseId!=='lago'||s.view!=='scene')return;const obj=e.target.closest('[data-landscape],[data-landscape-tool]');if(!obj)return;e.preventDefault();e.stopImmediatePropagation();drag={id:obj.dataset.landscape||obj.dataset.landscapeTool,tool:!!obj.dataset.landscapeTool,x:e.clientX,y:e.clientY,pid:e.pointerId};},true);
-window.addEventListener('pointerup',e=>{if(!drag||drag.pid!==e.pointerId)return;const d=drag;drag=null;e.preventDefault();e.stopImmediatePropagation();const distance=Math.hypot(e.clientX-d.x,e.clientY-d.y);if(d.tool){if(distance<20){selected=d.id;render();return;}const rect=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-landscape]');if(rect)act(rect.dataset.landscape,d.id,false);else toast('Solte a ferramenta sobre um objeto.');return;}act(d.id,selected,distance>35);selected=null;},true);
-document.addEventListener('input',e=>{if(e.target?.id!=='landscapeFreq')return;let v=Number(e.target.value);s.lagoRadioFreq=v;document.getElementById('landscapeValue').textContent=v;if(v===17){radio=false;find('radio');}},true);
-document.addEventListener('click',e=>{const b=e.target.closest('[data-landscape-close]');if(b){e.preventDefault();e.stopImmediatePropagation();radio=false;render();}},true);
+document.addEventListener('pointerdown',e=>{
+ if(s.caseId!=='lago'||s.view!=='scene'||focused)return;
+ const obj=e.target.closest('[data-landscape],[data-landscape-tool]');if(!obj)return;
+ dragging={id:obj.dataset.landscape||obj.dataset.landscapeTool,tool:!!obj.dataset.landscapeTool,x:e.clientX,y:e.clientY,pid:e.pointerId,el:obj};
+ if(!dragging.tool)e.preventDefault();
+},true);
+window.addEventListener('pointermove',e=>{
+ if(!dragging||dragging.pid!==e.pointerId)return;
+ const dx=e.clientX-dragging.x,dy=e.clientY-dragging.y;
+ if(Math.hypot(dx,dy)<10)return;
+ dragging.el.style.opacity='.75';dragging.el.style.transform='translate('+dx+'px,'+dy+'px)';
+},true);
+window.addEventListener('pointerup',e=>{
+ if(!dragging||dragging.pid!==e.pointerId)return;
+ const d=dragging;dragging=null;
+ const distance=Math.hypot(e.clientX-d.x,e.clientY-d.y);
+ const hit=d.tool&&distance>30?document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-landscape]'):null;
+ d.el.style.transform='';d.el.style.opacity='';
+ if(d.tool){if(distance<30){selected=d.id;render()}else if(hit){selected=d.id;act(hit.dataset.landscape,d.id,false)}else toast('Arraste a ferramenta sobre o objeto.');return}
+ e.preventDefault();e.stopImmediatePropagation();
+ act(d.id,selected,distance>43);
+},true);
+document.addEventListener('click',e=>{
+ if(s.caseId!=='lago')return;
+ const close=e.target.closest('[data-landscape-close]');
+ if(close){e.preventDefault();e.stopImmediatePropagation();focused=null;render();return}
+ const apply=e.target.closest('[data-landscape-apply]');
+ if(apply){e.preventDefault();e.stopImmediatePropagation();const id=apply.dataset.landscapeApply;focused=null;act(id,selected,getType(id)==='move');return}
+},true);
+document.addEventListener('input',e=>{
+ if(s.caseId!=='lago')return;
+ if(e.target.matches('[data-landscape-turn]')){
+  turn=Number(e.target.value);e.target.closest('.landscapeInspect')?.querySelector('.landscapeZoom svg')?.style.setProperty('transform','rotate('+turn+'deg)');
+  if(turn>=135&&!s.lagoLanternTurned){s.lagoLanternTurned=true;memo('Ao girar a lanterna, uma marca de pressão aparece sob a tampa.');toast('Uma marca surgiu na base da lanterna.')}
+ }
+ if(e.target.id==='landscapeFreq'){
+  const v=Number(e.target.value);s.lagoRadioFreq=v;
+  const b=document.querySelector('[data-landscape-frequency]');if(b)b.textContent=String(v).padStart(2,'0');
+  if(v===17){focused=null;memo('O rádio sintoniza uma voz e um som metálico na mesma faixa.');find('radio')}
+ }
+},true);
+document.addEventListener('keydown',e=>{
+ if(s.caseId!=='lago'||s.view!=='scene'||!['Enter',' '].includes(e.key))return;
+ const item=e.target.closest('[data-landscape]');if(!item)return;
+ e.preventDefault();act(item.dataset.landscape,selected,false);
+},true);
+const landscapeV2Styles=document.createElement('style');
+landscapeV2Styles.textContent='.landscapeNewObject{cursor:grab;touch-action:none}.landscapeNewObject:active{cursor:grabbing}.landscapeNewObject>g{filter:drop-shadow(0 5px 7px #000a);transition:filter .17s}.landscapeNewObject:is(:hover,:focus-visible)>g{filter:drop-shadow(0 0 13px #e8ca9b) drop-shadow(0 5px 7px #000a)}.landscapeNewObject:focus-visible{outline:3px solid #f0d3a6}.landscapeFieldNotes{border:1px solid #b49f7c77;border-radius:11px;background:#142a32;padding:15px;margin:12px 0}.landscapeFieldNotes strong{color:#f0d6ad}.landscapeFieldNotes p{font:12px/1.6 system-ui;margin:9px 0;color:#ced9d2}.landscapeInspectBackdrop{position:fixed;inset:0;display:grid;place-items:center;background:#031019e8;backdrop-filter:blur(8px);z-index:10003;padding:12px}.landscapeInspect{position:relative;width:min(460px,100%);max-height:92vh;overflow:auto;border:1px solid #c9ad7c;border-radius:15px;background:linear-gradient(135deg,#21363f,#0f212b);padding:24px;box-shadow:0 14px 50px #0009}.landscapeInspect h2{color:#f5dab5}.landscapeInspectX{position:absolute;right:12px;top:10px;background:transparent;border:0;color:#fff;font-size:28px}.landscapeZoom{display:grid;place-items:center;min-height:175px;background:radial-gradient(circle,#526164,#0c1e27);border-radius:12px;margin:12px 0}.landscapeZoom svg{height:175px;max-width:100%;transition:transform .12s}.landscapeInspect p{color:#dce0d8;line-height:1.6;font-size:13px}.landscapeInspect label{display:block;color:#e2cda9;font-size:12px}.landscapeInspect input{display:block;width:100%;accent-color:#d4b37b;margin:15px 0}.landscapeInspectApply{width:100%;padding:12px;border-radius:9px;background:#c9ad78;color:#12252a;font-weight:750;border:0;margin:9px 0}';
+document.head.append(landscapeV2Styles);
 const oldRender=render;
 render=function(){oldRender();if(!['title','collection','ending'].includes(s.view))return;const previous=saved.cases?.lago||{};if(!(previous.evidence?.length||previous.outcome||saved.histories?.lago))return;
  const b=document.createElement('button');b.type='button';b.className='landscapeReplay';b.dataset.landscapeReplay='1';b.textContent='↻ Recomeçar caso 001 com a nova jogabilidade';const parent=s.view==='title'?app.querySelector('.coverInner'):s.view==='collection'?app.querySelector('.caseSelector'):app.querySelector('main');parent?.append(b);
