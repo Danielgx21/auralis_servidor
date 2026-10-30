@@ -149,26 +149,26 @@ const cinemaMoveArt={
  }
 };
 function cinemaMovedArtwork(sceneId,file){
- const group=cinemaMoveArt[sceneId];if(!group)return '<image href="'+file+'" width="1000" height="1340" preserveAspectRatio="none"/>';
- const names=Object.keys(group);
- let defs='<defs><filter id="cinemaFeather" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3"/></filter>'+
-  '<filter id="cinemaBackdropBlur" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="13"/></filter>'+
-  '<mask id="cinemaPaintingBase" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="1000" height="1340"><rect width="1000" height="1340" fill="white"/>';
- let repairs='',shifted='';
- for(const name of names){
-  const cfg=group[name],active=!!moved()[name],enabled=active?'':'display:none';
-  const shape=cfg.shape,maskName='cinemaObject-'+name;
-  defs+='<path data-cinema-erase="'+name+'" style="'+enabled+'" d="'+shape+'" fill="black" filter="url(#cinemaFeather)"/>';
-  defs+='<mask id="'+maskName+'" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="1000" height="1340"><path d="'+shape+'" fill="white" filter="url(#cinemaFeather)"/></mask>';
-  const backMask='cinemaBack-'+name;
-  defs+='<mask id="'+backMask+'" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="1000" height="1340"><path d="'+shape+'" fill="white" filter="url(#cinemaFeather)"/></mask>';
-  const repair=cfg.repair,offset=cfg.rest;
-  repairs+='<g data-cinema-repair="'+name+'" style="'+enabled+'" pointer-events="none" mask="url(#'+backMask+')">'+
-   '<image href="'+file+'" x="'+repair[0]+'" y="'+repair[1]+'" width="1000" height="1340" preserveAspectRatio="none" filter="url(#cinemaBackdropBlur)"/></g>';
-  shifted+='<g data-cinema-cut="'+name+'" style="'+enabled+'" transform="translate('+offset[0]+' '+offset[1]+')" mask="url(#'+maskName+')" pointer-events="none"><image href="'+file+'" width="1000" height="1340" preserveAspectRatio="none"/></g>';
+ const group=cinemaMoveArt[sceneId];
+ if(!group)return '<image href="'+file+'" width="1000" height="1340" preserveAspectRatio="none"/>';
+ // Uma máscara recorta a posição ORIGINAL da pintura. Máscaras separadas
+ // preservam apenas os pixels do objeto, jamais sinos, água ou cenário.
+ let defs='<defs><filter id="cinemaFeather" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.2"/></filter>'+
+  '<filter id="cinemaBackdropBlur" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="10"/></filter>';
+ let baseMask='<mask id="cinemaPaintingBase" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="1000" height="1340"><rect width="1000" height="1340" fill="white"/>';
+ let objectMasks='',repairs='',shifted='';
+ for(const [name,cfg] of Object.entries(group)){
+  const active=!!moved()[name],enabled=active?'':'display:none';
+  const shape=cfg.shape,objectMask='cinemaObject-'+name,backgroundMask='cinemaBack-'+name;
+  // Os elementos das máscaras devem ser irmãos em <defs>, não aninhados.
+  baseMask+='<path data-cinema-erase="'+name+'" style="'+enabled+'" d="'+shape+'" fill="black" filter="url(#cinemaFeather)"/>';
+  objectMasks+='<mask id="'+objectMask+'" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="1000" height="1340"><path d="'+shape+'" fill="white" filter="url(#cinemaFeather)"/></mask>'+
+   '<mask id="'+backgroundMask+'" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="1000" height="1340"><path d="'+shape+'" fill="white" filter="url(#cinemaFeather)"/></mask>';
+  const [repairX,repairY]=cfg.repair,[dx,dy]=cfg.rest;
+  repairs+='<g data-cinema-repair="'+name+'" style="'+enabled+'" mask="url(#'+backgroundMask+')" pointer-events="none"><image href="'+file+'" x="'+repairX+'" y="'+repairY+'" width="1000" height="1340" preserveAspectRatio="none" filter="url(#cinemaBackdropBlur)"/></g>';
+  shifted+='<g data-cinema-cut="'+name+'" style="'+enabled+'" transform="translate('+dx+' '+dy+')" mask="url(#'+objectMask+')" pointer-events="none"><image href="'+file+'" width="1000" height="1340" preserveAspectRatio="none"/></g>';
  }
- // SVG masks precisam estar completos antes do fechamento de <defs>.
- defs=defs.replace('</defs>','')+'</mask></defs>';
+ defs+=baseMask+'</mask>'+objectMasks+'</defs>';
  return defs+repairs+'<image href="'+file+'" width="1000" height="1340" preserveAspectRatio="none" mask="url(#cinemaPaintingBase)"/>'+shifted;
 }
 function dragProgress(d,clientX,clientY){
