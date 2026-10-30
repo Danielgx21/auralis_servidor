@@ -112,7 +112,49 @@ function examination(){
 const sceneTemplates={};
 const sceneFiles={lago:'assets/lago_cinematico.svg',casa:'assets/casa.svg',capela:'assets/capela_cinematica.svg'};
 const movesOnArt={curtain:[145,0],drawer:[0,88],cloth:[220,-30],crate:[135,0],reeds:[160,0]};
+
+const cinemaPictures={
+ lago:'assets/lago_cinema.webp',capela:'assets/capela_cinema.webp'
+};
+const cinemaHits={
+ lago:{
+  reeds:[775,835,220,345],crate:[0,675,360,292],lantern:[648,922,160,90],
+  ribbon:[791,835,174,227],footprints:[273,1097,160,161],keypiece:[215,1068,100,87]
+ },
+ capela:{
+  cloth:[247,45,216,422],bell:[111,160,235,242],stone:[274,739,333,365],chest:[655,734,338,266]
+ }
+};
+function pictureCanvas(){
+ const id=s.activeScene,pic=cinemaPictures[id],hit=cinemaHits[id];if(!pic)return '';
+ const m=moved(),css=(name)=>'cinemaPaintingTarget cinemaPainting-'+name;
+ let illustrations='<image href="'+pic+'" x="0" y="0" width="1000" height="1340" preserveAspectRatio="none"/>';
+ // Transformações não geram uma cópia permanente dos objetos já pintados.
+ // Uma máscara escurece a posição original e revela a região examinada.
+ const shifted=id==='lago'?['crate','reeds']:['cloth'];
+ for(const name of shifted){
+  const b=hit[name];if(!m[name])continue;
+  illustrations+='<rect x="'+b[0]+'" y="'+b[1]+'" width="'+b[2]+'" height="'+b[3]+'" fill="#0c171c" opacity=".91"/>';
+  if(name==='cloth'){
+   illustrations+='<g opacity=".9"><path d="M150 235Q128 323 150 366L343 364Q364 314 344 244Q302 187 252 185Q190 180 150 235Z" fill="#776347" stroke="#c49d68" stroke-width="10"/><path d="M140 356Q236 391 356 354" fill="none" stroke="#c19b66" stroke-width="12"/></g>';
+  }else{
+   const tx=name==='crate'?175:160,ty=name==='crate'?-70:0;
+   // O recorte deriva do mesmo quadro, sem adicionar outro objeto ilustrado.
+   illustrations+='<svg x="'+(b[0]+tx)+'" y="'+(b[1]+ty)+'" width="'+b[2]+'" height="'+b[3]+'" viewBox="'+b.join(' ')+'" overflow="hidden" opacity=".88">'+
+    '<image href="'+pic+'" x="0" y="0" width="1000" height="1340" preserveAspectRatio="none"/></svg>';
+  }
+ }
+ const ids=[...(items[id]||[]).map(o=>o[0]),...Object.keys(extras).filter(k=>extras[k][0]===id)];
+ for(const name of [...new Set(ids)]){
+  if(!available(name))continue;
+  const b=hit[name];if(!b)continue;
+  const title=extras[name]?.[4]||labels[name]||name;
+  illustrations+='<g data-landscape="'+name+'" role="button" tabindex="0" aria-label="'+title+'" class="'+css(name)+'"><rect x="'+b[0]+'" y="'+b[1]+'" width="'+b[2]+'" height="'+b[3]+'" fill="transparent" pointer-events="all"/><title>'+title+'</title></g>';
+ }
+ return '<div class="landscapeCanvas cinemaPainting" data-cinema-scene="'+id+'"><svg class="landscapeSvg cinemaPaintingSvg" viewBox="0 0 1000 1340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Cenário pintado da '+(id==='lago'?'Margem do Lago':'Capela do Sino')+'">'+illustrations+'</svg></div>';
+}
 function sceneCanvas(){
+ if(cinemaPictures[s.activeScene])return pictureCanvas();
  const template=sceneTemplates[s.activeScene];
  if(template){
   const svg=template.cloneNode(true);
@@ -160,8 +202,7 @@ for(const [id,url] of Object.entries(sceneFiles)){
    const svg=parsed.documentElement;
    if(svg.tagName.toLowerCase()!=='svg'||parsed.querySelector('parsererror'))throw Error('SVG inválido: '+url);
    sceneTemplates[id]=svg;
-   if(id!=='casa'){
-    // A miniatura passa a ser o próprio SVG carregado, sem depender de cache remoto.
+   if(id!=='casa'&&!cinemaPictures[id]){
     const art='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(source);
     CASES.lago.scenes[id].image=art;
     if(id==='lago')CASES.lago.image=art;
@@ -220,6 +261,7 @@ document.addEventListener('keydown',e=>{
 const landscapeV2Styles=document.createElement('style');
 landscapeV2Styles.textContent='.landscapeNewObject{cursor:grab;touch-action:none}.landscapeNewObject:active{cursor:grabbing}.landscapeNewObject>g{filter:drop-shadow(0 5px 7px #000a);transition:filter .17s}.landscapeNewObject:is(:hover,:focus-visible)>g{filter:drop-shadow(0 0 13px #e8ca9b) drop-shadow(0 5px 7px #000a)}.landscapeNewObject:focus-visible{outline:3px solid #f0d3a6}.landscapeFieldNotes{border:1px solid #b49f7c77;border-radius:11px;background:#142a32;padding:15px;margin:12px 0}.landscapeFieldNotes strong{color:#f0d6ad}.landscapeFieldNotes p{font:12px/1.6 system-ui;margin:9px 0;color:#ced9d2}.landscapeInspectBackdrop{position:fixed;inset:0;display:grid;place-items:center;background:#031019e8;backdrop-filter:blur(8px);z-index:10003;padding:12px}.landscapeInspect{position:relative;width:min(460px,100%);max-height:92vh;overflow:auto;border:1px solid #c9ad7c;border-radius:15px;background:linear-gradient(135deg,#21363f,#0f212b);padding:24px;box-shadow:0 14px 50px #0009}.landscapeInspect h2{color:#f5dab5}.landscapeInspectX{position:absolute;right:12px;top:10px;background:transparent;border:0;color:#fff;font-size:28px}.landscapeZoom{display:grid;place-items:center;min-height:175px;background:radial-gradient(circle,#526164,#0c1e27);border-radius:12px;margin:12px 0}.landscapeZoom svg{height:175px;max-width:100%;transition:transform .12s}.landscapeInspect p{color:#dce0d8;line-height:1.6;font-size:13px}.landscapeInspect label{display:block;color:#e2cda9;font-size:12px}.landscapeInspect input{display:block;width:100%;accent-color:#d4b37b;margin:15px 0}.landscapeInspectApply{width:100%;padding:12px;border-radius:9px;background:#c9ad78;color:#12252a;font-weight:750;border:0;margin:9px 0}';
 landscapeV2Styles.textContent += '.landscapeNativeCanvas{background-image:none!important}.sceneNativeObject{cursor:pointer;touch-action:none}.sceneNativeObject [data-landscape-art]{transition:filter .16s ease}.sceneNativeObject:is(:hover,:focus-visible) [data-landscape-art]{filter:drop-shadow(0 0 13px #edc98b66)}';
+landscapeV2Styles.textContent += '.cinemaPainting{background:#050e16!important;aspect-ratio:1000/1340;max-height:76dvh}.cinemaPaintingSvg{display:block;width:100%;height:100%}.cinemaPaintingTarget{cursor:grab;touch-action:none}.cinemaPaintingTarget:hover rect,.cinemaPaintingTarget:focus-visible rect{stroke:#d0b587;stroke-width:3;stroke-opacity:.28}.cinemaPaintingTarget:focus-visible{outline:none}';
 document.head.append(landscapeV2Styles);
 const oldRender=render;
 render=function(){oldRender();if(!['title','collection','ending'].includes(s.view))return;const previous=saved.cases?.lago||{};if(!(previous.evidence?.length||previous.outcome||saved.histories?.lago))return;
