@@ -197,7 +197,17 @@ ending=function(){let h=oldEnding();if(isMulti())h=h.replace('</section>',`<div 
 const MISSION_VIEWS=new Set(['brief','ritual','hub','scene','witness','dossier','board','theory','confrontation','puzzle','interlude','ending']);
 let missionAway=false;
 function missionExitPanel(){
- return '<section class="section roomPage missionExitPage"><div class="eyebrow">♜ Expedição '+esc(net.room)+'</div><h2>Você saiu da investigação</h2><p>Sua vaga, seu inventário e as pistas coletadas continuam preservados. Os outros pesquisadores seguem na mesma sala.</p><div class="notice">A missão ainda está em andamento. Volte quando desejar; o avanço coletivo será recuperado.</div><button class="btn" data-action="resume-mission">↩ Voltar à missão</button><button class="btn outline" data-view="shop">✧ Visitar a loja</button><button class="btn outline" data-view="office">♜ Visitar minha sede</button>${net.role==='host'?'<button class="btn ghost" data-action="abort-mission">Encerrar a missão para todos (sem recompensas)</button>':''}<button class="btn ghost" data-action="leave-room">Desconectar e sair da sala</button></section>';
+  return `<section class="section roomPage missionExitPage">
+    <div class="eyebrow">♜ Expedição ${esc(net.room)}</div>
+    <h2>Você saiu da investigação</h2>
+    <p>Sua vaga, inventário e pistas continuam preservados. Outros pesquisadores permanecem na sala.</p>
+    <div class="notice">A investigação ainda está em andamento. Você pode voltar a ela a qualquer momento.</div>
+    <button class="btn" data-action="resume-mission">↩ Voltar à missão</button>
+    <button class="btn outline" data-view="shop">✧ Visitar a loja</button>
+    <button class="btn outline" data-view="office">♜ Visitar minha sede</button>
+    ${net.role==='host'?'<button class="btn ghost" data-action="abort-mission">Abandonar missão para todos (sem recompensas)</button>':''}
+    <button class="btn ghost" data-action="leave-room">Desconectar e sair da sala</button>
+  </section>`;
 }
 const oldRenderCampaign=render;
 render=function(){
