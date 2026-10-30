@@ -99,12 +99,65 @@ const hints=ARCHIVE_FX[s.caseId]||ATMOS[kind()].slice(2);const id=(s.timeEvents|
 const popup=document.createElement('div');popup.className='timeEvent';popup.innerHTML='<article><small>◈ ACONTECIMENTO INESPERADO</small><h2>'+hints[id]+'</h2><p>O que você faz? O relógio continua correndo.</p><div><button data-time-event="examine">Examinar o fenômeno</button><button data-time-event="retreat">Recuar por segurança</button></div></article>';
 app.append(popup);s.timeEvents=(s.timeEvents||0)+1;safeSave();pulse(140,1,.10);
 }
+// Recuos fazem parte da investigação: o jogador precisa se afastar para se recuperar.
+// Prazos absolutos são persistidos com o progresso do caso e resistem ao recarregamento.
+const VOLUNTARY_COOLDOWN_MS=90_000, FORCED_COOLDOWN_MS=180_000;
+function sceneLocks(){if(!s.sceneCooldowns||typeof s.sceneCooldowns!=='object')s.sceneCooldowns={};return s.sceneCooldowns;}
+function remainingLock(id){return Math.max(0,Number(sceneLocks()[id]||0)-Date.now());}
+function formatLock(id){const left=Math.ceil(remainingLock(id)/1000);return Math.floor(left/60)+':'+pad(left%60);}
+function leaveHazard(force=false,fromEvent=false){
+ if(s.view!=='scene'||!s.activeScene)return false;
+ const key=s.activeScene;
+ const activeDanger=dangerous()||(s.timeStress||0)>=40||fromEvent;
+ if(!force&&!activeDanger)return false;
+ const duration=force?FORCED_COOLDOWN_MS:VOLUNTARY_COOLDOWN_MS;
+ sceneLocks()[key]=Math.max(Number(sceneLocks()[key]||0),Date.now()+duration);
+ if(force){
+  // Expulsão pela ameaça: maior bloqueio e 45 segundos de prazo consumidos no solo.
+  if(!net.inGame){s.timeElapsed=ms()+45_000;s.timeFrom=null;if(!document.hidden)s.timeFrom=Date.now();}
+  s.timeStress=72;
+ }else{
+  s.timeStress=Math.max(0,(s.timeStress||0)-12);
+ }
+ safeSave();
+ s.view='hub';s.modal=null;
+ toast(force?'Perigo extremo! Você foi expulso. Retorno bloqueado por 3 min e prazo reduzido em 45 s.':'Retirada por segurança. Este local ficará bloqueado por 1 min e 30 s.');
+ render();
+ return true;
+}
+function lockCards(){
+ if(s.view!=='hub')return;
+ app.querySelectorAll('[data-scene]').forEach(node=>{
+  const id=node.dataset.scene;if(!id)return;
+  const delay=remainingLock(id);const label=node.querySelector('.timeSceneLock');
+  if(delay<=0){node.classList.remove('timeSceneLocked');node.removeAttribute('aria-disabled');if(label)label.remove();return;}
+  node.classList.add('timeSceneLocked');node.setAttribute('aria-disabled','true');
+  const holder=label||document.createElement('span');holder.className='timeSceneLock';holder.textContent='⏳ Retorno em '+formatLock(id);
+  if(!label)node.append(holder);
+ });
+}
+document.addEventListener('click',event=>{
+ const target=event.target.closest('[data-scene],[data-view="hub"]');
+ if(!target||!CASES[s.caseId])return;
+ if(target.hasAttribute('data-scene')&&s.view==='hub'){
+  if(remainingLock(target.dataset.scene)>0){
+   event.preventDefault();event.stopImmediatePropagation();
+   toast('Local temporariamente bloqueado. Retorno em '+formatLock(target.dataset.scene)+'.');return;
+  }
+ }
+ if(target.getAttribute('data-view')==='hub'&&s.view==='scene'){
+  if(dangerous()||(s.timeStress||0)>=40){
+   event.preventDefault();event.stopImmediatePropagation();leaveHazard(false,false);
+  }
+ }
+},true);
+
 function tickRisk(){
 if(s.view!=='scene'||document.hidden||isWaiting()||s.outcome||s.timeFailed)return;
 let passed=Date.now()-runtime.since;
 if(Date.now()-runtime.risktick>12000&&passed>(dangerous()?22000:49000)){
  runtime.risktick=Date.now();s.timeStress=Math.min(100,(s.timeStress||0)+(dangerous()?10:3));safeSave();
- if(s.timeStress>=100){s.timeStress=57;safeSave();s.view='hub';toast('A ameaça ficou grande demais. Você recuou para preservar as provas.');render();return;}
+ if(s.timeStress>=100){leaveHazard(true,false);return;}
 }
 if(Date.now()>=runtime.nextEvent&&passed>23000&&!app.querySelector('.timeEvent')){runtime.nextEvent=Date.now()+65000;showEvent();}
 const risk=app.querySelector('[data-time-risk-fill]');if(risk)risk.style.width=(s.timeStress||0)+'%';
@@ -127,7 +180,7 @@ const newScene=s.view==='scene'?s.caseId+'/'+s.activeScene:'';
 if(newScene!==runtime.scene){if(!newScene)stopSound();else if(runtime.ambient)adaptSound();runtime.scene=newScene;runtime.since=Date.now();runtime.risktick=Date.now();runtime.nextEvent=Date.now()+35000;}
 }
 const previousRender=render;
-render=function(){previousRender();if(!CASES[s.caseId])return;initSolo();syncScene();hud();scenePanel();witnessPanel();failure();refresh()};
+render=function(){previousRender();if(!CASES[s.caseId])return;initSolo();syncScene();hud();scenePanel();witnessPanel();failure();lockCards();refresh()};
 const previousCampaign=typeof applyCampaign==='function'?applyCampaign:null;
 if(previousCampaign)applyCampaign=function(state,initial){if(state&&state.worldClock){runtime.cloud=state.worldClock;runtime.at=Date.now()}if(state?.lastFailure&&state.lastFailure.timestamp!==runtime.lastFailure){runtime.lastFailure=state.lastFailure.timestamp;toast('O prazo da expedição terminou; o grupo retornou ao Instituto.')}return previousCampaign(state,initial)};
 function refresh(){
@@ -135,7 +188,7 @@ if(!CASES[s.caseId])return;document.body.dataset.timeLight=night()?'night':'day'
 app.querySelectorAll('[data-time-world]').forEach(e=>e.textContent=formatTime());
 app.querySelectorAll('[data-time-left]').forEach(e=>e.textContent=formatLeft());
 app.querySelectorAll('[data-time-phase]').forEach(e=>e.textContent=label());
-updateWitness();tickRisk();checkLimit();
+updateWitness();lockCards();tickRisk();checkLimit();
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(!net.inGame&&s.timeFrom){s.timeElapsed=ms();s.timeFrom=null;safeSave()}suspendSound()}else{initSolo();resumeSound();render()}});
 window.addEventListener('pagehide',()=>{if(!net.inGame&&s.timeFrom){s.timeElapsed=ms();s.timeFrom=null;safeSave()}});
@@ -143,12 +196,12 @@ app.addEventListener('click',ev=>{
 const b=ev.target.closest('[data-time-audio],[data-time-event],[data-time-retry],[data-time-exit]');if(!b)return;
 ev.preventDefault();ev.stopImmediatePropagation();
 if(b.hasAttribute('data-time-audio')){toggleSound();render();return}
-if(b.dataset.timeEvent){app.querySelector('.timeEvent')?.remove();if(b.dataset.timeEvent==='examine'){s.timeStress=Math.min(100,(s.timeStress||0)+(dangerous()?16:7));s.trust=(s.trust||0)+1;toast('Fenômeno observado: +1 confiança, com aumento do risco.')}else{s.timeStress=Math.max(0,(s.timeStress||0)-12);toast('Você recuou com cautela.')}safeSave();render();return}
+if(b.dataset.timeEvent){app.querySelector('.timeEvent')?.remove();if(b.dataset.timeEvent==='examine'){s.timeStress=Math.min(100,(s.timeStress||0)+(dangerous()?16:7));s.trust=(s.trust||0)+1;toast('Fenômeno observado: +1 confiança, com aumento do risco.')}else{leaveHazard(false,true);return;}safeSave();render();return}
 if(b.hasAttribute('data-time-retry')){if(net.inGame)return toast('O grupo escolhe a próxima missão no Instituto.');const id=s.caseId;saved.cases[id]=blank(id);setupCase(id,true);return}
 if(b.hasAttribute('data-time-exit'))move('collection');
 },true);
 const CSS='.timeWorldHud{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;padding:12px;margin:8px 12px 15px;background:linear-gradient(120deg,#102e36,#091a22);border:1px solid #bd9a6c77;border-radius:12px}.timeWorldHud small{display:block;font:700 9px system-ui;letter-spacing:.09em;color:#a9bec1}.timeWorldHud strong{font:700 21px ui-monospace,monospace;color:#f0d7aa;display:block;margin-top:4px}.timeWorldHud>span{font:700 10px system-ui;color:#e9c995;background:#30424a;padding:8px;border-radius:99px}.timeWorldScene{margin:13px 11px;padding:14px;border:1px solid #b9a07377;border-radius:13px;background:linear-gradient(120deg,#122c35,#0c1c27);color:#eadac5}.timeWorldSceneHead{display:flex;justify-content:space-between;gap:10px;align-items:center}.timeWorldSceneHead small{color:#b2c5c8;letter-spacing:.11em;font:700 9px system-ui}.timeWorldSceneHead strong{display:block;margin-top:6px;font:600 15px system-ui}.timeWorldSceneHead p,.timeWorldScene>p{color:#c9d0cc;font:12px/1.6 system-ui}.timeWorldScene button{min-width:102px;padding:10px;border-radius:9px;background:#354d58;border:1px solid #e1c39788;color:#f8e2ba}.timeWorldRisk{display:flex;gap:8px;align-items:center}.timeWorldRisk span{font:700 9px system-ui;flex:1}.timeWorldRisk>i{height:8px;background:#071620;border-radius:99px;overflow:hidden;flex:1}.timeWorldRisk>i>b{display:block;height:100%;background:linear-gradient(90deg,#85a6a7,#d6a86d,#ae5551)}.timeWorldRisk>strong{font:700 12px monospace}.timeWorldLighting{position:absolute;inset:0;pointer-events:none;z-index:1}body[data-time-light=night] .timeWorldLighting{background:linear-gradient(135deg,#02142445,#000d2770)}body[data-time-light=day] .timeWorldLighting{background:radial-gradient(circle at 16% 14%,#ecdf9b24,transparent 65%)}.timeWorldWitness{padding:12px;background:#152c33;border:1px solid #d3ae7b6f;border-radius:10px;margin:12px 0}.timeWorldWitness b{color:#f3d9a7;font-size:12px}.timeWorldWitness p{font-size:11px;line-height:1.5}.timeWitnessAbsent{opacity:.45}.timeEvent,.timeWorldFailure{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#020a11de;padding:20px;backdrop-filter:blur(7px)}.timeEvent article,.timeWorldFailure article{max-width:430px;width:100%;padding:26px;background:linear-gradient(145deg,#182e37,#201925);border:1px solid #d5b68188;border-radius:15px;box-shadow:0 20px 60px #000a}.timeEvent small,.timeWorldFailure small{color:#e0b983;font:700 10px system-ui;letter-spacing:.14em}.timeEvent h2,.timeWorldFailure h2{font:600 25px/1.28 Georgia,serif;color:#f3ddbc}.timeEvent p,.timeWorldFailure p{color:#d3d0cd;line-height:1.6}.timeEvent article>div{display:flex;gap:9px}.timeEvent button,.timeWorldFailure button{padding:13px;border-radius:9px;background:#71553f;border:1px solid #dcc28d9a;color:#f7e2c6;font:700 12px system-ui;flex:1}.timeWorldFailure button{width:100%;margin-top:10px}@media(max-width:380px){.timeWorldSceneHead{flex-direction:column;align-items:stretch}.timeWorldHud strong{font-size:18px}.timeEvent article>div{flex-direction:column}}';
-const sheet=document.createElement('style');sheet.textContent=CSS+'.refinePanel{display:none!important}';document.head.append(sheet);
+const sheet=document.createElement('style');sheet.textContent=CSS+'.refinePanel{display:none!important}.timeSceneLocked{position:relative;opacity:.67;filter:saturate(.65)}.timeSceneLock{display:block;margin-top:5px;padding:7px 9px;background:#502f29;color:#ffdfba;border:1px solid #b9926f;border-radius:5px;font:700 12px/1.4 system-ui;text-align:center;pointer-events:none}.timeSceneLocked:is(:hover,:focus-visible){outline:2px solid #d5ae86}';document.head.append(sheet);
 function pulse(f,d=0.5,v=.06){const a=runtime.ambient;if(!a)return;try{let t=a.ctx.currentTime;let o=a.ctx.createOscillator(),g=a.ctx.createGain();o.type='sine';o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(Math.max(40,f*.72),t+d);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v,t+.04);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(a.master);o.start(t);o.stop(t+d+.04)}catch(e){}}
 function stopSound(){let a=runtime.ambient;if(!a)return;try{a.source.stop();a.drone.stop();a.ctx.close()}catch(e){}runtime.ambient=null}
 function toggleSound(){
