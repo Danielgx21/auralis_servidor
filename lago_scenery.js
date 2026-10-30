@@ -71,11 +71,7 @@ function act(id,chosen,dragged){
  const type=o[3],clue=o[4],m=moved();
  if(type==='move'){
   if(!dragged){focused=id;render();return}
-  const stages=seen();if(!stages[id]){
-   stages[id]=1;memo('O primeiro movimento revelou marcas de uso em '+(labels[id]||id).toLowerCase()+'.');
-   toast('Você afastou parte do objeto. Arraste novamente para olhar atrás.');render();return;
-  }
-  m[id]=true;memo('Objeto deslocado: '+(labels[id]||id)+'. Agora é possível procurar o que estava escondido.');
+  m[id]=true;memo('O objeto foi erguido, examinado e recolocado: '+(labels[id]||id)+'.');
   persist(false);focused=null;render();return;
  }
  if(type==='found'){
@@ -101,57 +97,58 @@ function act(id,chosen,dragged){
 function examination(){
  if(!focused)return '';
  const label=extras[focused]?.[4]||detail[focused]?.[0]||labels[focused]||'Objeto';
- const d=detail[focused]?.[1]||'Observe as marcas e use uma ferramenta adequada.';
+ const desc=detail[focused]?.[1]||'Observe as marcas e escolha uma ferramenta adequada.';
  const type=getType(focused);
- return '<div class="landscapeInspectBackdrop" data-landscape-modal><section class="landscapeInspect" role="dialog" aria-modal="true" aria-label="Exame detalhado"><button data-landscape-close="1" class="landscapeInspectX">×</button><div class="eyebrow">EXAME MATERIAL · '+esc(s.activeScene)+'</div><h2>'+label+'</h2><div class="landscapeZoom"><svg viewBox="-135 -165 270 330" style="transform:rotate('+turn+'deg)"><g>'+(extras[focused]?.[5]||shapes[focused]||'')+'</g></svg></div><p>'+d+'</p>'+
- (focused==='lantern'&&!s.lagoLanternTurned?'<label>Gire a lanterna para examinar a base<input data-landscape-turn type="range" min="0" max="360" value="'+turn+'"></label>':'')+
+ const crop=pictureDetail(focused);
+ const drawing='<svg viewBox="-135 -165 270 330" style="transform:rotate('+turn+'deg)"><g>'+(extras[focused]?.[5]||shapes[focused]||'')+'</g></svg>';
+ return '<div class="landscapeInspectBackdrop" data-landscape-modal><section class="landscapeInspect" role="dialog" aria-modal="true" aria-label="Exame detalhado">'+
+ '<button data-landscape-close="1" class="landscapeInspectX" aria-label="Fechar exame">×</button>'+
+ '<div class="eyebrow">EXAME MATERIAL · '+esc(s.activeScene)+'</div><h2>'+esc(label)+'</h2>'+
+ '<div class="landscapeZoom '+(crop?'landscapePhotographicZoom':'')+'">'+(crop||drawing)+'</div>'+
+ '<p>'+esc(desc)+'</p>'+
+ (focused==='lantern'&&!s.lagoLanternTurned?'<label>Vire a lanterna para examinar a base<input data-landscape-turn type="range" min="0" max="360" value="'+turn+'"></label>':'')+
  (focused==='radio'?'<label>Sintonize o rádio: <b data-landscape-frequency>'+String(s.lagoRadioFreq||0).padStart(2,'0')+'</b><input id="landscapeFreq" type="range" min="0" max="30" value="'+(s.lagoRadioFreq||0)+'"></label><p>Procure nos depoimentos o horário que pode corresponder à frequência.</p>':'')+
- '<button data-landscape-apply="'+focused+'" class="landscapeInspectApply">'+(type==='move'?'Arrastar objeto':'Examinar com a ferramenta selecionada')+'</button></section></div>';
+ '<button data-landscape-apply="'+focused+'" class="landscapeInspectApply">'+(type==='move'?'Erguer e examinar':'Examinar com a ferramenta selecionada')+'</button></section></div>';
 }
 // Objetos únicos pertencem ao próprio cenário SVG, sem réplicas por cima.
 const sceneTemplates={};
-const sceneFiles={lago:'assets/lago_cinematico.svg',casa:'assets/casa.svg',capela:'assets/capela_cinematica.svg'};
+const sceneFiles={casa:'assets/casa.svg'};
 const movesOnArt={curtain:[145,0],drawer:[0,88],cloth:[220,-30],crate:[135,0],reeds:[160,0]};
 
 const cinemaPictures={
  lago:'assets/lago_cinema.webp',capela:'assets/capela_cinema.webp'
 };
 const cinemaHits={
- lago:{
-  reeds:[775,835,220,345],crate:[0,675,360,292],lantern:[648,922,160,90],
-  ribbon:[791,835,174,227],footprints:[273,1097,160,161],keypiece:[215,1068,100,87]
- },
- capela:{
-  cloth:[247,45,216,422],bell:[111,160,235,242],stone:[274,739,333,365],chest:[655,734,338,266]
- }
+ lago:{lantern:[67,155,133,213],crate:[0,655,352,310],reeds:[786,748,214,592],ribbon:[838,835,96,213],footprints:[372,1070,214,176],keypiece:[668,946,165,100]},
+ capela:{cloth:[205,45,218,535],bell:[80,108,260,322],stone:[282,740,310,362],chest:[669,746,328,280]}
 };
+function pictureDetail(id){
+ const file=cinemaPictures[s.activeScene],b=cinemaHits[s.activeScene]?.[id];
+ if(!file||!b)return '';
+ let [x,y,w,h]=b;
+ const px=Math.max(30,w*.13),py=Math.max(38,h*.12);
+ x=Math.max(0,x-px);y=Math.max(0,y-py);
+ w=Math.min(1000-x,w+px*2);h=Math.min(1340-y,h+py*2);
+ return '<svg viewBox="'+[x,y,w,h].map(Math.round).join(' ')+'" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Detalhe fotográfico do objeto">'+
+  '<image href="'+file+'" width="1000" height="1340" preserveAspectRatio="none"/>'+
+  '</svg>';
+}
 function pictureCanvas(){
- const id=s.activeScene,pic=cinemaPictures[id],hit=cinemaHits[id];if(!pic)return '';
- const m=moved(),css=(name)=>'cinemaPaintingTarget cinemaPainting-'+name;
- let illustrations='<image href="'+pic+'" x="0" y="0" width="1000" height="1340" preserveAspectRatio="none"/>';
- // Transformações não geram uma cópia permanente dos objetos já pintados.
- // Uma máscara escurece a posição original e revela a região examinada.
- const shifted=id==='lago'?['crate','reeds']:['cloth'];
- for(const name of shifted){
-  const b=hit[name];if(!m[name])continue;
-  illustrations+='<rect x="'+b[0]+'" y="'+b[1]+'" width="'+b[2]+'" height="'+b[3]+'" fill="#0c171c" opacity=".91"/>';
-  if(name==='cloth'){
-   illustrations+='<g opacity=".9"><path d="M150 235Q128 323 150 366L343 364Q364 314 344 244Q302 187 252 185Q190 180 150 235Z" fill="#776347" stroke="#c49d68" stroke-width="10"/><path d="M140 356Q236 391 356 354" fill="none" stroke="#c19b66" stroke-width="12"/></g>';
-  }else{
-   const tx=name==='crate'?175:160,ty=name==='crate'?-70:0;
-   // O recorte deriva do mesmo quadro, sem adicionar outro objeto ilustrado.
-   illustrations+='<svg x="'+(b[0]+tx)+'" y="'+(b[1]+ty)+'" width="'+b[2]+'" height="'+b[3]+'" viewBox="'+b.join(' ')+'" overflow="hidden" opacity=".88">'+
-    '<image href="'+pic+'" x="0" y="0" width="1000" height="1340" preserveAspectRatio="none"/></svg>';
-  }
- }
- const ids=[...(items[id]||[]).map(o=>o[0]),...Object.keys(extras).filter(k=>extras[k][0]===id)];
- for(const name of [...new Set(ids)]){
+ const id=s.activeScene,file=cinemaPictures[id],hits=cinemaHits[id];
+ if(!file)return '';
+ // A pintura é sempre preservada intacta. Ao erguer uma caixa ou afastar
+ // um pano, o jogador inspeciona a pista e recoloca o objeto em seu lugar.
+ // Nenhum retângulo opaco e nenhuma réplica do objeto são desenhados.
+ let art='<image href="'+file+'" width="1000" height="1340" preserveAspectRatio="none"/>';
+ const names=[...(items[id]||[]).map(item=>item[0]),...Object.keys(extras).filter(key=>extras[key][0]===id)];
+ for(const name of [...new Set(names)]){
   if(!available(name))continue;
-  const b=hit[name];if(!b)continue;
+  const hit=hits[name];if(!hit)continue;
   const title=extras[name]?.[4]||labels[name]||name;
-  illustrations+='<g data-landscape="'+name+'" role="button" tabindex="0" aria-label="'+title+'" class="'+css(name)+'"><rect x="'+b[0]+'" y="'+b[1]+'" width="'+b[2]+'" height="'+b[3]+'" fill="transparent" pointer-events="all"/><title>'+title+'</title></g>';
+  art+='<g data-landscape="'+name+'" role="button" tabindex="0" aria-label="'+esc(title)+'" class="cinemaPaintingTarget cinemaPainting-'+name+'">'+
+   '<rect x="'+hit[0]+'" y="'+hit[1]+'" width="'+hit[2]+'" height="'+hit[3]+'" fill="transparent" pointer-events="all"/><title>'+esc(title)+'</title></g>';
  }
- return '<div class="landscapeCanvas cinemaPainting" data-cinema-scene="'+id+'"><svg class="landscapeSvg cinemaPaintingSvg" viewBox="0 0 1000 1340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Cenário pintado da '+(id==='lago'?'Margem do Lago':'Capela do Sino')+'">'+illustrations+'</svg></div>';
+ return '<div class="landscapeCanvas cinemaPainting" data-cinema-scene="'+id+'"><svg class="landscapeSvg cinemaPaintingSvg" viewBox="0 0 1000 1340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Cenário ilustrado: '+esc(CASES.lago.scenes[id].name)+'">'+art+'</svg></div>';
 }
 function sceneCanvas(){
  if(cinemaPictures[s.activeScene])return pictureCanvas();
@@ -192,24 +189,17 @@ scene=function(){
  return '<section class="landscapePage"><button class="backBtn" data-view="hub">← Voltar aos locais</button><div class="eyebrow">INVESTIGAÇÃO PRÁTICA · '+esc(loc.name)+'</div><h2>'+esc(loc.name)+'</h2><p>'+esc(loc.intro)+'</p><p class="landscapeHelp">Toque nos elementos do próprio cenário. Arraste objetos para descobrir o que escondem, examine-os de perto e escolha a ferramenta adequada.</p>'+sceneCanvas()+'<div class="landscapeInventory"><strong>Bolsa de investigação</strong><div>'+tools.map(t=>'<button type="button" class="landscapeTool '+(selected===t[0]?'chosen':'')+'" data-landscape-tool="'+t[0]+'" aria-label="'+t[2]+'"><span>'+t[1]+'</span><small>'+t[2]+'</small></button>').join('')+'</div></div><div class="landscapeFieldNotes"><strong>Diário de investigação</strong><p>Decida quais detalhes registrar. Abra o Diário e escreva com suas palavras.</p></div><button class="btn" data-view="board">Interpretar as provas no quadro →</button>'+examination()+'</section>';
 };
 // Utiliza exatamente a mesma arte validada no mapa e no cenário, sem camadas duplicadas.
+// Carregar somente o cenário SVG da Casa do Barqueiro. Não substituir
+// os caminhos das pinturas WebP por SVGs antigos (causava miniaturas quebradas).
 for(const [id,url] of Object.entries(sceneFiles)){
- const versioned=url+'?v=20261030-cenarios-cinematicos';
- if(id!=='casa'&&CASES.lago?.scenes?.[id])CASES.lago.scenes[id].image=versioned;
- fetch(versioned,{cache:'no-store'})
-  .then(response=>{if(!response.ok)throw Error('HTTP '+response.status);return response.text();})
+ fetch(url+'?v=20261030-fix',{cache:'no-store'})
+  .then(response=>{if(!response.ok)throw Error('HTTP '+response.status);return response.text()})
   .then(source=>{
-   const parsed=new DOMParser().parseFromString(source,'image/svg+xml');
-   const svg=parsed.documentElement;
-   if(svg.tagName.toLowerCase()!=='svg'||parsed.querySelector('parsererror'))throw Error('SVG inválido: '+url);
-   sceneTemplates[id]=svg;
-   if(id!=='casa'&&!cinemaPictures[id]){
-    const art='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(source);
-    CASES.lago.scenes[id].image=art;
-    if(id==='lago')CASES.lago.image=art;
-   }
-   if(s.caseId==='lago'&&(s.view==='hub'||s.view==='collection'||(s.view==='scene'&&s.activeScene===id)))render();
-  })
-  .catch(err=>console.warn('Falha ao carregar arte do local:',url,err));
+   const doc=new DOMParser().parseFromString(source,'image/svg+xml');
+   if(doc.documentElement.tagName.toLowerCase()!=='svg'||doc.querySelector('parsererror'))throw Error('SVG inválido: '+url);
+   sceneTemplates[id]=doc.documentElement;
+   if(s.caseId==='lago'&&s.view==='scene'&&s.activeScene===id)render();
+  }).catch(err=>console.warn('Arte SVG auxiliar indisponível:',url,err));
 }
 
 document.addEventListener('pointerdown',e=>{
@@ -262,6 +252,7 @@ const landscapeV2Styles=document.createElement('style');
 landscapeV2Styles.textContent='.landscapeNewObject{cursor:grab;touch-action:none}.landscapeNewObject:active{cursor:grabbing}.landscapeNewObject>g{filter:drop-shadow(0 5px 7px #000a);transition:filter .17s}.landscapeNewObject:is(:hover,:focus-visible)>g{filter:drop-shadow(0 0 13px #e8ca9b) drop-shadow(0 5px 7px #000a)}.landscapeNewObject:focus-visible{outline:3px solid #f0d3a6}.landscapeFieldNotes{border:1px solid #b49f7c77;border-radius:11px;background:#142a32;padding:15px;margin:12px 0}.landscapeFieldNotes strong{color:#f0d6ad}.landscapeFieldNotes p{font:12px/1.6 system-ui;margin:9px 0;color:#ced9d2}.landscapeInspectBackdrop{position:fixed;inset:0;display:grid;place-items:center;background:#031019e8;backdrop-filter:blur(8px);z-index:10003;padding:12px}.landscapeInspect{position:relative;width:min(460px,100%);max-height:92vh;overflow:auto;border:1px solid #c9ad7c;border-radius:15px;background:linear-gradient(135deg,#21363f,#0f212b);padding:24px;box-shadow:0 14px 50px #0009}.landscapeInspect h2{color:#f5dab5}.landscapeInspectX{position:absolute;right:12px;top:10px;background:transparent;border:0;color:#fff;font-size:28px}.landscapeZoom{display:grid;place-items:center;min-height:175px;background:radial-gradient(circle,#526164,#0c1e27);border-radius:12px;margin:12px 0}.landscapeZoom svg{height:175px;max-width:100%;transition:transform .12s}.landscapeInspect p{color:#dce0d8;line-height:1.6;font-size:13px}.landscapeInspect label{display:block;color:#e2cda9;font-size:12px}.landscapeInspect input{display:block;width:100%;accent-color:#d4b37b;margin:15px 0}.landscapeInspectApply{width:100%;padding:12px;border-radius:9px;background:#c9ad78;color:#12252a;font-weight:750;border:0;margin:9px 0}';
 landscapeV2Styles.textContent += '.landscapeNativeCanvas{background-image:none!important}.sceneNativeObject{cursor:pointer;touch-action:none}.sceneNativeObject [data-landscape-art]{transition:filter .16s ease}.sceneNativeObject:is(:hover,:focus-visible) [data-landscape-art]{filter:drop-shadow(0 0 13px #edc98b66)}';
 landscapeV2Styles.textContent += '.cinemaPainting{background:#050e16!important;aspect-ratio:1000/1340;max-height:76dvh}.cinemaPaintingSvg{display:block;width:100%;height:100%}.cinemaPaintingTarget{cursor:grab;touch-action:none}.cinemaPaintingTarget:hover rect,.cinemaPaintingTarget:focus-visible rect{stroke:#d0b587;stroke-width:3;stroke-opacity:.28}.cinemaPaintingTarget:focus-visible{outline:none}';
+landscapeV2Styles.textContent += '.landscapePhotographicZoom{height:265px;min-height:0;overflow:hidden;background:#07151c;border:1px solid #607077}.landscapePhotographicZoom svg{display:block;width:100%;height:100%;max-width:none;transform:none!important}.landscapePhotographicZoom svg image{image-rendering:auto}';
 document.head.append(landscapeV2Styles);
 const oldRender=render;
 render=function(){oldRender();if(!['title','collection','ending'].includes(s.view))return;const previous=saved.cases?.lago||{};if(!(previous.evidence?.length||previous.outcome||saved.histories?.lago))return;
