@@ -210,12 +210,10 @@ app.addEventListener('click',event=>{
  s.lagoInterview=s.lagoInterview||{};
  if(s.lagoInterview[t.id])return;
  s.lagoInterview[t.id]=true;
- s.lagoFieldNotes=s.lagoFieldNotes||[];
- s.lagoFieldNotes.unshift(t.observation);
- s.lagoFieldNotes=s.lagoFieldNotes.slice(0,18);
+ // A entrevista não deve criar nenhuma pista ou interpretação no diário.
  persist();
  render();
- toast('Resposta registrada. Compare-a com as demais provas.');
+ toast('Iria respondeu. Você decide se vale anotar algo.');
 },true);
 const interviewCSS=document.createElement('style');
 interviewCSS.textContent='.lakeConfront{margin:23px 0;padding:17px;background:#112731;border:1px solid #c1a47966;border-radius:13px}.lakeConfront h3{font:normal 23px Georgia,serif;margin:10px 0}.lakeConfront>p{font-size:12px;color:#c6d1cf;line-height:1.6}.lakeConfront article{padding:13px 0;border-top:1px solid #8d9e9340}.lakeConfront article>strong{color:#e7cb9b;font-size:13px}.lakeConfront article>p{font-size:12px;color:#dee0da;line-height:1.6}.lakeConfront button{padding:10px 15px;border:1px solid #c4a27380;color:#f5e4c5;background:#2b4650;border-radius:8px}.lakeConfront button:disabled{opacity:.5}.lakeConfront blockquote{margin:11px 0;background:#1e373e;border-left:3px solid #d1b67e;padding:11px;font-size:12px;line-height:1.6}';
