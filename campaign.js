@@ -69,7 +69,8 @@ function applyCloudProfile(remote,remoteAt){
 function applyCampaign(state,initial=false){
  if(!state||state.code!==net.room)return;
  const oldPhase=campaignLastPhase,wasCase=net.inGame,oldCase=s.caseId;
-  if(state.phase!=='case')missionAway=false;
+ const stayingOnHome=missionAway && s.view==='title';
+ if(state.phase!=='case' && !stayingOnHome)missionAway=false;
  net.mode=state.mode;net.size=state.size;net.players=state.players;net.slot=Number(net.slot);net.playerId='p'+net.slot;
  net.role=net.slot===state.hostSlot?'host':'guest';net.specialty=roleAt(net.slot).id;
  net.online=true;net.status='Expedição restaurada do servidor.';net.inGame=state.phase==='case';
@@ -108,7 +109,9 @@ function applyCampaign(state,initial=false){
    if(initial||oldPhase!=='lobby')s.view='room';
  }
  campaignLastPhase=state.phase;
- if(oldPhase!=='camp' && state.phase==='camp')toast('Missão encerrada. A expedição está no Instituto.');
+ // A sincronização não tira ninguém da tela inicial.
+ if(stayingOnHome){s.view='title';missionAway=true;}
+ if(oldPhase!=='camp' && state.phase==='camp' && !stayingOnHome)toast('Missão encerrada. A expedição está no Instituto.');
  if(wasCase && state.phase==='case' && oldCase!==state.caseId)toast('Nova investigação iniciada pelo grupo.');
  render();
 }
