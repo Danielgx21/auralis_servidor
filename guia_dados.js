@@ -71,8 +71,22 @@
  ];
  const entries=raw.map((row,i)=>{
   const family=families.find(f=>f.id===row[0]);
-  const core=Array.from({length:7},(_,k)=>signs[(i*5+k*3)%signs.length]);
-  const traits=[...new Set([...core,...affinities[row[0]]])];
+  // Um mesmo indício atravessa múltiplas linhagens; nenhum sinal é exclusivo.
+  // A distribuição varia por comportamento e por tradição, em vez de repetir
+  // a mesma quantidade artificial em todas as fichas.
+  const familySigns={
+   ecos:['Frio inesperado','Reflexos discrepantes','Ruídos repetidos'],
+   aguas:['Umidade incomum','Frio inesperado','Vozes sem origem'],
+   matas:['Animais inquietos','Sombras deslocadas','Rastros interrompidos'],
+   mimicos:['Vozes sem origem','Memórias contraditórias','Reflexos discrepantes'],
+   pactos:['Ruídos repetidos','Interferência em aparelhos','Objetos fora do lugar'],
+   noturnos:['Frio inesperado','Sombras deslocadas','Silêncio repentino'],
+   feericos:['Oscilação de luz','Sonhos recorrentes','Vozes sem origem'],
+   limiares:['Correntes de ar','Sombras deslocadas','Ruídos repetidos']
+  };
+  const core=Array.from({length:5+(i%3)},(_,k)=>signs[(i*7+k*5+(i%4))%signs.length]);
+  const familial=familySigns[row[0]].filter((_,j)=>(i+j)%3!==0);
+  const traits=[...new Set([...core,...familial,...affinities[row[0]]])];
   return {id:'m'+String(i+1).padStart(2,'0'),n:i+1,family:row[0],familyName:family.name,tone:family.tone,
    name:row[1],epithet:row[2],story:row[3],behavior:row[4],alternative:row[5],question:row[6],
    signs:traits,source:['Depoimentos recolhidos','Caderno de campo','Tradição oral comparada','Arquivo de correspondência'][i%4],
