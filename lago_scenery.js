@@ -149,14 +149,26 @@ scene=function(){
  const tools=[['inspect','◉','Observar'],['glass','⌕','Lupa'],['brush','╱','Pincel'],...(s.lagoKey?[['key','⚿','Chave']]:[])];
  return '<section class="landscapePage"><button class="backBtn" data-view="hub">← Voltar aos locais</button><div class="eyebrow">INVESTIGAÇÃO PRÁTICA · '+esc(loc.name)+'</div><h2>'+esc(loc.name)+'</h2><p>'+esc(loc.intro)+'</p><p class="landscapeHelp">Toque nos elementos do próprio cenário. Arraste objetos para descobrir o que escondem, examine-os de perto e escolha a ferramenta adequada.</p>'+sceneCanvas()+'<div class="landscapeInventory"><strong>Bolsa de investigação</strong><div>'+tools.map(t=>'<button type="button" class="landscapeTool '+(selected===t[0]?'chosen':'')+'" data-landscape-tool="'+t[0]+'" aria-label="'+t[2]+'"><span>'+t[1]+'</span><small>'+t[2]+'</small></button>').join('')+'</div></div><div class="landscapeFieldNotes"><strong>Diário de investigação</strong><p>Decida quais detalhes registrar. Abra o Diário e escreva com suas palavras.</p></div><button class="btn" data-view="board">Interpretar as provas no quadro →</button>'+examination()+'</section>';
 };
+// Utiliza exatamente a mesma arte validada no mapa e no cenário, sem camadas duplicadas.
 for(const [id,url] of Object.entries(sceneFiles)){
- fetch(url,{cache:'no-cache'}).then(response=>{if(!response.ok)throw Error('HTTP '+response.status);return response.text();}).then(source=>{
-  const parsed=new DOMParser().parseFromString(source,'image/svg+xml');
-  const svg=parsed.documentElement;
-  if(svg.tagName.toLowerCase()!=='svg'||parsed.querySelector('parsererror'))throw Error('SVG inválido: '+url);
-  sceneTemplates[id]=svg;
-  if(s.caseId==='lago'&&s.view==='scene'&&s.activeScene===id)render();
- }).catch(err=>console.warn('Fallback de hotspots invisíveis para:',url,err));
+ const versioned=url+'?v=20261030-assets-integrados';
+ if(id!=='casa'&&CASES.lago?.scenes?.[id])CASES.lago.scenes[id].image=versioned;
+ fetch(versioned,{cache:'no-store'})
+  .then(response=>{if(!response.ok)throw Error('HTTP '+response.status);return response.text();})
+  .then(source=>{
+   const parsed=new DOMParser().parseFromString(source,'image/svg+xml');
+   const svg=parsed.documentElement;
+   if(svg.tagName.toLowerCase()!=='svg'||parsed.querySelector('parsererror'))throw Error('SVG inválido: '+url);
+   sceneTemplates[id]=svg;
+   if(id!=='casa'){
+    // A miniatura passa a ser o próprio SVG carregado, sem depender de cache remoto.
+    const art='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(source);
+    CASES.lago.scenes[id].image=art;
+    if(id==='lago')CASES.lago.image=art;
+   }
+   if(s.caseId==='lago'&&(s.view==='hub'||s.view==='collection'||(s.view==='scene'&&s.activeScene===id)))render();
+  })
+  .catch(err=>console.warn('Falha ao carregar arte do local:',url,err));
 }
 
 document.addEventListener('pointerdown',e=>{
