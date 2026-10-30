@@ -181,6 +181,46 @@ witness=function(){
  '<div class="notice">Observe: Iria pode confirmar fatos, mas não sabe o que realmente aconteceu. Você precisará comparar o depoimento com os objetos encontrados.</div>'+
  '<button class="btn" data-view="hub">Continuar procurando pistas →</button></section>';
 };
+
+/* Camada de perguntas investigativas — contradições persistem na missão */
+const investigatorTopics=[
+ {id:'horario',needs:['radio'],title:'A gravação e o relógio',q:'Você disse que o relógio parou às 00h17. O rádio registrou um som metálico nesse horário. A senhora ouviu o sino?',answer:'Iria hesita. “Eu ouvi o som antes de olhar o relógio. Não tenho certeza de onde veio. Só me lembro de sentir muito frio.”',observation:'Iria ouviu um som antes de consultar o relógio. A sequência dos eventos é incerta.'},
+ {id:'fita',needs:['fita'],title:'A fita junto aos juncos',q:'Encontrei uma fita azul amarrada perto do cais. Você sabe de quem é?',answer:'Iria toca o próprio pulso. “Era da minha mãe. Ela dizia que aquele nó a ajudava a recordar uma promessa.”',observation:'A fita pertence à mãe de Iria e estava amarrada. Isso não determina o motivo de sua ida ao cais.'},
+ {id:'obra',needs:['registro'],title:'O que o barqueiro omitiu',q:'O registro da represa menciona um sino instalado durante a obra. Por que o barqueiro evitava esse assunto?',answer:'“Ele trabalhava lá, mas se recusava a se aproximar da capela. Minha mãe dizia que ele estava tentando reparar um erro.”',observation:'O avô evitava a capela e pode ter conhecido uma falha antiga do ritual.'},
+ {id:'pacto',needs:['manuscrito','inscricao'],title:'O ritual interrompido',q:'O manuscrito fala de uma guardiã aprisionada. A pedra pede que o sino não seja tocado. Quem mandou ocultar o aviso?',answer:'Iria abaixa os olhos. “Minha mãe tentou fazer as pessoas ouvirem a história. Ninguém queria acreditar. Não sei quem apagou a inscrição.”',observation:'Não há testemunho confiável sobre quem apagou a inscrição. A ausência de resposta não confirma a culpa de Iria.'}
+];
+const witnessPrior=witness;
+witness=function(){
+ const original=witnessPrior();if(s.caseId!=='lago')return original;
+ if(!s.lagoInterview)s.lagoInterview={};
+ const available=investigatorTopics.filter(t=>t.needs.every(e=>s.evidence.includes(e)));
+ const questions='<section class="lakeConfront"><div class="eyebrow">ENTREVISTA INVESTIGATIVA</div><h3>Confrontar o depoimento com as provas</h3><p>Formule perguntas com base no que encontrou. Nem todas as respostas são completas ou confiáveis.</p>'+investigatorTopics.map(t=>{
+ const ready=t.needs.every(e=>s.evidence.includes(e));
+ return '<article><strong>'+esc(t.title)+'</strong><p>'+esc(t.q)+'</p><button data-lake-interview="'+t.id+'" '+(!ready||s.lagoInterview[t.id]?'disabled':'')+'>'+(s.lagoInterview[t.id]?'✓ Pergunta registrada':ready?'Apresentar evidência':'Reúna '+t.needs.length+' evidência(s)')+'</button>'+(s.lagoInterview[t.id]?'<blockquote>'+esc(t.answer)+'</blockquote>':'')+'</article>';
+ }).join('')+'</section>';
+ return original.replace('<button class="btn" data-view="hub">Continuar procurando pistas →</button>',questions+'<button class="btn" data-view="hub">Continuar procurando pistas →</button>');
+};
+app.addEventListener('click',event=>{
+ if(s.caseId!=='lago'||s.view!=='witness')return;
+ const btn=event.target.closest('[data-lake-interview]');if(!btn)return;
+ event.preventDefault();event.stopImmediatePropagation();
+ if(net.inGame&&net.paused)return toast('Entrevista pausada até a equipe reconectar.');
+ const t=investigatorTopics.find(a=>a.id===btn.dataset.lakeInterview);
+ if(!t||t.needs.some(id=>!s.evidence.includes(id)))return;
+ s.lagoInterview=s.lagoInterview||{};
+ if(s.lagoInterview[t.id])return;
+ s.lagoInterview[t.id]=true;
+ s.lagoFieldNotes=s.lagoFieldNotes||[];
+ s.lagoFieldNotes.unshift(t.observation);
+ s.lagoFieldNotes=s.lagoFieldNotes.slice(0,18);
+ persist();
+ render();
+ toast('Resposta registrada. Compare-a com as demais provas.');
+},true);
+const interviewCSS=document.createElement('style');
+interviewCSS.textContent='.lakeConfront{margin:23px 0;padding:17px;background:#112731;border:1px solid #c1a47966;border-radius:13px}.lakeConfront h3{font:normal 23px Georgia,serif;margin:10px 0}.lakeConfront>p{font-size:12px;color:#c6d1cf;line-height:1.6}.lakeConfront article{padding:13px 0;border-top:1px solid #8d9e9340}.lakeConfront article>strong{color:#e7cb9b;font-size:13px}.lakeConfront article>p{font-size:12px;color:#dee0da;line-height:1.6}.lakeConfront button{padding:10px 15px;border:1px solid #c4a27380;color:#f5e4c5;background:#2b4650;border-radius:8px}.lakeConfront button:disabled{opacity:.5}.lakeConfront blockquote{margin:11px 0;background:#1e373e;border-left:3px solid #d1b67e;padding:11px;font-size:12px;line-height:1.6}';
+document.head.appendChild(interviewCSS);
+
 const originalHub=hub;
 hub=function(){
  if(!ready())return originalHub();
