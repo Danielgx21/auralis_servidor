@@ -108,7 +108,7 @@ function formatLock(id){const left=Math.ceil(remainingLock(id)/1000);return Math
 function leaveHazard(force=false,fromEvent=false){
  if(s.view!=='scene'||!s.activeScene)return false;
  const key=s.activeScene;
- const activeDanger=dangerous()||(s.timeStress||0)>=40||fromEvent;
+ const activeDanger=dangerous()||(s.timeStress||0)>0||fromEvent;
  if(!force&&!activeDanger)return false;
  const duration=force?FORCED_COOLDOWN_MS:VOLUNTARY_COOLDOWN_MS;
  sceneLocks()[key]=Math.max(Number(sceneLocks()[key]||0),Date.now()+duration);
@@ -119,8 +119,8 @@ function leaveHazard(force=false,fromEvent=false){
  }else{
   s.timeStress=Math.max(0,(s.timeStress||0)-12);
  }
- safeSave();
  s.view='hub';s.modal=null;
+ safeSave();
  toast(force?'Perigo extremo! Você foi expulso. Retorno bloqueado por 3 min e prazo reduzido em 45 s.':'Retirada por segurança. Este local ficará bloqueado por 1 min e 30 s.');
  render();
  return true;
@@ -146,7 +146,7 @@ document.addEventListener('click',event=>{
   }
  }
  if(target.getAttribute('data-view')==='hub'&&s.view==='scene'){
-  if(dangerous()||(s.timeStress||0)>=40){
+  if(dangerous()||(s.timeStress||0)>0){
    event.preventDefault();event.stopImmediatePropagation();leaveHazard(false,false);
   }
  }
