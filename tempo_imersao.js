@@ -4,7 +4,7 @@
 if(typeof render!=='function'||typeof CASES==='undefined'||typeof s==='undefined')return;
 const DAY=24*60, SPEED=2; // 1 segundo real = 2 minutos do jogo.
 const ORIGIN={lago:22*60,lago2:19*60,baile:20*60,baile2:21*60,vampiro:8*60,vampiro2:20*60,lobo:18*60,lobo2:18*60,retrato:8*60,retrato2:17*60,estacao:17*60,estacao2:22*60,museu:9*60,museu2:21*60};
-const WINDOWS={lago:[[20*60,DAY],[5*60,9*60]],lago2:[[0,4*60],[19*60,23*60]],baile:[[20*60,DAY],[0,4*60]],baile2:[[21*60,DAY],[0,3*60]],vampiro:[[9*60,12*60],[18*60,22*60]],vampiro2:[[21*60,DAY],[0,4*60]],lobo:[[5*60,10*60],[19*60,23*60]],lobo2:[[6*60,10*60],[20*60,DAY]],retrato:[[9*60,13*60],[17*60,21*60]],retrato2:[[10*60,14*60],[18*60,22*60]],estacao:[[6*60,10*60],[18*60,23*60]],estacao2:[[0,4*60],[11*60,15*60]],museu:[[9*60,17*60],[19*60,21*60]],museu2:[[0,4*60],[13*60,18*60]]};
+const WINDOWS={lago:[[20*60,DAY],[5*60,9*60]],lago2:[[0,4*60],[19*60,23*60]],baile:[[20*60,DAY],[0,4*60]],baile2:[[21*60,DAY],[0,3*60]],vampiro:[[9*60,12*60],[18*60,22*60]],vampiro2:[[21*60,DAY],[0,4*60]],lobo:[[5*60,10*60],[19*60,23*60]],lobo2:[[6*60,10*60],[20*60,DAY]],retrato:[[9*60,13*60],[17*60,21*60]],retrato2:[[10*60,14*60],[18*60,22*60]],estacao:[[6*60,10*60],[18*60,23*60]],estacao2:[[0,4*60],[11*60,15*60]],museu:[[9*60,17*60],[19*60,21*60]],museu2:[[0,4*60],[13*60,18*60]],bolsonaros:[[8*60,12*60],[18*60,21*60]]};
 const CATEGORIES=['lake','interior','sacred','woods','crowd','urban'];
 const ATMOS={
 lake:['Água escura, juncos e vento','Ondas pequenas encontram madeira molhada.','Um reflexo se move na direção contrária à água.'],
@@ -28,7 +28,8 @@ retrato2:['Uma moldura se move discretamente.','Um retrato parece ter mudado.'],
 estacao:['Os trilhos vibram sem trem à vista.','O relógio da plataforma atrasa.'],
 estacao2:['Uma voz surge no sistema de som desligado.','A última plataforma fica mais escura.'],
 museu:['Uma vitrine produz um estalo seco.','Uma sombra passa por uma exposição vazia.'],
-museu2:['O silêncio do museu é quase absoluto.','Um objeto aparece fora do lugar.']
+museu2:['O silêncio do museu é quase absoluto.','Um objeto aparece fora do lugar.'],
+bolsonaros:['Os estandartes se agitam sem vento.','Um juramento antigo sai da boca de alguém que estava calado.']
 };
 const runtime={cloud:null,at:0,scene:'',since:0,risktick:0,nextEvent:0,sound:null,ambient:null,lastFailure:null,heartbeat:0,rendering:false,phase:'',lastView:''};
 const pad=n=>String(n).padStart(2,'0');
@@ -59,6 +60,7 @@ if(s.caseId.startsWith('lago'))return ['lake','interior','sacred'][ix]||'lake';
 if(s.caseId.startsWith('lobo'))return ix===0?'woods':'interior';
 if(s.caseId.startsWith('baile'))return ix===0?'crowd':'interior';
 if(s.caseId.startsWith('estacao'))return ix===0?'urban':'interior';
+if(s.caseId==='bolsonaros')return ix===0?'crowd':ix===1?'interior':'sacred';
 return ix===2?'sacred':'interior';
 }
 function dangerous(){return night()&&(kind()==='lake'||kind()==='woods'||/vampiro|museu2|estacao2/.test(s.caseId))}
