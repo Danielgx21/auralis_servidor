@@ -303,3 +303,11 @@ body{background:radial-gradient(ellipse at 50% 2%,#28414a,#08151b 61%,#040b10 10
 /* Saída da missão - sempre ao alcance do polegar, sem fechar a sala. */
 .missionExitQuick{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 78px);z-index:85;border:1px solid #c5a46c;background:#1c3039;color:#ffe1a4;border-radius:18px;padding:12px 17px;font:700 14px/1.25 system-ui;box-shadow:0 7px 26px #0009;cursor:pointer;max-width:calc(100vw - 28px)}
 .missionExitPage .btn{margin-top:12px}
+
+/* Controles de música v1.0.6: acessíveis em celular e desktop */
+.manualAudioDock{position:fixed;left:8px;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 4px);z-index:98;display:flex;align-items:center;justify-content:center;gap:7px;border:1px solid #997c4f;border-radius:12px;padding:7px;background:#0c2129f5;box-shadow:0 4px 22px #0009;color:#f0d6a2;font:600 12px/1.25 system-ui}
+.manualAudioDock button{border:1px solid #8f7956;border-radius:7px;background:#1b3540;color:#f3d9a6;padding:9px 7px;font:inherit;cursor:pointer;white-space:nowrap}
+.manualAudioDock button[aria-pressed="true"]{background:#34514e;border-color:#85c6ad}
+.manualAudioDock label{display:flex;align-items:center;gap:5px;flex:1;min-width:70px;max-width:155px;font-size:11px}
+.manualAudioDock input{width:100%;min-width:40px;accent-color:#d1b47e}
+@media(max-width:365px){.manualAudioDock{gap:3px;padding:5px}.manualAudioDock button{font-size:10px;padding:8px 5px}.manualAudioDock label{font-size:10px}}
