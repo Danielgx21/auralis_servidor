@@ -144,6 +144,8 @@
   if(detailed)return detailed;
   const curated=PAPERS[s.caseId]?.[id];
   if(curated)return curated;
+  // No baile, apenas documentos realmente existentes devem virar folhas.
+  if(s.caseId==='baile')return null;
   if(!documentPattern.test(id+' '+(clue?.name||'')))return null;
   return {type:'Documento encontrado',title:clue.name,origin:CASES[s.caseId]?.place||'Arquivo do Instituto',lines:[
    clue.detail||'O suporte está deteriorado e parte da escrita desapareceu.',
@@ -174,7 +176,7 @@
   if(!s.modal)return '';
   const e=CASES[s.caseId]?.clues?.[s.modal];
   if(!e)return originalModal();
-  const doc=paperFor(s.modal,e),questions=s.caseId==='lago'?[]:questionFor(s.modal,e);
+  const doc=paperFor(s.modal,e),questions=['lago','baile'].includes(s.caseId)?[]:questionFor(s.modal,e);
   return '<div class="modalLayer" data-dismiss="1"><div class="modalPanel" role="dialog" aria-modal="true" aria-label="Pista: '+encode(e.name)+'">'+
    '<button class="modalClose" data-action="close" aria-label="Fechar">×</button>'+
    '<div class="modalIndex">ARQUIVO '+encode(CASES[s.caseId].number)+' · MATERIAL COLETADO</div>'+
@@ -189,7 +191,7 @@
  // não botões, não revelam respostas e não contam como pistas coletadas.
  const MARKS={
   lago:{}, // O cenário só exibe marcas que façam parte da própria pintura.
-  baile:{portao:[{x:29,y:56,t:'VII',rot:-11,type:'paper'}]},
+  baile:{}, // Sem marcações flutuantes artificiais: as inscrições fazem parte da pintura.
   vampiro:{biblioteca:[{x:48,y:53,t:'IV',rot:-5,type:'paper'}]},
   lobo:{aldeia:[{x:30,y:71,t:'RECOMPENSA',rot:-7,type:'paper'}]},
   retrato:{galeria:[{x:55,y:61,t:'AUTOR —',rot:-3,type:'paper'}]},

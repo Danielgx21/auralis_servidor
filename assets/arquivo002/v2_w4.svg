@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="690" viewBox="0 0 520 690" role="img" aria-label="Retrato de TERESA BRAGA">
+ <defs><radialGradient id="bg"><stop stop-color="#68767d"/><stop offset=".65" stop-color="#30413e"/><stop offset="1" stop-color="#101922"/></radialGradient><linearGradient id="face" x1=".1" y1="0" x2=".9" y2="1"><stop stop-color="#f1d2ad"/><stop offset=".56" stop-color="#aa765b"/><stop offset="1" stop-color="#70554b"/></linearGradient><radialGradient id="v"><stop offset=".38" stop-opacity="0"/><stop offset="1" stop-color="#040a11" stop-opacity=".72"/></radialGradient><filter id="grain"><feTurbulence baseFrequency=".5" numOctaves="3" seed="26"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".15"/></feComponentTransfer></filter></defs>
+ <rect width="520" height="690" fill="url(#bg)"/><path d="M70 600L125 215L408 225L465 610" fill="#17242c" opacity=".37"/>
+ <g><path d="M90 630L190 450L250 545L322 450L423 630" fill="#647c70" stroke="#ccb78f" stroke-width="9"/><path d="M222 438L208 509Q262 559 308 508L295 430" fill="url(#face)" stroke="#775f54" stroke-width="8"/></g>
+ 
+ <ellipse cx="260" cy="276" rx="103" ry="151" fill="url(#face)" stroke="#7b6053" stroke-width="8"/>
+ <path d="M167 329Q94 226 160 149Q275 78 345 181Q399 240 334 338L336 184Q275 109 197 190Z" fill="#393333"/>
+ <path d="M190 245Q224 230 246 243M281 244Q302 231 330 244" stroke="#393333" stroke-width="10" fill="none"/>
+ <g fill="#24262a"><ellipse cx="222" cy="270" rx="8" ry="10"/><ellipse cx="304" cy="269" rx="8" ry="10"/></g>
+ <path d="M265 275L249 334Q264 345 282 334" fill="none" stroke="#966f61" stroke-width="7"/>
+ <path d="M225 376Q258 391 299 372" fill="none" stroke="#744d4d" stroke-width="6"/>
+ 
+ <rect width="520" height="690" filter="url(#grain)" opacity=".55"/><rect width="520" height="690" fill="url(#v)"/>
+ <path d="M24 24H496V664H24Z" fill="none" stroke="#cfb18c" stroke-width="5" opacity=".45"/>
+ <rect x="49" y="599" width="422" height="48" rx="7" fill="#16232c" opacity=".9"/>
+ <text x="260" y="630" fill="#e1c49e" text-anchor="middle" font-family="Georgia,serif" letter-spacing="3" font-size="22">TERESA BRAGA</text>
+ </svg>
