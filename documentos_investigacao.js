@@ -140,6 +140,8 @@
  };
  const documentPattern=/carta|bilhet|di[aá]rio|manuscrit|registro|livro|ata\b|contrat|testament|inscri|cartaz|convite|relat[oó]ri|edital|recibo|roteiro|document|p[aá]gina|papel|passagem|placa|proclama[cç][aã]o/i;
  function paperFor(id,clue){
+  const detailed=CASES[s.caseId]?.v2Documents?.[id];
+  if(detailed)return detailed;
   const curated=PAPERS[s.caseId]?.[id];
   if(curated)return curated;
   if(!documentPattern.test(id+' '+(clue?.name||'')))return null;

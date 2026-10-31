@@ -59,6 +59,7 @@ def safe_profile(profile):
 MISSION_TIME_MS = {}
 def mission_limit_ms(case):
     if case in MISSION_TIME_MS: return MISSION_TIME_MS[case]
+    if case=='lago':return 65*60*1000
     if case in META:
         mode=META[case].get('missionMode','both')
         return (50 if mode=='coop' else 45 if mode=='both' else 42)*60*1000
@@ -130,7 +131,7 @@ def role_permits(case,key,slot,size):
 
 def sanitize_progress(data,case,slot,size):
     meta=META[case]
-    return dict(evidence=[x for x in (data.get('evidence') or []) if x in meta['clues'] and role_permits(case,x,slot,size)][:24],witness=[x for x in (data.get('witness') or []) if x in meta['witness'] and role_permits(case,x,slot,size)][:12],boardSolved=bool(data.get('boardSolved')),puzzleSolved=bool(data.get('puzzleSolved')),roleContributions={k:str(v)[:400] for k,v in (data.get('roleContributions') or {}).items() if k.startswith('p') and len(k)<5})
+    return dict(evidence=[x for x in (data.get('evidence') or []) if x in meta['clues'] and role_permits(case,x,slot,size)][:32],witness=[x for x in (data.get('witness') or []) if x in meta['witness'] and role_permits(case,x,slot,size)][:24],boardSolved=bool(data.get('boardSolved')),puzzleSolved=bool(data.get('puzzleSolved')),roleContributions={k:str(v)[:400] for k,v in (data.get('roleContributions') or {}).items() if k.startswith('p') and len(k)<5})
 
 def unique_str_list(seq, valid):
     return list(dict.fromkeys(x for x in seq if x in valid))
@@ -417,7 +418,7 @@ app.router.add_get('/',index)
 app.router.add_get('/index.html',index)
 app.router.add_get('/versao-unica',standalone)
 app.router.add_static('/assets',BASE/'assets')
-for filename in ('style.css','cases.js','extra_cases.js','gear.js','investigation.js','expansion.js','game.js','campaign.js','music.js','tutorial.js','lago_rework.js','lago_scenery.js','lago_visual_refino.js','lago_visual_refino.css','immersion.js','immersion.css','tempo_imersao.js','lago_quadro_coletivo.js','lago_quadro_coletivo.css','lago_vivo_v11.js','lago_vivo_v11.css','casa_arte_integrada.js','investigacao_profunda.js','guia_dados.js','guia_livro.js','guia_livro.css','imersao_cinematica.js','locais_arte.js','cenas_estaticas.js','objetivos_missao.js','documentos_investigacao.js','historia_v2_parte1.js','historia_v2_parte2.js','historia_v2_boot.js','historia_v2_interface.js'):
+for filename in ('style.css','cases.js','extra_cases.js','gear.js','investigation.js','expansion.js','game.js','campaign.js','music.js','tutorial.js','lago_rework.js','lago_scenery.js','lago_visual_refino.js','lago_visual_refino.css','immersion.js','immersion.css','tempo_imersao.js','lago_quadro_coletivo.js','lago_quadro_coletivo.css','lago_vivo_v11.js','lago_vivo_v11.css','casa_arte_integrada.js','investigacao_profunda.js','guia_dados.js','guia_livro.js','guia_livro.css','imersao_cinematica.js','locais_arte.js','cenas_estaticas.js','objetivos_missao.js','documentos_investigacao.js','historia_v2_parte1.js','historia_v2_parte2.js','historia_v2_boot.js','historia_v2_interface.js','lago_primeiro_roteiro.js','lago_primeiro_jogabilidade.js'):
     app.router.add_get('/'+filename, lambda req, filename=filename:web.FileResponse(BASE/filename, headers={'Cache-Control':'no-store, max-age=0'}))
 
 if __name__=='__main__':

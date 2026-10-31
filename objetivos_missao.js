@@ -43,7 +43,7 @@
  const count=()=>rule().clues.filter(id=>s.evidence.includes(id)).length;
  const hasGoal=()=>count()===rule().clues.length&&(!rule().puzzle||!!s.puzzleSolved);
  const canReport=()=>s.evidence.length>=requiredClues()&&hasGoal();
- const objectiveText=()=>{const r=rule();return (r.puzzle?(s.puzzleSolved?'Ritual resolvido · ':'Ritual pendente · '):'')+count()+'/'+r.clues.length+' vestígios do objetivo examinados';};
+ const objectiveText=()=>{const r=rule();return (r.puzzle?((r.puzzleLabel||'Ritual')+(s.puzzleSolved?(r.puzzleLabel==='Cronologia'?' reconstruída · ':' concluído · '):' pendente · ')):'')+count()+'/'+r.clues.length+' vestígios do objetivo examinados';};
  const readySummary=()=>s.evidence.length+' pistas reunidas · '+objectiveText();
  const esc2=x=>esc(String(x??''));
  const originalHub=hub,originalDossier=dossier,originalConfrontation=confrontation,originalEnding=ending,originalCollection=collection;

@@ -16,7 +16,16 @@
       "v2_a_2",
       "v2_b_2",
       "v2_a_3",
-      "v2_b_3"
+      "v2_b_3",
+      "v2_c_1",
+      "v2_c_2",
+      "v2_c_3",
+      "v2_d_1",
+      "v2_d_2",
+      "v2_d_3",
+      "v2_e_1",
+      "v2_e_2",
+      "v2_e_3"
     ],
     "witness": [
       "lembranca",
@@ -27,7 +36,16 @@
       "v2_w1_2",
       "v2_w2_2",
       "v2_w1_3",
-      "v2_w2_3"
+      "v2_w2_3",
+      "v2_w3_1",
+      "v2_w3_2",
+      "v2_w3_3",
+      "v2_w4_1",
+      "v2_w4_2",
+      "v2_w4_3",
+      "v2_w5_1",
+      "v2_w5_2",
+      "v2_w5_3"
     ],
     "theories": [
       "espectro",
@@ -40,13 +58,19 @@
       "expor",
       "selar"
     ],
-    "minClues": 6,
+    "minClues": 8,
     "missionMode": "both",
     "v2RoleAreas": {
       "v2_a": "archivist",
       "v2_b": "tracker",
       "v2_w1": "analyst",
-      "v2_w2": "diplomat"
+      "v2_w2": "diplomat",
+      "v2_c": "archivist",
+      "v2_d": "analyst",
+      "v2_e": "sensitive",
+      "v2_w3": "diplomat",
+      "v2_w4": "sensitive",
+      "v2_w5": "archivist"
     }
   },
   "baile": {

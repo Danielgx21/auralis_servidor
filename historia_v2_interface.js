@@ -51,7 +51,7 @@
   const template=document.createElement('template');template.innerHTML=baseHub();
   const mode=modeLabel(s.caseId);
   const target=template.content.querySelector('.cardList');
-  if(target)target.insertAdjacentHTML('beforebegin','<div class="v2CaseType">'+h(mode)+' · CINCO LOCAIS · TRÊS TESTEMUNHAS</div>');
+  if(target)target.insertAdjacentHTML('beforebegin','<div class="v2CaseType">'+h(mode)+' · '+Object.keys(CASES[s.caseId].scenes).length+' LOCAIS · '+(1+Object.keys(CASES[s.caseId].v2Witnesses||{}).length)+' TESTEMUNHAS</div>');
   template.content.querySelectorAll('[data-scene]').forEach(button=>{
    const location=CASES[s.caseId].v2Locations?.[button.dataset.scene];
    if(!location)return;
@@ -89,7 +89,7 @@
    '<p class="v2SceneHint">Observe a imagem ou amplie para examinar os detalhes. Os objetos não se movem. Compare os registros no diário.</p>'+
    '<div class="sceneFoot"><button type="button" class="smallBtn" data-view="dossier">Consultar pistas coletadas</button><button type="button" class="smallBtn" data-view="hub">Outros locais →</button></div></section>';
  }
- scene=function(){return s.activeScene==='v2_a'||s.activeScene==='v2_b'?newScene():baseScene()};
+ scene=function(){return /^v2_[a-z]+$/.test(s.activeScene)?newScene():baseScene()};
  function extraWitness(){
   const w=witnessById();if(!w)return baseWitness();
   if(!allowed(w.role,s.activeWitness))return '<section class="section"><button class="backBtn" data-view="hub">← Voltar</button><h2>Entrevista reservada</h2><p>Este contato exige '+h(ownerDescription(w.role,s.activeWitness))+'.</p></section>';
@@ -143,7 +143,7 @@
  brief=function(){
   let html=baseBrief();
   html=html.replace('Examine os cenários, entreviste uma testemunha e apresente uma hipótese. Sua conclusão muda quais desfechos estarão disponíveis.',
-    'Explore cinco locais, ouça três testemunhas e compare provas. Você decide o que anotar e apresenta a identificação da criatura. Algumas informações serão exclusivas da sua função.');
+    'Explore '+Object.keys(CASES[s.caseId].scenes).length+' locais e ouça '+(1+Object.keys(CASES[s.caseId].v2Witnesses||{}).length)+' testemunhas. Compare provas, anote livremente e identifique a criatura. Em equipe, algumas áreas e entrevistas exigem especialidades diferentes.');
   return html.replace('<span class="micro">OBJETIVO</span><strong>Investigar e decidir</strong>','<span class="micro">OBJETIVO</span><strong>'+h(CASES[s.caseId].v2Report)+'</strong>');
  };
  chooseCase=function(id){if(!canPlay(id))return toast(caseMode(id)==='coop'?'Este caso exige uma equipe cooperativa.':'Este caso é exclusivo para jogar sozinho.');return baseChooseCase(id)};

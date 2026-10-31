@@ -41,7 +41,7 @@ function updateAmbientButton(){
  const btn=app.querySelector('[data-time-audio]');if(btn)btn.textContent=runtime.ambient?'♫ Desligar som':'♫ Ouvir local';
 }
 const pad=n=>String(n).padStart(2,'0');
-const limit=id=>(CASES[id]?.v2Version?(CASES[id].v2Mode==='coop'?50:CASES[id].v2Mode==='solo'?42:45):({Iniciante:20,Intermediário:23,Avançado:26}[CASES[id]?.difficulty]||23))*60000;
+const limit=id=>(id==='lago'?(net.inGame?65:80):CASES[id]?.v2Version?(CASES[id].v2Mode==='coop'?50:CASES[id].v2Mode==='solo'?42:45):({Iniciante:20,Intermediário:23,Avançado:26}[CASES[id]?.difficulty]||23))*60000;
 const eligibleView=v=>['hub','scene','witness','dossier','board','theory','confrontation','brief'].includes(v);
 function initSolo(){
 if(net.inGame||!eligibleView(s.view)||s.outcome||s.timeFailed)return;
