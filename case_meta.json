@@ -10,12 +10,24 @@
       "registro",
       "sino",
       "manuscrito",
-      "inscricao"
+      "inscricao",
+      "v2_a_1",
+      "v2_b_1",
+      "v2_a_2",
+      "v2_b_2",
+      "v2_a_3",
+      "v2_b_3"
     ],
     "witness": [
       "lembranca",
       "barqueiro",
-      "promessa"
+      "promessa",
+      "v2_w1_1",
+      "v2_w2_1",
+      "v2_w1_2",
+      "v2_w2_2",
+      "v2_w1_3",
+      "v2_w2_3"
     ],
     "theories": [
       "espectro",
@@ -28,7 +40,14 @@
       "expor",
       "selar"
     ],
-    "minClues": 4
+    "minClues": 6,
+    "missionMode": "both",
+    "v2RoleAreas": {
+      "v2_a": "archivist",
+      "v2_b": "tracker",
+      "v2_w1": "analyst",
+      "v2_w2": "diplomat"
+    }
   },
   "baile": {
     "prerequisite": null,
@@ -41,12 +60,24 @@
       "arco",
       "flor",
       "pacto",
-      "prisma"
+      "prisma",
+      "v2_a_1",
+      "v2_b_1",
+      "v2_a_2",
+      "v2_b_2",
+      "v2_a_3",
+      "v2_b_3"
     ],
     "witness": [
       "nome",
       "anfitriao",
-      "fuga"
+      "fuga",
+      "v2_w1_1",
+      "v2_w2_1",
+      "v2_w1_2",
+      "v2_w2_2",
+      "v2_w1_3",
+      "v2_w2_3"
     ],
     "theories": [
       "vampiro",
@@ -59,7 +90,14 @@
       "expor",
       "selar"
     ],
-    "minClues": 5
+    "minClues": 7,
+    "missionMode": "coop",
+    "v2RoleAreas": {
+      "v2_a": "analyst",
+      "v2_b": "sensitive",
+      "v2_w1": "analyst",
+      "v2_w2": "sensitive"
+    }
   },
   "vampiro": {
     "prerequisite": null,
@@ -72,12 +110,24 @@
       "livro",
       "urna",
       "relogio",
-      "luva"
+      "luva",
+      "v2_a_1",
+      "v2_b_1",
+      "v2_a_2",
+      "v2_b_2",
+      "v2_a_3",
+      "v2_b_3"
     ],
     "witness": [
       "sangue",
       "escrivao",
-      "protecao"
+      "protecao",
+      "v2_w1_1",
+      "v2_w2_1",
+      "v2_w1_2",
+      "v2_w2_2",
+      "v2_w1_3",
+      "v2_w2_3"
     ],
     "theories": [
       "vampiro",
@@ -90,7 +140,14 @@
       "expor",
       "selar"
     ],
-    "minClues": 5
+    "minClues": 7,
+    "missionMode": "solo",
+    "v2RoleAreas": {
+      "v2_a": "archivist",
+      "v2_b": "analyst",
+      "v2_w1": "archivist",
+      "v2_w2": "analyst"
+    }
   },
   "lobo": {
     "prerequisite": null,
@@ -103,12 +160,24 @@
       "fios",
       "caderno",
       "prata",
-      "pegadas"
+      "pegadas",
+      "v2_a_1",
+      "v2_b_1",
+      "v2_a_2",
+      "v2_b_2",
+      "v2_a_3",
+      "v2_b_3"
     ],
     "witness": [
       "ciclo",
       "terras",
-      "menino"
+      "menino",
+      "v2_w1_1",
+      "v2_w2_1",
+      "v2_w1_2",
+      "v2_w2_2",
+      "v2_w1_3",
+      "v2_w2_3"
     ],
     "theories": [
       "fera",
@@ -121,7 +190,14 @@
       "expor",
       "selar"
     ],
-    "minClues": 5
+    "minClues": 7,
+    "missionMode": "coop",
+    "v2RoleAreas": {
+      "v2_a": "tracker",
+      "v2_b": "archivist",
+      "v2_w1": "tracker",
+      "v2_w2": "archivist"
+    }
   },
   "retrato": {
     "prerequisite": null,
@@ -134,12 +210,24 @@
       "rascunho",
       "moldura",
       "assinatura",
-      "recibo"
+      "recibo",
+      "v2_a_1",
+      "v2_b_1",
+      "v2_a_2",
+      "v2_b_2",
+      "v2_a_3",
+      "v2_b_3"
     ],
     "witness": [
       "irma",
       "quadro",
-      "dono"
+      "dono",
+      "v2_w1_1",
+      "v2_w2_1",
+      "v2_w1_2",
+      "v2_w2_2",
+      "v2_w1_3",
+      "v2_w2_3"
     ],
     "theories": [
       "fantasma",
@@ -152,7 +240,14 @@
       "expor",
       "selar"
     ],
-    "minClues": 4
+    "minClues": 6,
+    "missionMode": "solo",
+    "v2RoleAreas": {
+      "v2_a": "archivist",
+      "v2_b": "analyst",
+      "v2_w1": "archivist",
+      "v2_w2": "analyst"
+    }
   },
   "estacao": {
     "prerequisite": null,
@@ -165,12 +260,24 @@
       "mapa",
       "parafuso",
       "eco",
-      "alarme"
+      "alarme",
+      "v2_a_1",
+      "v2_b_1",
+      "v2_a_2",
+      "v2_b_2",
+      "v2_a_3",
+      "v2_b_3"
     ],
     "witness": [
       "trem",
       "barragem",
-      "voz"
+      "voz",
+      "v2_w1_1",
+      "v2_w2_1",
+      "v2_w1_2",
+      "v2_w2_2",
+      "v2_w1_3",
+      "v2_w2_3"
     ],
     "theories": [
       "fantasma",
@@ -183,7 +290,14 @@
       "expor",
       "selar"
     ],
-    "minClues": 5
+    "minClues": 7,
+    "missionMode": "coop",
+    "v2RoleAreas": {
+      "v2_a": "analyst",
+      "v2_b": "archivist",
+      "v2_w1": "analyst",
+      "v2_w2": "sensitive"
+    }
   },
   "museu": {
     "prerequisite": null,
@@ -196,12 +310,24 @@
       "registro",
       "espelho",
       "selo",
-      "chave"
+      "chave",
+      "v2_a_1",
+      "v2_b_1",
+      "v2_a_2",
+      "v2_b_2",
+      "v2_a_3",
+      "v2_b_3"
     ],
     "witness": [
       "diretor",
       "ada",
-      "visita"
+      "visita",
+      "v2_w1_1",
+      "v2_w2_1",
+      "v2_w1_2",
+      "v2_w2_2",
+      "v2_w1_3",
+      "v2_w2_3"
     ],
     "theories": [
       "doppel",
@@ -214,7 +340,14 @@
       "expor",
       "selar"
     ],
-    "minClues": 6
+    "minClues": 8,
+    "missionMode": "both",
+    "v2RoleAreas": {
+      "v2_a": "analyst",
+      "v2_b": "sensitive",
+      "v2_w1": "analyst",
+      "v2_w2": "sensitive"
+    }
   },
   "lago2": {
     "prerequisite": "lago",
@@ -227,12 +360,24 @@
       "carimbo",
       "corda",
       "copia",
-      "frasco"
+      "frasco",
+      "v2_a_1",
+      "v2_b_1",
+      "v2_a_2",
+      "v2_b_2",
+      "v2_a_3",
+      "v2_b_3"
     ],
     "witness": [
       "mae",
       "copista",
-      "nome"
+      "nome",
+      "v2_w1_1",
+      "v2_w2_1",
+      "v2_w1_2",
+      "v2_w2_2",
+      "v2_w1_3",
+      "v2_w2_3"
     ],
     "theories": [
       "sino",
@@ -245,7 +390,14 @@
       "expor",
       "selar"
     ],
-    "minClues": 5
+    "minClues": 7,
+    "missionMode": "solo",
+    "v2RoleAreas": {
+      "v2_a": "archivist",
+      "v2_b": "analyst",
+      "v2_w1": "archivist",
+      "v2_w2": "analyst"
+    }
   },
   "baile2": {
     "prerequisite": "baile",
@@ -258,12 +410,24 @@
       "roteiro",
       "fio",
       "espelho",
-      "agulha"
+      "agulha",
+      "v2_a_1",
+      "v2_b_1",
+      "v2_a_2",
+      "v2_b_2",
+      "v2_a_3",
+      "v2_b_3"
     ],
     "witness": [
       "palco",
       "festa",
-      "amanha"
+      "amanha",
+      "v2_w1_1",
+      "v2_w2_1",
+      "v2_w1_2",
+      "v2_w2_2",
+      "v2_w1_3",
+      "v2_w2_3"
     ],
     "theories": [
       "anfitriao",
@@ -276,7 +440,14 @@
       "expor",
       "selar"
     ],
-    "minClues": 6
+    "minClues": 8,
+    "missionMode": "coop",
+    "v2RoleAreas": {
+      "v2_a": "archivist",
+      "v2_b": "analyst",
+      "v2_w1": "archivist",
+      "v2_w2": "analyst"
+    }
   },
   "vampiro2": {
     "prerequisite": "vampiro",
@@ -289,12 +460,24 @@
       "copo",
       "registro",
       "rubrica",
-      "chave"
+      "chave",
+      "v2_a_1",
+      "v2_b_1",
+      "v2_a_2",
+      "v2_b_2",
+      "v2_a_3",
+      "v2_b_3"
     ],
     "witness": [
       "silas",
       "crianças",
-      "leilao"
+      "leilao",
+      "v2_w1_1",
+      "v2_w2_1",
+      "v2_w1_2",
+      "v2_w2_2",
+      "v2_w1_3",
+      "v2_w2_3"
     ],
     "theories": [
       "silas",
@@ -307,7 +490,14 @@
       "expor",
       "selar"
     ],
-    "minClues": 6
+    "minClues": 8,
+    "missionMode": "solo",
+    "v2RoleAreas": {
+      "v2_a": "archivist",
+      "v2_b": "analyst",
+      "v2_w1": "archivist",
+      "v2_w2": "analyst"
+    }
   },
   "lobo2": {
     "prerequisite": "lobo",
@@ -320,12 +510,24 @@
       "pelo",
       "tabua",
       "selo",
-      "lacre"
+      "lacre",
+      "v2_a_1",
+      "v2_b_1",
+      "v2_a_2",
+      "v2_b_2",
+      "v2_a_3",
+      "v2_b_3"
     ],
     "witness": [
       "menino",
       "clãs",
-      "juiz"
+      "juiz",
+      "v2_w1_1",
+      "v2_w2_1",
+      "v2_w1_2",
+      "v2_w2_2",
+      "v2_w1_3",
+      "v2_w2_3"
     ],
     "theories": [
       "fera",
@@ -338,7 +540,14 @@
       "expor",
       "selar"
     ],
-    "minClues": 5
+    "minClues": 7,
+    "missionMode": "coop",
+    "v2RoleAreas": {
+      "v2_a": "archivist",
+      "v2_b": "tracker",
+      "v2_w1": "archivist",
+      "v2_w2": "tracker"
+    }
   },
   "retrato2": {
     "prerequisite": "retrato",
@@ -351,12 +560,24 @@
       "foto",
       "frasco",
       "assinatura",
-      "testamento"
+      "testamento",
+      "v2_a_1",
+      "v2_b_1",
+      "v2_a_2",
+      "v2_b_2",
+      "v2_a_3",
+      "v2_b_3"
     ],
     "witness": [
       "origem",
       "moradores",
-      "herança"
+      "herança",
+      "v2_w1_1",
+      "v2_w2_1",
+      "v2_w1_2",
+      "v2_w2_2",
+      "v2_w1_3",
+      "v2_w2_3"
     ],
     "theories": [
       "conservador",
@@ -369,7 +590,14 @@
       "expor",
       "selar"
     ],
-    "minClues": 5
+    "minClues": 7,
+    "missionMode": "solo",
+    "v2RoleAreas": {
+      "v2_a": "archivist",
+      "v2_b": "analyst",
+      "v2_w1": "archivist",
+      "v2_w2": "analyst"
+    }
   },
   "estacao2": {
     "prerequisite": "estacao",
@@ -382,12 +610,24 @@
       "relatorio",
       "bobina",
       "agua",
-      "coroa"
+      "coroa",
+      "v2_a_1",
+      "v2_b_1",
+      "v2_a_2",
+      "v2_b_2",
+      "v2_a_3",
+      "v2_b_3"
     ],
     "witness": [
       "banshee",
       "radio",
-      "coragem"
+      "coragem",
+      "v2_w1_1",
+      "v2_w2_1",
+      "v2_w1_2",
+      "v2_w2_2",
+      "v2_w1_3",
+      "v2_w2_3"
     ],
     "theories": [
       "banshee",
@@ -400,7 +640,14 @@
       "expor",
       "selar"
     ],
-    "minClues": 6
+    "minClues": 8,
+    "missionMode": "coop",
+    "v2RoleAreas": {
+      "v2_a": "analyst",
+      "v2_b": "tracker",
+      "v2_w1": "analyst",
+      "v2_w2": "tracker"
+    }
   },
   "museu2": {
     "prerequisite": "museu",
@@ -413,12 +660,24 @@
       "bilhete",
       "espelhos",
       "contrato",
-      "manual"
+      "manual",
+      "v2_a_1",
+      "v2_b_1",
+      "v2_a_2",
+      "v2_b_2",
+      "v2_a_3",
+      "v2_b_3"
     ],
     "witness": [
       "fundacao",
       "artefatos",
-      "saida"
+      "saida",
+      "v2_w1_1",
+      "v2_w2_1",
+      "v2_w1_2",
+      "v2_w2_2",
+      "v2_w1_3",
+      "v2_w2_3"
     ],
     "theories": [
       "curador",
@@ -431,7 +690,14 @@
       "expor",
       "selar"
     ],
-    "minClues": 7
+    "minClues": 9,
+    "missionMode": "both",
+    "v2RoleAreas": {
+      "v2_a": "archivist",
+      "v2_b": "sensitive",
+      "v2_w1": "archivist",
+      "v2_w2": "sensitive"
+    }
   },
   "bolsonaros": {
     "prerequisite": null,
@@ -444,12 +710,24 @@
       "lacres",
       "coroa",
       "juramento",
-      "espelho"
+      "espelho",
+      "v2_a_1",
+      "v2_b_1",
+      "v2_a_2",
+      "v2_b_2",
+      "v2_a_3",
+      "v2_b_3"
     ],
     "witness": [
       "passado",
       "retorno",
-      "testemunhas"
+      "testemunhas",
+      "v2_w1_1",
+      "v2_w2_1",
+      "v2_w1_2",
+      "v2_w2_2",
+      "v2_w1_3",
+      "v2_w2_3"
     ],
     "theories": [
       "fantasma",
@@ -462,6 +740,13 @@
       "expor",
       "selar"
     ],
-    "minClues": 5
+    "minClues": 7,
+    "missionMode": "both",
+    "v2RoleAreas": {
+      "v2_a": "archivist",
+      "v2_b": "sensitive",
+      "v2_w1": "archivist",
+      "v2_w2": "sensitive"
+    }
   }
 }

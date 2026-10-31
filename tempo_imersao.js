@@ -41,7 +41,7 @@ function updateAmbientButton(){
  const btn=app.querySelector('[data-time-audio]');if(btn)btn.textContent=runtime.ambient?'♫ Desligar som':'♫ Ouvir local';
 }
 const pad=n=>String(n).padStart(2,'0');
-const limit=id=>({Iniciante:20,Intermediário:23,Avançado:26}[CASES[id]?.difficulty]||23)*60000;
+const limit=id=>(CASES[id]?.v2Version?(CASES[id].v2Mode==='coop'?50:CASES[id].v2Mode==='solo'?42:45):({Iniciante:20,Intermediário:23,Avançado:26}[CASES[id]?.difficulty]||23))*60000;
 const eligibleView=v=>['hub','scene','witness','dossier','board','theory','confrontation','brief'].includes(v);
 function initSolo(){
 if(net.inGame||!eligibleView(s.view)||s.outcome||s.timeFailed)return;
@@ -61,10 +61,11 @@ function night(){let t=min();return t<6*60||t>=19*60}
 function formatTime(){let m=min();return pad(Math.floor(m/60))+':'+pad(m%60)}
 function formatLeft(){let left=Math.max(0,(runtime.cloud?.durationMs&&net.inGame?runtime.cloud.durationMs:limit(s.caseId))-ms());return pad(Math.floor(left/60000))+':'+pad(Math.floor(left/1000)%60)}
 function isWaiting(){return net.inGame&&(net.paused||runtime.cloud&&!runtime.cloud.running)}
-function presence(){return (WINDOWS[s.caseId]||[[8*60,17*60]]).some(w=>min()>=w[0]&&min()<w[1])}
+function witnessWindows(){return (typeof window.manualWitnessWindows==='function'?window.manualWitnessWindows(s.caseId,s.activeWitness):null)||WINDOWS[s.caseId]||[[8*60,17*60]]}
+function presence(){return witnessWindows().some(w=>min()>=w[0]&&min()<w[1])}
 // A mesma disponibilidade rege diálogos normais e perguntas por evidências.
 window.manualWitnessPresent=presence;
-function hours(){return (WINDOWS[s.caseId]||[]).map(w=>pad(Math.floor(w[0]/60))+':'+pad(w[0]%60)+'–'+pad(Math.floor(w[1]/60))+':'+pad(w[1]%60)).join(' / ')}
+function hours(){return witnessWindows().map(w=>pad(Math.floor(w[0]/60))+':'+pad(w[0]%60)+'–'+pad(Math.floor(w[1]/60))+':'+pad(w[1]%60)).join(' / ')}
 function kind(){let ix=Object.keys(CASES[s.caseId]?.scenes||{}).indexOf(s.activeScene);
 if(s.caseId.startsWith('lago'))return ['lake','interior','sacred'][ix]||'lake';
 if(s.caseId.startsWith('lobo'))return ix===0?'woods':'interior';

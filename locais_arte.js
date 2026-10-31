@@ -27,9 +27,9 @@
  }
  function visualTargets(){
   // O zoom usa as mesmas áreas invisíveis da pintura original.
-  const original=app.querySelector('.staticSceneCanvas');
+  const original=app.querySelector('.staticSceneCanvas,.v2SceneFrame');
   if(!original)return '';
-  return [...original.querySelectorAll('.staticPhotoTarget[data-static-examine]')].map(node=>{
+  return [...original.querySelectorAll('.staticPhotoTarget[data-static-examine],.v2InvisibleHotspot[data-v2-clue]')].map(node=>{
    const clone=node.cloneNode(false);
    clone.removeAttribute('title');
    clone.setAttribute('data-zoom-hit','1');
@@ -66,12 +66,12 @@
  }
  render=function(){priorRender();decorate()};
  document.addEventListener('click',e=>{
-  const hit=e.target.closest('[data-zoom-hit][data-static-examine]');
+  const hit=e.target.closest('[data-zoom-hit][data-static-examine],[data-zoom-hit][data-v2-clue]');
   if(zoomOpen&&hit&&hit.closest('.locationsArtZoomPlane')){
    e.preventDefault();e.stopImmediatePropagation();
-   const key=hit.dataset.staticExamine;zoomOpen=false;
+   const key=hit.dataset.staticExamine||hit.dataset.v2Clue;zoomOpen=false;
    app.querySelector('.locationsArtOverlay')?.remove();
-   const original=[...app.querySelectorAll('.staticSceneCanvas [data-static-examine]')].find(node=>node.dataset.staticExamine===key);
+   const original=[...app.querySelectorAll('.staticSceneCanvas [data-static-examine],.v2SceneFrame [data-v2-clue]')].find(node=>node.dataset.staticExamine===key||node.dataset.v2Clue===key);
    if(original)original.click();else render();
    return;
   }

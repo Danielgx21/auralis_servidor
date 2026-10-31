@@ -56,9 +56,12 @@ def safe_profile(profile):
 
 
 # Relógio autoritativo, preservado em banco. Pausa se um participante desconectar.
-MISSION_TIME_MS = {'lago': 20*60*1000, 'lago2': 23*60*1000}
+MISSION_TIME_MS = {}
 def mission_limit_ms(case):
     if case in MISSION_TIME_MS: return MISSION_TIME_MS[case]
+    if case in META:
+        mode=META[case].get('missionMode','both')
+        return (50 if mode=='coop' else 45 if mode=='both' else 42)*60*1000
     difficulty = META.get(case,{}).get('difficulty','Intermediário')
     return {'Iniciante': 20,'Intermediário': 23,'Avançado': 26}.get(difficulty,23)*60*1000
 def clock_elapsed(state):
@@ -116,9 +119,18 @@ def require_player(state,slot):
 def team_default(case):
     return {'caseId':case,'evidence':[],'witness':[],'boardSolved':False,'puzzleSolved':False,'roleContributions':{},'theory':None,'outcome':None,'investigation':{'notes':[],'connections':[]}}
 
-def sanitize_progress(data,case):
+def role_permits(case,key,slot,size):
+    area='_'.join(str(key).split('_')[:2])
+    required=META[case].get('v2RoleAreas',{}).get(area)
+    if not required:return True
+    roles=('analyst','sensitive','archivist','diplomat','tracker')
+    expected=roles.index(required) if required in roles else 0
+    if expected>=size:expected=min(1,size-1) if area in ('v2_b','v2_w2') else 0
+    return slot==expected
+
+def sanitize_progress(data,case,slot,size):
     meta=META[case]
-    return dict(evidence=[x for x in (data.get('evidence') or []) if x in meta['clues']][:9],witness=[x for x in (data.get('witness') or []) if x in meta['witness']][:3],boardSolved=bool(data.get('boardSolved')),puzzleSolved=bool(data.get('puzzleSolved')),roleContributions={k:str(v)[:400] for k,v in (data.get('roleContributions') or {}).items() if k.startswith('p') and len(k)<5})
+    return dict(evidence=[x for x in (data.get('evidence') or []) if x in meta['clues'] and role_permits(case,x,slot,size)][:24],witness=[x for x in (data.get('witness') or []) if x in meta['witness'] and role_permits(case,x,slot,size)][:12],boardSolved=bool(data.get('boardSolved')),puzzleSolved=bool(data.get('puzzleSolved')),roleContributions={k:str(v)[:400] for k,v in (data.get('roleContributions') or {}).items() if k.startswith('p') and len(k)<5})
 
 def unique_str_list(seq, valid):
     return list(dict.fromkeys(x for x in seq if x in valid))
@@ -229,6 +241,8 @@ async def mutate(state,slot,m):
         if len(LIVE.get(code,{}))!=state['size']:return {'event':'error','message':'Aguardem todos os jogadores reconectarem.'}
         if choice not in META:return {'event':'error','message':'Missão inválida. Escolha um caso no catálogo.'}
         if not eligible(state,choice):return {'event':'error','message':'Uma continuação ainda não foi desbloqueada para todos.'}
+        if META[choice].get('missionMode')=='solo':return {'event':'error','message':'Este arquivo foi criado apenas para investigação individual.'}
+        if META[choice].get('missionMode')=='coop' and state['mode']!='coop':return {'event':'error','message':'Este arquivo exige expedição cooperativa.'}
         start_case(state,choice)
         clock_sync(state)
     elif op=='abort':
@@ -259,6 +273,8 @@ async def mutate(state,slot,m):
         if state['phase'] not in ('camp','lobby'):return {'event':'error','message':'Escolha outro caso no intervalo do Instituto.'}
         choice=m.get('caseId')
         if choice not in META or not eligible(state,choice):return {'event':'error','message':'Arquivo ainda bloqueado para alguém do grupo.'}
+        if META[choice].get('missionMode')=='solo':return {'event':'error','message':'Esta missão só pode ser investigada sozinho.'}
+        if META[choice].get('missionMode')=='coop' and state['mode']!='coop':return {'event':'error','message':'Esta missão exige cooperação.'}
         state['nominees'][str(slot)]=choice
         state['votes']['next'][str(slot)]=choice
         participants=state['players']
@@ -290,7 +306,7 @@ async def mutate(state,slot,m):
         if state['phase']!='case' or m.get('caseId')!=case:return None
         player['score']=max(0,min(5000,int(m.get('score') or 0)))
         if state['mode']=='coop':
-            data=sanitize_progress(m,case);team=state['team']
+            data=sanitize_progress(m,case,slot,state['size']);team=state['team']
             team['evidence']=unique_str_list(team['evidence']+data['evidence'],META[case]['clues'])
             team['witness']=unique_str_list(team['witness']+data['witness'],META[case]['witness'])
             team['boardSolved']=team['boardSolved'] or data['boardSolved']
@@ -401,7 +417,7 @@ app.router.add_get('/',index)
 app.router.add_get('/index.html',index)
 app.router.add_get('/versao-unica',standalone)
 app.router.add_static('/assets',BASE/'assets')
-for filename in ('style.css','cases.js','extra_cases.js','gear.js','investigation.js','expansion.js','game.js','campaign.js','music.js','tutorial.js','lago_rework.js','lago_scenery.js','lago_visual_refino.js','lago_visual_refino.css','immersion.js','immersion.css','tempo_imersao.js','lago_quadro_coletivo.js','lago_quadro_coletivo.css','lago_vivo_v11.js','lago_vivo_v11.css','casa_arte_integrada.js','investigacao_profunda.js','guia_dados.js','guia_livro.js','guia_livro.css','imersao_cinematica.js','locais_arte.js','cenas_estaticas.js','objetivos_missao.js','documentos_investigacao.js'):
+for filename in ('style.css','cases.js','extra_cases.js','gear.js','investigation.js','expansion.js','game.js','campaign.js','music.js','tutorial.js','lago_rework.js','lago_scenery.js','lago_visual_refino.js','lago_visual_refino.css','immersion.js','immersion.css','tempo_imersao.js','lago_quadro_coletivo.js','lago_quadro_coletivo.css','lago_vivo_v11.js','lago_vivo_v11.css','casa_arte_integrada.js','investigacao_profunda.js','guia_dados.js','guia_livro.js','guia_livro.css','imersao_cinematica.js','locais_arte.js','cenas_estaticas.js','objetivos_missao.js','documentos_investigacao.js','historia_v2_parte1.js','historia_v2_parte2.js','historia_v2_boot.js','historia_v2_interface.js'):
     app.router.add_get('/'+filename, lambda req, filename=filename:web.FileResponse(BASE/filename, headers={'Cache-Control':'no-store, max-age=0'}))
 
 if __name__=='__main__':

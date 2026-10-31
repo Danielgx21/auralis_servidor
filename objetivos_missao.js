@@ -39,7 +39,7 @@
   bolsonaros:['os bolsonaros','bolsonaros']
  };
  const clean=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim().replace(/^(o|a|os|as|um|uma) /,'');
- const rule=()=>GOALS[s.caseId]||{title:'Reconstruir os acontecimentos da missão',description:'Investigue os indícios encontrados no local.',clues:[]};
+ const rule=()=>CASES[s.caseId]?.v2Goal||GOALS[s.caseId]||{title:'Reconstruir os acontecimentos da missão',description:'Investigue os indícios encontrados no local.',clues:[]};
  const count=()=>rule().clues.filter(id=>s.evidence.includes(id)).length;
  const hasGoal=()=>count()===rule().clues.length&&(!rule().puzzle||!!s.puzzleSolved);
  const canReport=()=>s.evidence.length>=requiredClues()&&hasGoal();
