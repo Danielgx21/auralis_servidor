@@ -29,12 +29,13 @@
   return previousScene();
  };
  brief=function(){
-  const html=previousBrief();if(!first())return html;
-  const caseInfo='<section class="lagoBriefBox"><div class="eyebrow">PESSOAS ENVOLVIDAS</div>'+
-   '<p><b>Marina Vilar</b>, <b>Paulo Lemos</b> e <b>Elisa Soares</b> estão desaparecidos. <b>Dário Sanches</b> foi encontrado às 02h10.</p>'+
-   '<p>O Instituto precisa separar os fatos comprováveis dos relatos e explicar por que alguém convocou os técnicos.</p>'+
-   '<p><b>Solo:</b> acesso aos oito locais. <b>Cooperativo:</b> as especialidades dividem áreas, provas e entrevistas. Os registros são compartilhados.</p></section>';
-  return html.replace('<button class="btn outline" data-view="shop">',caseInfo+'<button class="btn outline" data-view="shop">');
+  const html=previousBrief();
+  if(!first())return html;
+  // A apresentação não repete a ocorrência nem antecipa o desfecho.
+  return html.replace(
+   'Explore 8 locais e ouça 6 testemunhas. Compare provas, anote livremente e identifique a criatura. Em equipe, algumas áreas e entrevistas exigem especialidades diferentes.',
+   'O mapa reúne os locais e depoimentos disponíveis. Registre no diário o que considerar importante.'
+  );
  };
  witness=function(){
   if(!first())return previousWitness();

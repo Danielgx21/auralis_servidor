@@ -2,17 +2,17 @@
 (function install(){
  const C=CASES.lago;
  C.short='A Voz Sob o Lago';
- C.title='A Voz Sob o Lago — O Chamado das 00h17';
- C.subtitle='Quatro técnicos, uma falsa emergência e uma linha desconectada';
- C.v2Lead='Quatro técnicos entraram na represa após um chamado de emergência. Dário Sanches foi encontrado vivo às 02h10. Marina Vilar, Paulo Lemos e Elisa Soares continuam desaparecidos. Os registros da companhia não concordam.';
- C.v2Report='Reconstrua a noite dos desaparecimentos, investigue a falsa emergência e identifique a presença ligada à nascente antes da reabertura das comportas.';
- C.brief=C.v2Lead+' '+C.v2Report;C.intro=C.v2Lead;
- C.quote='“Às 00h17, uma voz chamou cada um pelo nome. A linha estava desligada.” — Dário Sanches';
- C.victims='Três desaparecidos e um sobrevivente';C.danger='Alto · acesso subterrâneo';
+ C.title='A Voz Sob o Lago';
+ C.subtitle='O desaparecimento na barragem';
+ C.v2Lead='Pouco antes da meia-noite, quatro técnicos foram chamados para verificar um problema nas bombas da barragem. Dário Sanches voltou sozinho. Marina Vilar, Paulo Lemos e Elisa Soares continuam desaparecidos. A direção ainda não apresentou o relatório da ocorrência.';
+ C.v2Report='Descubra o que aconteceu naquela noite e tente localizar os três desaparecidos.';
+ C.brief=C.v2Lead;C.intro=C.v2Lead;
+ C.quote='“Ouvi nossos nomes pelo rádio de serviço. Perguntei quem estava falando, mas ninguém respondeu.” — Dário Sanches';
+ C.victims='Três desaparecidos; um técnico resgatado';C.danger='Ainda não avaliado';C.type='DESAPARECIMENTO NA BARRAGEM';
  C.v2Truth='Augusto Ferraz ordenou o desligamento do relé antes da inspeção e ocultou documentos da obra. Isso provocou a falsa emergência. Às 00h17, porém, uma linha desligada desde 1989 transmitiu os nomes dos técnicos. O sino tocou sem operador às 00h19. Uma entidade ligada à memória dos nomes havia sido aprisionada sob a capela durante o desvio da nascente. A sabotagem humana e a manifestação não são o mesmo acontecimento.';
  C.reveal=C.v2Truth;C.revealTitle='O chamado tinha duas origens';
  C.revealQuote='“O relé foi aberto por uma pessoa. A voz não veio do circuito de bombas.” — Instituto';
- C.v2Goal={title:'Reconstruir o chamado das 00h17',description:'Compare os registros elétricos, a linha telefônica e a laje da nascente. Reconstitua a ordem dos acontecimentos antes de identificar a criatura.',clues:['v2_a_2','v2_b_2','v2_e_1'],puzzle:true,puzzleLabel:'Cronologia'};
+ C.v2Goal={title:'Reconstruir os acontecimentos',description:'Confronte os depoimentos e os registros encontrados. Estabeleça a sequência dos fatos sem presumir que todos tenham a mesma causa.',clues:['v2_a_2','v2_b_2','v2_e_1'],puzzle:true,puzzleLabel:'Cronologia'};
  C.minClues=8;C.v2MinClues=8;
  const clue=(id,name,detail)=>Object.assign(C.clues[id],{name,detail,insight:'Compare com as demais fontes. O vestígio não prova sozinho a causa do acontecimento.'});
  clue('fita','Fita azul no junco','O nó lembra o usado por Marina Vilar. A fita está presa do lado interno dos juncos, fora do caminho principal.');
@@ -72,23 +72,23 @@
    <path d="M16 18H1184V742H16Z" stroke="#d7c29c" stroke-opacity=".26" stroke-width="5" fill="none"/></svg>`;
  }
  const areas={
-  v2_a:{name:'Centro de Controle',subtitle:'O registro da linha C-0',intro:'A central está vazia. O histórico de chamadas termina numa linha que não deveria funcionar.',role:'archivist',theme:'control',clues:[
+  v2_a:{name:'Centro de Controle',subtitle:'Sala de monitoramento',intro:'Os monitores estão em modo de manutenção. Há documentos e registros de chamadas que ainda não foram examinados.',role:'archivist',theme:'control',clues:[
    ['Escala de plantão alterada','Marina e os colegas estavam de folga. Quatro nomes foram adicionados ao turno com outra caneta.'],
    ['Registro da linha C-0','Quatro chamadas chegaram de uma linha desativada desde 1989, todas às 00h17.'],
    ['Mapa da passagem omitida','A planta atual não mostra a escada sob a capela. Um mapa antigo aponta essa passagem.']]},
-  v2_b:{name:'Galeria das Bombas',subtitle:'A intervenção anterior ao chamado',intro:'Nenhuma peça das bombas está quebrada. O relé foi aberto manualmente.',role:'tracker',theme:'pump',clues:[
+  v2_b:{name:'Galeria das Bombas',subtitle:'Instalações do setor 4',intro:'As bombas estão paradas. O painel de manutenção e o chão úmido podem ajudar a reconstruir a passagem dos técnicos.',role:'tracker',theme:'pump',clues:[
    ['Botas na saída sul','Marcas de quatro pares entram no corredor. Apenas uma trilha retorna à enfermaria.'],
    ['Relé aberto às 23h52','O registrador mecânico marca uma intervenção manual às 23h52.'],
    ['Placa da terceira chamada','A placa antiga manda não responder à terceira repetição vinda da galeria.']]},
-  v2_c:{name:'Arquivo das Obras',subtitle:'A autorização antiga e a ordem recente',intro:'Duas pastas foram retiradas do catálogo de 1989. Há uma autorização com assinatura recente.',role:'archivist',theme:'archive',clues:[
+  v2_c:{name:'Arquivo das Obras',subtitle:'Documentos da companhia',intro:'As estantes guardam registros de construção e ordens de serviço de épocas diferentes.',role:'archivist',theme:'archive',clues:[
    ['Termo de desvio da nascente','A companhia autorizou o desvio da água e instalou uma estrutura acústica sem memorial técnico.'],
    ['Ordem assinada por Augusto','Uma ordem interna exige a abertura manual do relé antes da vistoria e a classificação da parada como falha.'],
    ['Carta do antigo barqueiro','Um trabalhador descreveu como moradores deixavam nomes na pedra antes da construção.']]},
-  v2_d:{name:'Enfermaria da Barragem',subtitle:'O sobrevivente e as amostras',intro:'Dário saiu da enfermaria com liberação médica. O prontuário e suas anotações ficaram guardados.',role:'analyst',theme:'infirmary',clues:[
+  v2_d:{name:'Enfermaria da Barragem',subtitle:'Local do atendimento',intro:'Dário foi atendido aqui durante a madrugada. O prontuário e alguns materiais de exame estão disponíveis.',role:'analyst',theme:'infirmary',clues:[
    ['Prontuário de Dário','Admissão às 02h10. Hipotermia leve, sem ferimentos de luta. Ele repetia três nomes.'],
    ['Desenho da galeria','Um esboço mostra a escada sob a capela e inscrições numa parede de pedra.'],
    ['Água nas roupas','Os minerais nas roupas correspondem à nascente antiga, não à água superficial da represa.']]},
-  v2_e:{name:'Nascente Subterrânea',subtitle:'A passagem excluída dos mapas',intro:'Água corre por baixo da capela. Há inscrições apagadas, um conduto de bronze e uma passagem reaberta.',role:'sensitive',theme:'cavern',clues:[
+  v2_e:{name:'Nascente Subterrânea',subtitle:'Área abaixo da capela',intro:'A água atravessa uma câmara antiga. Há marcas nas pedras, tubulações e sinais de reparos.',role:'sensitive',theme:'cavern',clues:[
    ['Laje com nomes apagados','Marina, Paulo e Elisa aparecem nas inscrições recentes. Um quarto nome está incompleto.'],
    ['Conduto ligado ao sino','Um tubo de bronze leva vibrações do sino até a nascente, mesmo com a corda imobilizada.'],
    ['Corrente cortada recentemente','Uma corrente antiga foi cortada com ferramenta nova. Há pó de bronze no metal.']]}
