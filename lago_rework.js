@@ -194,7 +194,7 @@ witness=function(){
  const original=witnessPrior();if(s.caseId!=='lago')return original;
  if(!s.lagoInterview)s.lagoInterview={};
  const available=investigatorTopics.filter(t=>t.needs.every(e=>s.evidence.includes(e)));
- const questions='<section class="lakeConfront"><div class="eyebrow">ENTREVISTA INVESTIGATIVA</div><h3>Confrontar o depoimento com as provas</h3><p>Formule perguntas com base no que encontrou. Nem todas as respostas são completas ou confiáveis.</p>'+investigatorTopics.map(t=>{
+ const questions='<section class="lakeConfront"><div class="eyebrow">ENTREVISTA INVESTIGATIVA</div><h3>Confrontar o depoimento com as provas</h3><p>Formule perguntas com base no que encontrou. Nem todas as respostas são completas ou confiáveis.</p><p data-lake-interview-status aria-live="polite"></p>'+investigatorTopics.map(t=>{
  const ready=t.needs.every(e=>s.evidence.includes(e));
  return '<article><strong>'+esc(t.title)+'</strong><p>'+esc(t.q)+'</p><button data-lake-interview="'+t.id+'" '+(!ready||s.lagoInterview[t.id]?'disabled':'')+'>'+(s.lagoInterview[t.id]?'✓ Pergunta registrada':ready?'Apresentar evidência':'Reúna '+t.needs.length+' evidência(s)')+'</button>'+(s.lagoInterview[t.id]?'<blockquote>'+esc(t.answer)+'</blockquote>':'')+'</article>';
  }).join('')+'</section>';
@@ -205,6 +205,8 @@ app.addEventListener('click',event=>{
  const btn=event.target.closest('[data-lake-interview]');if(!btn)return;
  event.preventDefault();event.stopImmediatePropagation();
  if(net.inGame&&net.paused)return toast('Entrevista pausada até a equipe reconectar.');
+ if(typeof window.manualWitnessPresent==='function'&&!window.manualWitnessPresent())return toast('Iria está ausente. Volte no horário da entrevista.');
+ if(btn.disabled)return;
  const t=investigatorTopics.find(a=>a.id===btn.dataset.lakeInterview);
  if(!t||t.needs.some(id=>!s.evidence.includes(id)))return;
  s.lagoInterview=s.lagoInterview||{};

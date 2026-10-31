@@ -54,6 +54,8 @@ function formatTime(){let m=min();return pad(Math.floor(m/60))+':'+pad(m%60)}
 function formatLeft(){let left=Math.max(0,(runtime.cloud?.durationMs&&net.inGame?runtime.cloud.durationMs:limit(s.caseId))-ms());return pad(Math.floor(left/60000))+':'+pad(Math.floor(left/1000)%60)}
 function isWaiting(){return net.inGame&&(net.paused||runtime.cloud&&!runtime.cloud.running)}
 function presence(){return (WINDOWS[s.caseId]||[[8*60,17*60]]).some(w=>min()>=w[0]&&min()<w[1])}
+// A mesma disponibilidade rege diálogos normais e perguntas por evidências.
+window.manualWitnessPresent=presence;
 function hours(){return (WINDOWS[s.caseId]||[]).map(w=>pad(Math.floor(w[0]/60))+':'+pad(w[0]%60)+'–'+pad(Math.floor(w[1]/60))+':'+pad(w[1]%60)).join(' / ')}
 function kind(){let ix=Object.keys(CASES[s.caseId]?.scenes||{}).indexOf(s.activeScene);
 if(s.caseId.startsWith('lago'))return ['lake','interior','sacred'][ix]||'lake';
@@ -85,13 +87,15 @@ if(canvas&&!canvas.querySelector('.timeWorldLighting')){let v=document.createEle
 function witnessPanel(){
 if(s.view!=='witness')return;const q=app.querySelector('[data-question]');if(!q||app.querySelector('.timeWorldWitness'))return;
 let w=document.createElement('div');w.className='timeWorldWitness';w.innerHTML='<b data-time-witness></b><p>Horários em que esta testemunha costuma estar aqui: '+hours()+'. Fora desse período, ela não poderá responder.</p>';q.before(w);
-app.querySelectorAll('[data-question]').forEach(e=>e.dataset.wasDisabled=e.disabled?'true':'false');
+app.querySelectorAll('[data-question],[data-lake-interview]').forEach(e=>e.dataset.wasDisabled=e.disabled?'true':'false');
 updateWitness();
 }
 function updateWitness(){
 if(s.view!=='witness')return;
-app.querySelectorAll('[data-question]').forEach(b=>{b.disabled=!presence()||b.dataset.wasDisabled==='true';b.classList.toggle('timeWitnessAbsent',!presence())});
-const t=app.querySelector('[data-time-witness]');if(t)t.textContent=presence()?'● TESTEMUNHA PRESENTE':'◌ TESTEMUNHA AUSENTE';
+const present=presence();
+app.querySelectorAll('[data-question],[data-lake-interview]').forEach(b=>{b.disabled=!present||b.dataset.wasDisabled==='true';b.classList.toggle('timeWitnessAbsent',!present)});
+const t=app.querySelector('[data-time-witness]');if(t)t.textContent=present?'● TESTEMUNHA PRESENTE':'◌ TESTEMUNHA AUSENTE';
+app.querySelectorAll('[data-lake-interview-status]').forEach(e=>{e.textContent=present?'Iria está presente: você pode confrontar as provas com ela.':'Iria não está aqui. Os confrontos ficarão disponíveis no próximo horário de atendimento.';e.classList.toggle('timeWitnessAbsent',!present)});
 }
 function showEvent(){
 if(app.querySelector('.timeEvent')||s.modal||s.outcome||s.timeFailed)return;
@@ -192,6 +196,12 @@ updateWitness();lockCards();tickRisk();checkLimit();
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(!net.inGame&&s.timeFrom){s.timeElapsed=ms();s.timeFrom=null;safeSave()}suspendSound()}else{initSolo();resumeSound();render()}});
 window.addEventListener('pagehide',()=>{if(!net.inGame&&s.timeFrom){s.timeElapsed=ms();s.timeFrom=null;safeSave()}});
+// Bloquear qualquer tentativa de registrar uma resposta fora do horário, mesmo se o botão estiver desatualizado.
+app.addEventListener('click',ev=>{
+ if(s.view!=='witness'||!ev.target.closest('[data-question],[data-lake-interview]')||presence())return;
+ ev.preventDefault();ev.stopImmediatePropagation();
+ toast('A testemunha está ausente. Volte no horário indicado para entrevistá-la.');
+},true);
 app.addEventListener('click',ev=>{
 const b=ev.target.closest('[data-time-audio],[data-time-event],[data-time-retry],[data-time-exit]');if(!b)return;
 ev.preventDefault();ev.stopImmediatePropagation();
