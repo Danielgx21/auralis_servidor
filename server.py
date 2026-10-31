@@ -401,7 +401,7 @@ app.router.add_get('/',index)
 app.router.add_get('/index.html',index)
 app.router.add_get('/versao-unica',standalone)
 app.router.add_static('/assets',BASE/'assets')
-for filename in ('style.css','cases.js','extra_cases.js','gear.js','investigation.js','expansion.js','game.js','campaign.js','music.js','tutorial.js','lago_rework.js','lago_scenery.js','lago_visual_refino.js','lago_visual_refino.css','immersion.js','immersion.css','tempo_imersao.js','lago_quadro_coletivo.js','lago_quadro_coletivo.css','lago_vivo_v11.js','lago_vivo_v11.css','casa_arte_integrada.js','investigacao_profunda.js','guia_dados.js','guia_livro.js','guia_livro.css','imersao_cinematica.js','locais_arte.js'):
+for filename in ('style.css','cases.js','extra_cases.js','gear.js','investigation.js','expansion.js','game.js','campaign.js','music.js','tutorial.js','lago_rework.js','lago_scenery.js','lago_visual_refino.js','lago_visual_refino.css','immersion.js','immersion.css','tempo_imersao.js','lago_quadro_coletivo.js','lago_quadro_coletivo.css','lago_vivo_v11.js','lago_vivo_v11.css','casa_arte_integrada.js','investigacao_profunda.js','guia_dados.js','guia_livro.js','guia_livro.css','imersao_cinematica.js','locais_arte.js','cenas_estaticas.js'):
     app.router.add_get('/'+filename, lambda req, filename=filename:web.FileResponse(BASE/filename, headers={'Cache-Control':'no-store, max-age=0'}))
 
 if __name__=='__main__':
