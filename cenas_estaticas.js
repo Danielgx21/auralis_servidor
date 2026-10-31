@@ -12,8 +12,8 @@
   capela:{src:'assets/capela_cinema.webp',w:1000,h:1340,exposure:.68}
  };
  CASES.lago.scenes.casa.image=IMAGES.casa.src;
- CASES.lago.scenes.lago.intro='Há um caixote perto do cais, juncos espalhados e uma lanterna esquecida. Observe os detalhes com atenção antes de registrar pistas.';
- CASES.lago.scenes.capela.intro='O tecido junto ao sino, uma pedra inscrita e um baú antigo guardam indícios. Estude a pintura e os detalhes dos objetos.';
+ CASES.lago.scenes.lago.intro='A madeira úmida range ao longo da margem. A noite parece guardar vestígios de uma visita que ninguém consegue explicar.';
+ CASES.lago.scenes.capela.intro='O espaço guarda marcas de outras épocas. Os sons parecem se prolongar, embora ninguém se mova.';
  const DESCRIPTIONS={
   reeds:['Juncos na margem','As hastes estão amassadas em uma direção diferente daquela do vento. Examine os intervalos entre elas.','inspect',null,[774,718,226,600]],
   ribbon:['Fibras azuladas','Entre os juncos há um tecido enroscado. O padrão lembra uma peça de roupa.','inspect','fita',[813,810,187,200]],
@@ -84,17 +84,6 @@
   const clue=DESCRIPTIONS[id][3];
   return clue?s.evidence.includes(clue):id==='keypiece'?!!s.lagoKey:observed(id);
  }
- function sceneList(){
-  const ids=SCENE_DETAILS[s.activeScene]||[];
-  return '<section class="staticFindings" aria-label="Detalhes para investigar">'+
-   '<div class="staticFindingsHead"><div><small>OBSERVAÇÃO E DEDUÇÃO</small><h3>Detalhes do local</h3></div><span>'+CASES.lago.scenes[s.activeScene].items.filter(id=>s.evidence.includes(id)).length+'/3 pistas</span></div>'+
-   '<p>Você também pode selecionar um detalhe abaixo. Nenhum objeto será deslocado da imagem.</p>'+
-   '<div class="staticFindingsGrid">'+ids.filter(revealed).map(id=>{
-    const d=DESCRIPTIONS[id],done=already(id);
-    return '<button type="button" data-static-examine="'+id+'" class="staticFinding '+(done?'isDocumented':'')+'">'+
-     '<span class="staticFindingMark" aria-hidden="true">'+(done?'✓':'⌕')+'</span><span><strong>'+escaped(d[0])+'</strong><small>'+(done?'Analisado · consultar novamente':'Selecionar para análise')+'</small></span></button>';
-   }).join('')+'</div></section>';
- }
  function closeup(id){
   const im=IMAGES[s.activeScene],box=DESCRIPTIONS[id][4],src=im.src;
   const padX=Math.min(55,box[2]*.13),padY=Math.min(75,box[3]*.12);
@@ -135,40 +124,27 @@
    '<img src="'+im.src+'" alt="Cenário ilustrado de '+escaped(loc.name)+'" draggable="false" />'+photoHotspots(id)+'</div>';
   return '<section class="landscapePage staticScenePage"><button class="backBtn" data-view="hub">← Voltar aos locais</button>'+
    '<div class="eyebrow">ARQUIVO 001 · INVESTIGAÇÃO VISUAL</div><h2>'+escaped(loc.name)+'</h2>'+
-   '<p>'+escaped(loc.intro)+'</p><p class="landscapeHelp">Escolha Observar, Lupa ou Pincel e toque nos próprios objetos da imagem. A pintura permanece intacta; use a ampliação para detalhes menores.</p>'+
-   paletteMarkup()+canvas+sceneList()+
-   '<div class="staticCaseFooter"><button type="button" class="btn outline" data-view="dossier">Ver dossiê ('+s.evidence.length+'/9)</button>'+
+   '<p>'+escaped(loc.intro)+'</p><p class="landscapeHelp">Escolha Observar, Lupa ou Pincel e toque nos próprios objetos da imagem. A pintura permanece intacta. Use a ampliação para procurar vestígios discretos.</p>'+
+   paletteMarkup()+canvas+
+   '<div class="staticCaseFooter"><button type="button" class="btn outline" data-view="dossier">Consultar pistas coletadas</button>'+
    '<button type="button" class="btn" data-view="theory">Ver objetivo da missão →</button></div>'+detailDialog()+'</section>';
  }
  scene=function(){
   if(s.caseId==='lago')return staticScene();
   const html=originalScene();
-  // Nas demais missões, manter as pistas clicáveis mas FORA da pintura,
-  // permitindo observar a arte sem ícones sobre ela.
   if(s.view!=='scene')return html;
+  // Indícios interativos permanecem na pintura; sem listas nem etiquetas.
   const tmpl=document.createElement('template');tmpl.innerHTML=html;
   const frame=tmpl.content.querySelector('.sceneFrame');
   if(!frame)return html;
-  const targets=[...frame.querySelectorAll('.hotspot')];
-  const section=document.createElement('section');section.className='staticFindings genericStaticFindings';
-  section.innerHTML='<div class="staticFindingsHead"><h3>Detalhes para examinar</h3></div><div class="staticFindingsGrid"></div>';
-  const list=section.querySelector('.staticFindingsGrid');
-  for(const node of targets){
-   const item=node.cloneNode(false),id=node.dataset.clue;
-   item.removeAttribute('style');
-   item.removeAttribute('title');
-   item.className='staticFinding '+(node.classList.contains('found')?'isDocumented':'');
-   if(id){
-    const clue=CASES[s.caseId]?.clues?.[id];
-    item.innerHTML='<span class="staticFindingMark" aria-hidden="true">'+(node.classList.contains('found')?'✓':'⌕')+'</span><span><strong>'+escaped(clue?.name||'Pista')+'</strong><small>'+(node.classList.contains('found')?'Registrada · revisar':'Examinar este indício')+'</small></span>';
-   }else{
-    item.setAttribute('aria-label','Pista de outro pesquisador');item.innerHTML='⌁ Pista reservada a outro especialista';
-   }
-   list.append(item);node.remove();
+  frame.classList.add('sceneUndisclosed');
+  for(const node of frame.querySelectorAll('.hotspot')){
+   node.removeAttribute('title');
+   if(node.matches('span.roleLocked'))node.setAttribute('aria-hidden','true');
+   node.querySelectorAll('span').forEach(child=>{child.textContent='';});
   }
-  frame.after(section);
   const help=tmpl.content.querySelector('.sceneFoot>p');
-  if(help)help.textContent='Observe a cena pela ampliação e selecione os detalhes na lista. As ferramentas e pistas continuam disponíveis.';
+  if(help)help.textContent='Toque nos elementos que chamarem sua atenção. Os locais de interesse não serão destacados. Pistas coletadas ficam no dossiê.';
   return tmpl.innerHTML;
  };
  function recordClue(id){
@@ -262,6 +238,7 @@
  const css=document.createElement('style');
  css.textContent='.staticSceneCanvas{max-height:none!important;height:auto!important;overflow:hidden;aspect-ratio:1000/1340;isolation:isolate;background:#091a25!important}.staticSceneCanvas.staticScene-casa{aspect-ratio:1122/1402}.staticSceneCanvas>img{display:block;width:100%;height:100%;object-fit:fill;filter:brightness(var(--scene-brightness,1)) saturate(var(--scene-saturation,1));transition:filter 1.4s ease}.staticSceneCanvas::after,.sceneFrame::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;opacity:var(--scene-glow,0);background:linear-gradient(148deg,#9ed4f065 4%,#fff1c365 50%,#b6dcff30 100%);mix-blend-mode:screen;transition:opacity 1.4s ease}.staticSceneCanvas .timeWorldLighting{z-index:3}body[data-time-light=day] .staticSceneCanvas .timeWorldLighting{background:transparent}.sceneFrame>img,.locationsArtViewport>img{filter:brightness(var(--scene-brightness,1)) saturate(var(--scene-saturation,1));transition:filter 1.4s ease}.sceneFrame{isolation:isolate}.staticFindings{margin:16px 0;border:1px solid #9d856255;border-radius:13px;padding:15px;background:linear-gradient(140deg,#162e38,#0d2029)}.staticFindingsHead{display:flex;justify-content:space-between;align-items:center;gap:10px}.staticFindingsHead small{font-size:9px;letter-spacing:.13em;color:#c9b187;font-weight:700}.staticFindingsHead h3{font:normal 23px Georgia,serif;color:#f0d8ab;margin:6px 0}.staticFindingsHead>span{font:700 12px system-ui;color:#d4bc8d}.staticFindings>p{font:12px/1.6 system-ui;color:#c0ceca;margin:6px 0 12px}.staticFindingsGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.staticFinding{display:flex;align-items:center;gap:9px;text-align:left;min-width:0;padding:13px 10px;min-height:73px;border-radius:9px;background:#233c45;border:1px solid #7d756477;color:#f2e2c7;cursor:pointer}.staticFinding.isDocumented{opacity:.76;border-color:#5e847c}.staticFindingMark{font:24px Georgia,serif;color:#d6bb83;flex:none}.staticFinding strong{display:block;font-size:13px;line-height:1.25}.staticFinding small{display:block;color:#aec5c4;font:10px/1.4 system-ui;margin-top:4px}.staticCaseFooter{display:grid;gap:8px;margin-top:15px}.staticInspectBackdrop{position:fixed;inset:0;z-index:16000;display:grid;place-items:center;padding:12px;background:#020d16ed;backdrop-filter:blur(7px)}.staticInspectDialog{max-width:520px;width:100%;max-height:94dvh;overflow:auto;padding:18px;background:linear-gradient(150deg,#213842,#0d1f29);color:#eadbc3;border:1px solid #b69b6b;border-radius:15px}.staticInspectDialog header{display:flex;align-items:center;justify-content:space-between;gap:10px}.staticInspectDialog header small{font:700 9px system-ui;letter-spacing:.12em;color:#c5ae86}.staticInspectDialog header button{background:transparent;border:0;font:30px system-ui}.staticInspectDialog h3{font:normal 26px Georgia,serif;color:#f5dcb1;margin:12px 0}.staticCloseup{height:240px;background:#071b25;border-radius:10px;overflow:hidden;border:1px solid #6e766d}.staticCloseup svg{display:block;width:100%;height:100%}.staticInspectDialog p{font:13px/1.6 system-ui}.staticToolHint{color:#b6c8cb}.staticModalTools>small{display:block;color:#ead09a;font-size:11px;margin:12px 0 8px}.staticModalTools>div{display:flex;gap:7px;flex-wrap:wrap}.staticModalTools button{border:1px solid #847c64;border-radius:8px;background:#18313c;color:#e7d9bd;padding:9px 13px;font:700 12px system-ui}.staticModalTools button.isSelected{background:#bda475;color:#132a31;border-color:#e9d3a4}.staticApply{width:100%;padding:13px;background:#d2b683;color:#1d3036;border:0;border-radius:8px;font:750 14px system-ui;margin:14px 0 8px}.staticClose{display:block;margin:auto;border:0;background:transparent;color:#c5d3d0;padding:10px}.staticFrequency{display:block;font:13px system-ui}.staticFrequency input{display:block;width:100%;accent-color:#d5b47c;margin:14px 0}.staticFrequency span{display:block;text-align:center;font-size:10px;color:#b7c6c2}.genericStaticFindings{margin:10px 14px}.genericStaticFindings .staticFindingsHead h3{font-size:20px}@media(max-width:420px){.staticFindingsGrid{grid-template-columns:1fr}.staticInspectDialog{padding:14px}.staticCloseup{height:205px}}';
  css.textContent += '.staticScenePalette{margin:10px 0 13px;padding:13px;border:1px solid #9c8461a8;background:#132c36;border-radius:12px;color:#e8d1a8}.staticScenePalette strong{display:block;font:700 12px/1.5 system-ui;margin-bottom:10px}.staticScenePalette>div{display:flex;gap:9px;flex-wrap:wrap}.staticScenePalette button{flex:1;min-width:90px;border:1px solid #9b865f;border-radius:9px;background:#253f49;color:#f0ddbc;padding:12px 10px;font:700 13px system-ui;touch-action:manipulation}.staticScenePalette button.isSelected{background:#c5aa79;border-color:#e7cb91;color:#0c2631;box-shadow:inset 0 0 0 2px #f4ddaa}.staticPhotoTarget{position:absolute;display:block;border:0;padding:0;background:transparent!important;outline:0;z-index:7;cursor:crosshair;touch-action:manipulation;-webkit-tap-highlight-color:transparent}.staticPhotoTarget:focus-visible{outline:2px dashed #f0d498;outline-offset:0}.staticPhotoTarget:hover{box-shadow:inset 0 0 0 2px #b8d8df78;border-radius:5px}.staticSceneCanvas>img{pointer-events:none}.staticSceneCanvas{position:relative}.staticSceneCanvas .timeWorldLighting,.staticSceneCanvas .lakeLifeFx{pointer-events:none}';
+ css.textContent += '.sceneUndisclosed .hotspot{opacity:0!important;background:transparent!important;border:0!important;box-shadow:none!important;animation:none!important}.sceneUndisclosed .hotspot:focus-visible{opacity:1!important;outline:2px dashed #e7d2aa!important;outline-offset:1px}.sceneUndisclosed .hotspot.roleLocked{pointer-events:none}';
  document.head.append(css);
  render();
 })();

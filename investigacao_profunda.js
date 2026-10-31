@@ -92,10 +92,7 @@ function decorate(){
  button.setAttribute('aria-label','Abrir diário de investigação');
  button.innerHTML='✎ <span>Diário'+(shared()?' da equipe':'')+'</span>';
  app.appendChild(button);
- if(s.view==='scene'){
-  const canvas=app.querySelector('.landscapeCanvas');
-  if(canvas)canvas.insertAdjacentHTML('afterend',observationMarkup());
- }
+ // O jogador deve investigar os objetos em vez de receber dicas automáticas.
  if(journalOpen)app.insertAdjacentHTML('beforeend',diaryMarkup());
 }
 render=function(){priorRender();decorate();};

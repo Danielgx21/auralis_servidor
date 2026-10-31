@@ -62,6 +62,10 @@
  hub=function(){
   const template=document.createElement('template');template.innerHTML=originalHub();
   template.content.querySelectorAll('.lakeMissionStatus').forEach(x=>x.remove());
+  template.content.querySelectorAll('.locationCard .cardCount').forEach(el=>{
+   const found=parseInt(el.textContent,10)||0;
+   el.textContent=found?'Pistas registradas no dossiê':'Local para explorar';
+  });
   for(const el of [...template.content.querySelectorAll('[data-view="board"],[data-view="theory"]')]){
    const parent=el.closest('.partDivider');
    if(parent)parent.remove();else el.remove();
