@@ -49,7 +49,7 @@
  const originalHub=hub,originalDossier=dossier,originalConfrontation=confrontation,originalEnding=ending,originalCollection=collection;
  const originalRender=render;
  nav=function(){
-  const buttons=[['hub','♧','Mapa'],['dossier','⌕','Pistas'],['journal','✎','Diário'],['office','♜','Sede'],['bestiary','▤','Bestiário']];
+  const buttons=[['hub','♧','Mapa'],['dossier','⌕','Pistas'],['journal','✎','Diário'],['theory','◎','Objetivo'],['office','♜','Sede'],['bestiary','▤','Bestiário']];
   return '<nav class="bottomNav" aria-label="Menu do jogo">'+buttons.map(([id,ico,label])=>
    '<button class="navButton '+(s.view===id||id==='hub'&&s.view==='scene'?'active':'')+'" '+(id==='journal'?'data-deep-journal-open="1"':'data-view="'+id+'"')+'><span class="navGlyph">'+ico+'</span><span>'+label+'</span></button>').join('')+'</nav>';
  };
@@ -170,6 +170,7 @@
  },true);
  const css=document.createElement('style');
  css.textContent='.missionGoalCard,.missionGoalBlock{background:linear-gradient(145deg,#182e37,#10232c);border:1px solid #baa07888;border-radius:13px;padding:16px;margin:16px 0;color:#e9dbc4}.missionGoalCard h3{font:normal 26px Georgia,serif;color:#f1d7a9;margin:8px 0}.missionGoalCard p,.missionGoalBlock p{font:13px/1.7 system-ui;color:#d0d5d2}.missionGoalDivider{height:1px;background:#9b89647a;margin:14px 0}.missionGoalCard strong,.missionGoalBlock strong{color:#f3d6a4;display:block;font-size:14px}.missionGoalCard small,.missionGoalBlock small{display:block;color:#bdc8c4;font:12px system-ui;margin:12px 0}.missionGoalCard .btn{display:block;width:100%;margin:13px 0 0}.missionEvidenceGroup{border-top:1px solid #a5906b55;padding:17px 0}.missionEvidenceGroup .muted{color:#9baca8;font-size:12px}.missionIdentification{padding-bottom:55px}.missionIdentityForm{display:grid;gap:11px;margin:17px 0}.missionIdentityForm label{font:700 13px system-ui;color:#e9d4ad}.missionIdentityForm input{min-width:0;width:100%;box-sizing:border-box;padding:15px;border-radius:9px;border:1px solid #a8936f;background:#18333d;color:#f6e9d4;font:15px system-ui}.missionIdentityForm button{border-radius:9px;border:1px solid #d9bf91;background:#d4b987;color:#142b34;font:700 14px system-ui;padding:14px}.missionIdentityForm button:disabled{opacity:.45}.missionGoalPending{font:12px/1.6 system-ui;color:#d7c7a7}.missionIdentification>.btn,.missionEvidence>.btn{display:block;width:100%;margin:10px 0}';
+ css.textContent += '.bottomNav.manualBottomHome{grid-template-columns:repeat(7,minmax(0,1fr))!important}.bottomNav.manualBottomHome .navButton{font-size:clamp(7px,2.25vw,9px);padding:3px 0;gap:2px;letter-spacing:-.01em;line-height:1.25;overflow-wrap:anywhere}.bottomNav.manualBottomHome .navGlyph{font-size:19px;line-height:21px}@media(max-width:355px){.bottomNav.manualBottomHome .navButton{font-size:7.5px}.bottomNav.manualBottomHome .navGlyph{font-size:17px}}';
  document.head.append(css);
  render();
 })();

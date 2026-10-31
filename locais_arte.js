@@ -36,12 +36,13 @@
    return clone.outerHTML;
   }).join('');
  }
+ function environmentalInk(){return typeof window.manualSceneMarks==='function'?window.manualSceneMarks(s.caseId,s.activeScene):'';}
  function viewer(){
   const art=currentImage();if(!art)return '';
   return '<div class="locationsArtOverlay" data-locations-close-outer>'+
    '<section class="locationsArtDialog" role="dialog" aria-modal="true" aria-label="Ilustração do local">'+
    '<header><div><small>PRANCHA DE CAMPO · '+encode(CASES[s.caseId].number)+'</small><h2>'+encode(art.title)+'</h2></div><button type="button" data-locations-close aria-label="Fechar ampliação">×</button></header>'+
-   '<div class="locationsArtViewport"><div class="locationsArtZoomPlane" style="width:'+Math.round(zoomLevel*100)+'%"><img src="'+encode(art.src)+'" alt="Cenário ilustrado: '+encode(art.title)+'" draggable="false"/>'+visualTargets()+'</div></div>'+
+   '<div class="locationsArtViewport"><div class="locationsArtZoomPlane" style="width:'+Math.round(zoomLevel*100)+'%;--zoom-factor:'+zoomLevel+'"><img src="'+encode(art.src)+'" alt="Cenário ilustrado: '+encode(art.title)+'" draggable="false"/>'+environmentalInk()+visualTargets()+'</div></div>'+
    '<footer><button type="button" data-locations-zoom="-1" aria-label="Diminuir zoom">−</button><span>Ampliação: '+Math.round(zoomLevel*100)+'%</span><button type="button" data-locations-zoom="1" aria-label="Aumentar zoom">+</button></footer>'+
    '<p>Esta é a pintura do local, preservada. Arraste a imagem ampliada para observar cada canto.</p></section></div>';
  }

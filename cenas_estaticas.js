@@ -121,7 +121,7 @@
   const id=s.activeScene,im=IMAGES[id],loc=CASES.lago.scenes[id];
   if(!im||!loc)return originalScene();
   const canvas='<div class="landscapeCanvas staticSceneCanvas staticScene-'+id+'" aria-label="Pintura de '+escaped(loc.name)+'">'+
-   '<img src="'+im.src+'" alt="Cenário ilustrado de '+escaped(loc.name)+'" draggable="false" />'+photoHotspots(id)+'</div>';
+   '<img src="'+im.src+'" alt="Cenário ilustrado de '+escaped(loc.name)+'" draggable="false" />'+(typeof window.manualSceneMarks==='function'?window.manualSceneMarks(s.caseId,id):'')+photoHotspots(id)+'</div>';
   return '<section class="landscapePage staticScenePage"><button class="backBtn" data-view="hub">← Voltar aos locais</button>'+
    '<div class="eyebrow">ARQUIVO 001 · INVESTIGAÇÃO VISUAL</div><h2>'+escaped(loc.name)+'</h2>'+
    '<p>'+escaped(loc.intro)+'</p><p class="landscapeHelp">Escolha Observar, Lupa ou Pincel e toque nos próprios objetos da imagem. A pintura permanece intacta. Use a ampliação para procurar vestígios discretos.</p>'+
@@ -138,6 +138,7 @@
   const frame=tmpl.content.querySelector('.sceneFrame');
   if(!frame)return html;
   frame.classList.add('sceneUndisclosed');
+  if(typeof window.manualSceneMarks==='function')frame.insertAdjacentHTML('beforeend',window.manualSceneMarks(s.caseId,s.activeScene));
   for(const node of frame.querySelectorAll('.hotspot')){
    node.removeAttribute('title');
    if(node.matches('span.roleLocked'))node.setAttribute('aria-hidden','true');
