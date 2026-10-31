@@ -14,14 +14,14 @@ const live=()=>s.caseId==='lago'&&!s.outcome&&!s.timeFailed&&['hub','scene','wit
 const npc=n=>n>=1200||(n>=300&&n<540);
 const nextNpc=n=>npc(n)?0:n<300?300-n:1200-n;
 function condition(n){
- if(n>=0&&n<50)return {name:'A hora do chamado',kind:'alarm',desc:'O sino e as vozes parecem pertencer ao mesmo instante.'};
+ if(n>=0&&n<50)return {name:'Madrugada na represa',kind:'alarm',desc:'A névoa cobre a água. Sons distantes se misturam aos ruídos da estrutura; a origem não é evidente.'};
  if(n>=1380||n<300)return {name:'Névoa fechada',kind:'mist',desc:'A água escureceu e a visibilidade diminuiu.'};
  if(n>=1140)return {name:'Crepúsculo e chuva fina',kind:'rain',desc:'A madeira está úmida; as luzes da vila se apagam aos poucos.'};
  if(n>=300&&n<540)return {name:'Primeira luz',kind:'dawn',desc:'O vento leva os últimos ecos da margem.'};
  return {name:'Luz cinzenta',kind:'day',desc:'O movimento da vila disfarça os sons da represa.'};
 }
 function sceneText(n){const a=scenes[s.activeScene]||scenes.lago;return a[Math.floor((n+(s.activeScene==='capela'?16:s.activeScene==='casa'?7:0))/11)%a.length]}
-function shared(){return '<div class="lakeLifeTop"><span class="lakeLifeMark">◈ RELATÓRIO DE CAMPO · AO VIVO</span><strong data-lake-live-clock>--:--</strong></div><div class="lakeLifeForecast"><div><small>CONDIÇÕES</small><b data-lake-weather>Consultando o ambiente…</b></div><div><small>SINAIS DO AMBIENTE</small><b>Ouça e observe</b></div></div><p class="lakeLifeDescription" data-lake-description></p><div class="lakeLifeNpc"><span class="lakeLifeDot" aria-hidden="true"></span><div><b>Iria Vilar</b><small data-lake-npc>Verificando o paradeiro…</small></div></div>'}
+function shared(){return '<div class="lakeLifeTop"><span class="lakeLifeMark">◈ RELATÓRIO DE CAMPO · AO VIVO</span><strong data-lake-live-clock>--:--</strong></div><div class="lakeLifeForecast"><div><small>CONDIÇÕES</small><b data-lake-weather>Consultando o ambiente…</b></div><div><small>SINAIS DO AMBIENTE</small><b>Ouça e observe</b></div></div><p class="lakeLifeDescription" data-lake-description></p>'+(s.view==='witness'?'':'<div class="lakeLifeNpc"><span class="lakeLifeDot" aria-hidden="true"></span><div><b>Iria Vilar</b><small data-lake-npc>Verificando o paradeiro…</small></div></div>')}
 function create(){
  if(!live()||app.querySelector('.lakeLife'))return;
  const main=app.querySelector('main');if(!main)return;
