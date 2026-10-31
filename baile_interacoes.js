@@ -62,9 +62,9 @@
   const sceneId=s.activeScene,loc=C.scenes[sceneId];
   if(!loc)return priorScene();
   if(!accessible(sceneId))return '<section class="section"><button class="backBtn" data-view="hub">← Voltar aos locais</button><h2>Área reservada</h2><p>Esta área exige um '+html(roleNames[C.v2Locations[sceneId]?.role]||'pesquisador')+'. Os resultados ficam disponíveis para toda a equipe.</p></section>';
-  return '<section class="section baileScenePage"><button class="backBtn" data-view="hub">← Voltar aos locais</button>'+
-   '<div class="eyebrow">ARQUIVO 002 · INVESTIGAÇÃO</div><h2>'+html(loc.name)+'</h2><p>'+html(loc.intro)+'</p>'+
-   palette()+'<div class="v2SceneFrame bailePainting"><img src="'+loc.image+'" draggable="false" alt="Pintura do local: '+html(loc.name)+'" />'+hotspots(sceneId)+'</div>'+
+  return '<section class="section baileScenePage"><div class="sceneIntro"><button class="backBtn" data-view="hub">← Voltar aos locais</button>'+
+   '<div class="eyebrow">ARQUIVO 002 · INVESTIGAÇÃO</div><h2>'+html(loc.name)+'</h2><p>'+html(loc.intro)+'</p></div>'+
+   palette()+'<div class="sceneFrame v2SceneFrame bailePainting"><img src="'+loc.image+'" draggable="false" alt="Pintura do local: '+html(loc.name)+'" />'+hotspots(sceneId)+'</div>'+
    '<p class="baileSceneInstruction">Observe a imagem e use “Ver arte do local” para ampliar. Algumas inscrições podem ser lidas diretamente. Os objetos não são arrastados.</p>'+
    '<div class="baileFoot"><button type="button" data-view="dossier">Consultar pistas coletadas</button><button type="button" data-view="hub">Outros locais</button></div>'+
    detailDialog()+'</section>';
