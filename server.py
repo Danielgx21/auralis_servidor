@@ -271,14 +271,14 @@ async def mutate(state,slot,m):
             else:
                 state['votes']['next']={};state['round']['next']+=1
     elif op=='investigation':
-        if state['phase']!='case' or case!='lago':return None
+        if state['phase']!='case':return None
         if len(LIVE.get(code,{}))!=state['size']:return None
         inv=state['team'].setdefault('investigation',{'notes':[],'connections':[]})
         kind=m.get('kind')
         if kind=='note':
-            body=str(m.get('text') or '').strip()[:250]
+            body=str(m.get('text') or '').strip()[:900]
             if len(body)<5:return None
-            inv['notes']=(inv['notes']+[{'text':body,'by':player['name']}])[-30:]
+            inv['notes']=(inv['notes']+[{'text':body,'by':player['name']}])[-100:]
         elif kind=='connection':
             a,b=str(m.get('a','')),str(m.get('b',''))
             if a==b or a not in META[case]['clues'] or b not in META[case]['clues']:return None
@@ -401,7 +401,7 @@ app.router.add_get('/',index)
 app.router.add_get('/index.html',index)
 app.router.add_get('/versao-unica',standalone)
 app.router.add_static('/assets',BASE/'assets')
-for filename in ('style.css','cases.js','extra_cases.js','gear.js','investigation.js','expansion.js','game.js','campaign.js','music.js','tutorial.js','lago_rework.js','lago_scenery.js','lago_visual_refino.js','lago_visual_refino.css','immersion.js','immersion.css','tempo_imersao.js','lago_quadro_coletivo.js','lago_quadro_coletivo.css','lago_vivo_v11.js','lago_vivo_v11.css','casa_arte_integrada.js','investigacao_profunda.js','guia_dados.js','guia_livro.js','guia_livro.css','imersao_cinematica.js','locais_arte.js','cenas_estaticas.js'):
+for filename in ('style.css','cases.js','extra_cases.js','gear.js','investigation.js','expansion.js','game.js','campaign.js','music.js','tutorial.js','lago_rework.js','lago_scenery.js','lago_visual_refino.js','lago_visual_refino.css','immersion.js','immersion.css','tempo_imersao.js','lago_quadro_coletivo.js','lago_quadro_coletivo.css','lago_vivo_v11.js','lago_vivo_v11.css','casa_arte_integrada.js','investigacao_profunda.js','guia_dados.js','guia_livro.js','guia_livro.css','imersao_cinematica.js','locais_arte.js','cenas_estaticas.js','objetivos_missao.js'):
     app.router.add_get('/'+filename, lambda req, filename=filename:web.FileResponse(BASE/filename, headers={'Cache-Control':'no-store, max-age=0'}))
 
 if __name__=='__main__':

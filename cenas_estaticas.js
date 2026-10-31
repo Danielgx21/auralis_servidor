@@ -138,7 +138,7 @@
    '<p>'+escaped(loc.intro)+'</p><p class="landscapeHelp">Escolha Observar, Lupa ou Pincel e toque nos próprios objetos da imagem. A pintura permanece intacta; use a ampliação para detalhes menores.</p>'+
    paletteMarkup()+canvas+sceneList()+
    '<div class="staticCaseFooter"><button type="button" class="btn outline" data-view="dossier">Ver dossiê ('+s.evidence.length+'/9)</button>'+
-   '<button type="button" class="btn" data-view="board">Quadro de provas →</button></div>'+detailDialog()+'</section>';
+   '<button type="button" class="btn" data-view="theory">Ver objetivo da missão →</button></div>'+detailDialog()+'</section>';
  }
  scene=function(){
   if(s.caseId==='lago')return staticScene();

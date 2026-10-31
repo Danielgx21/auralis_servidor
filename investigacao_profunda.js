@@ -39,10 +39,10 @@ let sharedNotes=[];
 const priorBestiary=bestiary;
 const priorRender=render;
 const priorApply=typeof applyCampaign==='function'?applyCampaign:null;
-const active=()=>s.caseId==='lago';
+const active=()=>!!CASES[s.caseId];
 const shared=()=>active()&&net.inGame&&net.mode==='coop';
 const encode=t=>esc(String(t??''));
-const localEntries=()=>{if(!Array.isArray(s.lakeIdeas))s.lakeIdeas=[];return s.lakeIdeas;};
+const localEntries=()=>{if(!Array.isArray(s.journalNotes))s.journalNotes=Array.isArray(s.lakeIdeas)?s.lakeIdeas:[];return s.journalNotes;};
 const noteEntries=()=>shared()?sharedNotes:localEntries();
 const bodyText=note=>{
  const raw=String(note.text||'');
@@ -62,7 +62,7 @@ function diaryMarkup(){
  const rows=noteEntries().slice().reverse();
  return '<div class="deepJournalOverlay" data-deep-journal-overlay>'+
  '<section class="deepJournal" role="dialog" aria-modal="true" aria-label="Diário da investigação">'+
- '<header><div><div class="eyebrow">ARQUIVO 001 · '+(shared()?'REGISTRO DA EQUIPE':'REGISTRO PESSOAL')+'</div><h2>Diário de investigação</h2></div><button type="button" class="deepJournalClose" data-deep-journal-close aria-label="Fechar diário">×</button></header>'+
+ '<header><div><div class="eyebrow">ARQUIVO '+encode(CASES[s.caseId]?.number||'')+' · '+(shared()?'REGISTRO DA EQUIPE':'REGISTRO PESSOAL')+'</div><h2>Diário de investigação</h2></div><button type="button" class="deepJournalClose" data-deep-journal-close aria-label="Fechar diário">×</button></header>'+
  '<p>O jogo não destaca detalhes importantes nem escreve interpretações. Anote o que chamou sua atenção, mesmo que seja apenas uma suspeita.</p>'+
  (shared()?'<div class="deepTeamStatus">Todos os integrantes desta expedição podem ler e escrever. O registro fica salvo na sala.</div>':'')+
  '<div class="deepJournalEntries">'+(rows.length?rows.map(x=>{
@@ -71,7 +71,7 @@ function diaryMarkup(){
  }).join(''):'<p class="deepEmpty">O caderno está em branco. Nenhuma pista será anotada automaticamente.</p>')+'</div>'+
  '<form data-deep-journal-form><label for="deepJournalCategory">Tipo de anotação</label>'+
  '<select id="deepJournalCategory" name="type">'+journalTypes.map(t=>'<option value="'+encode(t)+'" '+(journalType===t?'selected':'')+'>'+encode(t)+'</option>').join('')+'</select>'+
- '<label for="deepJournalBody">Escreva com suas palavras</label><textarea id="deepJournalBody" name="body" maxlength="220" rows="4" placeholder="O que você notou? O que ainda não se explica?">'+encode(journalDraft)+'</textarea>'+
+ '<label for="deepJournalBody">Escreva com suas palavras</label><textarea id="deepJournalBody" name="body" maxlength="800" rows="6" placeholder="O que você notou? O que ainda não se explica?">'+encode(journalDraft)+'</textarea>'+
  '<button type="submit" '+(shared()&&net.paused?'disabled':'')+'>Salvar no diário</button></form>'+
  '</section></div>';
 }
@@ -100,9 +100,7 @@ function decorate(){
 }
 render=function(){priorRender();decorate();};
 if(priorApply)applyCampaign=function(state,initial){
- if(state?.team?.investigation&&state.caseId==='lago'){
-  sharedNotes=Array.isArray(state.team.investigation.notes)?state.team.investigation.notes:[];
- }
+ sharedNotes=Array.isArray(state?.team?.investigation?.notes)?state.team.investigation.notes:[];
  return priorApply(state,initial);
 };
 bestiary=function(){
@@ -141,7 +139,7 @@ document.addEventListener('submit',event=>{
  event.preventDefault();event.stopImmediatePropagation();
  if(shared()&&net.paused)return toast('Diário disponível para leitura. A edição será liberada quando a equipe se reconectar.');
  const form=new FormData(event.target);
- const text=String(form.get('body')||'').trim().slice(0,220);
+ const text=String(form.get('body')||'').trim().slice(0,800);
  const type=String(form.get('type')||'Observação');
  if(text.length<3)return toast('Escreva sua observação antes de salvar.');
  const category=journalTypes.includes(type)?type:'Observação';
@@ -152,7 +150,8 @@ document.addEventListener('submit',event=>{
   campaignPush({op:'investigation',kind:'note',text:entry});return;
  }
  localEntries().push({text:entry,by:'Você'});
- s.lakeIdeas=s.lakeIdeas.slice(-30);
+ s.journalNotes=s.journalNotes.slice(-100);
+ if(s.caseId==='lago')s.lakeIdeas=s.journalNotes;
  persist(false);render();
 },true);
 document.addEventListener('keydown',event=>{

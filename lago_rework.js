@@ -340,9 +340,6 @@ app.addEventListener('click',function(ev){
  if(object||tool){ev.preventDefault();ev.stopImmediatePropagation();return;}
  const a=ev.target.closest('[data-lake-deduction]');
  if(a){ev.preventDefault();ev.stopImmediatePropagation();answerDeduction(Number(a.dataset.lakeDeduction),Number(a.dataset.lakeChoice));return;}
- if(ev.target.closest('[data-action="confirm"]')&&deductions().length<QUESTIONS.length){
-  ev.preventDefault();ev.stopImmediatePropagation();toast('Conclua as três deduções no quadro antes de confirmar uma teoria.');
- }
 },true);
 app.addEventListener('change',function(ev){
  if(!ready()||ev.target?.id!=='lakeFrequency')return;
