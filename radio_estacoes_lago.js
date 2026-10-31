@@ -5,7 +5,7 @@
 (function(){
  const channels=[
   {n:4,name:'Um boletim distante atravessa o chiado.',kind:'speech',tone:210,band:1050,pulse:3.9,noise:.05},
-  {n:9,name:'Ouve-se um trecho de música e outra estação se sobrepõe.',kind:'music',tone:330,band:1350,pulse:5.2,noise:.04},
+  {n:9,name:'Um sinal musical curto aparece entre o chiado.',kind:'music',tone:330,band:1350,pulse:5.2,noise:.04},
   {n:13,name:'Uma sequência curta de bipes aparece e desaparece.',kind:'morse',tone:690,band:1700,pulse:8,noise:.045},
   {n:17,name:'Vozes entrecortadas parecem pronunciar nomes.',kind:'message',tone:145,band:930,pulse:4.6,noise:.05},
   {n:23,name:'Um aviso de serviço surge por instantes e se perde.',kind:'speech',tone:260,band:750,pulse:3.4,noise:.06},
@@ -67,6 +67,21 @@
   a.wobble.frequency.setTargetAtTime(ch?ch.pulse:2.3+n*.13,t,.035);
   a.mod.gain.setTargetAtTime(ch?(ch.kind==='speech'||ch.kind==='message'?.027:.006):.001,t,.055);
  }
+ function metallicKnock(){
+  if(!audio)return;
+  try{
+   const a=audio,ctx=a.ctx,t=ctx.currentTime;
+   const osc=ctx.createOscillator(),gain=ctx.createGain();
+   osc.type='triangle';
+   osc.frequency.setValueAtTime(790,t);
+   osc.frequency.exponentialRampToValueAtTime(260,t+.42);
+   gain.gain.setValueAtTime(.0001,t);
+   gain.gain.exponentialRampToValueAtTime(.09,t+.015);
+   gain.gain.exponentialRampToValueAtTime(.0001,t+.50);
+   osc.connect(gain);gain.connect(a.master);
+   osc.start(t);osc.stop(t+.52);
+  }catch(e){}
+ }
  function speakStation(n){
   const channel=nearest(n);
   if(!channel||s.caseId!=='lago'||s.activeScene!=='casa')return;
@@ -76,9 +91,9 @@
   lastSpeechKey=channel.n;lastSpeechAt=now;
   const scripts={
    4:'Boletim da madrugada. Temperatura em queda na região da serra.',
-   9:'Estação musical. A programação continua após o sinal.',
+   9:'Estação musical... sinal interrompido.',
    13:'Sinal. Sinal. Transmissão de teste.',
-   17:'Marina... Paulo... Elisa... Dário... Voltem ao lugar dos nomes.',
+   17:'Marina... Paulo... Elisa... Dário...',
    23:'Atenção, equipe de manutenção. Mensagem interrompida.',
    28:'Portadora ativa. Sem identificação de emissora.'
   };
@@ -119,6 +134,7 @@
   const n=valueOf(t.value);
   if(n!==lastFreq)tune(n);
   speakStation(n);
+  if(n===17)metallicKnock();
  },true);
  document.addEventListener('keydown',event=>{if(event.key==='Escape')stop()},true);
  document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()},true);

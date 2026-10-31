@@ -53,13 +53,13 @@
   const chronology='<section class="lagoChronology"><div class="eyebrow">LINHA DO TEMPO</div>'+
    '<h3>Reconstituir os acontecimentos</h3>'+
    (s.puzzleSolved?
-    '<div class="notice"><b>✓ Horários conferidos.</b> O registro das bombas, a transmissão e a vibração ocorreram em momentos diferentes. Compare as possíveis causas no diário.</div>':
+    '<div class="notice"><b>✓ Horários conferidos.</b> A convocação ocorreu antes da abertura do relé. O áudio da extensão C-0 e o som metálico foram registrados mais tarde. Compare as possíveis causas no diário.</div>':
     ready?
-    '<p>Você encontrou três registros datados. Consulte as fontes e informe os horários que constam em cada uma.</p>'+
+    '<p>Você encontrou registros com horários e examinou o sino. Consulte os documentos para identificar quando cada evento foi registrado.</p>'+
     '<form data-lago-chronology>'+
     '<label>Registro de intervenção no relé <input name="relay" inputmode="numeric" type="text" maxlength="5" placeholder="hh:mm" required /></label>'+
     '<label>Registro da transmissão <input name="call" inputmode="numeric" type="text" maxlength="5" placeholder="hh:mm" required /></label>'+
-    '<label>Registro de vibração <input name="bell" inputmode="numeric" type="text" maxlength="5" placeholder="hh:mm" required /></label>'+
+    '<label>Som metálico captado pelo microfone <input name="bell" inputmode="numeric" type="text" maxlength="5" placeholder="hh:mm" required /></label>'+
     '<button type="submit">Conferir os horários</button></form>':
     '<p>Procure documentos com horários verificáveis. Quando houver fontes suficientes, será possível organizar uma cronologia.</p>')+
    '</section>';
@@ -85,7 +85,7 @@
   if(s.puzzleSolved)return;
   const f=new FormData(event.target);
   const result=[normalizeTime(f.get('relay')),normalizeTime(f.get('call')),normalizeTime(f.get('bell'))];
-  if(result.join('|')!=='23:52|00:17|00:19')return toast('Os horários não coincidem. Compare novamente os três documentos.');
+  if(result.join('|')!=='23:52|00:17|00:19')return toast('Os horários não coincidem com os registros. Releia o histórico da central e a bobina da bomba.');
   s.puzzleSolved=true;persist();render();
   toast('Horários conferidos. Compare as fontes e registre suas conclusões no diário.');
  },true);

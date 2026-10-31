@@ -22,11 +22,11 @@
   keypiece:['Peça metálica','Uma pequena peça metálica aparece entre as tábuas, perto do caixote.','inspect',null,[622,900,227,185]],
   lantern:['Lanterna esquecida','Há pequenas gotas atrás do vidro. A superfície externa, porém, parece seca.','glass','lanterna',[65,145,160,230]],
   curtain:['Tecido da janela','O padrão do tecido oculta parcialmente a região onde a luz se reflete. Observe as dobras e os reflexos.','inspect',null,[293,148,175,610]],
-  mirror:['Reflexo do espelho','Há uma discrepância entre o que deveria aparecer no vidro e as marcas registradas.','glass','espelho',[130,192,300,492]],
+  mirror:['Espelho empoeirado','Há riscos finos no vidro e uma marca sobre a poeira. Observe a superfície com a lupa.','glass','espelho',[130,192,300,492]],
   drawer:['Gaveta do barqueiro','Os papéis e a madeira deixam vestígios nas bordas da gaveta; alguns registros podem ser identificados daqui.','inspect',null,[565,748,346,240]],
   papers:['Documentos da gaveta','As datas e anotações do registro podem ser lidas ao ampliar cuidadosamente esta região.','inspect','registro',[580,745,335,230]],
-  radio:['Rádio antigo','O mostrador percorre frequências de 00 a 30. O depoimento pode sugerir qual registrar.','tune','radio',[695,555,295,235]],
-  cloth:['Tecido do sino','A posição do tecido permite examinar suas fibras e a parte visível do bronze sem tocá-los.','inspect',null,[206,38,220,525]],
+  radio:['Rádio antigo','O aparelho possui um seletor de sintonia. Gire o controle para ouvir o que chega pelo alto-falante. O rádio não possui relógio nem registrador de horários.','tune','radio',[695,555,295,235]],
+  cloth:['Tecido junto ao sino','O pano cobre parte do bronze. Suas dobras estão manchadas de umidade.','inspect',null,[206,38,220,525]],
   bell:['Bronze do sino','Há riscos no metal que não parecem resultar apenas do uso normal.','glass','sino',[74,92,270,340]],
   stone:['Pedra inscrita','Parte da superfície está coberta de sujeira. É possível estudar o contorno dos símbolos.','brush','inscricao',[270,740,345,375]],
   chest:['Baú da capela','Uma fechadura antiga impede a leitura dos documentos. Procure uma chave compatível entre os indícios.','key','manuscrito',[665,735,334,295]]
@@ -37,7 +37,7 @@
   capela:['cloth','stone','chest','bell']
  };
  const PREREQ={ribbon:'reeds',footprints:'crate',keypiece:'crate',mirror:'curtain',papers:'drawer',bell:'cloth'};
- const CHOICE_LABEL={inspect:'Observação',glass:'Lupa',brush:'Pincel',key:'Chave',tune:'Frequência'};
+ const CHOICE_LABEL={inspect:'Observação',glass:'Lupa',brush:'Pincel',key:'Chave',tune:'Sintonia'};
  // Alvos transparentes usam os objetos que já estão fotografados.
  const HITBOXES={
   lago:{reeds:[790,665,205,525],crate:[2,675,340,260],lantern:[15,80,180,300],
@@ -93,7 +93,7 @@
  }
  function toolButtons(id){
   const need=DESCRIPTIONS[id][2];
-  if(need==='tune')return '<label class="staticFrequency">Frequência do rádio <b data-static-frequency>'+String(s.lagoRadioFreq||0).padStart(2,'0')+'</b>'+
+  if(need==='tune')return '<label class="staticFrequency">Posição do seletor <b data-static-frequency>'+String(s.lagoRadioFreq||0).padStart(2,'0')+'</b>'+
    '<input type="range" min="0" max="30" step="1" value="'+Number(s.lagoRadioFreq||0)+'" data-static-tuner />'+
    '<span>00 ··············· 15 ··············· 30</span></label>';
   const options=[['inspect','◉','Observar'],['glass','⌕','Lupa'],['brush','╱','Pincel'],...(s.lagoKey?[['key','⚿','Chave']]:[])];

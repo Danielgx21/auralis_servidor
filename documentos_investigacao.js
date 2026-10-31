@@ -174,25 +174,21 @@
   if(!s.modal)return '';
   const e=CASES[s.caseId]?.clues?.[s.modal];
   if(!e)return originalModal();
-  const doc=paperFor(s.modal,e),questions=questionFor(s.modal,e);
+  const doc=paperFor(s.modal,e),questions=s.caseId==='lago'?[]:questionFor(s.modal,e);
   return '<div class="modalLayer" data-dismiss="1"><div class="modalPanel" role="dialog" aria-modal="true" aria-label="Pista: '+encode(e.name)+'">'+
    '<button class="modalClose" data-action="close" aria-label="Fechar">×</button>'+
    '<div class="modalIndex">ARQUIVO '+encode(CASES[s.caseId].number)+' · MATERIAL COLETADO</div>'+
    '<h2>'+encode(e.name)+'</h2>'+
    (doc?pageMarkup(doc):'<section class="fieldObservation"><div class="fieldObsLabel">OBSERVAÇÃO DO LOCAL</div><p>'+encode(e.detail)+'</p></section>')+
-   '<section class="fieldReasoning"><div class="fieldObsLabel">PERGUNTAS PARA INVESTIGAR</div><p>O registro não determina uma conclusão. Considere versões diferentes:</p>'+
-   '<ul>'+questions.map(q=>'<li>'+encode(q)+'</li>').join('')+'</ul></section>'+
+   (questions.length?'<section class="fieldReasoning"><div class="fieldObsLabel">PERGUNTAS PARA INVESTIGAR</div><p>O registro não determina uma conclusão. Considere versões diferentes:</p>'+
+   '<ul>'+questions.map(q=>'<li>'+encode(q)+'</li>').join('')+'</ul></section>':'')+
    '<button type="button" class="btn outline" data-deep-journal-open="1">✎ Anotar no diário</button>'+
    '<button class="btn" data-action="close">Voltar à investigação</button></div></div>';
  };
  // Fragmentos visuais sem toque. São marcas discretas existentes na superfície,
  // não botões, não revelam respostas e não contam como pistas coletadas.
  const MARKS={
-  lago:{
-   lago:[{x:15,y:71,t:'B–17',rot:-9,type:'chalk'}],
-   casa:[{x:78,y:46,t:'00·17',rot:1,type:'metal'}],
-   capela:[{x:40,y:78,t:'VII',rot:-5,type:'stone'}]
-  },
+  lago:{}, // O cenário só exibe marcas que façam parte da própria pintura.
   baile:{portao:[{x:29,y:56,t:'VII',rot:-11,type:'paper'}]},
   vampiro:{biblioteca:[{x:48,y:53,t:'IV',rot:-5,type:'paper'}]},
   lobo:{aldeia:[{x:30,y:71,t:'RECOMPENSA',rot:-7,type:'paper'}]},
