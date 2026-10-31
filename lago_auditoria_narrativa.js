@@ -90,13 +90,11 @@
    ]
   },
   v2_a_2:{
-   type:'Histórico eletrônico',title:'Eventos da central de controle',origin:'Centro de Controle · sistema CEAS',date:'31 de outubro',
+   type:'Histórico eletrônico',title:'Histórico de áudio da central',origin:'Centro de Controle · sistema CEAS',date:'31 de outubro',
    lines:[
-    '30/10, 23h40 — Central administrativa envia aviso de inspeção da bomba 4 aos quatro técnicos.',
-    '30/10, 23h52 — O painel registra abertura do relé de comando da bomba 4.',
-    '31/10, 00h17 — O sistema registra um sinal de áudio na extensão telefônica C-0. A planta indica que a extensão foi desativada em 1989. No áudio, uma voz pronuncia quatro nomes; o restante é encoberto por ruído.',
+    '31/10, 00h17 — O sistema de comunicações registra um sinal de áudio na extensão telefônica C-0. A planta indica que a extensão foi desativada em 1989. No áudio, uma voz pronuncia quatro nomes; o restante é encoberto por ruído.',
     '31/10, 00h19 — Um microfone de segurança próximo à capela capta um impacto metálico. O registro não identifica a origem do som.',
-    'A central registra horários automaticamente. Os registros não demonstram por si sós quem provocou cada evento.'
+    'Este extrato contém apenas eventos de áudio. Para comparar com a convocação e a bomba 4, consulte a escala de plantão e o registrador do relé.'
    ]
   },
   v2_a_3:{

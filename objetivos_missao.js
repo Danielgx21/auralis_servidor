@@ -22,7 +22,7 @@
   bolsonaros:{title:'Reconstruir o retorno da dinastia de Cinzavila',description:'Compare a ata da antiga revolta com o juramento que voltou a circular.',clues:['ata','juramento']}
  };
  const ALIASES={
-  lago:['velaria','guardia das aguas'],
+  lago:['velaria','a velaria','velaria da nascente'],
   baile:['anfitriao prismatico'],
   vampiro:['vampiro juramentado'],
   lobo:['guardiao licantropo'],
@@ -97,6 +97,9 @@
   return received.length>=4&&variants.some(x=>received===x);
  }
  theories=function(){
+  // Um empate no voto cooperativo reinicia a rodada. Se a votação foi zerada,
+  // não mantenha o relatório desabilitado para sempre.
+  if(net.inGame&&net.mode==='coop'&&s.reportSubmitted&&!s.theory&&!net.theoryVotes?.[net.playerId])s.reportSubmitted=false;
   const r=rule(),need=Math.max(0,requiredClues()-s.evidence.length);
   const result=s.reportSubmitted?'Sua identificação foi encaminhada aos integrantes da expedição. A confirmação depende das respostas do grupo.':'';
   return '<section class="section missionIdentification"><button class="backBtn" data-view="hub">← Voltar aos locais</button>'+

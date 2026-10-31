@@ -49,14 +49,15 @@
  theories=function(){
   if(!first())return previousTheories();
   const source=previousTheories();
-  const ready=['v2_b_2','v2_a_2','sino'].every(has);
+  const ready=['v2_a_1','v2_b_2','v2_a_2'].every(has);
   const chronology='<section class="lagoChronology"><div class="eyebrow">LINHA DO TEMPO</div>'+
    '<h3>Reconstituir os acontecimentos</h3>'+
    (s.puzzleSolved?
     '<div class="notice"><b>✓ Horários conferidos.</b> A convocação ocorreu antes da abertura do relé. O áudio da extensão C-0 e o som metálico foram registrados mais tarde. Compare as possíveis causas no diário.</div>':
     ready?
-    '<p>Você encontrou registros com horários e examinou o sino. Consulte os documentos para identificar quando cada evento foi registrado.</p>'+
+    '<p>Compare três fontes: a escala de plantão, a bobina da bomba e o extrato de áudio. Preencha o horário registrado para cada acontecimento.</p>'+
     '<form data-lago-chronology>'+
+    '<label>Convocação dos técnicos <input name="convocation" inputmode="numeric" type="text" maxlength="5" placeholder="hh:mm" required /></label>'+ 
     '<label>Registro de intervenção no relé <input name="relay" inputmode="numeric" type="text" maxlength="5" placeholder="hh:mm" required /></label>'+
     '<label>Registro da transmissão <input name="call" inputmode="numeric" type="text" maxlength="5" placeholder="hh:mm" required /></label>'+
     '<label>Som metálico captado pelo microfone <input name="bell" inputmode="numeric" type="text" maxlength="5" placeholder="hh:mm" required /></label>'+
@@ -81,11 +82,11 @@
   if(!first()||!event.target.matches('[data-lago-chronology]'))return;
   event.preventDefault();event.stopImmediatePropagation();
   if(net.inGame&&net.paused)return toast('Aguarde a reconexão da equipe.');
-  if(!['v2_b_2','v2_a_2','sino'].every(has))return toast('Ainda faltam os três registros da madrugada.');
+  if(!['v2_a_1','v2_b_2','v2_a_2'].every(has))return toast('Compare a escala de plantão, a bobina da bomba e o extrato de áudio antes de responder.');
   if(s.puzzleSolved)return;
   const f=new FormData(event.target);
-  const result=[normalizeTime(f.get('relay')),normalizeTime(f.get('call')),normalizeTime(f.get('bell'))];
-  if(result.join('|')!=='23:52|00:17|00:19')return toast('Os horários não coincidem com os registros. Releia o histórico da central e a bobina da bomba.');
+  const result=[normalizeTime(f.get('convocation')),normalizeTime(f.get('relay')),normalizeTime(f.get('call')),normalizeTime(f.get('bell'))];
+  if(result.join('|')!=='23:40|23:52|00:17|00:19')return toast('Há um horário incorreto. Compare a escala de plantão, o relé e o extrato de áudio.');
   s.puzzleSolved=true;persist();render();
   toast('Horários conferidos. Compare as fontes e registre suas conclusões no diário.');
  },true);
