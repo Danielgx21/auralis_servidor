@@ -80,12 +80,15 @@
   if(!allowed(gate.role,s.activeScene))return '<section class="section"><button class="backBtn" data-view="hub">← Voltar</button><h2>Acesso restrito</h2><p>Esta área é responsabilidade do '+h(ownerDescription(gate.role,s.activeScene))+'. O restante da equipe recebe os resultados compartilhados.</p></section>';
   const buttons=sceneObj.items.map(id=>{
    const clue=CASES[s.caseId].clues[id],done=s.evidence.includes(id);
-   return '<button type="button" class="v2InvisibleHotspot" aria-label="Examinar elemento do cenário" data-v2-clue="'+h(id)+'" style="left:'+(clue.x-8)+'%;top:'+(clue.y-11)+'%;width:16%;height:22%" '+(done?'data-revisited="1"':'')+'></button>';
+   const hitW=clue.hitW||16,hitH=clue.hitH||22;
+   const left=Math.max(0,Math.min(100-hitW,clue.x-hitW/2));
+   const top=Math.max(0,Math.min(100-hitH,clue.y-hitH/2));
+   return '<button type="button" class="v2InvisibleHotspot" aria-label="Examinar elemento do cenário" data-v2-clue="'+h(id)+'" style="left:'+left+'%;top:'+top+'%;width:'+hitW+'%;height:'+hitH+'%" '+(done?'data-revisited="1"':'')+'></button>';
   }).join('');
   return '<section class="section v2ScenePage"><div class="sceneIntro"><button class="backBtn" data-view="hub">← Voltar aos locais</button>'+
    '<div class="eyebrow">ARQUIVO '+h(CASES[s.caseId].number)+' · ÁREA DE '+h(ROLE_NAMES[gate.role]||'PESQUISA')+'</div>'+
    '<h2>'+h(sceneObj.name)+'</h2><p>'+h(sceneObj.intro)+'</p></div>'+
-   '<div class="sceneFrame v2SceneFrame"><img src="'+sceneObj.image+'" alt="Ilustração do local: '+h(sceneObj.name)+'" draggable="false"/>'+buttons+'</div>'+
+   '<div class="sceneFrame v2SceneFrame '+(sceneObj.artMode==='pintura-integrada'?'lagoHdScene':'')+'"><img src="'+sceneObj.image+'" alt="Ilustração do local: '+h(sceneObj.name)+'" draggable="false"/>'+buttons+'</div>'+
    '<p class="v2SceneHint">Observe a imagem ou amplie para examinar os detalhes. Os objetos não se movem. Compare os registros no diário.</p>'+
    '<div class="sceneFoot"><button type="button" class="smallBtn" data-view="dossier">Consultar pistas coletadas</button><button type="button" class="smallBtn" data-view="hub">Outros locais →</button></div></section>';
  }
