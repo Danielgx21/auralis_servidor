@@ -5,6 +5,8 @@
 (function(){
   if(typeof CASES==='undefined'||!CASES.lago||!CASES.lago.scenes)return;
   const C=CASES.lago,root='assets/manual_arquivo001/';
+  // Iria é a testemunha principal; usa a mesma linha visual dos demais retratos.
+  if(C.witness) C.witness.image=root+'iria.webp';
   const scenes={
     v2_a:'centro_controle.webp',
     v2_b:'galeria_bombas.webp',
