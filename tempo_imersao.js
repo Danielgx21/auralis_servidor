@@ -61,8 +61,10 @@ function night(){let t=min();return t<6*60||t>=19*60}
 function formatTime(){let m=min();return pad(Math.floor(m/60))+':'+pad(m%60)}
 function formatLeft(){let left=Math.max(0,(runtime.cloud?.durationMs&&net.inGame?runtime.cloud.durationMs:limit(s.caseId))-ms());return pad(Math.floor(left/60000))+':'+pad(Math.floor(left/1000)%60)}
 function isWaiting(){return net.inGame&&(net.paused||runtime.cloud&&!runtime.cloud.running)}
-function witnessWindows(){return (typeof window.manualWitnessWindows==='function'?window.manualWitnessWindows(s.caseId,s.activeWitness):null)||WINDOWS[s.caseId]||[[8*60,17*60]]}
-function presence(){return witnessWindows().some(w=>min()>=w[0]&&min()<w[1])}
+function witnessWindowsFor(caseId,witnessId){return (typeof window.manualWitnessWindows==='function'?window.manualWitnessWindows(caseId,witnessId):null)||WINDOWS[caseId]||[[8*60,17*60]]}
+window.manualWitnessWindowsFor=witnessWindowsFor;
+function witnessWindows(){return witnessWindowsFor(s.caseId,s.activeWitness)}
+function presence(){const t=min();return witnessWindows().some(([start,end])=>start<end?t>=start&&t<end:t>=start||t<end)}
 // A mesma disponibilidade rege diálogos normais e perguntas por evidências.
 window.manualWitnessPresent=presence;
 function hours(){return witnessWindows().map(w=>pad(Math.floor(w[0]/60))+':'+pad(w[0]%60)+'–'+pad(Math.floor(w[1]/60))+':'+pad(w[1]%60)).join(' / ')}
