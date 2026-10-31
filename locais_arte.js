@@ -25,12 +25,23 @@
    'assets/casa_aprovada.webp':loc.image;
   return {title:loc.name,src:img};
  }
+ function visualTargets(){
+  // O zoom usa as mesmas áreas invisíveis da pintura original.
+  const original=app.querySelector('.staticSceneCanvas');
+  if(!original)return '';
+  return [...original.querySelectorAll('.staticPhotoTarget[data-static-examine]')].map(node=>{
+   const clone=node.cloneNode(false);
+   clone.removeAttribute('title');
+   clone.setAttribute('data-zoom-hit','1');
+   return clone.outerHTML;
+  }).join('');
+ }
  function viewer(){
   const art=currentImage();if(!art)return '';
   return '<div class="locationsArtOverlay" data-locations-close-outer>'+
    '<section class="locationsArtDialog" role="dialog" aria-modal="true" aria-label="Ilustração do local">'+
    '<header><div><small>PRANCHA DE CAMPO · '+encode(CASES[s.caseId].number)+'</small><h2>'+encode(art.title)+'</h2></div><button type="button" data-locations-close aria-label="Fechar ampliação">×</button></header>'+
-   '<div class="locationsArtViewport"><img src="'+encode(art.src)+'" alt="Cenário ilustrado: '+encode(art.title)+'" style="width:'+Math.round(zoomLevel*100)+'%;height:auto;max-height:none;max-width:none;transform:none" draggable="false"/></div>'+
+   '<div class="locationsArtViewport"><div class="locationsArtZoomPlane" style="width:'+Math.round(zoomLevel*100)+'%"><img src="'+encode(art.src)+'" alt="Cenário ilustrado: '+encode(art.title)+'" draggable="false"/>'+visualTargets()+'</div></div>'+
    '<footer><button type="button" data-locations-zoom="-1" aria-label="Diminuir zoom">−</button><span>Ampliação: '+Math.round(zoomLevel*100)+'%</span><button type="button" data-locations-zoom="1" aria-label="Aumentar zoom">+</button></footer>'+
    '<p>Esta é a pintura do local, preservada. Arraste a imagem ampliada para observar cada canto.</p></section></div>';
  }
@@ -54,6 +65,15 @@
  }
  render=function(){priorRender();decorate()};
  document.addEventListener('click',e=>{
+  const hit=e.target.closest('[data-zoom-hit][data-static-examine]');
+  if(zoomOpen&&hit&&hit.closest('.locationsArtZoomPlane')){
+   e.preventDefault();e.stopImmediatePropagation();
+   const key=hit.dataset.staticExamine;zoomOpen=false;
+   app.querySelector('.locationsArtOverlay')?.remove();
+   const original=[...app.querySelectorAll('.staticSceneCanvas [data-static-examine]')].find(node=>node.dataset.staticExamine===key);
+   if(original)original.click();else render();
+   return;
+  }
   const button=e.target.closest('[data-locations-open],[data-locations-close],[data-locations-zoom],[data-locations-close-outer]');
   if(!button)return;
   const open=button.closest('[data-locations-open]');
@@ -72,6 +92,7 @@
  },true);
  const style=document.createElement('style');
  style.textContent='.locationsArtActions{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:8px 14px 20px;flex-wrap:wrap}.locationsArtActions button{background:#203940;color:#ebd5ad;border:1px solid #9f875d;border-radius:7px;font:700 12px system-ui;padding:10px 13px;cursor:pointer}.locationsArtActions span{font:11px/1.5 system-ui;color:#9eaaa5}.locationsArtOverlay{position:fixed;inset:0;z-index:17000;background:#030c12ee;display:flex;align-items:center;justify-content:center;padding:10px;backdrop-filter:blur(5px)}.locationsArtDialog{color:#ecddc4;width:min(650px,100%);max-height:94dvh;display:flex;flex-direction:column;border:1px solid #b3996b;background:#10242b;border-radius:11px;padding:11px;box-shadow:0 15px 50px #000d}.locationsArtDialog header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px}.locationsArtDialog h2{font:normal 23px Georgia,serif;color:#ecd3a9;margin:4px 0}.locationsArtDialog small{font:700 10px system-ui;letter-spacing:.12em;color:#bba47d}.locationsArtDialog header button{font:29px system-ui;border:0;background:transparent;color:#f2d7ac;cursor:pointer}.locationsArtViewport{flex:1;min-height:180px;max-height:68dvh;overflow:auto;background:#07161b;text-align:center;touch-action:pan-x pan-y}.locationsArtViewport img{display:block;height:auto;max-height:none;max-width:none;object-fit:contain;transform:none!important}.locationsArtDialog footer{display:flex;align-items:center;justify-content:center;gap:24px;padding:9px}.locationsArtDialog footer button{height:36px;width:42px;background:#293f40;border:1px solid #907b53;border-radius:5px;color:#ebd5a9;font:25px system-ui;cursor:pointer}.locationsArtDialog footer span{font:12px system-ui}.locationsArtDialog>p{font:11px/1.5 system-ui;color:#b3c0b9;margin:0 8px 8px;text-align:center}@media(max-width:480px){.locationsArtActions>span{font-size:10px}.locationsArtDialog{padding:6px}.locationsArtDialog h2{font-size:20px}}';
+ style.textContent += '.locationsArtZoomPlane{position:relative;margin:0;max-width:none!important;line-height:0}.locationsArtZoomPlane>img{display:block;width:100%!important;height:auto;max-width:none!important;pointer-events:none}.locationsArtZoomPlane>.staticPhotoTarget{cursor:crosshair}';
  document.head.appendChild(style);
  render();
 })();
