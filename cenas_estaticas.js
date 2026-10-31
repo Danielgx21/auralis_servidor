@@ -104,17 +104,18 @@
  function detailDialog(){
   if(!focus||!DESCRIPTIONS[focus])return '';
   const d=DESCRIPTIONS[focus],need=d[2],done=already(focus);
-  const instruction=need==='tune'?'Compare o horário do depoimento com a frequência do aparelho.':
+  const instruction=need==='tune'?'Deslize o seletor para ouvir estações diferentes. Registre o sinal que conseguir entender.':
    need==='key'&&!s.lagoKey?'Ainda não foi encontrada uma chave compatível. Procure outros detalhes na margem.':
    need==='glass'?'A lupa pode revelar marcas difíceis de distinguir.':
    need==='brush'?'Use o pincel para examinar os sinais sob a camada de sujeira.':
    'Observe as irregularidades antes de registrar o resultado.';
-  const label=need==='tune'?'Registrar leitura':done?'Rever observação':need==='key'?'Examinar fechadura':'Analisar detalhe';
+  const label=need==='tune'?'Registrar transmissão':done?'Rever observação':need==='key'?'Examinar fechadura':'Analisar detalhe';
   return '<div class="staticInspectBackdrop" data-static-close-outer><section class="staticInspectDialog" role="dialog" aria-modal="true" aria-label="Análise de detalhe">'+
    '<header><small>PRANCHA DE ANÁLISE · '+escaped(CASES.lago.scenes[s.activeScene].name)+'</small><button type="button" data-static-close aria-label="Fechar detalhe">×</button></header>'+
    '<h3>'+escaped(d[0])+'</h3><div class="staticCloseup">'+closeup(focus)+'</div>'+
    '<p>'+escaped(d[1])+'</p><p class="staticToolHint">'+escaped(instruction)+'</p>'+toolButtons(focus)+
-   (need==='tune'?'': '<button type="button" class="staticApply" data-static-apply>'+label+'</button>')+
+    (need==='tune'?'<p class="staticRadioReadout" role="status" data-radio-readout>'+escaped(typeof window.manualRadioStatus==='function'?window.manualRadioStatus(Number(s.lagoRadioFreq)||0):'Gire o seletor para ouvir o sinal.')+'</p>':'')+
+   '<button type="button" class="staticApply" data-static-apply>'+label+'</button>'+
    '<button type="button" class="staticClose" data-static-close>Voltar ao cenário</button></section></div>';
  }
  function staticScene(){
@@ -149,6 +150,7 @@
   return tmpl.innerHTML;
  };
  function recordClue(id){
+  if(id==='radio')window.manualRadioStop?.();
   if(s.evidence.includes(id)){
    focus=null;s.modal=id;render();return;
   }
@@ -166,6 +168,7 @@
   }
   if(needed==='key'&&!s.lagoKey)return toast('A chave precisa ser identificada primeiro, na margem.');
   if(id==='keypiece'){s.lagoKey=true;focus=null;persist();render();toast('Peça metálica registrada como chave.');return;}
+  if(needed==='tune'&&Number(s.lagoRadioFreq)!==17)return toast('O sinal ainda está incompleto. Experimente outras estações.');
   if(clue){recordClue(clue);return;}
   markObserved(id);focus=null;render();
   toast('Observação registrada. Verifique se há novos detalhes disponíveis.');
@@ -209,7 +212,7 @@
    examine();return;
   }
   const clue=DESCRIPTIONS[name][3];
-  if(clue&&s.evidence.includes(clue)){s.modal=clue;focus=null;}
+  if(clue&&s.evidence.includes(clue)&&name!=='radio'){s.modal=clue;focus=null;}
   render();
  }
  document.addEventListener('click',ev=>{
@@ -223,7 +226,7 @@
    openDetail(b.dataset.staticExamine,!!b.closest('.staticSceneCanvas'));return;
   }else if(b.hasAttribute('data-static-tool'))selectedTool=b.dataset.staticTool;
   else if(b.hasAttribute('data-static-apply')){examine();return;}
-  else if(b.hasAttribute('data-static-close')||outside)focus=null;
+  else if(b.hasAttribute('data-static-close')||outside){focus=null;window.manualRadioStop?.();}
   render();
  },true);
  document.addEventListener('input',ev=>{
@@ -231,15 +234,18 @@
   const n=Number(ev.target.value);s.lagoRadioFreq=n;
   const el=ev.target.closest('.staticInspectDialog')?.querySelector('[data-static-frequency]');
   if(el)el.textContent=String(n).padStart(2,'0');
-  if(n===17)recordClue('radio');else persist(false);
+  window.manualRadioTune?.(n);
+   const status=ev.target.closest('.staticInspectDialog')?.querySelector('[data-radio-readout]');
+   if(status)status.textContent=typeof window.manualRadioStatus==='function'?window.manualRadioStatus(n):'Frequência '+n;
+   persist(false);
  },true);
  document.addEventListener('keydown',ev=>{
-  if(ev.key==='Escape'&&focus){ev.preventDefault();focus=null;render();}
+  if(ev.key==='Escape'&&focus){ev.preventDefault();window.manualRadioStop?.();focus=null;render();}
  },true);
  const css=document.createElement('style');
  css.textContent='.staticSceneCanvas{max-height:none!important;height:auto!important;overflow:hidden;aspect-ratio:1000/1340;isolation:isolate;background:#091a25!important}.staticSceneCanvas.staticScene-casa{aspect-ratio:1122/1402}.staticSceneCanvas>img{display:block;width:100%;height:100%;object-fit:fill;filter:brightness(var(--scene-brightness,1)) saturate(var(--scene-saturation,1));transition:filter 1.4s ease}.staticSceneCanvas::after,.sceneFrame::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;opacity:var(--scene-glow,0);background:linear-gradient(148deg,#9ed4f065 4%,#fff1c365 50%,#b6dcff30 100%);mix-blend-mode:screen;transition:opacity 1.4s ease}.staticSceneCanvas .timeWorldLighting{z-index:3}body[data-time-light=day] .staticSceneCanvas .timeWorldLighting{background:transparent}.sceneFrame>img,.locationsArtViewport>img{filter:brightness(var(--scene-brightness,1)) saturate(var(--scene-saturation,1));transition:filter 1.4s ease}.sceneFrame{isolation:isolate}.staticFindings{margin:16px 0;border:1px solid #9d856255;border-radius:13px;padding:15px;background:linear-gradient(140deg,#162e38,#0d2029)}.staticFindingsHead{display:flex;justify-content:space-between;align-items:center;gap:10px}.staticFindingsHead small{font-size:9px;letter-spacing:.13em;color:#c9b187;font-weight:700}.staticFindingsHead h3{font:normal 23px Georgia,serif;color:#f0d8ab;margin:6px 0}.staticFindingsHead>span{font:700 12px system-ui;color:#d4bc8d}.staticFindings>p{font:12px/1.6 system-ui;color:#c0ceca;margin:6px 0 12px}.staticFindingsGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.staticFinding{display:flex;align-items:center;gap:9px;text-align:left;min-width:0;padding:13px 10px;min-height:73px;border-radius:9px;background:#233c45;border:1px solid #7d756477;color:#f2e2c7;cursor:pointer}.staticFinding.isDocumented{opacity:.76;border-color:#5e847c}.staticFindingMark{font:24px Georgia,serif;color:#d6bb83;flex:none}.staticFinding strong{display:block;font-size:13px;line-height:1.25}.staticFinding small{display:block;color:#aec5c4;font:10px/1.4 system-ui;margin-top:4px}.staticCaseFooter{display:grid;gap:8px;margin-top:15px}.staticInspectBackdrop{position:fixed;inset:0;z-index:16000;display:grid;place-items:center;padding:12px;background:#020d16ed;backdrop-filter:blur(7px)}.staticInspectDialog{max-width:520px;width:100%;max-height:94dvh;overflow:auto;padding:18px;background:linear-gradient(150deg,#213842,#0d1f29);color:#eadbc3;border:1px solid #b69b6b;border-radius:15px}.staticInspectDialog header{display:flex;align-items:center;justify-content:space-between;gap:10px}.staticInspectDialog header small{font:700 9px system-ui;letter-spacing:.12em;color:#c5ae86}.staticInspectDialog header button{background:transparent;border:0;font:30px system-ui}.staticInspectDialog h3{font:normal 26px Georgia,serif;color:#f5dcb1;margin:12px 0}.staticCloseup{height:240px;background:#071b25;border-radius:10px;overflow:hidden;border:1px solid #6e766d}.staticCloseup svg{display:block;width:100%;height:100%}.staticInspectDialog p{font:13px/1.6 system-ui}.staticToolHint{color:#b6c8cb}.staticModalTools>small{display:block;color:#ead09a;font-size:11px;margin:12px 0 8px}.staticModalTools>div{display:flex;gap:7px;flex-wrap:wrap}.staticModalTools button{border:1px solid #847c64;border-radius:8px;background:#18313c;color:#e7d9bd;padding:9px 13px;font:700 12px system-ui}.staticModalTools button.isSelected{background:#bda475;color:#132a31;border-color:#e9d3a4}.staticApply{width:100%;padding:13px;background:#d2b683;color:#1d3036;border:0;border-radius:8px;font:750 14px system-ui;margin:14px 0 8px}.staticClose{display:block;margin:auto;border:0;background:transparent;color:#c5d3d0;padding:10px}.staticFrequency{display:block;font:13px system-ui}.staticFrequency input{display:block;width:100%;accent-color:#d5b47c;margin:14px 0}.staticFrequency span{display:block;text-align:center;font-size:10px;color:#b7c6c2}.genericStaticFindings{margin:10px 14px}.genericStaticFindings .staticFindingsHead h3{font-size:20px}@media(max-width:420px){.staticFindingsGrid{grid-template-columns:1fr}.staticInspectDialog{padding:14px}.staticCloseup{height:205px}}';
  css.textContent += '.staticScenePalette{margin:10px 0 13px;padding:13px;border:1px solid #9c8461a8;background:#132c36;border-radius:12px;color:#e8d1a8}.staticScenePalette strong{display:block;font:700 12px/1.5 system-ui;margin-bottom:10px}.staticScenePalette>div{display:flex;gap:9px;flex-wrap:wrap}.staticScenePalette button{flex:1;min-width:90px;border:1px solid #9b865f;border-radius:9px;background:#253f49;color:#f0ddbc;padding:12px 10px;font:700 13px system-ui;touch-action:manipulation}.staticScenePalette button.isSelected{background:#c5aa79;border-color:#e7cb91;color:#0c2631;box-shadow:inset 0 0 0 2px #f4ddaa}.staticPhotoTarget{position:absolute;display:block;border:0;padding:0;background:transparent!important;outline:0;z-index:7;cursor:crosshair;touch-action:manipulation;-webkit-tap-highlight-color:transparent}.staticPhotoTarget:focus-visible{outline:2px dashed #f0d498;outline-offset:0}.staticPhotoTarget:hover{box-shadow:inset 0 0 0 2px #b8d8df78;border-radius:5px}.staticSceneCanvas>img{pointer-events:none}.staticSceneCanvas{position:relative}.staticSceneCanvas .timeWorldLighting,.staticSceneCanvas .lakeLifeFx{pointer-events:none}';
- css.textContent += '.sceneUndisclosed .hotspot{opacity:0!important;background:transparent!important;border:0!important;box-shadow:none!important;animation:none!important}.sceneUndisclosed .hotspot:focus-visible{opacity:1!important;outline:2px dashed #e7d2aa!important;outline-offset:1px}.sceneUndisclosed .hotspot.roleLocked{pointer-events:none}';
+ css.textContent += '.staticRadioReadout{padding:12px;background:#0b232b;border:1px solid #c3ad7970;border-radius:10px;color:#e2d9b8;font:12px/1.6 system-ui;min-height:44px}.sceneUndisclosed .hotspot{opacity:0!important;background:transparent!important;border:0!important;box-shadow:none!important;animation:none!important}.sceneUndisclosed .hotspot:focus-visible{opacity:1!important;outline:2px dashed #e7d2aa!important;outline-offset:1px}.sceneUndisclosed .hotspot.roleLocked{pointer-events:none}';
  document.head.append(css);
  render();
 })();
