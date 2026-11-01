@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101a2a"><title>Batalha de Miniaturas — PvP v1.9</title>
+<style>
+:root{--bg:#0e1727;--panel:#17253a;--panel2:#1c2d44;--line:#34475e;--text:#eff5fb;--muted:#aec0d1;--gold:#ffd58b;--green:#78e2bd;--red:#ff8a93;--blue:#88c8ff;--shadow:0 16px 38px rgba(0,0,0,.23)}
+*{box-sizing:border-box}html{height:100%;-webkit-tap-highlight-color:transparent}body{margin:0;min-height:100%;color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;background:radial-gradient(ellipse at 12% 0%,#243750 0%,transparent 45%),radial-gradient(ellipse at 96% 90%,#203044 0%,transparent 47%),#0c1422}
+button{font:inherit;cursor:pointer}button:disabled{cursor:not-allowed;opacity:.45}button:focus-visible,.cell:focus-visible{outline:3px solid #ffe0a2;outline-offset:2px}button:not(:disabled):active{transform:scale(.98)}
+#app{max-width:1180px;margin:0 auto;padding:16px 18px 22px}.header{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px}.brand{display:flex;align-items:center;gap:12px}.brand-mark{width:49px;height:49px;display:grid;place-items:center;border-radius:13px;font-size:26px;background:linear-gradient(145deg,#f8cc83,#c77b45);box-shadow:inset 0 1px 0 #ffe3ad,0 6px 14px #050d1740}.brand h1{font-size:22px;line-height:1.02;margin:0;letter-spacing:-.6px}.brand p{font-size:11px;letter-spacing:2px;font-weight:800;color:#e4b774;margin:5px 0 0}.header-right{display:flex;align-items:center;gap:7px}.iconbtn{background:#203149;border:1px solid #3b5169;color:#cce0f3;border-radius:12px;min-width:40px;height:40px;font-size:19px}.stats{display:flex;gap:8px;align-items:center}.stat{padding:8px 11px;background:#182a40;border:1px solid #344a63;border-radius:12px;display:flex;align-items:center;gap:7px;min-width:80px;justify-content:center}.stat b{font-size:17px}.stat span{font-size:14px}.stat.gold{color:var(--gold)}.stat.life{color:#ffafb2}.stat.win{color:#a5e8c9}
+.layout{display:grid;grid-template-columns:minmax(0,1.09fr) minmax(340px,.91fr);gap:17px;align-items:start}.panel{background:linear-gradient(165deg,#1a2a40,#142237);border:1px solid #33475c;border-radius:19px;box-shadow:var(--shadow);overflow:hidden}.panel-top{display:flex;align-items:center;justify-content:space-between;padding:15px 17px 10px;gap:8px}.section-eyebrow{color:#89a0b6;font-size:10px;letter-spacing:2px;font-weight:900;text-transform:uppercase}.panel h2{font-size:19px;margin:3px 0 0;letter-spacing:-.4px}.badge-round{border:1px solid #436078;color:#b6d7f2;background:#22384d;padding:8px 10px;border-radius:12px;font-size:12px;font-weight:800;white-space:nowrap}
+.arenaframe{padding:11px 17px 11px}.arena-labels{display:flex;justify-content:space-between;font-size:10px;letter-spacing:1.25px;font-weight:900;text-transform:uppercase;color:#a9bcd1;margin-bottom:9px}.arena-labels .enemylabel{color:#f0aaa7}.arena-labels .allylabel{color:#a4edcf}.board{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-template-rows:repeat(6,minmax(0,1fr));aspect-ratio:1/1;gap:4px;padding:9px;border:2px solid #8c674e;border-radius:12px;position:relative;background:radial-gradient(ellipse at 50% 55%,#496553 0%,#314a42 48%,#263b38 100%);box-shadow:inset 0 2px 12px #061014a8,0 0 0 4px #182634}
+.board:after{content:"";pointer-events:none;position:absolute;left:8px;right:8px;top:50%;border-top:2px dashed #e3d6ae4d}
+.cell{position:relative;min-width:0;min-height:0;border-radius:7px;border:1px solid #f3e6c018;background:linear-gradient(140deg,#f0ead70d,#0b151009);display:flex;align-items:center;justify-content:center;padding:0;overflow:visible;transition:background .12s,border .12s;cursor:default}.cell.enemy-zone{background:#cb5f5e12}.cell.player-zone{background:#4ccaa314}.cell.placeable{cursor:pointer}.cell.placeable:hover{background:#9fe9b52f;border-color:#b5f2c5a0}.cell.selected{background:#f5d79441;border:2px solid #ffdc92;box-shadow:inset 0 0 16px #ffdf9b48}.cell.can-place:after{content:"+";font-size:17px;color:#a8ecce8a}.cell.move-target{background:#63d5aa30;border-color:#79e4b4aa}
+.mini{position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;width:100%;height:100%;min-width:0;color:white;user-select:none;pointer-events:none}.mini-base{width:min(78%,64px);aspect-ratio:1;display:grid;place-items:center;position:relative;border-radius:50%;background:radial-gradient(circle at 30% 15%,#ffffff50,transparent 50%),var(--unit-color);border:3px solid #ffffff58;box-shadow:0 5px 0 #0b14266e,0 6px 10px #030a1170}.mini.foe .mini-base{border-color:#ffacaf9e}.mini-icon{font-size:clamp(18px,3.15vw,32px);line-height:1;filter:drop-shadow(0 2px 1px #16253655)}.mini-name{position:absolute;top:-4px;width:120%;font-size:clamp(7px,.78vw,10px);text-align:center;font-weight:900;text-shadow:0 1px 3px #05101d,0 1px 4px #05101d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mini-star{position:absolute;right:1px;top:14px;border-radius:8px;background:#493513d9;color:#ffe6a5;padding:2px 3px;font-size:9px;font-weight:900;line-height:1}.hp{position:absolute;bottom:0;left:6%;width:88%;height:6px;background:#0b1721;border:1px solid #0a101e;border-radius:4px;overflow:hidden}.hp>span{display:block;height:100%;background:linear-gradient(90deg,#63dbae,#b6f7ca);transition:width .14s}.mini.foe .hp>span{background:linear-gradient(90deg,#e27778,#ffc29c)}.mini.hit .mini-base{animation:hit .18s 1}@keyframes hit{0%{filter:brightness(2);transform:scale(1.12)}100%{filter:none;transform:scale(1)}}
+.board-footer{padding:1px 17px 14px}.phase-note{font-size:12px;color:#b5c6d3;line-height:1.45;min-height:34px;margin:0 0 10px}.battle-row{display:flex;gap:9px}.primary{background:linear-gradient(180deg,#f4c57e,#e7a65c);color:#302215;border:1px solid #ffdc9d;border-radius:12px;padding:12px 14px;flex:1;font-weight:900;box-shadow:0 3px 0 #946333}.secondary{background:#253a50;border:1px solid #426079;border-radius:12px;color:#e4eef8;padding:10px 13px;font-weight:800}.primary:disabled{box-shadow:none}.battle-tip{padding:9px 11px;background:#26394b;border-radius:10px;color:#bdccda;font-size:11px;margin-top:11px;line-height:1.5}
+.column{display:grid;gap:14px}.shop-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:10px 14px 14px}.shop-card{min-width:0;display:flex;align-items:center;gap:9px;position:relative;min-height:90px;text-align:left;border-radius:13px;border:1px solid #42556b;background:linear-gradient(150deg,#293f54,#1d3047);padding:10px 8px;color:#e6f1fa}.shop-card:hover:not(:disabled){background:#30475c;border-color:#dfbb81}.shop-icon{flex:0 0 39px;height:45px;display:grid;place-items:center;font-size:25px;border-radius:11px;background:var(--unit-color);box-shadow:inset 0 0 0 2px #ffffff27}.shop-details{min-width:0;flex:1}.shop-name{font-size:12px;font-weight:900;margin-bottom:3px}.shop-group{font-size:10px;color:#a9c0d3}.shop-desc{font-size:10px;color:#c6d5e0;margin-top:6px;line-height:1.2}.price{position:absolute;right:7px;top:7px;background:#101e2cdd;border:1px solid #f1cf9171;color:#ffe0a0;border-radius:8px;padding:2px 5px;font-weight:900;font-size:11px}.shop-card.sold{opacity:.35;filter:grayscale(.7)}.shop-actions{padding:0 14px 14px;display:flex;gap:9px}.shop-actions .secondary{flex:1}.shop-actions .secondary:first-child{flex:1.2}
+.bench{padding:11px 14px 12px}.bench-list{display:flex;gap:7px;flex-wrap:wrap;min-height:54px}.bench-piece{border:1px solid #486078;border-radius:10px;background:#233950;color:#e8f3fb;display:flex;align-items:center;gap:5px;padding:6px 8px;min-height:44px}.bench-piece .ico{font-size:22px}.bench-piece .short{font-size:10px;font-weight:800}.bench-piece.picked{border-color:#ffdf9c;background:#504632}.empty-bench{font-size:12px;color:#91a9ba;padding:12px 4px}.traits{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:10px 14px 14px}.trait{border:1px solid #425367;border-radius:10px;background:#25374b;padding:9px 10px;display:flex;justify-content:space-between;align-items:center;gap:7px}.trait.active{border-color:#a6dba77e;background:#2b493f}.trait-name{font-size:12px;font-weight:900}.trait-desc{font-size:10px;color:#a9bbc9;margin-top:3px}.trait b{white-space:nowrap;font-size:12px;color:#b4c9d9}.trait.active b{color:#8be6b6}
+.unit-info{padding:10px 14px 14px;color:#c9d9e5;font-size:12px;line-height:1.5;min-height:66px}.unit-info strong{color:#fff}.unit-info .sell{margin-top:8px;background:#4a303e;border:1px solid #7e4c5b;padding:7px 10px;border-radius:9px;color:#ffd8da;font-size:11px;font-weight:900}.info-line{display:flex;justify-content:space-between;gap:8px}.footnote{text-align:center;color:#7290a5;font-size:11px;margin-top:14px}
+.modal{position:fixed;inset:0;z-index:30;background:#050c15c7;backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px}.modal.hidden{display:none}.modal-body{width:min(410px,100%);border:1px solid #678096;border-radius:20px;background:linear-gradient(165deg,#2a3e55,#18273e);padding:26px 24px;box-shadow:0 24px 80px #0008;text-align:center}.modal-icon{font-size:55px}.modal h2{font-size:27px;margin:12px 0 8px}.modal p{color:#c1d1de;line-height:1.55;font-size:14px}.reward{background:#142438;border:1px solid #496078;color:#ffe3a4;padding:12px;border-radius:12px;margin:15px 0;font-weight:900}.modal .primary{width:100%;margin-top:4px}.modal-sub{display:block;color:#9aafc1;font-size:12px;margin-top:12px}
+.toast{position:fixed;left:50%;bottom:30px;z-index:50;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;transition:.2s;background:#fff2c9;color:#24291c;border-radius:13px;padding:10px 16px;box-shadow:0 10px 22px #0007;font-size:13px;font-weight:900;max-width:90vw;text-align:center}.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.audio-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px;padding:10px 15px;background:#17283a;border:1px solid #385066;border-radius:13px;color:#cdddea;font-size:12px}.audio-status{font-weight:800}.audio-volume-label{display:flex;align-items:center;gap:9px;font-weight:750;white-space:nowrap}.audio-volume-label input{width:115px;accent-color:#eebf75;cursor:pointer;touch-action:pan-x}.audio-volume-label span{min-width:37px;text-align:right;color:#ffdda1;font-variant-numeric:tabular-nums}@media(max-width:480px){.audio-bar{font-size:11px;gap:8px}.audio-volume-label input{width:98px}}
+@media(min-width:940px){.column{position:sticky;top:14px}}
+@media(max-width:820px){#app{max-width:570px;padding:11px 10px 30px}.layout{grid-template-columns:1fr;gap:11px}.header{margin-bottom:11px}.brand h1{font-size:18px}.brand-mark{height:41px;width:41px;font-size:23px}.stat{min-width:56px;padding:6px 7px}.stat b{font-size:14px}.stat span{font-size:12px}.header-right{gap:5px}.iconbtn{min-width:34px;height:35px;font-size:17px}.panel-top{padding:12px 12px 8px}.arenaframe{padding:8px 12px 10px}.board{gap:3px;padding:7px}.mini-name{font-size:clamp(7px,2vw,11px)}.mini-icon{font-size:clamp(18px,7vw,33px)}.board-footer{padding:0 12px 12px}.column{gap:11px}.shop-card{min-height:82px}.panel h2{font-size:18px}}
+@media(max-width:480px){.stat.win{display:none}.stat{min-width:50px;padding:6px 6px}.header-right{gap:4px}.brand{gap:8px}}
+@media(max-width:350px){.brand-mark{display:none}.brand h1{font-size:14px}.brand p{font-size:8px}.stat{min-width:44px}.iconbtn{min-width:30px;height:34px}.header-right{gap:3px}.stats{gap:4px}}
+@media(max-width:370px){.brand h1{font-size:16px}.brand p{font-size:9px}.stat.win{display:none}.shop-card{gap:6px;padding:7px 5px}.shop-icon{flex-basis:34px;height:41px;font-size:23px}.shop-desc{font-size:9px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+
+/* Versão 1.2: miniaturas vetoriais originais e efeitos sem imagens externas. */
+.mini-base{background:radial-gradient(circle at 35% 12%,#ffffff72,transparent 49%),linear-gradient(160deg,var(--unit-color),#1a2634);border-width:2px;box-shadow:0 3px 0 #111b27,0 7px 11px #06111c9e;overflow:hidden}
+.mini-art{width:94%;height:94%;display:block;filter:drop-shadow(0 2px 1px #07121d60)}
+.mini.foe .mini-art{transform:scaleX(-1)}
+.mini-art .blade{stroke-linecap:round;stroke-linejoin:round}
+.mini-equipped{position:absolute;left:1px;bottom:10px;top:auto;color:#fff6d7;font-size:10px;text-shadow:0 1px 5px #000,0 1px 3px #000;line-height:1;border-radius:6px;background:#1b294dd8;padding:2px 4px;z-index:2;display:flex;gap:2px;max-width:80%;overflow:hidden}
+.mini.foe .mini-equipped{display:none}
+.mini.attacking .mini-base{animation:mini-attack .35s ease-out}.mini.healing .mini-base{animation:mini-heal .4s ease-out}.mini.moving .mini-base{animation:mini-move .3s ease-out}
+@keyframes mini-attack{0%{transform:scale(.93)}40%{transform:scale(1.18) rotate(-9deg)}100%{transform:scale(1)}}
+@keyframes mini-heal{35%{filter:brightness(1.8) drop-shadow(0 0 8px #76efac)}}
+@keyframes mini-move{0%{transform:translateY(7px)}100%{transform:translateY(0)}}
+.art-icon{width:44px;height:44px;flex:none;display:grid;place-items:center;overflow:hidden;border-radius:10px;background:linear-gradient(155deg,var(--unit-color),#132234)}
+.art-icon svg{width:43px;height:43px;display:block}
+.bench-piece .art-icon{height:33px;width:33px;border-radius:8px}.bench-piece .art-icon svg{width:33px;height:33px}
+.board-stage{position:relative;isolation:isolate}.fx-layer{position:absolute;inset:0;pointer-events:none;z-index:8;overflow:hidden}
+.fx-number{position:absolute;translate:-50% -50%;color:#ffe2a6;font-weight:1000;font-size:16px;white-space:nowrap;filter:drop-shadow(0 2px 1px #0a1018);animation:fx-pop .62s ease-out forwards}
+.fx-number.heal{color:#92ffd1}.fx-number.magic-dmg{color:#d9b7ff}.fx-number.physical-dmg{color:#ffe0a6}.fx-number.crit{font-size:20px;text-shadow:0 0 7px currentColor}
+.fx-streak{position:absolute;left:0;top:0;width:14px;height:8px;border-radius:15px;box-shadow:0 0 10px var(--fxcolor);background:var(--fxcolor);transform:translate(-50%,-50%);animation:fx-shot .4s ease-in forwards}
+.fx-burst{position:absolute;width:25px;height:25px;border:2px solid var(--fxcolor);border-radius:50%;transform:translate(-50%,-50%);animation:fx-ring .43s ease-out forwards}
+@keyframes fx-pop{0%{opacity:0;transform:translateY(8px) scale(.75)}20%{opacity:1;transform:translateY(-4px) scale(1.13)}100%{opacity:0;transform:translateY(-27px) scale(.85)}}
+@keyframes fx-shot{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}10%{opacity:1}100%{opacity:0;transform:translate(calc(var(--fxdx) - 50%),calc(var(--fxdy) - 50%)) scale(1.7)}}
+@keyframes fx-ring{0%{opacity:1;scale:.4}100%{opacity:0;scale:2.1}}
+.forge-body{padding:10px 14px 13px}.forge-offers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.equip-card{background:linear-gradient(145deg,#2b4056,#203147);border:1px solid #526b7f;color:#f0f6fb;border-radius:11px;text-align:left;padding:9px 8px;min-width:0;display:flex;gap:7px;align-items:flex-start;min-height:75px}
+.equip-card strong{font-size:11px;line-height:1.25;display:block}.equip-card small{font-size:10px;line-height:1.3;color:#bad0df;display:block;margin-top:3px}.equip-card .equip-price{font-size:10px;color:#ffe0a6;font-weight:900;margin-top:4px;display:block}
+.equip-card:hover:not(:disabled),.item-chip:hover:not(:disabled){border-color:#ffdc9a;background:#344c60}
+.equip-picto{font-size:25px;line-height:1.2;flex:0 0 29px;text-align:center}
+.item-section-label{font-size:10px;text-transform:uppercase;font-weight:900;letter-spacing:.8px;color:#aabed1;margin:13px 0 7px}
+.item-stash{display:flex;flex-wrap:wrap;gap:7px;min-height:42px}
+.item-chip{border:1px solid #526b7f;background:#243a50;color:#f2f6fa;padding:8px 9px;border-radius:9px;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:800}
+.item-chip span{font-size:17px}.equip-inline{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.equip-slot{background:#243c50;color:#f3e5c2;border:1px solid #577287;border-radius:9px;padding:5px 8px;font-size:11px;font-weight:800}
+.forge-hint{color:#9fb6ca;font-size:11px;line-height:1.45;margin:8px 0 0}
+.damage-explainer{margin-top:6px;padding:7px 9px;background:#22384c;border:1px solid #435d79;border-radius:8px;color:#d7e7f5;font-size:11px;line-height:1.42}.damage-split{display:flex;flex-wrap:wrap;gap:5px 13px;color:#cfdef0;font-size:11px;padding-top:4px}.report-total{padding:6px 10px;color:#c9d9e9;font-size:11px}.shop-quickstats{line-height:1.55}
+@media(max-width:360px){.equip-card{padding:7px 5px;gap:4px}.equip-picto{font-size:21px;flex-basis:23px}.equip-card strong{font-size:10px}}
+
+/* v1.6: papéis e leitura tática, sem aumentar a largura do tabuleiro no celular */
+.mini-role{position:absolute;top:11px;left:2px;z-index:3;border-radius:6px;background:#172b41de;border:1px solid #9bb6cd6b;font-size:9px;padding:1px 2px;line-height:1.15}
+.role-tip{background:#213c4a;color:#badfdc;border:1px solid #387267;border-radius:8px;padding:7px 9px;margin-top:6px;font-size:11px;line-height:1.4}
+.role-tip b{color:#e0fff5}
+.shop-group{line-height:1.35}
+.report-tactics{font-size:10px;color:#d7ecc4;background:#233c3c;border:1px solid #426e60;padding:6px 8px;border-radius:7px;margin-top:7px}
+.cell.player-zone[data-y="4"]{background:linear-gradient(145deg,#7fd7a51c,#4fc68c12)}
+.cell.player-zone[data-y="5"]{background:linear-gradient(145deg,#5b9dd11f,#4fc68c10)}
+/* v1.5: alianças por patamar e efeitos de condições */
+.trait.level2{border-color:#ffd295a1;background:#50422f}
+.trait-desc{line-height:1.38}.trait-desc .next{color:#d6b9ee}.trait-desc .live{color:#aaf0cd;font-weight:850}
+.trait-counter{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.trait-counter small{font-size:9px;color:#a4b9cd;font-weight:800;white-space:nowrap}
+.status-badge{position:absolute;left:0;bottom:12px;font-size:9px;background:#1b2e46db;border-radius:6px;padding:1px 3px;border:1px solid #a9c8e5}
+.shop-desc.skill-desc{padding-right:30px;line-height:1.35;color:#b9dff0}
+/* v1.4: inspeção acessível dos itens da mochila */
+.item-chip.active{border-color:#ffdda0;background:#514633;box-shadow:inset 0 0 0 1px #ffd67b6b}
+.item-detail{margin-top:10px;background:#162a3f;border:1px solid #67829a;border-radius:13px;padding:12px 13px;display:grid;gap:7px}
+.item-detail[hidden]{display:none}
+.item-detail-title{display:flex;gap:9px;align-items:center;font-size:14px;font-weight:900;color:#f7e5bf}
+.item-detail-icon{font-size:25px}
+.item-detail-effect{font-size:13px;font-weight:850;color:#9febbf}
+.item-detail-description{font-size:12px;color:#c2d5e4;line-height:1.55}
+.item-detail-action{width:100%;padding:10px 12px;min-height:40px;border-radius:10px;background:#ebc68c;border:1px solid #fff0bd;color:#263447;font-weight:950;font-size:12px}
+.item-detail-action:disabled{background:#34495d;color:#b3c4d0;border-color:#587084;opacity:.72}
+.item-detail-hint{color:#aebfd0;font-size:11px;line-height:1.4}
+/* v1.3: relatório tático completo */
+.report-toolbar{display:flex;gap:8px;padding-top:11px}.report-toggle{width:100%;font-size:12px;padding:9px 12px;border-color:#5c7590;background:#22394f}.report-toggle[hidden]{display:none}
+.report-section{background:#101f30;border:1px solid #38536c;border-radius:13px;margin-top:11px;padding:12px}.report-section[hidden],.modal-report[hidden],.modal-report-toggle[hidden]{display:none}
+.report-title-line{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px}.report-title-line strong{font-size:13px}.report-title-line span{font-size:10px;color:#9db5c8}
+.report-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.report-kpi{border:1px solid #3a5266;background:#1a2d40;border-radius:10px;padding:9px 5px;text-align:center}.report-kpi strong{display:block;font-size:17px;color:#ffe0a6;font-variant-numeric:tabular-nums}.report-kpi small{display:block;font-size:9px;color:#b6cada;line-height:1.2;margin-top:3px}
+.report-tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:12px 0 9px}.report-tabs button{padding:8px 5px;border-radius:9px;border:1px solid #3e5b74;color:#bbd2e4;background:#192d41;font-size:11px;font-weight:900}.report-tabs button[aria-selected="true"]{background:#34526b;border-color:#e3be84;color:white}
+.report-unit{padding:9px 0 10px;border-top:1px solid #3c526458}.report-unit-head{display:flex;align-items:center;gap:8px;margin-bottom:7px}.report-icon{width:36px;height:36px;flex:0 0 36px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(145deg,var(--unit-color),#132336)}.report-icon svg{height:33px;width:33px}.report-unit-title{min-width:0;flex:1;text-align:left}.report-unit-title strong{display:block;font-size:12px}.report-unit-title small{font-size:10px;color:#9bb5c8}.report-unit-rank{font-size:10px;color:#ffdf9d;border:1px solid #695b3a;background:#3a352b;border-radius:7px;padding:4px 6px;white-space:nowrap}
+.report-meter{background:#0b1a29;height:6px;overflow:hidden;border-radius:6px;border:1px solid #314359}.report-meter span{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#c78a59,#ffe1a2)}
+.report-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:7px;font-size:10px;line-height:1.4;color:#a9c0cf}.report-metrics b{display:block;color:#ecf4fc;font-size:12px;font-variant-numeric:tabular-nums}.report-note{color:#91aabd;line-height:1.4;font-size:10px;margin:9px 0 0}.report-mvp{color:#bdebd4;background:#1b403b;border:1px solid #3c8173;border-radius:9px;padding:7px 9px;font-size:11px;line-height:1.4;margin-top:9px}
+.modal-body.has-report{width:min(750px,100%);max-height:min(94dvh,850px);overflow-y:auto;padding:19px 18px;text-align:center}.modal-body.has-report .modal-icon{font-size:36px}.modal-body.has-report h2{font-size:22px;margin:5px 0}.modal-body.has-report p{margin:7px 0;font-size:12px}.modal-body.has-report .reward{margin:8px 0}.modal-report-toggle{display:block;width:100%;margin:8px 0;font-size:12px}.modal-report{padding:10px;border-radius:11px;border:1px solid #3e586c;background:#132338;margin:8px 0;text-align:left}.modal-report .report-metrics{font-size:10px}
+/* v1.3: sinais visuais para habilidades */
+.mini-shield{position:absolute;right:1px;bottom:9px;background:#36769fe8;color:#e0f6ff;font-size:9px;font-weight:900;border-radius:6px;padding:1px 3px;border:1px solid #b8edff91;line-height:1.1}
+.mini.special .mini-base{animation:mini-special .42s ease-out}.mini.casting .mini-base{animation:mini-cast .5s ease-out}
+@keyframes mini-special{35%{filter:brightness(1.7) drop-shadow(0 0 9px #ffce69);transform:scale(1.13)}100%{filter:none;transform:scale(1)}}
+@keyframes mini-cast{40%{filter:brightness(1.8) drop-shadow(0 0 11px #b79bff);transform:translateY(-5px)}100%{filter:none;transform:translateY(0)}}
+.fx-skill{position:absolute;z-index:9;translate:-50% -50%;white-space:nowrap;color:var(--skillcolor,#fff0af);border:1px solid currentColor;background:#172235ef;padding:2px 6px;border-radius:7px;font-size:10px;font-weight:1000;text-shadow:0 1px 3px #05090c;box-shadow:0 2px 10px #04080d9e;animation:fx-skill .95s ease-out forwards}
+.fx-aoe{position:absolute;translate:-50% -50%;height:var(--ring);width:var(--ring);border:3px solid var(--fxcolor);border-radius:50%;box-shadow:0 0 13px var(--fxcolor),inset 0 0 16px var(--fxcolor);animation:fx-aoe .67s ease-out forwards}
+.fx-slash{position:absolute;translate:-50% -50%;width:37px;height:37px;border-top:5px solid var(--fxcolor);border-radius:60%;transform:rotate(-37deg);filter:drop-shadow(0 0 4px var(--fxcolor));animation:fx-slash .42s ease-out forwards}
+.fx-streak.magic{width:18px;height:18px;border:2px solid #f4eaff;background:radial-gradient(circle,#fff8fd,#ac7aff,#5e35bb);border-radius:50%;box-shadow:0 0 13px #a76cff}.fx-streak.arrow{width:19px;height:4px;border-radius:3px;background:#ffedc0;box-shadow:0 0 6px #eec59b}
+.fx-streak.healbeam{height:5px;width:10px;background:#86ffc2;box-shadow:0 0 10px #63e6a0}
+.fx-barrier{position:absolute;translate:-50% -50%;height:var(--ring);width:var(--ring);border:3px solid #85dcff;border-radius:50%;box-shadow:0 0 10px #a2eaff,inset 0 0 10px #72bfff;background:radial-gradient(circle,#8fe7ff24,transparent 60%);animation:fx-barrier .72s ease-out forwards}
+.fx-death{position:absolute;translate:-50% -50%;font-size:30px;color:#e5c6ff;text-shadow:0 0 12px #a57ce1;animation:fx-death .65s ease-out forwards}
+@keyframes fx-skill{0%{opacity:0;transform:translateY(5px) scale(.75)}16%{opacity:1;transform:translateY(-9px) scale(1.03)}75%{opacity:1}100%{opacity:0;transform:translateY(-30px) scale(.85)}}
+@keyframes fx-aoe{0%{opacity:1;scale:.25}75%{opacity:.7}100%{opacity:0;scale:1.65}}
+@keyframes fx-slash{0%{opacity:0;scale:.3;rotate:-30deg}25%{opacity:1}100%{opacity:0;scale:1.5;rotate:25deg}}
+@keyframes fx-barrier{0%{opacity:1;scale:.3}60%{opacity:.85}100%{opacity:0;scale:1.3}}
+@keyframes fx-death{0%{opacity:1;scale:.7;rotate:-10deg}100%{opacity:0;scale:1.7;rotate:50deg;transform:translateY(-14px)}}
+@media(max-width:400px){.report-metrics{font-size:9px;gap:2px}.report-unit-head{gap:5px}.report-icon{width:31px;height:31px;flex-basis:31px}.report-icon svg{width:30px;height:30px}.report-kpi{padding:8px 3px}}
+/* v1.7: cartas informativas de recrutamento, confirmação de compra e fusões raras */
+.shop-card{cursor:pointer;align-items:flex-start;min-height:116px}
+.shop-card.unaffordable{border-color:#86665e}
+.shop-card.unaffordable .price{color:#d9a7a0;border-color:#a66e60}
+.shop-card .art-icon{margin-top:6px}
+.shop-quickstats{font-size:10px;line-height:1.4;color:#d8e6ee;margin-top:5px;font-weight:750;letter-spacing:.05px}
+.shop-see{font-size:10px;color:#f5d69d;font-weight:850;margin-top:5px}
+.shop-card.unaffordable .shop-see{color:#e4b3a8}
+.shop-inspect-body{width:min(500px,100%);max-height:92dvh;overflow-y:auto;text-align:left;padding:22px 22px 20px}
+.shop-inspect-header{display:flex;align-items:center;gap:13px;padding-right:28px}
+.shop-inspect-icon{height:78px;width:78px;flex:none;border-radius:15px;display:grid;place-items:center;background:linear-gradient(145deg,var(--unit-color),#132538);border:1px solid #ffffff55}
+.shop-inspect-icon svg{width:70px;height:70px}
+.shop-inspect-name{font-size:24px;margin:0;color:#fff5de}
+.shop-inspect-sub{color:#adc9d7;font-size:12px;line-height:1.6;margin-top:4px}
+.shop-inspect-close{position:absolute;right:13px;top:12px;background:#344a61;color:#f4f9ff;border:1px solid #61788b;width:34px;height:34px;border-radius:10px;font-size:19px}
+.shop-inspect-body{position:relative}
+.shop-inspect-heading{margin-top:16px;margin-bottom:8px;font-size:11px;color:#adc6d8;text-transform:uppercase;letter-spacing:1px;font-weight:900}
+.shop-inspect-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.shop-inspect-stat{background:#15283e;border:1px solid #46617a;border-radius:10px;padding:10px 6px;text-align:center}
+.shop-inspect-stat b{display:block;font-size:17px;color:#f7e3bb;font-variant-numeric:tabular-nums}
+.shop-inspect-stat small{display:block;color:#a9c3d5;font-size:10px;margin-top:3px}
+.shop-inspect-skill{border:1px solid #58726f;background:#233b40;border-radius:11px;padding:11px 12px;font-size:12px;color:#d7f5e2;line-height:1.5}
+.shop-inspect-skill strong{display:block;color:#c8ffdd;font-size:13px;margin-bottom:4px}
+.shop-inspect-traits{font-size:11px;color:#adc8df;line-height:1.55}
+.shop-inspect-actions{display:grid;grid-template-columns:1fr 1.6fr;gap:8px;margin-top:16px}
+.shop-inspect-actions button{margin:0;min-height:44px}
+.shop-inspect-actions .primary:disabled{opacity:.5;cursor:not-allowed}
+.shop-inspect-note{color:#f4b7a6;font-size:11px;margin:8px 0 0}
+.craft-section{margin-top:13px;padding:12px;background:linear-gradient(145deg,#302c43,#212e43);border:1px solid #806d93;border-radius:13px}
+.craft-head{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:14px;font-weight:950;color:#f2e2ff}
+.craft-head small{font-size:10px;color:#c9b0e4}
+.craft-grid{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:7px;margin:10px 0 9px}
+.craft-slot{min-height:53px;min-width:0;border:1px dashed #82769a;border-radius:10px;background:#1b243a;display:flex;align-items:center;justify-content:center;gap:5px;color:#adbed0;font-size:11px;text-align:center;padding:7px 5px;overflow-wrap:anywhere}
+.craft-slot.filled{color:#f9e3bc;background:#3a3751;border-style:solid;border-color:#ddbd84}
+.craft-slot.filled:hover{border-color:#fff1b8}
+.craft-plus{font-size:19px;color:#dcbeec;font-weight:900}
+.craft-preview{font-size:11px;color:#c9d8e8;line-height:1.55;padding:9px 10px;background:#1c2a3f;border:1px solid #49526e;border-radius:9px}
+.craft-preview.rare-preview{background:#383149;border-color:#a58abd}
+.craft-preview strong{color:#ffdf9e}
+.craft-confirm{margin-top:9px;width:100%;border:1px solid #d9bdf0;border-radius:10px;color:#221d36;background:#e7c5f3;min-height:39px;font-weight:950;font-size:12px}
+.craft-confirm:disabled{color:#b9b5c4;background:#373247;border-color:#60556c}
+.craft-recipes{margin-top:9px;border-top:1px solid #786785;padding-top:7px}
+.craft-recipes summary{cursor:pointer;color:#e7c9ff;font-size:11px;font-weight:850;padding:5px}
+.recipe-list{display:grid;gap:6px;margin-top:6px}
+.recipe-card{display:grid;grid-template-columns:1fr auto;gap:7px;align-items:center;padding:8px 9px;border-radius:9px;background:#202c40;border:1px solid #505778}
+.recipe-card strong{font-size:11px;color:#ffe0b0}.recipe-card small{display:block;color:#bacfe0;font-size:10px;line-height:1.4;margin-top:2px}
+.recipe-card button{border-radius:8px;padding:7px 9px;border:1px solid #b899d1;background:#45365e;color:#f6e3ff;font-size:10px;font-weight:850;white-space:nowrap}
+.recipe-card button:disabled{opacity:.45}
+.item-chip.rare-item{background:#493452;border-color:#a583ce;color:#f6defd}
+.item-detail-rare{font-size:10px;font-weight:950;color:#e6c0fa;letter-spacing:.8px}
+.item-detail-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.item-detail-actions .item-detail-action{font-size:11px;padding:9px 6px}
+.item-detail-action.secondary-action{color:#f4dbff;background:#3c3458;border-color:#a58cc8}
+.item-detail-action.secondary-action:disabled{opacity:.5}
+.item-detail-actions.single{grid-template-columns:1fr}
+.blessing-grid{display:grid;gap:10px;margin-top:12px}
+.blessing-card{width:100%;text-align:left;border-radius:12px;border:1px solid #57758f;background:linear-gradient(160deg,#20324a,#18283d);color:#eef6fd;padding:12px 13px;font-weight:800}
+.blessing-card strong{display:block;font-size:13px;color:#ffe2aa}
+.blessing-card small{display:block;font-size:11px;line-height:1.45;color:#bfd1e0;margin-top:4px;font-weight:600}
+.blessing-card:hover{border-color:#ffd99a;background:linear-gradient(160deg,#2a4060,#1e3250)}
+@media(max-width:380px){.shop-card{min-height:118px}.shop-quickstats{font-size:9px}.shop-inspect-body{padding:17px 13px}.shop-inspect-icon{height:67px;width:67px}.shop-inspect-icon svg{width:60px;height:60px}.shop-inspect-name{font-size:21px}.shop-inspect-stats{gap:4px}.shop-inspect-stat{padding:8px 3px}.shop-inspect-stat b{font-size:15px}.item-detail-actions{grid-template-columns:1fr}}
+
+/* PvP 1.7.5 — local & online */
+@media(max-width:440px){.header{flex-wrap:wrap;row-gap:8px}.header-right{width:100%;justify-content:flex-end}.brand h1{font-size:18px}.pvp-open{font-size:12px}}
+
+.pvp-open{border:1px solid #8dbb9d;background:linear-gradient(125deg,#16372d,#275541);color:#effff3;padding:8px 12px;border-radius:10px;font-weight:900;cursor:pointer}
+.pvp-shell{max-width:1310px;margin:13px auto 0;padding:0 14px}
+.pvp-panel{border:1px solid #57786c;border-radius:14px;background:linear-gradient(145deg,#172a2a,#20283b);padding:14px 16px;box-shadow:0 9px 32px #0005;color:#e5efe9}
+.pvp-panel[hidden],.pvp-bar[hidden]{display:none!important}
+.pvp-panel h2{font-family:Georgia,serif;margin:0 0 7px;font-size:23px;color:#f4e1b3}
+.pvp-panel p{font-size:12px;color:#c4d6cf;line-height:1.5;margin:5px 0 10px}
+.pvp-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+.pvp-controls label{display:flex;flex-direction:column;gap:4px;color:#e6e1d5;font-size:11px;font-weight:700;min-width:115px;flex:1}
+.pvp-controls input{width:100%;min-width:0;border:1px solid #566b7e;border-radius:8px;padding:10px 9px;background:#121b29;color:#fff;font-size:14px}
+.pvp-controls button,.pvp-active-actions button{border:1px solid #6f9e86;background:#294c48;color:#f9fff9;border-radius:9px;padding:10px 12px;font-size:12px;font-weight:850;cursor:pointer}
+.pvp-controls button:hover,.pvp-active-actions button:hover{background:#36665d}
+.pvp-controls button:disabled,.pvp-active-actions button:disabled{opacity:.46;cursor:default}
+.pvp-controls .pvp-danger,.pvp-active-actions .pvp-danger{background:#573039;border-color:#bd777c}
+.pvp-connection{margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px}
+.pvp-connection strong{color:#fde6ac}
+.pvp-bar{max-width:1310px;margin:9px auto 0;padding:8px 14px;display:flex;justify-content:space-between;gap:12px;align-items:center;background:#183b39;border:1px solid #3f7567;border-radius:10px;color:#e8f9e9;font-size:12px}
+.pvp-bar strong{color:#ffe3a1}
+.pvp-connection .pvp-status{font-weight:700;color:#8febca}
+.pvp-help{max-width:670px}
+@media(max-width:650px){.pvp-open{padding:8px;font-size:11px}.pvp-shell{padding:0 8px;margin-top:9px}.pvp-panel{padding:12px}.pvp-controls>*{flex-basis:40%}.pvp-bar{margin:8px 8px 0;flex-direction:column;align-items:stretch}.pvp-active-actions{display:flex;gap:8px}}
+</style>
+</head>
+<body>
+<div id="app">
+<header class="header"><div class="brand"><div class="brand-mark">♟</div><div><h1>Batalha de<br>Miniaturas</h1><p>LIGA DOS REINOS</p></div></div><div class="header-right"><div class="stats"><div class="stat gold" title="Moedas"><span>🪙</span><b id="gold">0</b></div><div class="stat life" id="lifeStat" title="Vidas"><span>♥</span><b id="lives">3</b></div><div class="stat win" title="Vitórias"><span>🏆</span><b id="wins">0</b></div></div><button id="pvpOpenBtn" class="pvp-open" type="button">👥 PvP</button><button class="iconbtn" id="soundBtn" title="Ligar música e efeitos" aria-label="Ligar música e efeitos" aria-pressed="false">🎵</button><button class="iconbtn" id="helpBtn" title="Como jogar" aria-label="Como jogar">?</button></div></header>
+
+<section class="pvp-shell" id="pvpShell" hidden>
+ <div class="pvp-panel"><h2>⚔️ Duelo entre amigos · Melhor de 5</h2>
+ <p class="pvp-help">Cada jogador monta sua própria equipe. Depois de ambos confirmarem, as miniaturas lutam automaticamente. O primeiro a vencer <b>3 batalhas</b> ganha. O progresso solo fica separado.</p>
+ <div class="pvp-controls" id="pvpSetup">
+  <button id="pvpLocalBtn" type="button">🎮 PvP local — mesmo aparelho</button>
+  <label>Seu nome<input id="pvpName" maxlength="24" value="Jogador" placeholder="Seu apelido"></label>
+  <label>Endereço do servidor online<input id="pvpServer" placeholder="https://seu-jogo.onrender.com"></label>
+  <button id="pvpCreateBtn" type="button">🌐 Criar sala</button>
+  <label>Código do amigo<input id="pvpJoinCode" maxlength="6" placeholder="ABC123" autocomplete="off"></label>
+  <button id="pvpJoinBtn" type="button">↗ Entrar na sala</button>
+ </div>
+ <div class="pvp-connection"><span id="pvpStatus" class="pvp-status">Escolha PvP local ou entre em uma sala online.</span><strong id="pvpCode" hidden></strong><button id="pvpCopyBtn" type="button" hidden>📋 Copiar convite</button></div>
+ <div class="pvp-active-actions" style="margin-top:10px"><button id="pvpLeaveBtn" class="pvp-danger" type="button" hidden>← Sair do PvP e voltar ao solo</button></div>
+ <p id="pvpOnlineNote">Para jogar em dois aparelhos, abra a versão hospedada com o servidor incluído no ZIP. O arquivo HTML sozinho permite PvP local.</p>
+ </div>
+</section>
+<div id="pvpBar" class="pvp-bar" hidden><span id="pvpMatchTitle">PvP</span><span id="pvpMatchStatus">Preparação</span></div>
+<main class="layout"><section class="panel"><div class="panel-top"><div><div class="section-eyebrow">Tabuleiro tático</div><h2 id="arenaTitle">Sua formação</h2></div><div class="badge-round" id="roundBadge">RODADA 1</div></div><div class="arenaframe"><div class="arena-labels"><span class="enemylabel">▼ ADVERSÁRIOS</span><span class="allylabel">SUAS MINIATURAS ▲</span></div><div class="board-stage"><div id="board" class="board" role="group" aria-label="Tabuleiro com seis colunas e seis linhas"></div><div class="fx-layer" id="fxLayer" aria-hidden="true"></div></div></div><div class="board-footer"><p class="phase-note" id="phaseNote"></p><div class="battle-row"><button id="fightBtn" class="primary">⚔️ INICIAR BATALHA</button><button id="speedBtn" class="secondary" hidden>⏩ 2×</button></div><div class="battle-tip" id="battleTip">💡 Toque em uma miniatura e depois em uma casa verde para mudar sua posição. A linha de frente protege os atiradores.</div><div class="report-toolbar"><button class="secondary report-toggle" id="reportBtn" type="button" aria-expanded="false" aria-controls="reportPanel" hidden>📊 Ver estatísticas</button></div><section class="report-section" id="reportPanel" aria-label="Estatísticas de combate" hidden><div id="reportBody"></div></section></div></section>
+<div class="column"><section class="panel" id="shopPanel"><div class="panel-top"><div><div class="section-eyebrow">Recrutamento</div><h2>Loja de miniaturas</h2><div class="forge-hint" style="margin:5px 0 0">Toque para ver atributos antes de confirmar a compra.</div></div><div class="badge-round" id="armyBadge">0 / 3 EM CAMPO</div></div><div id="shop" class="shop-grid"></div><div class="shop-actions"><button id="rerollBtn" class="secondary">🔄 Renovar · 2 🪙</button><button id="oddsBtn" class="secondary">ℹ️ Dicas</button></div></section>
+<section class="panel"><div class="panel-top"><div><div class="section-eyebrow">Unidades guardadas</div><h2>Banco de reservas</h2></div><div class="badge-round" id="benchBadge">0 / 7</div></div><div id="bench" class="bench"></div><div id="unitInfo" class="unit-info"></div></section>
+<section class="panel" id="forgePanel"><div class="panel-top"><div><div class="section-eyebrow">Oficina do reino</div><h2>Forja de equipamentos</h2></div><div class="badge-round" id="forgeBadge">2 OFERTAS</div></div><div class="forge-body"><div class="forge-offers" id="forgeOffers"></div><div class="item-section-label" id="inventoryLabel">Mochila · 0 itens</div><div class="item-stash" id="itemStash"></div><div id="itemDetails" class="item-detail" role="region" aria-label="Descrição do item selecionado" aria-live="polite" hidden></div><section class="craft-section" id="craftPanel" hidden aria-hidden="true"><div id="craftSlots"></div><div id="craftPreview"></div><button id="craftBtn" type="button" hidden disabled></button><div id="recipeList"></div></section><p class="forge-hint">Toque na mochila para inspecionar um item e ver sua descrição completa. Selecione uma miniatura no campo ou no banco e use <b>Equipar</b>. Cada miniatura pode carregar 2 itens. Itens raros agora aparecem apenas como recompensas de chefes e bênçãos.</p></div></section>
+<section class="panel"><div class="panel-top"><div><div class="section-eyebrow">Bônus de equipe</div><h2>Alianças</h2></div><div class="badge-round">2 / 4 DIFERENTES</div></div><div class="traits" id="traits"></div><p class="forge-hint" style="margin:0 14px 13px">Cada aliança tem bônus com 2 e 4 personagens diferentes. Cópias repetidas contam apenas uma vez.</p></section></div></main><div class="audio-bar" role="group" aria-label="Controles de áudio"><span id="audioStatus" class="audio-status">🎵 Música desligada · toque em 🎵 para ligar</span><label for="volumeSlider" class="audio-volume-label">Volume <input id="volumeSlider" type="range" min="0" max="100" step="5" value="35" aria-label="Volume da música e dos efeitos"><span id="volumeValue">35%</span></label></div><div class="footnote">Salvamento automático no aparelho · Jogue sem instalar nada · <button id="resetBtn" type="button" style="background:none;border:0;color:#b8ccd9;text-decoration:underline;font-size:11px;padding:2px 4px">Recomeçar</button></div></div>
+<div class="modal hidden" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-body"><div class="modal-icon" id="modalIcon">🏆</div><h2 id="modalTitle">Vitória!</h2><p id="modalText"></p><div id="modalReward" class="reward"></div><button id="modalAction" class="primary">PRÓXIMA RODADA</button><button id="modalReportBtn" class="secondary modal-report-toggle" type="button" hidden aria-expanded="false" aria-controls="modalReport">📊 Ver relatório completo</button><section id="modalReport" class="modal-report" hidden><div id="modalReportBody"></div></section><span class="modal-sub" id="modalSub"></span></div></div><div class="modal hidden" id="shopModal" role="dialog" aria-modal="true" aria-labelledby="shopInspectName"><div class="modal-body shop-inspect-body"><button id="shopInspectClose" class="shop-inspect-close" type="button" aria-label="Fechar ficha">×</button><div id="shopInspectHeader" class="shop-inspect-header"></div><div class="shop-inspect-heading">Atributos da miniatura ★</div><div id="shopInspectStats" class="shop-inspect-stats"></div><div class="shop-inspect-heading">Habilidade e função</div><div id="shopInspectSkill" class="shop-inspect-skill"></div><div class="shop-inspect-heading">Bônus de aliança</div><div id="shopInspectTraits" class="shop-inspect-traits"></div><div class="shop-inspect-actions"><button id="shopInspectCancel" class="secondary" type="button">Voltar</button><button id="shopInspectConfirm" class="primary" type="button">Comprar</button></div><p id="shopInspectNote" class="shop-inspect-note" aria-live="polite"></p></div></div><div class="modal hidden" id="blessingModal" role="dialog" aria-modal="true" aria-labelledby="blessingTitle"><div class="modal-body"><div class="modal-icon">✨</div><h2 id="blessingTitle">Escolha uma bênção</h2><p id="blessingText"></p><div id="blessingChoices" class="blessing-grid"></div><span class="modal-sub" id="blessingSub"></span></div></div><div class="toast" id="toast" aria-live="polite"></div>
+<script>
+(()=>{'use strict';
+const TYPES={
+ guard:{name:'Guardião',short:'Guardião',icon:'🛡️',group:'ferro',cost:2,hp:110,atk:12,armor:6,speed:.93,range:1,skill:'Escudo reforçado',tip:'Muito resistente; ganha escudo.'},
+ spear:{name:'Lanceiro',short:'Lanceiro',icon:'🔱',group:'ferro',cost:2,hp:84,atk:17,armor:3,speed:1.1,range:2,skill:'Estocada',tip:'Ataca a até 2 casas.'},
+ axe:{name:'Berserker',short:'Berserker',icon:'🪓',group:'ferro',cost:3,hp:103,atk:24,armor:2,speed:.99,range:1,skill:'Fúria',tip:'Causa mais dano ferido.'},
+ bow:{name:'Arqueira',short:'Arqueira',icon:'🏹',group:'selva',cost:2,hp:62,atk:22,armor:0,speed:1.3,range:4,skill:'Disparo duplo',tip:'Ataca à distância; dispara duas flechas.'},
+ druid:{name:'Druida',short:'Druida',icon:'🌿',group:'selva',cost:3,hp:81,atk:14,armor:1,speed:1.06,range:3,skill:'Regeneração',tip:'Cura aliados próximos.'},
+ hunter:{name:'Caçadora',short:'Caçadora',icon:'🦊',group:'selva',cost:3,hp:74,atk:23,armor:1,speed:1.22,range:3,skill:'Tiro certeiro',tip:'Chance alta de golpe crítico.'},
+ mage:{name:'Feiticeira',short:'Feiticeira',icon:'🔮',group:'arcano',cost:3,hp:67,atk:23,armor:0,speed:1.05,range:3,skill:'Explosão arcana',tip:'Acerta inimigos próximos.'},
+ cleric:{name:'Oráculo',short:'Oráculo',icon:'✨',group:'arcano',cost:2,hp:72,atk:11,armor:1,speed:1.03,range:3,skill:'Luz restauradora',tip:'Cura o aliado mais ferido.'},
+ golem:{name:'Golem',short:'Golem',icon:'🪨',group:'arcano',cost:4,hp:152,atk:17,armor:6,speed:.78,range:1,skill:'Pele de pedra',tip:'Resiste a muitos golpes.'},
+ rogue:{name:'Assassina',short:'Assassina',icon:'🗡️',group:'sombra',cost:3,hp:68,atk:27,armor:1,speed:1.37,range:1,skill:'Golpe nas costas',tip:'Prioriza adversários frágeis.'},
+ ghost:{name:'Espectro',short:'Espectro',icon:'👻',group:'sombra',cost:4,hp:83,atk:29,armor:1,speed:1.23,range:2,skill:'Roubo de vida',tip:'Recupera vida ao atacar.'},
+ paladin:{name:'Paladina',short:'Paladina',icon:'🌟',group:'ferro',cost:3,hp:112,atk:16,armor:5,speed:.97,range:1,skill:'Cúpula protetora',tip:'A cada 3 ações, concede escudos a 2 aliados.'},
+ sentinel:{name:'Sentinela',short:'Sentinela',icon:'🗼',group:'ferro',cost:2,hp:122,atk:11,armor:5,speed:.9,range:1,skill:'Provocação',tip:'Força inimigos próximos a atacá-la por 2 turnos.'},
+ toxic:{name:'Arqueira Tóxica',short:'Tóxica',icon:'🐍',group:'selva',cost:3,hp:68,atk:19,armor:0,speed:1.18,range:4,skill:'Flecha venenosa',tip:'Envenena alvos causando dano por 3 ações.'},
+ shaman:{name:'Xamã',short:'Xamã',icon:'🌱',group:'selva',cost:3,hp:83,atk:16,armor:2,speed:1.01,range:3,skill:'Raízes profundas',tip:'Enraíza inimigos: eles não podem se mover por 2 ações.'},
+ frost:{name:'Criomante',short:'Criomante',icon:'❄️',group:'arcano',cost:3,hp:67,atk:18,armor:1,speed:1.06,range:3,skill:'Prisão glacial',tip:'Congela o alvo, cancelando sua próxima ação.'},
+ storm:{name:'Tempestária',short:'Tempestária',icon:'⚡',group:'arcano',cost:4,hp:72,atk:21,armor:0,speed:1.04,range:4,skill:'Raio em cadeia',tip:'O raio salta para mais 2 inimigos diferentes.'},
+ necro:{name:'Necromante',short:'Necromante',icon:'☠️',group:'sombra',cost:4,hp:80,atk:22,armor:1,speed:1.01,range:3,skill:'Maldição sombria',tip:'Amaldiçoa o alvo: dano contínuo e ataques enfraquecidos.'},
+ shade:{name:'Sombra Errante',short:'Errante',icon:'🌘',group:'sombra',cost:3,hp:73,atk:24,armor:1,speed:1.29,range:1,skill:'Passo sombrio',tip:'Teleporta para a retaguarda inimiga e golpeia.'}
+};
+// Afinidades de dano independentes da aliança: Golem é Arcano, mas ataca fisicamente.
+const MAGICAL_ATTACKERS=new Set(['druid','mage','cleric','ghost','shaman','frost','storm','necro']);
+const MAGIC_RESIST={guard:2,spear:2,axe:1,bow:1,druid:5,hunter:2,mage:6,cleric:7,golem:3,rogue:1,ghost:7,paladin:5,sentinel:3,toxic:2,shaman:5,frost:6,storm:6,necro:7,shade:3};
+const attackKind=type=>MAGICAL_ATTACKERS.has(type)?'magic':'physical';
+const kindLabel=kind=>kind==='magic'?'🔮 Mágico':'⚔️ Físico';
+const GROUPS={
+ ferro:{name:'Ferro',icon:'⚒️',color:'#d99568',desc:'+3 armadura para toda a equipe',tier4:'+6 armadura e +18 de escudo inicial'},
+ selva:{name:'Selva',icon:'🍃',color:'#55a876',desc:'+20% velocidade para toda a equipe',tier4:'+30% velocidade e regeneração periódica'},
+ arcano:{name:'Arcano',icon:'🔮',color:'#8776d3',desc:'+25% ataque para toda a equipe',tier4:'+40% ataque e +8% crítico'},
+ sombra:{name:'Sombra',icon:'🌑',color:'#9c82bc',desc:'+20% chance de crítico',tier4:'+32% crítico e 12% de roubo de vida'}
+};
+const ITEMS={
+ sword:{name:'Espada de aço',icon:'⚔️',cost:4,tip:'+8 ataque',atk:8},
+ mail:{name:'Couraça',icon:'🛡️',cost:5,tip:'+40 vida e +3 armadura física',hp:40,armor:3},
+ ward:{name:'Manto de runas',icon:'🧿',cost:5,tip:'+35 vida e +5 resistência mágica',hp:35,resist:5},
+ focus:{name:'Foco arcano',icon:'💠',cost:5,tip:'Ignora 5 de resistência mágica',magicPierce:5},
+ boots:{name:'Botas velozes',icon:'👢',cost:5,tip:'+24% velocidade',speed:.24},
+ amulet:{name:'Amuleto preciso',icon:'🎯',cost:5,tip:'+18% chance de crítico',crit:.18},
+ ring:{name:'Anel vampírico',icon:'💍',cost:6,tip:'Recupera 22% do dano causado',leech:.22},
+ orb:{name:'Orbe vital',icon:'💚',cost:5,tip:'+65 vida',hp:65},
+ staff:{name:'Cajado rúnico',icon:'🔮',cost:5,tip:'+11 ataque',atk:11},
+ charm:{name:'Pingente sagrado',icon:'✨',cost:4,tip:'+40% de cura realizada',heal:.4},
+ shield:{name:'Talismã guardião',icon:'🔰',cost:4,tip:'+30 escudo inicial',shield:30},
+ lance:{name:'Lança perfurante',icon:'🔱',cost:5,tip:'Ignora 5 de armadura física',pierce:5},
+ bloodblade:{name:'Lâmina Sanguinária',icon:'🩸',rarity:'rare',tip:'+13 ataque e 28% de roubo de vida',atk:13,leech:.28},
+ bastion:{name:'Bastião Ancestral',icon:'🏰',rarity:'rare',tip:'+68 vida, +5 armadura e +48 de escudo',hp:68,armor:5,shield:48},
+ windfang:{name:'Passos do Predador',icon:'💨',rarity:'rare',tip:'+32% velocidade e +24% chance de crítico',speed:.32,crit:.24},
+ divine:{name:'Cetro da Aurora',icon:'🌅',rarity:'rare',tip:'+17 ataque e +60% de cura',atk:17,heal:.60},
+ piercer:{name:'Espada Rompeferro',icon:'⚡',rarity:'rare',tip:'+19 ataque e ignora 9 de armadura',atk:19,pierce:9},
+ heart:{name:'Coração Rubro',icon:'❤️‍🔥',rarity:'rare',tip:'+100 vida e 24% de roubo de vida',hp:100,leech:.24},
+ arcana:{name:'Olho Arcano',icon:'🪬',rarity:'rare',tip:'+18 ataque, +26% crítico e +6 penetração mágica',atk:18,crit:.26,magicPierce:6},
+ wardsteps:{name:'Passos do Guardião',icon:'🥾',rarity:'rare',tip:'+28% velocidade e +44 de escudo',speed:.28,shield:44}
+};
+const ITEM_DESCRIPTIONS={
+ sword:'Aumenta o dano dos ataques e das habilidades que dependem do ataque da miniatura.',
+ mail:'Reforça a vida e a armadura, que reduz especificamente o dano físico.',
+ ward:'Ideal contra feitiços, raios e maldições. A resistência mágica reduz apenas o dano mágico.',
+ focus:'Aumenta a eficácia de ataques e habilidades mágicas ao ignorar parte da resistência mágica do alvo.',
+ boots:'Faz a miniatura atacar e agir com mais frequência durante a batalha.',
+ amulet:'Aumenta a probabilidade de golpes críticos, que causam dano extra.',
+ ring:'Cura a miniatura com base no dano que ela realmente tira da vida dos adversários.',
+ orb:'Concede vida adicional, ajudando a miniatura a permanecer mais tempo no combate.',
+ staff:'Aumenta o poder de ataque, inclusive das habilidades ofensivas que o utilizam.',
+ charm:'Potencializa a cura que a miniatura concede a seus aliados ou a si mesma.',
+ shield:'A miniatura começa cada combate com uma barreira que absorve dano antes de sua vida.',
+ lance:'Os ataques físicos ignoram parte da armadura do alvo antes de calcular o dano.',
+ bloodblade:'Item raro ofensivo: aumenta o dano e recupera a vida conforme o dano efetivo causado.',
+ bastion:'Item raro defensivo para a linha de frente: bastante vida, armadura e escudo inicial.',
+ windfang:'Item raro ideal para arqueiros e assassinos: muita velocidade e chance de crítico.',
+ divine:'Item raro de suporte e magia: dá poder ofensivo e amplia fortemente a cura.',
+ piercer:'Item raro agressivo: fortalece ataques físicos e supera a armadura dos tanques.',
+ heart:'Item raro de sobrevivência: combina resistência elevada com recuperação de vida ao causar dano.',
+ arcana:'Item raro de poder arcano: aumenta dano, crítico e ignora parte da resistência mágica.',
+ wardsteps:'Item raro utilitário: concede velocidade e uma barreira inicial.'
+};
+const RARE_RECIPES=[
+ {a:'sword',b:'ring',result:'bloodblade'},
+ {a:'mail',b:'shield',result:'bastion'},
+ {a:'boots',b:'amulet',result:'windfang'},
+ {a:'staff',b:'charm',result:'divine'},
+ {a:'sword',b:'lance',result:'piercer'},
+ {a:'orb',b:'ring',result:'heart'},
+ {a:'staff',b:'amulet',result:'arcana'},
+ {a:'boots',b:'shield',result:'wardsteps'}
+];
+const recipeFrom=(a,b)=>RARE_RECIPES.find(r=>(r.a===a&&r.b===b)||(r.a===b&&r.b===a));
+
+const BOSS_ROUNDS={
+  5:{name:'Titã de Pedra',icon:'🗿',lead:'golem',effect:'stone',desc:'ganha escudos periódicos e lidera uma muralha de ferro.',supports:['guard','sentinel','paladin','spear']},
+  10:{name:'Rainha da Tempestade',icon:'⛈️',lead:'storm',effect:'storm',desc:'invoca raios sobre as miniaturas mais frágeis.',supports:['frost','mage','bow','cleric']},
+  15:{name:'Matriarca Venenosa',icon:'☠️',lead:'toxic',effect:'toxic',desc:'espalha veneno pela sua equipe ao longo do combate.',supports:['toxic','hunter','shaman','rogue']},
+  20:{name:'Lich Sombrio',icon:'💀',lead:'necro',effect:'shadow',desc:'amaldiçoa os seus aliados e drena vida.',supports:['shade','ghost','necro','mage']}
+};
+const BLESSINGS=[
+  {id:'gold',icon:'🪙',name:'Tesouro do reino',desc:'+8 moedas agora.',apply(){game.gold+=8;return '+8 moedas';}},
+  {id:'life',icon:'❤️',name:'Fôlego extra',desc:'+1 vida (até 5).',apply(){const before=game.lives;game.lives=Math.min(5,game.lives+1);return game.lives>before?'+1 vida':'vida já estava no máximo';}},
+  {id:'sword',icon:'⚔️',name:'Treino de guerra',desc:'+2 de ataque permanente para suas miniaturas no modo solo.',apply(){game.globalBuffs.atk+=2;return '+2 ataque global';}},
+  {id:'armor',icon:'🛡️',name:'Aço reforçado',desc:'+2 de armadura permanente para suas miniaturas no modo solo.',apply(){game.globalBuffs.armor+=2;return '+2 armadura global';}},
+  {id:'speed',icon:'⚡',name:'Passos ligeiros',desc:'+0,06 de velocidade permanente para suas miniaturas no modo solo.',apply(){game.globalBuffs.speed+=.06;return '+0,06 velocidade global';}},
+  {id:'vitality',icon:'💚',name:'Vitalidade ancestral',desc:'+14 de vida máxima permanente para suas miniaturas no modo solo.',apply(){game.globalBuffs.hp+=14;return '+14 vida global';}},
+  {id:'item',icon:'🎁',name:'Arsenal do reino',desc:'Receba 2 itens básicos aleatórios.',apply(){const a=choice(itemList()),b=choice(itemList());game.inventory.push(a,b);return 'ganhou '+ITEMS[a].name+' e '+ITEMS[b].name;}}
+];
+function bossInfoForRound(round){
+  if(!BOSS_ROUNDS[round])return null;
+  return JSON.parse(JSON.stringify(BOSS_ROUNDS[round]));
+}
+function blessingChoicesForRound(round){
+  const copy=BLESSINGS.slice(),picked=[];
+  while(copy.length&&picked.length<3){picked.push(copy.splice(rnd(copy.length),1)[0]);}
+  if(round%5===0&&!picked.some(b=>b.id==='item'))picked[0]=BLESSINGS.find(b=>b.id==='item');
+  return picked;
+}
+function buffsSummary(){
+  if(!game?.globalBuffs)return '';
+  const bits=[];
+  if(game.globalBuffs.hp)bits.push('+'+game.globalBuffs.hp+' vida');
+  if(game.globalBuffs.atk)bits.push('+'+game.globalBuffs.atk+' ataque');
+  if(game.globalBuffs.armor)bits.push('+'+game.globalBuffs.armor+' armadura');
+  if(game.globalBuffs.speed)bits.push('+'+game.globalBuffs.speed.toFixed(2)+' vel.');
+  return bits.length?' Bênçãos: '+bits.join(' · '):'';
+}
+// Papéis táticos compartilhados pelos dois exércitos.
+const ROLES={
+ front:{name:'Linha de frente',icon:'🛡️',tip:'Segura o avanço e protege aliados que estejam logo atrás.'},
+ flank:{name:'Infiltrador',icon:'🗡️',tip:'Busca a retaguarda e prioriza suportes e alvos frágeis.'},
+ ranged:{name:'Atirador',icon:'🏹',tip:'Prefere alvos vulneráveis; pode recuar quando ameaçado.'},
+ caster:{name:'Conjurador',icon:'🔮',tip:'Lança feitiços de longe e busca alvos prioritários.'},
+ support:{name:'Suporte',icon:'💚',tip:'Prioriza a cura e procura manter distância dos inimigos.'},
+ fighter:{name:'Combatente',icon:'⚔️',tip:'Avança e enfrenta os adversários mais próximos.'}
+};
+const TYPE_ROLES={guard:'front',spear:'fighter',axe:'fighter',bow:'ranged',druid:'support',hunter:'ranged',mage:'caster',cleric:'support',golem:'front',rogue:'flank',ghost:'flank',paladin:'front',sentinel:'front',toxic:'ranged',shaman:'support',frost:'caster',storm:'caster',necro:'caster',shade:'flank'};
+const roleOf=type=>TYPE_ROLES[type]||'fighter';
+const PROJECTILES=new Set(['bow','hunter','toxic','spear']);
+const FRONTLINERS=new Set(['guard','golem','paladin','sentinel']);
+const SPECIAL_SUPPORTS=new Set(['cleric','druid','shaman']);
+const MAX_EQUIP=2;
+const MAX_BENCH=7, SAVE_KEY='miniaturas-liga-v1';let nextId=1,game,battle=null,clock=null,audioCtx=null,soundOn=false,toastTimer=null,musicBus=null,fxBus=null,musicTimer=null,musicTheme='',musicStep=0,nextMusicTime=0,musicNoise=null,volume=readAudioVolume(),reportOpen=false,reportSide='player',modalReportOpen=false,modalReportSide='player',selectedInventoryIndex=null,craftSelection=[],pendingShopSlot=null,blessingChoices=[];
+const $=id=>document.getElementById(id),rnd=n=>Math.floor(Math.random()*n),choice=a=>a[rnd(a.length)],dist=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y),esc=s=>String(s).replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const deployed=()=>game.roster.filter(u=>u.x!==null), bench=()=>game.roster.filter(u=>u.x===null),capacity=()=>Math.min(6,3+Math.floor((game.round-1)/3));
+function miniArt(type){
+ const group=GROUPS[TYPES[type].group],trim='<path d="M9 50Q9 37 19 33L35 33Q45 37 47 50Z" fill="#263c56" stroke="#132233" stroke-width="1.7"/>',
+ face='<ellipse cx="28" cy="23" rx="10.5" ry="12" fill="#f4c79c" stroke="#704d41" stroke-width="1.6"/><circle cx="24" cy="23" r="1.15" fill="#292b35"/><circle cx="32" cy="23" r="1.15" fill="#292b35"/><path d="M26 29q2 2 4 0" fill="none" stroke="#8e5351" stroke-width="1.3"/>',
+ body=`<path d="M12 54Q13 38 20 34L36 34Q44 38 45 54Z" fill="${group.color}" stroke="#19283a" stroke-width="2"/><path d="M27 36L27 53" stroke="#e7f2e6" stroke-opacity=".6" stroke-width="2"/>`,
+ steel='#dceaf5',dark='#2d3c57',gold='#ffd98e';
+ const hood=(col='#263048')=>`<path d="M13 29Q12 7 28 6Q45 8 43 31L38 33Q42 13 28 13Q14 13 17 33Z" fill="${col}" stroke="#152030" stroke-width="2"/>`;
+ const hat=(col='#453575')=>`<path d="M14 19L28 2L41 19Q27 15 14 19Z" fill="${col}" stroke="#1c1e3b" stroke-width="2"/><path d="M9 21Q28 14 47 21" fill="none" stroke="${gold}" stroke-width="4"/>`;
+ const stick=(col=gold)=>`<path d="M47 48L47 9" stroke="#4b3229" stroke-width="5" stroke-linecap="round"/><circle cx="47" cy="10" r="5" fill="${col}" stroke="#fff2c8" stroke-width="1.5"/>`;
+ const bow='<path d="M47 8Q58 27 46 50" fill="none" stroke="#8c572f" stroke-width="5"/><path d="M47 8L46 50" stroke="#fff4dc" stroke-width="1.5"/><path d="M36 27L54 27" stroke="#e3effc" stroke-width="2.5"/><path d="M55 27l-7-4v8Z" fill="#d3edf9"/>';
+ const shield='<path d="M8 29L23 24L24 46L16 52L8 46Z" fill="#84a6be" stroke="#e6eff5" stroke-width="2"/><path d="M15 31V45M10 39H21" stroke="#345770" stroke-width="2"/>';
+ const sword=`<path d="M40 43L51 8L55 5L52 17L44 44" fill="${steel}" stroke="#30475b" stroke-width="1.5"/><path d="M36 39L48 44" stroke="${gold}" stroke-width="3.7"/>`;
+ const eye='<path d="M22 24L26 23M30 23L34 24" stroke="#ffe3a3" stroke-width="2.5"/>';
+ let core=body+face,gear='';
+ if(type==='guard'){core+=`<path d="M16 19Q15 10 28 9Q41 10 40 19V24H16Z" fill="${dark}" stroke="${gold}" stroke-width="2"/><path d="M28 9V22" stroke="${steel}" stroke-width="2"/>`;gear=sword+shield}
+ else if(type==='spear'){core+=`<path d="M16 17Q28 2 40 17L35 19H20Z" fill="#58677b" stroke="#dedfde" stroke-width="1.5"/>`;gear=`<path d="M46 51V6" stroke="#775334" stroke-width="4"/><path d="M46 1L41 15H51Z" fill="${steel}" stroke="#56748c" stroke-width="1"/>`}
+ else if(type==='axe'){core+=`<path d="M14 17Q16 5 27 9Q37 7 41 20L36 15L28 18L19 15Z" fill="#8e4432"/>`;gear='<path d="M46 47L40 10" stroke="#73432b" stroke-width="5"/><path d="M34 12Q52 2 54 17L46 26Q47 15 34 12Z" fill="#cbdbe6" stroke="#6d7f91" stroke-width="1.6"/>'}
+ else if(type==='bow'){core+=`<path d="M17 20L18 12L26 15L33 10L39 18" fill="none" stroke="#74452f" stroke-width="5"/>`;gear=bow}
+ else if(type==='druid'){core+=hood('#416e4e');gear=stick('#9df4a1')+'<path d="M40 6Q48 0 53 6Q51 15 45 16" fill="#61ae61"/>'}
+ else if(type==='hunter'){core+=`<path d="M16 17Q27 1 42 17L39 20L17 21Z" fill="#466345"/><path d="M34 8L49 6L39 15" fill="#f6bd70"/>`;gear=bow}
+ else if(type==='mage'){core+=hat('#51408e');gear=stick('#b18aff')+'<circle cx="47" cy="10" r="9" fill="#bfa3ff" opacity=".26"/>'}
+ else if(type==='cleric'){core+=`<path d="M17 18L20 11L28 14L35 10L40 18" fill="${gold}" stroke="#fff5d3" stroke-width="1.2"/>`;gear=stick('#fff5bb')+'<path d="M47 4V16M41 10H53" stroke="#fff8de" stroke-width="2"/>'}
+ else if(type==='rogue'){core+=hood('#252a43')+eye;gear='<path d="M9 51L22 38L23 30L26 34L20 40L16 54Z" fill="#d6eaf5"/><path d="M39 50L47 33L51 29L50 39L43 54Z" fill="#e1ecff"/>'}
+ else if(type==='golem'){core='<path d="M8 49L11 28L19 23L15 11L29 5L41 11L38 23L48 28L50 49L39 55H16Z" fill="#84949a" stroke="#3c5262" stroke-width="2.6"/><path d="M14 28L26 32L39 25M27 9L29 31M17 49L26 32L42 46" fill="none" stroke="#4b6574" stroke-width="2.4"/><path d="M19 23l6 2m10-2l6 2" stroke="#9af0f9" stroke-width="4"/>';gear=''}
+ else if(type==='paladin'){core+=`<path d="M16 19L20 8L28 12L36 8L41 19Z" fill="#e5d6ad" stroke="#fff0bc" stroke-width="1.8"/><path d="M28 6V19M22 12H34" stroke="#ddf9f8" stroke-width="2"/>`;gear=shield+stick('#ffeab2')}
+ else if(type==='sentinel'){core+=`<path d="M13 21L18 11L28 5L38 11L43 21L36 25H19Z" fill="#718090" stroke="#e9ddc1" stroke-width="2"/><path d="M22 24H34" stroke="#172637" stroke-width="3"/>`;gear='<path d="M6 48V12L17 10V46Z" fill="#a8b7bd" stroke="#e4d6b9" stroke-width="2"/><path d="M11 13V45" stroke="#4f6b84" stroke-width="3"/>'}
+ else if(type==='toxic'){core+=hood('#335e39')+'<circle cx="27" cy="14" r="2" fill="#c7ff85"/>';gear=bow+'<path d="M52 25L58 27L52 29Z" fill="#baff72"/>'}
+ else if(type==='shaman'){core+=`<path d="M16 18Q22 4 27 10Q35 0 40 20L28 17Z" fill="#41795c"/><path d="M19 14L27 6L35 12" fill="none" stroke="#b9e391" stroke-width="2"/>`;gear=stick('#6ed9a8')+'<path d="M42 14Q35 5 45 2Q53 6 50 15Z" fill="#5ac37b"/>'}
+ else if(type==='frost'){core+=hat('#4c83ac')+'<path d="M22 10L27 2L31 9" fill="#d6f6ff"/>';gear=stick('#8fddff')+'<path d="M47 0V20M38 10H56M40 4L54 16M54 4L40 16" stroke="#c3f6ff" stroke-width="1.4"/>'}
+ else if(type==='storm'){core+=hat('#584e9d')+'<path d="M19 14L28 4L33 13L42 8" fill="none" stroke="#f1c65d" stroke-width="2.2"/>';gear=stick('#ffed8b')+'<path d="M48 0L39 13H46L42 23L57 7H49Z" fill="#fff1a8"/>'}
+ else if(type==='necro'){core+=hood('#27263e')+'<path d="M20 24l5 2m7 0l5-2" stroke="#bbf49b" stroke-width="2"/>';gear=stick('#89d5ab')+'<path d="M42 5L47 1L53 5V13L47 17L42 13Z" fill="#8bceab" stroke="#d4eadd" stroke-width="1.5"/>'}
+ else if(type==='shade'){core+=hood('#30234b')+'<path d="M20 24H26M30 24H36" stroke="#f3b5e7" stroke-width="2.5"/>';gear='<path d="M40 51L56 24L48 27L36 51Z" fill="#c7a5eb"/><path d="M8 52L21 32L16 28L7 41Z" fill="#bd9de8"/>'}
+ else if(type==='ghost'){core='<path d="M15 48Q8 24 17 12Q28 0 40 13Q51 28 42 50L35 45L28 52L20 45Z" fill="#a0a9d9" opacity=".94" stroke="#d3dbff" stroke-width="2"/><ellipse cx="24" cy="25" rx="3" ry="4" fill="#283457"/><ellipse cx="34" cy="25" rx="3" ry="4" fill="#283457"/><path d="M27 34Q30 31 33 34" fill="none" stroke="#475780" stroke-width="2"/>';gear='<path d="M47 13L49 41" stroke="#d7d1ff" stroke-width="3"/>'}
+ return `<svg viewBox="0 0 58 58" class="mini-art" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">${trim}${core}${gear}</svg>`;
+}
+const itemList=()=>Object.keys(ITEMS).filter(id=>ITEMS[id].rarity!=='rare');
+function newUnit(type,x=null,y=null,star=1){return {id:nextId++,type,star,x,y,items:[]};}
+
+function openBlessingModal(round){
+ blessingChoices=blessingChoicesForRound(round);
+ $('blessingTitle').textContent=round%5===0?'Escolha uma bênção de chefe':'Escolha uma bênção';
+ $('blessingText').textContent=round%5===0?'Você derrotou um chefe. Escolha uma recompensa permanente para fortalecer sua campanha solo.':'Vitória marcante! Escolha uma bênção para a próxima etapa da campanha solo.';
+ $('blessingSub').textContent='As bênçãos afetam apenas o modo solo e ficam salvas neste navegador.';
+ $('blessingChoices').innerHTML=blessingChoices.map((b,i)=>`<button type="button" class="blessing-card" data-blessing="${i}"><strong>${b.icon} ${esc(b.name)}</strong><small>${esc(b.desc)}</small></button>`).join('');
+ $('blessingModal').classList.remove('hidden');
+}
+function closeBlessingModal(){$('blessingModal').classList.add('hidden')}
+function applyBlessing(i){
+ const chosen=blessingChoices[i]; if(!chosen)return;
+ const summary=chosen.apply();
+ closeBlessingModal(); render(); save();
+ showToast(`✨ ${chosen.name}: ${summary}`);
+}
+function newRun(){pendingShopSlot=null;craftSelection=[];closeShopInspect();selectedInventoryIndex=null;nextId=1;game={round:1,gold:8,lives:3,wins:0,roster:[newUnit('guard',2,4),newUnit('bow',3,5)],shop:[],preview:[],forge:[],inventory:[],selected:null,phase:'prep',highScore:readHighScore(),lastReport:null,globalBuffs:{atk:0,armor:0,speed:0,hp:0},bossInfo:null};rollShop(true);rollForge();makePreview();save();render();}
+function readHighScore(){try{return Number(localStorage.getItem('miniaturas-recorde')||0)}catch{return 0}}
+function save(){if(pvp.active)return;if(game?.phase==='combat'||game?.phase==='result')return;try{localStorage.setItem(SAVE_KEY,JSON.stringify({game:{...game,phase:'prep',selected:null},nextId}))}catch{}}
+function load(){try{craftSelection=[];pendingShopSlot=null;selectedInventoryIndex=null;const blob=JSON.parse(localStorage.getItem(SAVE_KEY));if(!blob||!blob.game||!Array.isArray(blob.game.roster)||!Array.isArray(blob.game.shop)||!Array.isArray(blob.game.preview))return false;game=blob.game;nextId=blob.nextId||100;game.phase='prep';game.selected=null;game.inventory=Array.isArray(game.inventory)?game.inventory:[];game.forge=Array.isArray(game.forge)?game.forge:[];game.globalBuffs=game.globalBuffs||{atk:0,armor:0,speed:0,hp:0};game.bossInfo=game.bossInfo||null;if(!game.forge.length)rollForge();game.roster.forEach(u=>{if(!Array.isArray(u.items))u.items=[]});return true}catch{return false}}
+function rollShop(free=false){if(!free){if(game.phase!=='prep'||game.gold<2)return;game.gold-=2;playNote(380)}const pool=Object.keys(TYPES).flatMap(id=>Array.from({length:Math.max(1,5-TYPES[id].cost)},()=>id));game.shop=Array.from({length:4},()=>choice(pool));save();render();}
+function rollForge(){const pool=itemList();game.forge=Array.from({length:2},()=>pool.splice(rnd(pool.length),1)[0]);}
+function buyItem(slot){if(game.phase!=='prep'||!game.forge[slot])return;const id=game.forge[slot],it=ITEMS[id];if(game.gold<it.cost){showToast('Moedas insuficientes para o item');return}game.gold-=it.cost;game.inventory.push(id);game.forge[slot]=null;selectedInventoryIndex=null;craftSelection=[];playNote(710);showToast(`${it.name} comprado! Selecione uma miniatura.`);save();render();}
+function equipItem(i){if(game.phase!=='prep'||!game.inventory[i])return;const u=game.roster.find(u=>u.id===game.selected);if(!u){showToast('Selecione uma miniatura antes de equipar');return}u.items=u.items||[];if(u.items.length>=MAX_EQUIP){showToast('Esta miniatura já tem 2 equipamentos');return}const id=game.inventory.splice(i,1)[0];u.items.push(id);selectedInventoryIndex=null;craftSelection=[];playNote(800);showToast(`${ITEMS[id].name} equipado em ${TYPES[u.type].name}`);save();render();}
+function unequipItem(slot){if(game.phase!=='prep')return;const u=game.roster.find(u=>u.id===game.selected);if(!u||!u.items||!u.items[slot])return;const id=u.items.splice(slot,1)[0];game.inventory.push(id);selectedInventoryIndex=null;craftSelection=[];playNote(520);showToast(`${ITEMS[id].name} voltou à mochila`);save();render();}
+function selectCraftIngredient(i){
+ if(game.phase!=='prep'||!Number.isInteger(i)||!game.inventory[i])return;
+ const id=game.inventory[i];if(ITEMS[id]?.rarity==='rare'){showToast('Itens raros já estão aprimorados; combine os básicos.');return}
+ const pos=craftSelection.indexOf(i);
+ if(pos>=0)craftSelection.splice(pos,1);
+ else if(craftSelection.length>=2){showToast('Retire um ingrediente para escolher outro.');return}
+ else craftSelection.push(i);
+ renderForge();
+}
+function selectCraftRecipe(n){
+ if(game.phase!=='prep'||!RARE_RECIPES[n])return;
+ const r=RARE_RECIPES[n],a=game.inventory.indexOf(r.a),b=game.inventory.findIndex((id,i)=>id===r.b&&i!==a);
+ if(a<0||b<0){showToast('Faltam ingredientes na mochila. Retire itens equipados para usá-los.');return}
+ craftSelection=[a,b];selectedInventoryIndex=null;renderForge();
+ $('craftPanel').scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+function craftItem(){
+ if(game.phase!=='prep'||craftSelection.length!==2)return;
+ const [a,b]=craftSelection;
+ if(a===b||!game.inventory[a]||!game.inventory[b])return;
+ const recipe=recipeFrom(game.inventory[a],game.inventory[b]);
+ if(!recipe){showToast('Esses ingredientes não formam uma receita.');return}
+ [a,b].sort((x,y)=>y-x).forEach(i=>game.inventory.splice(i,1));
+ game.inventory.push(recipe.result);craftSelection=[];selectedInventoryIndex=game.inventory.length-1;
+ playNote(950,.13);showToast(`✨ ${ITEMS[recipe.result].name} criado!`);save();render();
+}
+function renderCraft(){const panel=$('craftPanel');if(panel)panel.hidden=true;}
+function inspectShop(i){
+ if(game.phase!=='prep'||!Number.isInteger(i)||!game.shop[i])return;
+ pendingShopSlot=i;const t=TYPES[game.shop[i]],g=GROUPS[t.group],role=ROLES[roleOf(game.shop[i])];
+ $('shopInspectHeader').innerHTML=`<div class="shop-inspect-icon" style="--unit-color:${g.color}">${miniArt(game.shop[i])}</div><div><h2 id="shopInspectName" class="shop-inspect-name">${esc(t.name)}</h2><div class="shop-inspect-sub">${g.icon} ${g.name} · ${role.icon} ${role.name}<div>⭐ 1 estrela · 🪙 ${t.cost} moedas</div></div></div>`;
+ const attrs=[['❤️',t.hp,'Vida'],[attackKind(game.shop[i])==='magic'?'🔮':'⚔️',t.atk,attackKind(game.shop[i])==='magic'?'Ataque mágico':'Ataque físico'],['🛡️',t.armor,'Armadura'],['🪬',MAGIC_RESIST[game.shop[i]],'Resist. mágica'],['⚡',t.speed.toFixed(2),'Velocidade'],['🎯',t.range,'Alcance']];
+ $('shopInspectStats').innerHTML=attrs.map(([icon,value,label])=>`<div class="shop-inspect-stat"><b>${icon} ${value}</b><small>${label}</small></div>`).join('');
+ $('shopInspectSkill').innerHTML=`<strong>${esc(t.skill)}</strong>${esc(t.tip)}<div class="damage-explainer">Ataque básico: <b>${kindLabel(attackKind(game.shop[i]))}</b> · 🛡️ Armadura reduz o físico · 🪬 Resistência mágica reduz o mágico</div><div style="margin-top:7px;color:#b9d5cc">${esc(role.tip)}</div>`;
+ $('shopInspectTraits').innerHTML=`<b>${g.icon} ${g.name}</b><div>2 diferentes: ${esc(g.desc)}</div><div>4 diferentes: ${esc(g.tier4)}</div><div style="margin-top:5px;color:#e7c8ad">Miniaturas repetidas da mesma classe contam apenas uma vez para a aliança.</div>`;
+ const full=game.roster.length>=MAX_BENCH+capacity(),canAfford=game.gold>=t.cost;
+ $('shopInspectConfirm').disabled=!canAfford||full;
+ $('shopInspectConfirm').textContent=`Comprar · ${t.cost} 🪙`;
+ $('shopInspectNote').textContent=!canAfford?'Moedas insuficientes. Você pode consultar a ficha sem comprar.':full?'Equipe e banco cheios. Venda uma miniatura para liberar espaço.':'';
+ $('shopModal').classList.remove('hidden');$('shopInspectClose').focus();
+}
+function closeShopInspect(){const dialog=$('shopModal');if(dialog)dialog.classList.add('hidden');pendingShopSlot=null}
+function confirmShopBuy(){if(pendingShopSlot===null)return;const i=pendingShopSlot;closeShopInspect();buy(i)}
+function firstFree(type){let ranks=TYPES[type].range<=2?[4,5]:[5,4];for(let y of ranks){for(let x of [2,3,1,4,0,5])if(!deployed().some(p=>p.x===x&&p.y===y))return{x,y}}return null}
+function buy(i){if(game.phase!=='prep'||game.shop[i]===null||game.shop[i]===undefined)return;const type=game.shop[i],cost=TYPES[type].cost;if(game.gold<cost){showToast('Moedas insuficientes');return}if(game.roster.length>=MAX_BENCH+capacity()){showToast('Equipe e banco cheios!');return}game.gold-=cost;const spot=deployed().length<capacity()?firstFree(type):null;let u=newUnit(type,spot?.x??null,spot?.y??null);game.roster.push(u);game.shop[i]=null;game.selected=u.id;playNote(600);const upgraded=checkFusion();showToast(upgraded||`${TYPES[type].name} recrutado!`);save();render();}
+function checkFusion(){let messages=[];let fusion=true;while(fusion){fusion=false;for(let type of Object.keys(TYPES)){for(let star of [1,2]){const matches=game.roster.filter(u=>u.type===type&&u.star===star);if(matches.length>=3){matches.sort((a,b)=>(b.x!==null)-(a.x!==null));const kept=matches[0],removed=matches.slice(1,3);if(kept.x===null){const old=removed.find(u=>u.x!==null);if(old){kept.x=old.x;kept.y=old.y}}kept.star++;removed.forEach(u=>game.inventory.push(...(u.items||[])));game.roster=game.roster.filter(u=>!removed.some(r=>r.id===u.id));game.selected=kept.id;messages.push(`${TYPES[type].name} evoluiu para ${'★'.repeat(kept.star)}!`);fusion=true;break}}if(fusion)break}}return messages.join(' ')}
+function selectOrMove(x,y){if(game.phase!=='prep'||y<4)return;let target=deployed().find(u=>u.x===x&&u.y===y);const held=game.roster.find(u=>u.id===game.selected);if(held){if(target?.id===held.id){game.selected=null}else if(held.x===null){if(target){target.x=null;target.y=null;held.x=x;held.y=y;showToast('Miniaturas trocadas!')}else{if(deployed().length>=capacity()){showToast('Limite de unidades em campo');return}held.x=x;held.y=y}game.selected=null;playNote(460)}else{let oldX=held.x,oldY=held.y;held.x=x;held.y=y;if(target){target.x=oldX;target.y=oldY}game.selected=null;playNote(440)}}else if(target){game.selected=target.id;playNote(490)}save();render()}
+function selectBench(id){if(game.phase!=='prep')return;game.selected=game.selected===id?null:id;render();}
+function benchSelected(){if(game.phase!=='prep'||!game.selected)return;const u=game.roster.find(u=>u.id===game.selected);if(!u||u.x===null)return;if(bench().length>=MAX_BENCH){showToast('Banco cheio');return}u.x=null;u.y=null;game.selected=null;playNote(400);save();render()}
+function sellSelected(){if(game.phase!=='prep'||!game.selected)return;const u=game.roster.find(u=>u.id===game.selected);if(!u)return;if(game.roster.length===1){showToast('Mantenha ao menos uma miniatura');return}let refund=TYPES[u.type].cost*Math.pow(3,u.star-1);game.gold+=refund;game.inventory.push(...(u.items||[]));game.roster=game.roster.filter(x=>x.id!==u.id);game.selected=null;playNote(300);showToast(`Vendido por ${refund} moedas`);save();render()}
+function countTraits(units){const c={ferro:0,selva:0,arcano:0,sombra:0};const uniqueTypes=new Set(units.map(u=>u.type));uniqueTypes.forEach(type=>{if(TYPES[type])c[TYPES[type].group]++});return c}
+function makePreview(){
+ const bossInfo=bossInfoForRound(game.round); game.bossInfo=bossInfo;
+ let count=Math.min(9,2+Math.floor((game.round-1)*.5));
+ if(bossInfo)count=Math.min(9,count+1);
+ const typeKeys=Object.keys(TYPES);
+ let options=typeKeys.filter(id=>TYPES[id].cost<=2+Math.floor(game.round/3));
+ if(!options.length)options=['guard','bow'];
+ let units=[],used=new Set();
+ for(let i=0;i<count;i++){
+  let type;
+  if(bossInfo&&i===0)type=bossInfo.lead;
+  else if(bossInfo&&i<=Math.min(4,bossInfo.supports.length))type=choice(bossInfo.supports);
+  else type=choice(options);
+  let role=roleOf(type);
+  const slots=role==='flank' ? [[0,0],[5,0],[0,1],[5,1],[1,0],[4,0]]
+   :role==='front'||role==='fighter' ? [[2,1],[3,1],[1,1],[4,1],[0,1],[5,1],[2,0],[3,0]]
+   : [[2,0],[3,0],[1,0],[4,0],[0,0],[5,0],[2,1],[3,1]];
+  let slot=slots.find(([x,y])=>!used.has(`${x},${y}`));
+  if(!slot){for(let y of [1,0])for(let x of [2,3,1,4,0,5])if(!slot&&!used.has(`${x},${y}`))slot=[x,y]}
+  if(slot){const [x,y]=slot;units.push({type,x,y,star:(bossInfo&&i===0)?2:((game.round>=9&&Math.random()<.22)?2:1),bossTag:(bossInfo&&i===0)?bossInfo.effect:null});used.add(`${x},${y}`)}
+ }
+ game.preview=units;
+}
+function spawn(piece,side){
+ const t=TYPES[piece.type],star=piece.star||1,level=side==='enemy'&&!pvp.active?(1+Math.max(0,game.round-1)*.073):1;
+ const power=Math.pow(1.68,star-1),gear=((side==='player'||pvp.active)?(piece.items||[]):[]).map(id=>ITEMS[id]).filter(Boolean);
+ const sum=stat=>gear.reduce((n,it)=>n+(it[stat]||0),0),soloBuff=(!pvp.active&&side==='player'&&game.globalBuffs)?game.globalBuffs:{atk:0,armor:0,speed:0,hp:0},bossBoost=piece.bossTag?1.32:1;
+ const maxHp=Math.round((Math.round(t.hp*power*level)+sum('hp')+(soloBuff.hp||0))*bossBoost);
+ return{id:side==='enemy'?nextId++:piece.id,type:piece.type,star,side,x:piece.x,y:piece.y,maxHp,hp:maxHp,atk:Math.round((Math.round(t.atk*Math.pow(1.51,star-1)*level)+sum('atk')+(soloBuff.atk||0))*(piece.bossTag?1.14:1)),armor:t.armor+Math.max(0,star-1)*2+(side==='enemy'&&!pvp.active?Math.floor((game.round-1)/5):0)+sum('armor')+(soloBuff.armor||0)+(piece.bossTag?3:0),resist:(MAGIC_RESIST[piece.type]||0)+Math.max(0,star-1)*2+(side==='enemy'&&!pvp.active?Math.floor((game.round-1)/7):0)+sum('resist')+(piece.bossTag?2:0),speed:(t.speed*(1+sum('speed')+(soloBuff.speed||0)))*(piece.bossTag?1.06:1),range:t.range,meter:Math.random()*1.1,strikes:0,shield:sum('shield')+(piece.bossTag?22:0),gearCrit:sum('crit'),leech:sum('leech'),pierce:sum('pierce'),magicPierce:sum('magicPierce'),healBoost:sum('heal'),items:(piece.items||[]).slice(),freeze:0,root:0,poison:null,curse:null,tauntId:null,tauntActions:0,blinkUsed:false,lastInterceptTick:-99,bossTag:piece.bossTag||null,stats:{damage:0,physicalDamage:0,magicDamage:0,taken:0,physicalTaken:0,magicTaken:0,healing:0,blocked:0,shieldMade:0,kills:0,crits:0,skills:0,hits:0,leech:0,intercepts:0,flanks:0,retreats:0,pierces:0}};
+}
+function applyTraitBuffs(list){
+ const traits=countTraits(list);
+ list.forEach(u=>{
+  if(traits.ferro>=4){u.armor+=6;u.shield+=18;u.stats.shieldMade+=18}
+  else if(traits.ferro>=2)u.armor+=3;
+  if(traits.selva>=4)u.speed*=1.3;else if(traits.selva>=2)u.speed*=1.2;
+  if(traits.arcano>=4)u.atk=Math.round(u.atk*1.4);else if(traits.arcano>=2)u.atk=Math.round(u.atk*1.25);
+  u.critBonus=(traits.sombra>=4?.32:traits.sombra>=2?.20:0)+(traits.arcano>=4?.08:0);
+  if(traits.sombra>=4)u.leech+=.12;
+ });return traits;
+}
+function startBattle(){
+ if(pvp.active&&!pvp.starting)return;
+ if(game.phase!=='prep')return;
+ if(!deployed().length){showToast('Coloque pelo menos uma miniatura');return}
+ game.phase='combat';game.selected=null;reportOpen=false;modalReportOpen=false;
+ $('fxLayer').replaceChildren();let allies=deployed().map(u=>spawn(u,'player')),enemies=game.preview.map(u=>spawn(u,'enemy'));
+ const traits=applyTraitBuffs(allies),enemyTraits=applyTraitBuffs(enemies);
+ battle={allies,enemies,traits,enemyTraits,round:game.round,tick:0,speed:1,lastHit:null,lastAction:null,fx:[],log:'As miniaturas avançam!',stop:false,bossTag:game.bossInfo?.effect||null,bossName:game.bossInfo?.name||'',bossDesc:game.bossInfo?.desc||''};
+ playNote(720);render();if(pvp.active&&pvp.seat===0)pvpSendFrame();schedule();
+}
+function schedule(){clearTimeout(clock);if(game.phase==='combat')clock=setTimeout(()=>{tickBattle();schedule()},battle?.speed===2?185:370)}
+function living(side){return (side==='player'?battle.allies:battle.enemies).filter(u=>u.hp>0)}
+function occupied(x,y,except){return [...battle.allies,...battle.enemies].some(u=>u.hp>0&&u.id!==except.id&&u.x===x&&u.y===y)}
+function pathToTarget(actor,target){
+ let queue=[{x:actor.x,y:actor.y,first:null,steps:0}],seen=new Set([`${actor.x},${actor.y}`]);
+ while(queue.length){
+  const node=queue.shift();
+  if(node.steps>0&&Math.abs(node.x-target.x)+Math.abs(node.y-target.y)<=actor.range)return node.first;
+  for(let [dx,dy] of [[0,actor.side==='player'?-1:1],[-1,0],[1,0],[0,actor.side==='player'?1:-1]]){
+   let x=node.x+dx,y=node.y+dy,key=`${x},${y}`;
+   if(x<0||x>5||y<0||y>5||seen.has(key)||occupied(x,y,actor))continue;
+   seen.add(key);queue.push({x,y,first:node.first||{x,y},steps:node.steps+1})
+  }
+ }
+ return null;
+}
+function atEnemyRear(u){return u.side==='enemy'?1-u.y:u.y-4}
+function selectTarget(actor,opponents,team){
+ // Provocação tem precedência até sobre preferências da classe.
+ if(actor.tauntActions>0&&actor.tauntId){
+  const taunter=opponents.find(u=>u.id===actor.tauntId&&u.hp>0);
+  actor.tauntActions--;if(actor.tauntActions<=0)actor.tauntId=null;
+  if(taunter)return [taunter,...opponents.filter(u=>u!==taunter)];
+ }
+ const role=roleOf(actor.type);
+ const scores=opponents.map(u=>{
+  const d=dist(actor,u),health=u.hp/u.maxHp,enemyRole=roleOf(u.type),back=atEnemyRear(u);
+  let score=d*9+health*5;
+  if(role==='flank')score=d*2+health*19-back*14+(enemyRole==='support'?-20:0)+(enemyRole==='ranged'||enemyRole==='caster'?-11:0);
+  else if(role==='ranged')score=d*3+health*16+(enemyRole==='support'?-8:0)+(enemyRole==='front'?12:0);
+  else if(role==='caster')score=d*4+health*10+(enemyRole==='support'?-12:0)+(enemyRole==='front'?8:0);
+  else if(role==='front'){
+   const threatened=team.filter(a=>a.id!==actor.id&&a.hp>0&&['support','ranged','caster'].includes(roleOf(a.type)));
+   const towardBack=threatened.length?Math.min(...threatened.map(a=>dist(u,a))):d;
+   score=d*9+towardBack*3+(enemyRole==='flank'?-7:0);
+  }else if(role==='support')score=d*10+health*3;
+  // Uma unidade com alcance não abandona alvos em alcance por outro distante, salvo infiltradores.
+  if(role!=='flank'&&d>actor.range)score+=20;
+  return {unit:u,score};
+ });
+ scores.sort((a,b)=>a.score-b.score||dist(actor,a.unit)-dist(actor,b.unit)||a.unit.id-b.unit.id);
+ return scores.map(e=>e.unit);
+}
+function findRetreat(actor,opponents,target){
+ const role=roleOf(actor.type);
+ if(!['ranged','caster','support'].includes(role)||actor.range<3||actor.strikes%4!==2||actor.strikes%3===0)return null;
+ const near=opponents.filter(u=>dist(actor,u)<=1);if(!near.length)return null;
+ let candidates=[];
+ for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+  const x=actor.x+dx,y=actor.y+dy;
+  if(x<0||x>5||y<0||y>5||occupied(x,y,actor))continue;
+  const minGap=Math.min(...opponents.map(u=>Math.abs(x-u.x)+Math.abs(y-u.y)));
+  if(minGap<2||Math.abs(x-target.x)+Math.abs(y-target.y)>actor.range)continue;
+  // Preferir recuar para o próprio campo; evitar fugir para dentro do exército inimigo.
+  const safeHalf=actor.side==='player'?y>=actor.y:y<=actor.y;
+  candidates.push({x,y,score:minGap*10+(safeHalf?4:0)});
+ }
+ candidates.sort((a,b)=>b.score-a.score);
+ return candidates[0]||null;
+}
+function interceptTarget(actor,target,opponents){
+ if(!PROJECTILES.has(actor.type)||dist(actor,target)<=1||FRONTLINERS.has(target.type))return target;
+ const protectors=opponents.filter(p=>p.hp>0&&FRONTLINERS.has(p.type)&&p.id!==target.id&&
+   Math.abs(p.x-target.x)<=1&&Math.abs(p.y-target.y)<=1&&
+   (target.side==='player'?p.y<target.y:p.y>target.y)&&
+   dist(actor,p)<dist(actor,target)&&battle.tick-p.lastInterceptTick>=4);
+ if(!protectors.length)return target;
+ protectors.sort((a,b)=>dist(actor,a)-dist(actor,b));
+ const guardian=protectors[0];guardian.lastInterceptTick=battle.tick;
+ guardian.stats.intercepts++;
+ battle.fx.push({kind:'skill',x:guardian.x,y:guardian.y,label:'INTERCEPTOU',style:'shield'});
+ return guardian;
+}
+function flankBonus(actor,target){
+ return ['rogue','shade'].includes(actor.type)&&
+  (target.side==='enemy'?actor.y<target.y:actor.y>target.y);
+}
+
+function mitigateDamage(raw,target,kind,attacker){
+ // Redução fixa para manter os números familiares a quem jogava a versão anterior.
+ // Só a defesa da categoria correspondente reduz o ataque, e nunca abaixo de 3.
+ const defense=kind==='magic'?(target.resist||0):(target.armor||0);
+ const penetration=kind==='magic'?(attacker?.magicPierce||0):(attacker?.pierce||0);
+ return Math.max(3,Math.round(raw-Math.max(0,defense-penetration)));
+}
+function recordDamage(owner,target,kind,healthLoss,shieldAbs){
+ if(owner){
+  owner.stats.damage+=shieldAbs+healthLoss;
+  owner.stats[kind==='magic'?'magicDamage':'physicalDamage']=(owner.stats[kind==='magic'?'magicDamage':'physicalDamage']||0)+shieldAbs+healthLoss;
+  owner.stats.hits++;
+ }
+ target.stats.taken+=healthLoss;target.stats.blocked+=shieldAbs;
+ const takenKey=kind==='magic'?'magicTaken':'physicalTaken';target.stats[takenKey]=(target.stats[takenKey]||0)+healthLoss;
+}
+function effectDamage(actor,target,scale=1,forcedKind=null){
+ const kind=forcedKind||attackKind(actor.type),wasAlive=target.hp>0;
+ const critical=Math.random()<(.055+(actor.critBonus||0)+(actor.gearCrit||0)+(actor.type==='hunter'?.16:0)+(actor.type==='rogue'?.1:0));
+ const weakened=actor.curse?.actions>0?.75:1;
+ const raw=actor.atk*scale*weakened*(critical?1.65:1);
+ const potential=mitigateDamage(raw,target,kind,actor);
+ const shieldAbs=Math.min(Math.max(0,target.shield||0),potential);target.shield-=shieldAbs;
+ const healthLoss=Math.min(target.hp,Math.max(0,potential-shieldAbs));target.hp=Math.max(0,target.hp-healthLoss);
+ recordDamage(actor,target,kind,healthLoss,shieldAbs);if(critical)actor.stats.crits++;
+ if(wasAlive&&target.hp===0){actor.stats.kills++;battle.fx.push({kind:'death',x:target.x,y:target.y})}
+ battle.lastHit=target.id;battle.lastAction={id:actor.id,kind:scale>1.05?'special':'attacking'};
+ const vamp=(actor.type==='ghost'?.27:0)+(actor.leech||0);
+ if(vamp&&healthLoss>0){const restored=restoreHealth(actor,actor,Math.round(healthLoss*vamp),'leech');actor.stats.leech+=restored;if(restored>0)battle.fx.push({kind:'aura',style:'leech',x:actor.x,y:actor.y})}
+ battle.fx.push({kind:actor.range>2?'shot':'strike',sx:actor.x,sy:actor.y,x:target.x,y:target.y,dmg:healthLoss,blocked:shieldAbs,critical,damageKind:kind,style:kind==='magic'?(actor.type==='ghost'||actor.type==='necro'?'shadow':'arcane'):actor.type==='spear'?'pierce':actor.range>2?'arrow':'blade'});
+ return {dmg:healthLoss,absorbed:shieldAbs,critical,kind};
+}
+function restoreHealth(source,target,amount,style='heal'){
+ const got=Math.max(0,Math.min(target.maxHp-target.hp,Math.round(amount)));
+ target.hp+=got;if(got){source.stats.healing+=got;
+ battle.fx.push({kind:'heal',sx:source.x,sy:source.y,x:target.x,y:target.y,dmg:got,style});
+ battle.lastAction={id:source.id,kind:'casting'};
+ }return got;
+}
+function heal(actor,amount){return restoreHealth(actor,actor,amount)}
+function skillCue(actor,label,style='special'){
+ actor.stats.skills++;battle.lastAction={id:actor.id,kind:style==='heal'?'casting':'special'};
+ battle.fx.push({kind:'skill',x:actor.x,y:actor.y,label,style});
+}
+function raiseShield(actor,amount,max=60,label='ESCUDO',source=actor){
+ const prev=actor.shield,actual=Math.min(max,prev+Math.round(amount));
+ actor.shield=actual;const gained=Math.max(0,actual-prev);
+ if(gained){source.stats.shieldMade+=gained;if(source===actor)skillCue(actor,label,'shield');battle.fx.push({kind:'barrier',x:actor.x,y:actor.y})}
+}
+function directStatusDamage(owner,target,amount,style,damageKind='magic'){
+ if(target.hp<=0)return 0;
+ const kind=damageKind==='physical'?'physical':'magic';
+ const potential=mitigateDamage(amount,target,kind,owner),before=target.hp;
+ const shieldHit=Math.min(Math.max(0,target.shield||0),potential);target.shield-=shieldHit;
+ const dealt=Math.min(target.hp,Math.max(0,potential-shieldHit));target.hp-=dealt;
+ recordDamage(owner,target,kind,dealt,shieldHit);
+ if(before>0&&target.hp<=0){if(owner)owner.stats.kills++;battle.fx.push({kind:'death',x:target.x,y:target.y})}
+ battle.fx.push({kind:'status',x:target.x,y:target.y,dmg:dealt,blocked:shieldHit,damageKind:kind,style});
+ return dealt;
+}
+function findActor(id){return [...battle.allies,...battle.enemies].find(u=>u.id===id)}
+function processConditions(actor){
+ if(actor.poison?.actions>0){
+  directStatusDamage(findActor(actor.poison.source),actor,actor.poison.damage,'poison');actor.poison.actions--;
+  if(actor.poison.actions===0)actor.poison=null;
+ }
+ if(actor.hp<=0)return false;
+ if(actor.curse?.actions>0){
+  const source=findActor(actor.curse.source),damage=directStatusDamage(source,actor,actor.curse.damage,'shadow');
+  if(source&&source.hp>0&&damage>0)restoreHealth(source,source,Math.round(damage*.5),'leech');
+  actor.curse.actions--;if(actor.curse.actions===0)actor.curse=null;
+ }
+ if(actor.hp<=0)return false;
+ if(actor.freeze>0){actor.freeze--;battle.log=`${TYPES[actor.type].name} perdeu uma ação por congelamento!`;battle.fx.push({kind:'aura',style:'frost',x:actor.x,y:actor.y});return false}
+ return true;
+}
+function skillReady(actor,period){return actor.strikes%period===0}
+function blinkToBackline(actor,opponents){
+ if(actor.blinkUsed)return false;
+ const rear=selectTarget(actor,opponents,living(actor.side)).find(u=>['support','ranged','caster'].includes(roleOf(u.type)))||selectTarget(actor,opponents,living(actor.side))[0];if(!rear)return false;
+ for(const [dx,dy] of [[0,actor.side==='player'?-1:1],[-1,0],[1,0],[0,actor.side==='player'?1:-1]]){
+  const x=rear.x+dx,y=rear.y+dy;
+  if(x>=0&&x<6&&y>=0&&y<6&&!occupied(x,y,actor)){
+   actor.x=x;actor.y=y;actor.blinkUsed=true;skillCue(actor,'PASSO SOMBRIO','shadow');
+   battle.fx.push({kind:'aura',style:'shadow',x,y});battle.log='Sombra Errante saltou para a retaguarda!';return true;
+  }
+ }
+ return false;
+}
+function performTurn(actor){
+ if(actor.hp<=0)return;
+ const opponents=living(actor.side==='player'?'enemy':'player'),team=living(actor.side);
+ if(!opponents.length)return;if(!processConditions(actor))return;const rooted=actor.root>0;if(rooted)actor.root--;actor.strikes++;const type=actor.type;
+ if((type==='cleric'||type==='druid')&&skillReady(actor,3)){
+  const wounded=team.filter(u=>u.hp/u.maxHp<.92).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp);
+  if(wounded.length){
+   const patients=type==='druid'?wounded.slice(0,2):wounded.slice(0,1);
+   skillCue(actor,type==='druid'?'NATUREZA':'LUZ SAGRADA','heal');
+   patients.forEach(p=>restoreHealth(actor,p,actor.atk*(type==='druid'?1.8:3.4)*(1+(actor.healBoost||0))));
+   battle.fx.push({kind:'aura',style:'heal',x:actor.x,y:actor.y});
+   battle.log=`${TYPES[type].name} restaurou ${patients.length===1?'um aliado':'dois aliados'}!`;
+   playNote(820,.045);return;
+  }
+ }
+ if(type==='paladin'&&skillReady(actor,3)){
+  const needy=team.slice().sort((a,b)=>(a.shield||0)-(b.shield||0)).slice(0,2);
+  skillCue(actor,'CÚPULA SAGRADA','shield');needy.forEach(u=>raiseShield(u,Math.round(actor.atk*2),85,'PROTEÇÃO',actor));
+  battle.log='Paladina protegeu dois aliados!';return;
+ }
+ if(type==='shade'&&blinkToBackline(actor,opponents))return;
+ const forced=actor.tauntActions>0&&opponents.some(u=>u.id===actor.tauntId);
+ const candidates=selectTarget(actor,opponents,team);
+ // Infiltradores procuram o flanco mesmo que haja um tanque ao alcance;
+ // provocação ativa obriga o alvo, sem poder ser burlada por inimigos próximos.
+ const insist=forced||roleOf(type)==='flank';
+ let target=insist?candidates[0]:(candidates.find(t=>dist(actor,t)<=actor.range)||candidates[0]);if(!target)return;
+ if(dist(actor,target)>actor.range){
+  if(rooted){battle.log=`${TYPES[type].name} está preso em raízes!`;return}
+  let step=pathToTarget(actor,target);
+  if(!step&&!forced){
+   // Se o caminho ideal foi bloqueado, atacar outra unidade em alcance é melhor que travar.
+   const alternative=candidates.find(u=>dist(actor,u)<=actor.range);
+   if(alternative)target=alternative;
+   else for(const enemy of candidates.slice(1)){step=pathToTarget(actor,enemy);if(step){target=enemy;break}}
+  }
+  if(step){actor.x=step.x;actor.y=step.y;battle.fx.push({kind:'move',x:actor.x,y:actor.y,id:actor.id});battle.lastAction={id:actor.id,kind:'moving'};battle.log=`${TYPES[type].name} se reposicionou.`;return}
+  if(dist(actor,target)>actor.range)return;
+ }
+ const retreat=!rooted&&findRetreat(actor,opponents,target);
+ if(retreat){actor.x=retreat.x;actor.y=retreat.y;actor.stats.retreats++;battle.fx.push({kind:'aura',style:'frost',x:actor.x,y:actor.y});battle.lastAction={id:actor.id,kind:'moving'};battle.log=`${TYPES[type].name} recuou para manter distância!`;return}
+ // Arqueiros e lanceiros não atravessam livremente um protetor à frente.
+ target=interceptTarget(actor,target,opponents);
+ let boost=1,skill='';
+ if(type==='axe'&&actor.hp/actor.maxHp<.55){boost=1.65;skill='FÚRIA'}
+ if(type==='spear'&&actor.strikes%3===0){boost=1.65;skill='ESTOCADA'}
+ if(type==='rogue'&&actor.strikes%4===0){boost=2.1;skill='EMBOSCADA'}
+ if(type==='hunter'&&actor.strikes%4===0){boost=1.7;skill='TIRO CERTEIRO'}
+ if(flankBonus(actor,target)){boost*=1.23;actor.stats.flanks++;if(!skill)skill='FLANCO';}
+ if(skill)skillCue(actor,skill,type==='spear'?'pierce':'special');
+ const {dmg,critical,kind}=effectDamage(actor,target,boost);
+ battle.log=`${TYPES[type].name}: ${dmg} de dano ${kind==='magic'?'mágico':'físico'}${critical?' crítico!':'!'}`;
+ if(type==='guard'&&actor.strikes%3===0){raiseShield(actor,actor.maxHp*.15,40,'GUARDA');battle.log='Guardião ergueu um escudo!'}
+ if(type==='golem'&&actor.strikes%3===0){raiseShield(actor,actor.maxHp*.13,52,'PELE DE PEDRA')}
+ if(type==='bow'&&actor.strikes%4===0&&target.hp>0){skillCue(actor,'DISPARO DUPLO','pierce');effectDamage(actor,target,.6)}
+ if(type==='spear'&&actor.strikes%3===0){
+  const behind=opponents.filter(u=>u.hp>0&&u.id!==target.id&&
+   ((actor.x===target.x&&target.x===u.x&&Math.sign(target.y-actor.y)===Math.sign(u.y-target.y))||
+    (actor.y===target.y&&target.y===u.y&&Math.sign(target.x-actor.x)===Math.sign(u.x-target.x)))&&dist(target,u)<=2)
+   .sort((a,b)=>dist(target,a)-dist(target,b))[0];
+  if(behind){actor.stats.pierces++;effectDamage(actor,behind,.65);battle.log='Lanceiro atravessou dois inimigos em linha!'}
+ }
+ if(type==='mage'&&actor.strikes%3===0){
+  skillCue(actor,'EXPLOSÃO ARCANA','arcane');battle.fx.push({kind:'aura',style:'arcane',x:target.x,y:target.y});
+  opponents.filter(u=>u.hp>0&&u.id!==target.id&&Math.max(Math.abs(target.x-u.x),Math.abs(target.y-u.y))<=1).forEach(u=>effectDamage(actor,u,.53));
+  battle.log='Explosão arcana atingiu a área!';
+ }
+ if(type==='sentinel'&&skillReady(actor,3)){
+  const provoked=opponents.filter(u=>u.hp>0&&dist(actor,u)<=3).slice(0,3);
+  for(const enemy of provoked){enemy.tauntId=actor.id;enemy.tauntActions=2}
+  if(provoked.length){skillCue(actor,'PROVOCAÇÃO','shield');battle.fx.push({kind:'aura',style:'shield',x:actor.x,y:actor.y});battle.log=`Sentinela provocou ${provoked.length} inimigo(s)!`}
+ }
+ if(type==='toxic'&&skillReady(actor,3)&&target.hp>0){
+  target.poison={source:actor.id,damage:Math.max(4,Math.round(actor.atk*.3)),actions:3};
+  skillCue(actor,'VENENO','poison');battle.fx.push({kind:'aura',style:'poison',x:target.x,y:target.y});battle.log='Flecha venenosa aplicada!';
+ }
+ if(type==='shaman'&&skillReady(actor,3)&&target.hp>0){
+  target.root=Math.max(target.root,2);skillCue(actor,'RAÍZES','poison');battle.fx.push({kind:'aura',style:'poison',x:target.x,y:target.y});battle.log='Xamã enraizou o inimigo!';
+ }
+ if(type==='frost'&&skillReady(actor,4)&&target.hp>0){
+  target.freeze=Math.max(target.freeze,1);skillCue(actor,'CONGELAR','frost');battle.fx.push({kind:'aura',style:'frost',x:target.x,y:target.y});battle.log='Criomante congelou o inimigo!';
+ }
+ if(type==='storm'&&skillReady(actor,3)){
+  const others=opponents.filter(u=>u.hp>0&&u.id!==target.id).sort((a,b)=>dist(target,a)-dist(target,b)).slice(0,2);
+  if(others.length){skillCue(actor,'RAIO EM CADEIA','arcane');others.forEach((enemy,i)=>effectDamage(actor,enemy,i===0?.8:.55));battle.fx.push({kind:'aura',style:'arcane',x:target.x,y:target.y});battle.log='Raio saltou para outros inimigos!'}
+ }
+ if(type==='necro'&&skillReady(actor,3)&&target.hp>0){
+  target.curse={source:actor.id,damage:Math.max(4,Math.round(actor.atk*.23)),actions:3};
+  skillCue(actor,'MALDIÇÃO','shadow');battle.fx.push({kind:'aura',style:'shadow',x:target.x,y:target.y});battle.log='Necromante aplicou maldição!';
+ }
+ if(type==='shade'&&skillReady(actor,3)&&target.hp>0){skillCue(actor,'CORTE SOMBRIO','shadow');effectDamage(actor,target,.45,'magic')}
+ if(type==='ghost'&&actor.strikes%3===0)skillCue(actor,'DRENAR VIDA','shadow');
+ if(battle.tick%5===0)playNote(250,.022);
+}
+
+function applyBossHazards(){
+ if(!battle?.bossTag)return;
+ const boss=living('enemy').find(u=>u.bossTag===battle.bossTag);
+ if(!boss)return;
+ if(battle.tick===2){battle.log=`${battle.bossName}: ${battle.bossDesc}`;return;}
+ if(battle.bossTag==='stone'&&battle.tick%6===0){raiseShield(boss,22,130,'PEDRA VIVA');battle.log='O Titã de Pedra reforçou sua couraça!';}
+ else if(battle.bossTag==='storm'&&battle.tick%6===0){const target=living('player').sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];if(target){directStatusDamage(boss,target,Math.round(boss.atk*.72),'arcane');battle.fx.push({kind:'skill',x:target.x,y:target.y,label:'RAIO!',style:'arcane'});battle.log='Um relâmpago atingiu sua equipe!';}}
+ else if(battle.bossTag==='toxic'&&battle.tick%7===0){const targets=living('player').sort((a,b)=>a.hp-b.hp).slice(0,2);targets.forEach(t=>t.poison={source:boss.id,damage:Math.max(5,Math.round(boss.atk*.22)),actions:3});if(targets.length){battle.fx.push({kind:'skill',x:boss.x,y:boss.y,label:'NÉVOA TÓXICA',style:'poison'});battle.log='A Matriarca espalhou veneno!';}}
+ else if(battle.bossTag==='shadow'&&battle.tick%6===0){const target=living('player').sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];if(target){target.curse={source:boss.id,damage:Math.max(5,Math.round(boss.atk*.2)),actions:3};battle.fx.push({kind:'skill',x:boss.x,y:boss.y,label:'MALDIÇÃO',style:'shadow'});battle.log='O Lich Sombrio lançou uma maldição!';}}
+}
+function tickBattle(){if(!battle||game.phase!=='combat')return;battle.tick++;battle.lastHit=null;if(battle.tick%7===0){for(const [side,traits] of [['player',battle.traits],['enemy',battle.enemyTraits]]){if(traits?.selva>=4)living(side).forEach(u=>restoreHealth(u,u,Math.round(u.maxHp*.055),'heal'))}}applyBossHazards();let all=[...living('player'),...living('enemy')].sort((a,b)=>b.speed-a.speed);if(battle.tick%2===0)all.reverse();for(const actor of all){if(actor.hp<=0)continue;actor.meter+=actor.speed; if(actor.meter>=1.85){actor.meter-=1.85;performTurn(actor)}if(!living('player').length||!living('enemy').length)break}
+ if(!living('enemy').length||!living('player').length||battle.tick>=115){let win;if(!living('enemy').length)win=true;else if(!living('player').length)win=false;else{let allySum=living('player').reduce((n,u)=>n+u.hp/u.maxHp,0);let enemySum=living('enemy').reduce((n,u)=>n+u.hp/u.maxHp,0);win=allySum>enemySum}endBattle(win);return}render();drawBattleFx();if(pvp.active&&pvp.seat===0)pvpSendFrame();}
+function endBattle(win){
+ if(pvp.active){pvpEndBattle(win);return}
+ clearTimeout(clock);game.phase='result';$('fxLayer').replaceChildren();
+ game.lastReport=makeReport(battle,win);
+ let interest=Math.min(3,Math.floor(game.gold/10)),gain=(win?6:4)+Math.floor(game.round/3)+interest;game.gold+=gain;
+ if(win)game.wins++;else game.lives--;
+ let foundItem=null,rarePool=Object.keys(ITEMS).filter(id=>ITEMS[id].rarity==='rare');
+ if(win){
+  if(game.round%5===0)foundItem=game.round>=10&&Math.random()<.45?choice(rarePool):choice(itemList());
+  else if(game.round%3===0)foundItem=choice(itemList());
+  if(foundItem){game.inventory.push(foundItem);selectedInventoryIndex=null;}
+ }
+ if(game.wins>game.highScore){game.highScore=game.wins;try{localStorage.setItem('miniaturas-recorde',String(game.wins))}catch{}}
+ playNote(win?860:200,.15);render();
+ const report=game.lastReport,leader=report.allies.reduce((a,b)=>!a||b.stats.damage>a.stats.damage?b:a,null),resolvedRound=game.round;
+ openModal(win?(game.round%5===0?'👑':'🏆'):'💔',win?'Vitória!':'Derrota!',
+  win?`Sua formação venceu a rodada ${game.round}! ${game.round%5===0&&game.bossInfo?`Você derrotou ${game.bossInfo.name}.`:''}`:`Suas miniaturas foram derrotadas na rodada ${game.round}. ${game.lives>0?'Reforce o time e tente a próxima!':'Sua jornada terminou.'}`,
+  `+${gain} 🪙 (${interest} de juros)${foundItem?' · 🎁 '+ITEMS[foundItem].name:''}`,
+  game.lives>0?'PRÓXIMA RODADA':'JOGAR NOVAMENTE',
+  `${leader?'⚔️ Maior dano: '+TYPES[leader.type].name+' ('+leader.stats.damage+') · ':''}${game.lives} ♥ · recorde: ${game.highScore}`,
+  ()=>{
+    if(game.lives<=0){newRun();closeModal();return}
+    game.round++;game.phase='prep';battle=null;game.selected=null;rollShop(true);rollForge();makePreview();save();render();closeModal();
+    if(win&&(resolvedRound%4===0||resolvedRound%5===0))openBlessingModal(resolvedRound);
+  }
+ );
+ $('modalReportBtn').hidden=false;
+}
+function makeReport(source,win=null){
+ const unit=u=>({id:u.id,type:u.type,star:u.star,side:u.side,maxHp:u.maxHp,hp:u.hp,stats:{...u.stats}});
+ return {round:source.round||game.round,won:win,tick:source.tick,allies:source.allies.map(unit),enemies:source.enemies.map(unit)};
+}
+function sumStats(units,key){return units.reduce((sum,u)=>sum+(u.stats?.[key]||0),0)}
+function reportHtml(report,side){
+ const ours=side==='player',list=ours?report.allies:report.enemies,foes=ours?report.enemies:report.allies;
+ const sorted=list.slice().sort((a,b)=>b.stats.damage-a.stats.damage),maxDmg=Math.max(1,...sorted.map(u=>u.stats.damage));
+ const mvp=list.slice().sort((a,b)=>(b.stats.damage+b.stats.healing*.85+b.stats.taken*.4+b.stats.blocked*.35)-(a.stats.damage+a.stats.healing*.85+a.stats.taken*.4+a.stats.blocked*.35))[0];
+ const status=report.won===null?'EM ANDAMENTO':ours?(report.won?'VITÓRIA':'DERROTA'):(report.won?'INIMIGOS DERROTADOS':'INIMIGOS VENCERAM');
+ return `<div class="report-title-line"><strong>📊 Rodada ${report.round} · ${status}</strong><span>${report.tick} turnos de simulação</span></div>
+ <div class="report-kpis"><div class="report-kpi"><strong>${sumStats(list,'physicalDamage')}</strong><small>⚔️ Dano físico</small></div><div class="report-kpi"><strong>${sumStats(list,'magicDamage')}</strong><small>🔮 Dano mágico</small></div><div class="report-kpi"><strong>${sumStats(list,'healing')}</strong><small>💚 Cura feita</small></div></div><div class="report-total">Dano total: <b>${sumStats(list,'damage')}</b> · Dano bloqueado: <b>${sumStats(list,'blocked')}</b></div>
+ <div class="report-tabs" role="tablist" aria-label="Equipe do relatório"><button type="button" role="tab" data-report-side="player" aria-selected="${ours}">🟢 Seu time (${report.allies.length})</button><button type="button" role="tab" data-report-side="enemy" aria-selected="${!ours}">🔴 Inimigos (${report.enemies.length})</button></div>
+ <div class="report-rows">${sorted.map((u,i)=>{
+  const st=u.stats,col=GROUPS[TYPES[u.type].group].color;
+  return `<div class="report-unit"><div class="report-unit-head"><span class="report-icon" style="--unit-color:${col}">${miniArt(u.type)}</span><span class="report-unit-title"><strong>${esc(TYPES[u.type].name)} ${'★'.repeat(u.star)}</strong><small>${esc(TYPES[u.type].skill)} · ${u.hp>0?Math.ceil(u.hp)+' PV restantes':'Abatida'}</small></span><span class="report-unit-rank">${i===0?'🏅 ':'#'+(i+1)+' · '}${st.damage} dano</span></div><div class="report-meter" title="Participação no dano"><span style="width:${Math.max(0,Math.min(100,Math.round(st.damage/maxDmg*100)))}%"></span></div><div class="report-metrics"><span><b>${st.healing}</b>💚 Cura</span><span><b>${st.taken}</b>❤️ Recebido</span><span><b>${st.blocked}</b>🛡️ Bloqueado</span><span><b>${st.kills} / ${st.skills}</b>💥 KOs / skills</span></div><div class="damage-split"><span>⚔️ Físico: <b>${st.physicalDamage||0}</b></span><span>🔮 Mágico: <b>${st.magicDamage||0}</b></span></div>${(st.intercepts||st.flanks||st.retreats||st.pierces)?`<div class="report-tactics">${st.intercepts?'🛡️ '+st.intercepts+' interceptações · ':''}${st.flanks?'🗡️ '+st.flanks+' ataques pelo flanco · ':''}${st.retreats?'🏃 '+st.retreats+' recuos · ':''}${st.pierces?'🔱 '+st.pierces+' perfurações':''}</div>`:''}</div>`
+ }).join('')}</div>
+ ${mvp?`<div class="report-mvp">⭐ Destaque: <strong>${esc(TYPES[mvp.type].name)}</strong> · ${mvp.stats.damage} dano, ${mvp.stats.healing} cura, ${mvp.stats.taken+mvp.stats.blocked} de resistência.</div>`:''}
+ <p class="report-note">⚔️ Armadura reduz dano físico; 🪬 resistência mágica reduz dano mágico. Os totais incluem dano causado à vida e aos escudos. Cura registra apenas vida efetivamente restaurada.</p>`;
+}
+function renderReports(){
+ const active=game.phase==='combat'&&battle,report=active?makeReport(battle,null):game.lastReport;
+ const btn=$('reportBtn');btn.hidden=!report;
+ if(!report){$('reportPanel').hidden=true;return}
+ btn.textContent=reportOpen?'📊 Ocultar estatísticas':active?'📊 Estatísticas ao vivo':`📊 Relatório da rodada ${report.round}`;
+ btn.setAttribute('aria-expanded',String(reportOpen));$('reportPanel').hidden=!reportOpen;
+ if(reportOpen)$('reportBody').innerHTML=reportHtml(report,reportSide);
+}
+function updateModalReport(){
+ const button=$('modalReportBtn');button.hidden=!game?.lastReport;
+ button.setAttribute('aria-expanded',String(modalReportOpen));button.textContent=modalReportOpen?'📊 Ocultar relatório':'📊 Ver relatório completo';
+ $('modalReport').hidden=!modalReportOpen;$('modal').querySelector('.modal-body').classList.toggle('has-report',modalReportOpen);
+ if(modalReportOpen&&game?.lastReport)$('modalReportBody').innerHTML=reportHtml(game.lastReport,modalReportSide);
+}
+function render(){if(!game)return;if(pvp.active){$('lifeStat').hidden=true;$('roundBadge').textContent=`DUELO ${pvp.round}`;}else{$('lifeStat').hidden=false;}syncMusicTheme();$('gold').textContent=game.gold;$('lives').textContent=game.lives;$('wins').textContent=game.wins;$('roundBadge').textContent=pvp.active?`DUELO ${pvp.round}`:`RODADA ${game.round}${game.round%5===0?' · CHEFE':''}`;$('arenaTitle').textContent=game.phase==='combat'?'Combate em andamento':game.phase==='prep'?'Sua formação':game.phase==='pvp_wait'?'Equipe confirmada':'Fim da batalha';$('armyBadge').textContent=`${deployed().length} / ${capacity()} EM CAMPO`;$('benchBadge').textContent=`${bench().length} / ${MAX_BENCH}`;renderBoard();renderShop();renderBench();renderInfo();renderForge();renderTraits();renderActions();renderReports()}
+function miniHTML(piece,foe=false){let t=TYPES[piece.type],c=GROUPS[t.group].color,isBattle=piece.hp!==undefined,health=isBattle?Math.round(piece.hp/piece.maxHp*100):100;const hit=isBattle&&battle?.lastHit===piece.id?' hit':'';const anim=isBattle&&battle?.lastAction?.id===piece.id?' '+battle.lastAction.kind:'';return `<div class="mini ${foe?'foe':''}${hit}${anim}" style="--unit-color:${c}"><div class="mini-name">${esc(t.name)}</div><div class="mini-base">${miniArt(piece.type)}</div>${!foe&&piece.items?.length?`<span class="mini-equipped" title="Itens equipados">${piece.items.map(id=>ITEMS[id]?.icon||'◆').join('')}</span>`:''}${!isBattle?`<span class="mini-role" title="${ROLES[roleOf(piece.type)].name}">${ROLES[roleOf(piece.type)].icon}</span>`:''}${piece.star>1?`<div class="mini-star">${'★'.repeat(piece.star)}</div>`:''}${isBattle&&piece.shield>0?`<span class="mini-shield" title="Escudo restante">🛡${Math.ceil(piece.shield)}</span>`:''}${isBattle&&piece.freeze>0?`<span class="status-badge" title="Congelada">❄️</span>`:isBattle&&piece.poison?.actions>0?`<span class="status-badge" title="Envenenada">☠️</span>`:isBattle&&piece.curse?.actions>0?`<span class="status-badge" title="Amaldiçoada">🌑</span>`:isBattle&&piece.root>0?`<span class="status-badge" title="Enraizada">🌿</span>`:''}<div class="hp"><span style="width:${health}%"></span></div></div>`}
+function renderBoard(){const board=$('board');let nodes=[],allies=game.phase==='combat'?(battle?.allies||[]).filter(u=>u.hp>0):deployed(),foes=game.phase==='combat'?(battle?.enemies||[]).filter(u=>u.hp>0):game.preview,selected=game.roster.find(u=>u.id===game.selected);for(let y=0;y<6;y++)for(let x=0;x<6;x++){let p=allies.find(u=>u.x===x&&u.y===y),e=foes.find(u=>u.x===x&&u.y===y),possible=game.phase==='prep'&&y>=4,canPlace=possible&&selected&&!p;nodes.push(`<button type="button" class="cell ${y<=1?'enemy-zone':y>=4?'player-zone':''} ${possible?'placeable':''} ${p?.id===game.selected?'selected':''} ${canPlace?'move-target':''}" data-x="${x}" data-y="${y}" ${possible?'':'tabindex="-1"'} aria-label="${p?TYPES[p.type].name:e?`Inimigo ${TYPES[e.type].name}`:possible?'Casa livre':'Campo vazio'}, coluna ${x+1}, linha ${y+1}">${p?miniHTML(p):e?miniHTML(e,true):canPlace?'<span class="target-dot" style="font-size:15px;color:#9bdeae">＋</span>':''}</button>`)}board.innerHTML=nodes.join('');}
+function renderShop(){let disabled=game.phase!=='prep';$('shop').innerHTML=game.shop.map((type,i)=>{if(!type)return `<div class="shop-card sold" aria-label="Comprada"><div style="margin:auto;font-size:12px">✓ Recrutada</div></div>`;let t=TYPES[type],g=GROUPS[t.group],afford=game.gold>=t.cost;return `<button type="button" class="shop-card ${afford?'':'unaffordable'}" data-inspect-shop="${i}" style="--unit-color:${g.color}" ${disabled?'disabled':''} aria-label="Ver atributos e compra de ${esc(t.name)}" title="Toque para ver os atributos e decidir se deseja comprar"><span class="art-icon">${miniArt(type)}</span><span class="shop-details"><div class="shop-name">${esc(t.name)}</div><div class="shop-group">${g.icon} ${g.name} · ${ROLES[roleOf(type)].icon} ${ROLES[roleOf(type)].name}</div><div class="shop-quickstats">❤️ ${t.hp} · ${attackKind(type)==='magic'?'🔮':'⚔️'} ${t.atk} · 🛡️ ${t.armor} · 🪬 ${MAGIC_RESIST[type]}<br>⚡ ${t.speed.toFixed(2)} · 🎯 ${t.range}</div><div class="shop-desc skill-desc">${esc(t.skill)}</div><div class="shop-see">👁 Ver ficha e comprar</div></span><span class="price">${t.cost} 🪙</span></button>`}).join('');$('rerollBtn').disabled=disabled||game.gold<2}
+function renderBench(){$('bench').innerHTML=`<div class="bench-list">${bench().length?bench().map(u=>`<button class="bench-piece ${game.selected===u.id?'picked':''}" data-bench="${u.id}" ${game.phase!=='prep'?'disabled':''}><span class="art-icon" style="--unit-color:${GROUPS[TYPES[u.type].group].color}">${miniArt(u.type)}</span><span class="short">${esc(TYPES[u.type].name)}<br>${'★'.repeat(u.star)}</span></button>`).join(''):'<div class="empty-bench">Nenhuma unidade na reserva.</div>'}</div>`}
+function renderInfo(){const u=game.roster.find(u=>u.id===game.selected);if(!u){$('unitInfo').innerHTML='<span>Selecione uma miniatura para ver seus atributos ou vendê-la. Três cópias iguais se fundem e sobem de nível.</span>';return}let t=TYPES[u.type],g=GROUPS[t.group];const gear=(u.items||[]).map(id=>ITEMS[id]).filter(Boolean),sum=stat=>gear.reduce((n,it)=>n+(it[stat]||0),0);$('unitInfo').innerHTML=`<div class="info-line"><strong>${t.icon} ${esc(t.name)} ${'★'.repeat(u.star)}</strong><span>${g.name} · ${u.x===null?'Reserva':'Em campo'}</span></div><div>❤️ ${Math.round(t.hp*Math.pow(1.68,u.star-1))+sum('hp')+(pvp.active?0:game.globalBuffs?.hp||0)} · ${attackKind(u.type)==='magic'?'🔮':'⚔️'} ${Math.round(t.atk*Math.pow(1.51,u.star-1))+sum('atk')+(pvp.active?0:game.globalBuffs?.atk||0)} · 🛡️ ${t.armor+Math.max(0,u.star-1)*2+sum('armor')+(pvp.active?0:game.globalBuffs?.armor||0)} · 🪬 ${MAGIC_RESIST[u.type]+Math.max(0,u.star-1)*2+sum('resist')} · ⚡ ${(t.speed*(1+sum('speed')+(pvp.active?0:game.globalBuffs?.speed||0))).toFixed(2)} · 🎯 ${t.range}</div><div class="damage-explainer">Ataque básico: ${kindLabel(attackKind(u.type))}. 🛡️ Protege do físico; 🪬 protege do mágico.</div><div style="font-size:11px;color:#b4cae0">${sum('crit')?'Crítico +'+Math.round(sum('crit')*100)+'% · ':''}${sum('leech')?'Roubo de vida '+Math.round(sum('leech')*100)+'% · ':''}${sum('pierce')?'Penetração física '+sum('pierce')+' · ':''}${sum('magicPierce')?'Penetração mágica '+sum('magicPierce')+' · ':''}${sum('heal')?'Cura +'+Math.round(sum('heal')*100)+'% · ':''}${sum('shield')?'Escudo +'+sum('shield'):''}</div><div>${esc(t.skill)}: ${esc(t.tip)}</div><div class="role-tip">${ROLES[roleOf(u.type)].icon} <b>${ROLES[roleOf(u.type)].name}:</b> ${ROLES[roleOf(u.type)].tip}</div><div class="equip-inline">${(u.items||[]).length?(u.items||[]).map((id,i)=>`<button class="equip-slot" data-unequip="${i}" title="Toque para retirar" ${game.phase!=='prep'?'disabled':''}>${ITEMS[id]?.icon||'◆'} ${esc(ITEMS[id]?.name||id)} ✕</button>`).join(''):'<span style="font-size:11px;color:#a7bacb">Sem equipamentos (2 espaços)</span>'}</div>${game.phase==='prep'?`${u.x!==null?'<button class="secondary" id="benchSelectedBtn" style="padding:7px 10px;font-size:11px;margin:8px 7px 0 0">Guardar</button>':''}<button class="sell" id="sellBtn">Vender · +${t.cost*Math.pow(3,u.star-1)} 🪙</button>`:''}`}
+function inspectItem(i){if(!Number.isInteger(i)||!game.inventory[i])return;selectedInventoryIndex=i;renderForge();}
+function renderForge(){
+ const disabled=game.phase!=='prep';
+ $('forgeOffers').innerHTML=(game.forge||[]).map((id,i)=>{if(!id)return '<div class="equip-card" style="opacity:.45;align-items:center;justify-content:center;font-size:11px">✓ Adquirido</div>';const it=ITEMS[id];return `<button class="equip-card" data-forge="${i}" ${disabled||game.gold<it.cost?'disabled':''}><span class="equip-picto">${it.icon}</span><span><strong>${esc(it.name)}</strong><small>${esc(it.tip)}</small><span class="equip-price">${it.cost} 🪙</span></span></button>`}).join('');
+ $('inventoryLabel').textContent=`Mochila · ${game.inventory.length} ${game.inventory.length===1?'item':'itens'}`;
+ if(selectedInventoryIndex!==null&&!game.inventory[selectedInventoryIndex])selectedInventoryIndex=null;
+ $('itemStash').innerHTML=game.inventory.length?game.inventory.map((id,i)=>`<button type="button" class="item-chip ${ITEMS[id]?.rarity==='rare'?'rare-item':''} ${selectedInventoryIndex===i?'active':''}" data-inspect="${i}" aria-pressed="${selectedInventoryIndex===i}" aria-label="Ver descrição de ${esc(ITEMS[id]?.name||id)}"><span>${ITEMS[id]?.icon||'◆'}</span>${esc(ITEMS[id]?.name||id)}${ITEMS[id]?.rarity==='rare'?' ✦':''}</button>`).join(''):'<div class="empty-bench">Nenhum item ainda. Você pode comprar na forja ou ganhar recompensas.</div>';
+ const panel=$('itemDetails');
+ if(selectedInventoryIndex===null){panel.hidden=true;panel.innerHTML=''}
+ else{const id=game.inventory[selectedInventoryIndex],item=ITEMS[id];if(!item){panel.hidden=true;panel.innerHTML=''}
+ else{
+  const unit=game.roster.find(u=>u.id===game.selected),canEquip=!disabled&&!!unit&&(unit.items||[]).length<MAX_EQUIP;
+  const hint=disabled?'Os equipamentos só podem ser alterados entre as batalhas.':!unit?'Selecione uma miniatura no tabuleiro ou no banco para equipar este item.':(unit.items||[]).length>=MAX_EQUIP?'Esta miniatura já tem dois itens. Retire um para equipar outro.':`Você pode equipar em ${TYPES[unit.type].name}.`;
+  const isRare=item.rarity==='rare';
+  panel.hidden=false;panel.innerHTML=`${isRare?'<div class="item-detail-rare">✦ EQUIPAMENTO RARO</div>':''}<div class="item-detail-title"><span class="item-detail-icon">${item.icon}</span><span>${esc(item.name)}</span></div><div class="item-detail-effect">${esc(item.tip)}</div><div class="item-detail-description">${esc(ITEM_DESCRIPTIONS[id]||item.tip)}</div><div class="item-detail-hint">${esc(hint)}</div><div class="item-detail-actions single"><button type="button" class="item-detail-action" id="equipInspectedBtn" ${canEquip?'':'disabled'}>${unit?'Equipar em '+esc(TYPES[unit.type].name):'Equipar em uma miniatura'}</button></div>`;
+ }}
+ renderCraft();
+}
+function renderTraits(){let counts=countTraits(deployed());$('traits').innerHTML=Object.keys(GROUPS).map(id=>{
+ let g=GROUPS[id],c=counts[id],tier=c>=4?2:c>=2?1:0;
+ return `<div class="trait ${tier?'active':''} ${tier===2?'level2':''}"><div><div class="trait-name">${g.icon} ${g.name}</div><div class="trait-desc ${tier>=1?'live':''}">2: ${g.desc}</div><div class="trait-desc ${tier===2?'live':'next'}">4: ${g.tier4}</div></div><div class="trait-counter"><b>${c}/4</b><small>${tier===2?'NÍVEL 2':tier===1?'NÍVEL 1':'INATIVA'}</small></div></div>`
+ }).join('')}
+function drawBattleFx(){
+ if(!battle?.fx?.length)return;
+ const layer=$('fxLayer'),events=battle.fx.splice(0,60),cells=$('board').querySelectorAll('.cell'),layerRect=layer.getBoundingClientRect();
+ const pos=(x,y)=>{const cell=cells[y*6+x];if(!cell)return{x:0,y:0};const r=cell.getBoundingClientRect();return{x:r.left+r.width/2-layerRect.left,y:r.top+r.height/2-layerRect.top}};
+ const add=(cl,x,y,ttl=600,extra={})=>{
+  const el=document.createElement('span');el.className=cl;el.style.left=x+'px';el.style.top=y+'px';
+  for(const[k,v]of Object.entries(extra))el.style.setProperty(k,v);
+  layer.appendChild(el);setTimeout(()=>el.remove(),ttl);return el;
+ };
+ for(const ev of events){
+  if(ev.kind==='move')continue;
+  const end=pos(ev.x,ev.y),style=ev.style||'',color=style==='poison'?'#a8ec70':style==='frost'?'#94eaff':style==='arcane'?'#b79aff':style==='shadow'||style==='leech'?'#d09af4':style==='heal'?'#87ffc2':style==='shield'?'#85e2ff':style==='pierce'?'#ffe19f':'#f6b781';
+  if(ev.kind==='skill'){
+   const el=add('fx-skill',end.x,end.y,950,{'--skillcolor':color});el.textContent=ev.label;continue;
+  }
+  if(ev.kind==='barrier'){add('fx-barrier',end.x,end.y,740,{'--ring':'58px'});continue}
+  if(ev.kind==='aura'){add('fx-aoe',end.x,end.y,680,{'--ring':style==='arcane'?'85px':'57px','--fxcolor':color});continue}
+  if(ev.kind==='death'){const el=add('fx-death',end.x,end.y,700);el.textContent='✦';continue}
+  if(ev.kind==='status'){add('fx-burst',end.x,end.y,470,{'--fxcolor':color});const dot=add('fx-number '+(ev.damageKind==='magic'?'magic-dmg':'physical-dmg'),end.x,end.y,670);dot.textContent=ev.dmg?'−'+ev.dmg:ev.blocked?'BLOQ.':'';continue}
+  if(ev.kind==='heal'){
+   if(ev.sx!==ev.x||ev.sy!==ev.y){const a=pos(ev.sx,ev.sy);const el=add('fx-streak healbeam',a.x,a.y,430,{'--fxdx':(end.x-a.x)+'px','--fxdy':(end.y-a.y)+'px','--fxcolor':'#8dffc2'});}
+   add('fx-burst',end.x,end.y,470,{'--fxcolor':'#92fbc3'});
+  }else if(ev.kind==='shot'){
+   const a=pos(ev.sx,ev.sy);add('fx-streak '+(style==='arcane'?'magic':'arrow'),a.x,a.y,430,{'--fxdx':(end.x-a.x)+'px','--fxdy':(end.y-a.y)+'px','--fxcolor':color});
+   add('fx-burst',end.x,end.y,470,{'--fxcolor':color});
+  }else{add('fx-slash',end.x,end.y,440,{'--fxcolor':color});}
+  if(ev.kind!=='heal'&&ev.blocked>0)add('fx-barrier',end.x,end.y,550,{'--ring':'38px'});
+  if(ev.kind==='strike'||ev.kind==='shot'||ev.kind==='heal'){
+   const num=add('fx-number'+(ev.kind==='heal'?' heal':(ev.damageKind==='magic'?' magic-dmg':' physical-dmg')+(ev.critical?' crit':'')),end.x,end.y,670);
+   num.textContent=ev.kind==='heal'?'+'+ev.dmg:ev.dmg>0?'−'+ev.dmg+(ev.critical?'!':''):ev.blocked>0?'BLOQ.':'';
+  }
+ }
+}
+function formationAdvice(){
+ const roster=deployed(),front=roster.filter(u=>roleOf(u.type)==='front'),ranged=roster.filter(u=>['ranged','caster','support'].includes(roleOf(u.type)));
+ const guardians=front.filter(t=>roster.some(r=>r.id!==t.id&&r.y>t.y&&Math.abs(r.x-t.x)<=1));
+ const exposed=ranged.filter(r=>!front.some(t=>t.y<r.y&&Math.abs(t.x-r.x)<=1));
+ const flanks=roster.filter(u=>roleOf(u.type)==='flank');
+ if(!roster.length)return '🧭 Monte sua equipe: tanque na linha superior verde; arqueiros e suportes na inferior.';
+ if(exposed.length)return `⚠️ ${exposed.length} unidade(s) de retaguarda sem protetor logo à frente. Mova um tanque para uma casa próxima na linha superior verde.`;
+ if(guardians.length)return `🛡️ ${guardians.length} protetor(es) cobrindo aliados. Disparos físicos podem ser interceptados; assassinos procuram a retaguarda.`;
+ if(flanks.length)return `🗡️ ${flanks.length} infiltrador(es): saltam ou avançam contra os personagens frágeis do adversário.`;
+ if(ranged.length)return '🏹 Seus atiradores precisam de espaço. Coloque um Guardião, Golem, Paladina ou Sentinela à frente.';
+ return '⚔️ Corpo a corpo: espalhe seus combatentes para evitar explosões em área.';
+}
+function renderActions(){
+ if(pvp.active){pvpRenderActions();return}
+ const active=game.phase==='combat';
+ $('fightBtn').disabled=game.phase!=='prep'||deployed().length===0;
+ $('fightBtn').textContent=active?'⚔️ LUTANDO...':game.phase==='result'?'BATALHA ENCERRADA':'⚔️ INICIAR BATALHA';
+ $('speedBtn').hidden=!active;if(active)$('speedBtn').textContent=`⏩ ${battle.speed===1?'2×':'1×'}`;
+ $('phaseNote').textContent=active?`${battle.log} · ${Math.max(0,Math.ceil((115-battle.tick)*.37/battle.speed))} s restantes (aprox.)`:game.phase==='prep'?`${game.preview.length} inimigos à frente. Você pode posicionar ${capacity()} miniaturas.${game.bossInfo?` 👑 Chefe: ${game.bossInfo.name} — ${game.bossInfo.desc}`:''}${buffsSummary()}`:'Batalha finalizada!';
+ $('battleTip').textContent=active?'⚡ Tanques interceptam tiros físicos; infiltradores buscam os suportes, e conjuradores controlam áreas.':game.phase==='prep'?(game.bossInfo?`👑 Chefes agora têm efeitos próprios. Monte a equipe pensando em ${game.bossInfo.name.toLowerCase()}.`:formationAdvice()):'🏅 Confira o relatório para ver como o posicionamento influenciou a batalha.';
+}
+function showToast(s){const el=$('toast');el.textContent=s;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),1900)}
+function openModal(icon,title,desc,reward,action,sub,fn){
+ $('modalIcon').textContent=icon;$('modalTitle').textContent=title;$('modalText').textContent=desc;
+ $('modalReward').textContent=reward;$('modalReward').hidden=!reward;$('modalAction').textContent=action;
+ $('modalSub').textContent=sub||'';modalReportOpen=false;$('modalReportBtn').hidden=true;
+ $('modal').querySelector('.modal-body').classList.remove('has-report');$('modalReport').hidden=true;
+ $('modal').classList.remove('hidden');$('modalAction').onclick=fn;
+}
+function closeModal(){$('modal').classList.add('hidden')}
+// Trilha instrumental original gerada pelo navegador: não precisa de internet, MP3 ou bibliotecas.
+// Cada tema tem 8 compassos em 4/4. Os valores são notas MIDI (dó central = 60).
+const SOUNDTRACK={
+ prep:{bpm:94,roots:[45,41,48,43,45,41,48,43],chords:[[57,60,64],[53,57,60],[55,60,64],[55,59,62],[57,60,64],[53,57,60],[55,60,64],[55,59,62]],melody:[
+ [69,null,72,null,76,74,72,null], [69,null,72,69,67,null,65,null],
+ [67,null,72,null,76,79,76,null], [74,null,71,null,69,null,67,null],
+ [69,72,76,null,79,null,76,null], [72,null,69,null,67,65,69,null],
+ [72,null,76,79,76,null,72,null], [71,null,74,72,69,null,69,null]]},
+ combat:{bpm:138,roots:[40,36,38,35,40,36,38,35],chords:[[52,55,59],[48,52,55],[50,54,57],[47,50,54],[52,55,59],[48,52,55],[50,54,57],[47,50,54]],melody:[
+ [76,79,83,null,81,79,76,null], [79,76,72,null,76,79,76,null],
+ [78,81,86,null,81,78,74,null], [74,78,81,null,78,74,71,null],
+ [76,79,83,86,83,null,81,79], [76,null,79,76,72,76,79,null],
+ [78,81,86,null,85,81,78,null], [74,78,81,null,83,81,76,null]]}
+};
+function readAudioVolume(){try{const raw=localStorage.getItem('miniaturas-volume');if(raw===null)return 35;const n=Number(raw);return Number.isFinite(n)&&n>=0&&n<=100?n:35}catch{return 35}}
+function rememberAudioVolume(){try{localStorage.setItem('miniaturas-volume',String(volume))}catch{}}
+function audioMaster(){if(!audioCtx){const Constructor=window.AudioContext||window.webkitAudioContext;if(!Constructor)return false;audioCtx=new Constructor();musicBus=audioCtx.createGain();fxBus=audioCtx.createGain();musicBus.connect(audioCtx.destination);fxBus.connect(audioCtx.destination);}updateAudioGain();return true}
+function updateAudioGain(){if(!audioCtx)return;const now=audioCtx.currentTime,scale=volume/100;musicBus.gain.setTargetAtTime(soundOn?scale*.32:0,now,.045);fxBus.gain.setTargetAtTime(soundOn?scale*.5:0,now,.025)}
+function tone(midi,when,duration,level=.15,wave='triangle',bus=musicBus){if(!audioCtx||!bus)return;let osc=audioCtx.createOscillator(),env=audioCtx.createGain(),end=when+duration;osc.type=wave;osc.frequency.setValueAtTime(440*Math.pow(2,(midi-69)/12),when);env.gain.setValueAtTime(.0001,when);env.gain.exponentialRampToValueAtTime(Math.max(.0002,level),when+.025);env.gain.exponentialRampToValueAtTime(.0001,end);osc.connect(env).connect(bus);osc.start(when);osc.stop(end+.025)}
+function kick(when){if(!audioCtx)return;const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();osc.type='sine';osc.frequency.setValueAtTime(135,when);osc.frequency.exponentialRampToValueAtTime(48,when+.16);gain.gain.setValueAtTime(.18,when);gain.gain.exponentialRampToValueAtTime(.0001,when+.19);osc.connect(gain).connect(musicBus);osc.start(when);osc.stop(when+.2)}
+function shaker(when){if(!audioCtx)return;if(!musicNoise){musicNoise=audioCtx.createBuffer(1,Math.round(audioCtx.sampleRate*.065),audioCtx.sampleRate);const a=musicNoise.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=(Math.random()*2-1)*(.4+.6*(1-i/a.length))}let source=audioCtx.createBufferSource(),filter=audioCtx.createBiquadFilter(),gain=audioCtx.createGain();source.buffer=musicNoise;filter.type='highpass';filter.frequency.value=4000;gain.gain.setValueAtTime(.03,when);gain.gain.exponentialRampToValueAtTime(.0001,when+.055);source.connect(filter).connect(gain).connect(musicBus);source.start(when);source.stop(when+.06)}
+function scheduleMusicStep(when){const theme=SOUNDTRACK[musicTheme];if(!theme)return;const bar=Math.floor(musicStep/8)%8,pos=musicStep%8,unit=30/theme.bpm,notes=theme.melody[bar],note=notes[pos];if(pos===0)theme.chords[bar].forEach((n,i)=>tone(n-12,when,unit*7.7,.044-i*.005,'sine'));if(pos%2===0)tone(theme.roots[bar]+(pos===4?12:0),when,unit*1.7,musicTheme==='combat'?.19:.13,'triangle');if(note!==null)tone(note,when,unit*(musicTheme==='combat'?1.3:1.72),musicTheme==='combat'?.21:.16,'triangle');if(musicTheme==='combat'){if(pos===0||pos===4)kick(when);if(pos%2===1)shaker(when)}musicStep=(musicStep+1)%64;nextMusicTime+=unit}
+function advanceMusic(){if(!soundOn||!audioCtx||audioCtx.state!=='running'||document.hidden)return;const max=audioCtx.currentTime+.22;let safety=0;while(nextMusicTime<max&&safety++<6)scheduleMusicStep(nextMusicTime)}
+function syncMusicTheme(){if(!game)return;const newTheme=game.phase==='combat'?'combat':'prep';if(musicTheme===newTheme)return;musicTheme=newTheme;musicStep=0;if(audioCtx)nextMusicTime=audioCtx.currentTime+.045;updateAudioStatus()}
+function startMusic(){if(!soundOn||document.hidden)return;try{if(!audioMaster())return;audioCtx.resume().then(()=>{if(!soundOn||document.hidden)return;syncMusicTheme();nextMusicTime=audioCtx.currentTime+.05;if(musicTimer===null)musicTimer=setInterval(advanceMusic,95);advanceMusic()}).catch(()=>{});}catch{}}
+function stopMusic(){if(musicTimer!==null){clearInterval(musicTimer);musicTimer=null}if(audioCtx){musicBus.gain.setTargetAtTime(0,audioCtx.currentTime,.025)}}
+function updateAudioStatus(){const on=soundOn;$('soundBtn').textContent=on?'🔊':'🎵';$('soundBtn').setAttribute('aria-pressed',String(on));$('soundBtn').setAttribute('aria-label',on?'Desligar música e efeitos':'Ligar música e efeitos');$('soundBtn').title=on?'Desligar música e efeitos':'Ligar música e efeitos';$('volumeSlider').value=String(volume);$('volumeValue').textContent=volume+'%';$('audioStatus').textContent=on?'🎵 '+(game?.phase==='combat'?'Trilha de combate':'Trilha de preparação'):'🎵 Música desligada · toque em 🎵 para ligar'}
+function playNote(freq,dur=.08){if(!soundOn)return;try{if(!audioMaster()||audioCtx.state!=='running')return;const now=audioCtx.currentTime,osc=audioCtx.createOscillator(),gain=audioCtx.createGain();osc.type='sine';osc.frequency.value=freq;gain.gain.setValueAtTime(.09,now);gain.gain.exponentialRampToValueAtTime(.0001,now+dur);osc.connect(gain).connect(fxBus);osc.start(now);osc.stop(now+dur+.01)}catch{}}
+$('board').addEventListener('click',e=>{let el=e.target.closest('[data-x]');if(el)selectOrMove(Number(el.dataset.x),Number(el.dataset.y))});$('shop').addEventListener('click',e=>{let el=e.target.closest('[data-inspect-shop]');if(el)inspectShop(Number(el.dataset.inspectShop))});$('bench').addEventListener('click',e=>{let el=e.target.closest('[data-bench]');if(el)selectBench(Number(el.dataset.bench))});$('unitInfo').addEventListener('click',e=>{const gear=e.target.closest('[data-unequip]');if(gear)unequipItem(Number(gear.dataset.unequip));if(e.target.closest('#sellBtn'))sellSelected();if(e.target.closest('#benchSelectedBtn'))benchSelected()});$('forgeOffers').addEventListener('click',e=>{const b=e.target.closest('[data-forge]');if(b)buyItem(Number(b.dataset.forge))});$('itemStash').addEventListener('click',e=>{const b=e.target.closest('[data-inspect]');if(b)inspectItem(Number(b.dataset.inspect))});$('itemDetails').addEventListener('click',e=>{if(e.target.closest('#equipInspectedBtn')&&selectedInventoryIndex!==null)equipItem(selectedInventoryIndex)});
+$('shopInspectClose').onclick=closeShopInspect;$('shopInspectCancel').onclick=closeShopInspect;$('shopInspectConfirm').onclick=confirmShopBuy;
+$('shopModal').addEventListener('click',e=>{if(e.target===$('shopModal'))closeShopInspect()});$('blessingChoices').addEventListener('click',e=>{const b=e.target.closest('[data-blessing]');if(b)applyBlessing(Number(b.dataset.blessing))});$('blessingModal').addEventListener('click',e=>{if(e.target===$('blessingModal'))closeBlessingModal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('shopModal').classList.contains('hidden'))closeShopInspect();if(e.key==='Escape'&&!$('blessingModal').classList.contains('hidden'))closeBlessingModal()});$('rerollBtn').onclick=()=>rollShop();$('fightBtn').onclick=()=>pvp.active?pvpReady():startBattle();$('speedBtn').onclick=()=>{if(pvp.active&&pvp.seat===1)return;if(battle){battle.speed=battle.speed===1?2:1;renderActions();schedule()}};$('soundBtn').onclick=()=>{soundOn=!soundOn;if(soundOn){startMusic();}else{stopMusic();}updateAudioGain();updateAudioStatus()};$('volumeSlider').addEventListener('input',e=>{volume=Number(e.target.value);rememberAudioVolume();updateAudioGain();updateAudioStatus()});document.addEventListener('visibilitychange',()=>{if(document.hidden){stopMusic();}else if(soundOn){startMusic()}});
+$('reportBtn').onclick=()=>{reportOpen=!reportOpen;renderReports()};
+$('reportBody').addEventListener('click',e=>{const tab=e.target.closest('[data-report-side]');if(tab){reportSide=tab.dataset.reportSide;renderReports()}});
+$('modalReportBtn').onclick=()=>{modalReportOpen=!modalReportOpen;updateModalReport()};
+$('modalReportBody').addEventListener('click',e=>{const tab=e.target.closest('[data-report-side]');if(tab){modalReportSide=tab.dataset.reportSide;updateModalReport()}});
+$('resetBtn').onclick=()=>{if(pvp.active){showToast('Saia do PvP antes de reiniciar o solo');return}if(window.confirm('Recomeçar do zero? Seu progresso atual será perdido.')){clearTimeout(clock);battle=null;closeModal();newRun()}};
+$('helpBtn').onclick=()=>openModal('📜','Como jogar','Na loja, toque em uma miniatura para ver os atributos e confirme se quiser comprar. Toque em uma unidade para selecioná-la e depois toque em uma das duas linhas verdes para posicionar ou trocar. As batalhas acontecem automaticamente. Unidades diferentes da mesma aliança dão bônus com duas em campo e um segundo bônus com quatro. Unidades repetidas contam apenas uma vez. Duas cópias do mesmo personagem contam como apenas uma para a aliança. Três unidades idênticas de mesmo nível se fundem em uma mais forte. Tanques na linha da frente podem interceptar tiros físicos destinados à retaguarda; assassinos buscam unidades frágeis, e magos podem atingir áreas. Na Forja, compre equipamentos, toque em um item da mochila para ler sua descrição, selecione uma miniatura e use Equipar. Cada miniatura aceita 2 itens. Itens raros aparecem como recompensas especiais nas rodadas de chefe e em algumas bênçãos. Você perde uma vida por derrota. Sobreviva o maior número de rodadas possível!','','ENTENDI','Dica: Guardião, Golem, Sentinela e Paladina interceptam flechas disparadas contra aliados logo atrás.',closeModal);
+$('oddsBtn').onclick=()=>openModal('💡','Estratégias','O posicionamento é decisivo: coloque tanques à frente dos arqueiros; atiradores tentam recuar de inimigos próximos; infiltradores priorizam suportes, e lanceiros podem atravessar alvos em linha. Cada aliança oferece dois patamares: 2 e 4 personagens diferentes. Ferro protege e concede escudos; Selva acelera e regenera; Arcano aumenta o ataque e Sombra fortalece críticos e roubo de vida. Ganhe 1 moeda extra para cada 10 que tiver guardadas, até 3. Equipamentos melhoram ataque, vida, velocidade, crítico e cura. Armadura reduz dano físico, resistência mágica reduz dano mágico. Lance perfura armadura; Foco arcano perfura resistência mágica. Na Forja, compre itens básicos e use a mochila para ler a descrição antes de equipar. Itens raros agora vêm de chefes e recompensas especiais. Ao vencer as rodadas múltiplas de 3 e os chefes, você encontra um item. A cada três rodadas, você libera mais um espaço para lutar. Nas rodadas 5, 10, 15... surgem chefes com efeitos exclusivos; após rodadas importantes, você pode escolher uma bênção permanente.','','VAMOS JOGAR','O progresso é salvo automaticamente neste navegador.',closeModal);
+window.__miniGameDebug={inspectShop,closeShopInspect,confirmShopBuy,craftItem,selectCraftIngredient,selectCraftRecipe,renderCraft,recipeFrom,recipes:RARE_RECIPES,shopModalIsOpen:()=>!$('shopModal').classList.contains('hidden'),getCraftSelection:()=>craftSelection.slice(),makeReport,reportHtml,restoreHealth,effectDamage,performTurn,getState:()=>JSON.parse(JSON.stringify({game,battle})),buy,selectOrMove,startBattle,tickBattle,reset:newRun,skipToResult:()=>{for(let i=0;i<250&&game.phase==='combat';i++)tickBattle()},types:TYPES,items:ITEMS,buyItem,equipItem,unequipItem,rollForge,miniArt,countTraits,inspectItem,applyTraitBuffs,processConditions,directStatusDamage,blinkToBackline,roleOf,selectTarget,findRetreat,interceptTarget,formationAdvice,pathToTarget,battleRef:()=>battle};
+
+// ===== PvP em mesmo aparelho e por WebSocket (servidor do pacote) =====
+let pvp={active:false,local:false,seat:0,round:1,wins:[0,0],ready:false,starting:false,socket:null,room:'',names:['Jogador 1','Jogador 2'],connected:[true,true],otherUnits:[],localGames:[],soloGame:null,lastWinner:null,matchDone:false,waitingNext:false,server:''};
+function pvpFreshGame(){
+ return {round:1,gold:12,lives:3,wins:0,roster:[newUnit('guard',2,4),newUnit('bow',3,5)],shop:[],preview:[],forge:[],inventory:[],selected:null,phase:'prep',highScore:0,lastReport:null};
+}
+function pvpMakeGame(){let keep=game;game=pvpFreshGame();rollShop(true);rollForge();game.preview=[];let created=game;game=keep;return created}
+function pvpActivate(isLocal){
+ clearTimeout(clock);battle=null;closeModal();closeShopInspect();
+ pvp.soloGame=game;pvp.active=true;pvp.local=isLocal;pvp.ready=false;pvp.starting=false;pvp.round=1;pvp.wins=[0,0];pvp.matchDone=false;pvp.lastWinner=null;pvp.waitingNext=false;
+ pvp.localGames=isLocal?[pvpMakeGame(),pvpMakeGame()]:[];
+ game=isLocal?pvp.localGames[0]:pvpMakeGame();pvp.seat=0;
+ $('pvpShell').hidden=false;$('pvpBar').hidden=false;$('pvpSetup').hidden=true;$('pvpLeaveBtn').hidden=false;
+ pvpUpdateBanner();render();
+}
+function pvpLeave(){
+ if(!pvp.active){$('pvpShell').hidden=true;return}
+ clearTimeout(clock);battle=null;closeModal();closeShopInspect();
+ if(pvp.socket){try{pvp.socket.send(JSON.stringify({type:'leave'}));pvp.socket.close()}catch{}pvp.socket=null}
+ game=pvp.soloGame||game;pvp.active=false;pvp.local=false;pvp.soloGame=null;pvp.ready=false;pvp.room='';
+ $('pvpBar').hidden=true;$('pvpSetup').hidden=false;$('pvpLeaveBtn').hidden=true;$('pvpCode').hidden=true;$('pvpCopyBtn').hidden=true;
+ $('pvpStatus').textContent='PvP encerrado. Progresso solo retomado.';
+ render();
+}
+function pvpSetStatus(s){$('pvpStatus').textContent=s;pvpUpdateBanner()}
+function pvpUpdateBanner(){
+ if(!pvp.active)return;
+ let me=pvp.local?`Jogador ${pvp.seat+1}`:(pvp.names[pvp.seat]||'Você'),vs=pvp.local?'Modo local':`Sala ${pvp.room}`;
+ $('pvpMatchTitle').innerHTML=`⚔️ <strong>${esc(vs)}</strong> · ${esc(me)} · ${esc(pvp.names[0])} ${pvp.wins[0]} × ${pvp.wins[1]} ${esc(pvp.names[1])}`;
+ $('pvpMatchStatus').textContent=pvp.matchDone?'Partida encerrada':game.phase==='combat'?'⚔️ Combate automático':game.phase==='pvp_wait'?'✅ Aguardando o outro jogador':game.phase==='result'?'🏆 Resultado':'🛡️ Monte sua equipe';
+}
+function pvpStartLocal(){
+ if(pvp.active)return;
+ pvp.names=['Jogador 1','Jogador 2'];pvp.room='';pvpActivate(true);pvpSetStatus('Jogador 1 prepara a equipe. Depois toque em PRONTO e entregue o aparelho ao jogador 2.');
+}
+function pvpReady(){
+ if(!pvp.active||game.phase!=='prep')return;
+ let units=deployed();if(!units.length){showToast('Coloque pelo menos uma miniatura');return}
+ if(pvp.local){
+  if(pvp.seat===0){pvp.localGames[0]=game;game.phase='pvp_wait';pvp.otherUnits=pvpSnapshot();game=pvp.localGames[1];pvp.seat=1;
+   $('pvpStatus').textContent='Jogador 1 pronto. Entregue o aparelho ao jogador 2 para ele montar a equipe.';
+   pvpUpdateBanner();render();window.scrollTo({top:0,behavior:'smooth'});return}
+  pvp.localGames[1]=game;pvp.otherUnits=pvpSnapshot();game=pvp.localGames[0];pvp.seat=0;game.phase='prep';pvpStartHost(pvp.otherUnits);return;
+ }
+ if(!pvp.socket||pvp.socket.readyState!==1){showToast('Sem conexão com a sala');return}
+ if(!pvp.connected.every(Boolean)){showToast('Aguarde seu amigo entrar na sala');return}
+ pvp.ready=true;game.phase='pvp_wait';pvpSend({type:'ready',units:pvpSnapshot()});pvpSetStatus('Equipe confirmada. Aguardando o amigo.');render();
+}
+function pvpSnapshot(){return deployed().map(u=>({type:u.type,star:u.star,x:u.x,y:u.y,items:(u.items||[]).slice(0,2)}))}
+function pvpStartHost(opponents){
+ pvp.starting=true;pvp.seat=0;pvp.ready=false;
+ game.phase='prep';game.preview=opponents.map(u=>({type:u.type,star:u.star,x:u.x,y:5-u.y,items:(u.items||[]).slice(0,2)}));
+ startBattle();pvp.starting=false;pvpSetStatus('Batalha em andamento. A simulação é conduzida pelo jogador 1.');
+}
+function pvpGuestFrame(frame){
+ if(!pvp.active||pvp.seat!==1)return;
+ const f=JSON.parse(JSON.stringify(frame));
+ battle={...f,allies:f.enemies.map(u=>({...u,side:'player',y:5-u.y})),enemies:f.allies.map(u=>({...u,side:'enemy',y:5-u.y})),traits:f.enemyTraits,enemyTraits:f.traits,fx:[]};
+ game.phase='combat';render();
+}
+function pvpSend(msg){if(pvp.socket&&pvp.socket.readyState===1){try{pvp.socket.send(JSON.stringify(msg))}catch{}}}
+function pvpSendFrame(){
+ if(!battle||pvp.seat!==0||!pvp.active||pvp.local)return;
+ const {allies,enemies,traits,enemyTraits,round,tick,speed,lastHit,lastAction,log}=battle;
+ pvpSend({type:'frame',frame:{allies,enemies,traits,enemyTraits,round,tick,speed,lastHit,lastAction,log}});
+}
+function pvpEndBattle(hostWin){
+ clearTimeout(clock);if(!pvp.active)return;
+ $('fxLayer').replaceChildren();
+ if(pvp.local){pvp.wins[hostWin?0:1]++;pvp.lastWinner=hostWin?0:1;pvp.matchDone=pvp.wins.some(v=>v>=3);pvpShowResult(hostWin);}
+ else{pvpSendFrame();game.phase='pvp_wait';pvpSend({type:'finish',hostWin:!!hostWin});pvpSetStatus('Aguardando confirmação do resultado na sala...');render()}
+}
+function pvpShowResult(hostWin){
+ const iWon=hostWin=== (pvp.seat===0);
+ game.phase='result';game.lastReport=battle?makeReport(battle,iWon):null;
+ if(iWon)game.wins++;pvp.lastWinner=hostWin?0:1;
+ pvp.matchDone=pvp.wins.some(n=>n>=3);
+ pvpUpdateBanner();render();playNote(iWon?850:270,.13);
+ const winner=pvp.names[pvp.lastWinner]||`Jogador ${pvp.lastWinner+1}`;
+ openModal(pvp.matchDone?'🏆':iWon?'🥇':'⚔️',pvp.matchDone?`${winner} venceu o duelo!`:iWon?'Você venceu esta rodada!':'Seu adversário venceu!',
+  pvp.matchDone?`${winner} alcançou 3 vitórias. ${pvp.local?'Podem':'Vocês podem'} jogar uma revanche.`:`${winner} venceu a rodada ${pvp.round}. Placares: ${pvp.wins[0]} × ${pvp.wins[1]}.`,
+  `${pvp.names[0]} ${pvp.wins[0]} × ${pvp.wins[1]} ${pvp.names[1]}`,
+  pvp.matchDone?'🔄 REVANCHE':'➡️ PRÓXIMA RODADA',
+  pvp.local?'As equipes permanecem entre as rodadas.':'Os dois jogadores precisam confirmar para continuar.',
+  ()=>{closeModal();pvpAdvance()}
+ );$('modalReportBtn').hidden=!game.lastReport;
+}
+function pvpRefreshRound(g,round,win){
+ let saveGame=game;game=g;game.round=round;game.gold+=win?7:6;game.phase='prep';game.preview=[];game.selected=null;game.lastReport=null;
+ rollShop(true);rollForge();game=saveGame;
+}
+function pvpAdvance(){
+ if(!pvp.active)return;
+ if(pvp.local){
+  const wasDone=pvp.matchDone;
+  if(wasDone){pvp.wins=[0,0];pvp.round=1;pvp.matchDone=false;pvp.localGames=[pvpMakeGame(),pvpMakeGame()];}
+  else{pvp.round++;pvp.localGames[0]=game;for(let i=0;i<2;i++)pvpRefreshRound(pvp.localGames[i],pvp.round,pvp.lastWinner===i)}
+  game=pvp.localGames[0];pvp.seat=0;pvp.lastWinner=null;battle=null;
+  pvpSetStatus('Jogador 1 começa a preparação. Toque em PRONTO para passar a vez.');render();return;
+ }
+ if(pvp.waitingNext)return;
+ pvp.waitingNext=true;pvpSend({type:'next'});pvpSetStatus('Você confirmou. Esperando o amigo confirmar também...');
+}
+function pvpRenderActions(){
+ const active=game.phase==='combat',waiting=game.phase==='pvp_wait';
+ $('fightBtn').disabled=game.phase!=='prep'||deployed().length===0;
+ $('fightBtn').textContent=waiting?'✅ PRONTO — AGUARDANDO':active?'⚔️ LUTANDO...':game.phase==='result'?'BATALHA ENCERRADA':'✅ CONFIRMAR EQUIPE';
+ $('speedBtn').hidden=!active||pvp.seat!==0;
+ if(!$('speedBtn').hidden)$('speedBtn').textContent=`⏩ ${battle?.speed===1?'2×':'1×'}`;
+ $('phaseNote').textContent=waiting?'Equipe bloqueada enquanto espera o outro jogador.':active?'Duelo PvP: o combate usa as equipes e os itens dos dois jogadores.':game.phase==='prep'?`Rodada ${pvp.round}. Prepare até ${capacity()} miniaturas e confirme quando estiver pronto.`:'Duelo encerrado. Consulte o relatório.';
+ $('battleTip').textContent=game.phase==='prep'?'📌 Cada jogador tem sua própria loja, mochila e formação. Os dois entram com as mesmas moedas iniciais.':active?'⚔️ As alianças e equipamentos dos dois lados influenciam o combate.':'🏆 Vence quem conseguir três vitórias.';
+ pvpUpdateBanner();
+}
+function pvpServerUrl(){
+ let raw=$('pvpServer').value.trim();if(!raw&&/^https?:$/.test(location.protocol))raw=location.origin;
+ if(!raw)throw Error('Para jogar online, abra o jogo pelo servidor ou informe seu endereço.');
+ const u=new URL(raw);if(!['http:','https:','ws:','wss:'].includes(u.protocol))throw Error('Endereço de servidor inválido.');
+ return (u.protocol==='https:'?'wss:':u.protocol==='http:'?'ws:':u.protocol)+'//'+u.host+'/ws';
+}
+function pvpConnect(action){
+ if(pvp.active)return;
+ let url;try{url=pvpServerUrl()}catch(e){pvpSetStatus(e.message);return}
+ $('pvpCreateBtn').disabled=true;$('pvpJoinBtn').disabled=true;
+ const socket=new WebSocket(url);pvp.socket=socket;
+ const payload=action==='create'?{type:'create',name:$('pvpName').value.trim().slice(0,24)||'Jogador'}:{type:'join',code:$('pvpJoinCode').value.trim().toUpperCase(),name:$('pvpName').value.trim().slice(0,24)||'Jogador'};
+ const timeout=setTimeout(()=>{if(socket.readyState!==1)socket.close()},8000);
+ pvpSetStatus('Conectando ao servidor de salas...');
+ socket.addEventListener('open',()=>{clearTimeout(timeout);socket.send(JSON.stringify(payload))});
+ socket.addEventListener('message',ev=>{let msg;try{msg=JSON.parse(ev.data)}catch{return}pvpMessage(msg)});
+ socket.addEventListener('error',()=>{pvpSetStatus('Falha de conexão. Verifique se o servidor está publicado e ativo.')});
+ socket.addEventListener('close',()=>{clearTimeout(timeout);$('pvpCreateBtn').disabled=false;$('pvpJoinBtn').disabled=false;if(pvp.active&&!pvp.local)pvpSetStatus('⚠️ Conexão perdida. Saia do PvP e entre na sala novamente.');else pvpSetStatus('Sem conexão ao servidor.')});
+}
+function pvpMessage(msg){
+ if(msg.type==='error'){
+  if(pvp.active&&game.phase==='pvp_wait'&&!pvp.local){game.phase='prep';pvp.ready=false;render()}
+  pvpSetStatus('⚠️ '+(msg.message||'Erro na sala.'));return
+ }
+ if(msg.type==='room_closed'&&pvp.active){
+  clearTimeout(clock);battle=null;game.phase='pvp_wait';pvpSetStatus('⚠️ O criador saiu. Encerre este PvP e entre em uma nova sala.');render();return
+ }
+ if(msg.type==='joined'){
+  pvpActivate(false);pvp.seat=msg.seat;pvp.round=msg.round||1;pvp.wins=msg.wins||[0,0];pvp.room=msg.code;pvp.names=msg.names||['Jogador 1','Jogador 2'];pvp.connected=msg.connected||[true,false];
+  $('pvpCode').hidden=false;$('pvpCode').textContent=`SALA ${pvp.room}`;$('pvpCopyBtn').hidden=false;
+  pvpSetStatus(pvp.connected.every(Boolean)?'Os dois jogadores entraram. Prepare seu time.':'Sala criada. Compartilhe o código ou convite com seu amigo.');render();
+ }else if(msg.type==='state'&&pvp.active&&!pvp.local){
+  pvp.names=msg.names||pvp.names;pvp.connected=msg.connected||pvp.connected;pvp.wins=msg.wins||pvp.wins;pvp.round=msg.round||pvp.round;
+  if(!pvp.connected.every(Boolean)&&['combat','result','pvp_wait'].includes(game.phase)){
+   clearTimeout(clock);battle=null;game.phase='prep';game.preview=[];pvp.ready=false;pvp.waitingNext=false;render();
+  }
+  pvpSetStatus(!pvp.connected.every(Boolean)?'Aguardando o amigo entrar ou reconectar.':msg.phase==='prep'?(msg.ready?.[pvp.seat]?'Sua equipe está pronta. Aguardando o adversário.':'Os dois estão na sala. Organize a equipe.'):`Estado: ${msg.phase}`);
+ }else if(msg.type==='start'&&pvp.active&&!pvp.local){
+  pvp.ready=false;pvp.waitingNext=false;pvp.round=msg.round;
+  if(pvp.seat===0)pvpStartHost(msg.opponentUnits||[]);
+  else{game.phase='combat';battle={allies:[],enemies:[],traits:{},enemyTraits:{},tick:0,round:pvp.round,log:'Aguardando os primeiros movimentos...'};pvpSetStatus('Batalha iniciada! Acompanhe o combate ao vivo.');render()}
+ }else if(msg.type==='frame'&&pvp.active&&!pvp.local){
+  if(pvp.seat===1&&msg.frame)pvpGuestFrame(msg.frame)
+ }else if(msg.type==='result'&&pvp.active&&!pvp.local){
+  pvp.wins=msg.wins;pvp.matchDone=!!msg.done;
+  pvpShowResult(!!msg.hostWin);
+ }else if(msg.type==='nextRound'&&pvp.active&&!pvp.local){
+  pvp.round=msg.round;pvp.wins=msg.wins;pvp.ready=false;pvp.waitingNext=false;
+  if(msg.rematch){game=pvpMakeGame();game.round=1;}
+  else{pvpRefreshRound(game,pvp.round,msg.lastWinner===pvp.seat)}
+  battle=null;game.phase='prep';pvpSetStatus('Nova rodada! Prepare e confirme a equipe.');render();
+ }
+}
+$('pvpOpenBtn').onclick=()=>{$('pvpShell').hidden=!$('pvpShell').hidden;if(!$('pvpShell').hidden)$('pvpShell').scrollIntoView({behavior:'smooth',block:'start'})};
+$('pvpLocalBtn').onclick=pvpStartLocal;
+$('pvpCreateBtn').onclick=()=>pvpConnect('create');$('pvpJoinBtn').onclick=()=>pvpConnect('join');
+$('pvpLeaveBtn').onclick=()=>{if(confirm('Abandonar o duelo e voltar ao modo solo?'))pvpLeave()};
+$('pvpCopyBtn').onclick=async()=>{const base=$('pvpServer').value.trim()||(/^https?:$/.test(location.protocol)?location.origin:'');const link=base?base.replace(/\/$/,'')+'/?room='+encodeURIComponent(pvp.room):'Código da sala: '+pvp.room;try{await navigator.clipboard.writeText(link);showToast('Convite copiado!')}catch{prompt('Copie este convite:',link)}};
+try{const code=new URLSearchParams(location.search).get('room');if(code&&/^[A-Z0-9]{6}$/i.test(code)){$('pvpJoinCode').value=code.toUpperCase();$('pvpShell').hidden=false;}}catch{}
+window.__miniPvpDebug={startLocal:pvpStartLocal,ready:pvpReady,leave:pvpLeave,getState:()=>({active:pvp.active,local:pvp.local,seat:pvp.seat,round:pvp.round,wins:[...pvp.wins],phase:game.phase,roster:game.roster,server:pvp.server}),advance:pvpAdvance,pvpStartHost,pvpShowResult};
+
+if(!load())newRun();else render();updateAudioStatus();
+})();
+</script>
+</body></html>
