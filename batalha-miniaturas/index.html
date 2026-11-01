@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#101a2a"><title>Batalha de Miniaturas — PvP v1.9</title>
+<meta name="theme-color" content="#101a2a"><title>Batalha de Miniaturas — PvP v2.0</title>
 <style>
 :root{--bg:#0e1727;--panel:#17253a;--panel2:#1c2d44;--line:#34475e;--text:#eff5fb;--muted:#aec0d1;--gold:#ffd58b;--green:#78e2bd;--red:#ff8a93;--blue:#88c8ff;--shadow:0 16px 38px rgba(0,0,0,.23)}
 *{box-sizing:border-box}html{height:100%;-webkit-tap-highlight-color:transparent}body{margin:0;min-height:100%;color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;background:radial-gradient(ellipse at 12% 0%,#243750 0%,transparent 45%),radial-gradient(ellipse at 96% 90%,#203044 0%,transparent 47%),#0c1422}
@@ -202,6 +202,26 @@ button{font:inherit;cursor:pointer}button:disabled{cursor:not-allowed;opacity:.4
 .pvp-connection .pvp-status{font-weight:700;color:#8febca}
 .pvp-help{max-width:670px}
 @media(max-width:650px){.pvp-open{padding:8px;font-size:11px}.pvp-shell{padding:0 8px;margin-top:9px}.pvp-panel{padding:12px}.pvp-controls>*{flex-basis:40%}.pvp-bar{margin:8px 8px 0;flex-direction:column;align-items:stretch}.pvp-active-actions{display:flex;gap:8px}}
+
+/* v2.0: leitura clara de terreno, estados e laboratório de balanceamento */
+.cell.terrain-wall{background:linear-gradient(145deg,#6f6b62,#3a4144);border-color:#a6a9a0;box-shadow:inset 0 0 12px #0006}
+.cell.terrain-wall:before{content:"🪨";font-size:clamp(14px,4vw,27px);opacity:.95}
+.cell.terrain-arcane{background:radial-gradient(circle,#a9a1ed55,#513fa426);border-color:#8e89cf99}
+.cell.terrain-arcane:after{content:"✦";position:absolute;bottom:1px;right:3px;color:#e1d6ff;font-size:12px;opacity:.6;pointer-events:none}
+.cell.terrain-bog{background:linear-gradient(135deg,#677b3c88,#31564c66);border-color:#789e7c9e}
+.cell.terrain-bog:after{content:"≈";position:absolute;bottom:0;right:3px;color:#d1edbd;font-size:12px;opacity:.55;pointer-events:none}
+.terrain-heading{font-size:11px;color:#d9e6b5;padding:8px 12px;border:1px solid #526c6e;background:#22394a;border-radius:9px;margin:0 0 8px}
+.status-badge{max-width:92%;white-space:nowrap;overflow:hidden;text-overflow:clip;z-index:4}
+.simulator-panel{display:grid;gap:9px;max-height:min(75vh,600px);overflow:auto;text-align:left}
+.simulator-progress{font-size:12px;color:#c6dcf3}
+.simulator-track{background:#152638;border-radius:20px;height:9px;overflow:hidden}
+.simulator-track>span{display:block;height:100%;background:#76bdc3;transition:width .2s}
+.simulator-results{display:grid;gap:5px;max-height:270px;overflow:auto}
+.simulator-line{display:grid;grid-template-columns:minmax(0,1.5fr) 70px 70px;gap:4px;font-size:11px;padding:6px 8px;background:#23374d;border-radius:6px}
+.simulator-line b:last-child{text-align:right}
+.simulator-actions{display:flex;gap:8px}
+.simulator-actions button{flex:1}
+@media(max-width:390px){.simulator-line{grid-template-columns:minmax(0,1.5fr) 56px 53px;font-size:10px}}
 </style>
 </head>
 <body>
@@ -210,7 +230,7 @@ button{font:inherit;cursor:pointer}button:disabled{cursor:not-allowed;opacity:.4
 
 <section class="pvp-shell" id="pvpShell" hidden>
  <div class="pvp-panel"><h2>⚔️ Duelo entre amigos · Melhor de 5</h2>
- <p class="pvp-help">Cada jogador monta sua própria equipe. Depois de ambos confirmarem, as miniaturas lutam automaticamente. O primeiro a vencer <b>3 batalhas</b> ganha. O progresso solo fica separado.</p>
+ <p class="pvp-help">Cada jogador monta sua própria equipe. Depois de ambos confirmarem, as miniaturas lutam automaticamente. O primeiro a vencer <b>3 batalhas</b> ganha. O progresso solo fica separado. Se a conexão cair, a sala fica reservada por até 150 segundos e o jogo tenta voltar automaticamente. A rodada em andamento poderá ser reiniciada.</p>
  <div class="pvp-controls" id="pvpSetup">
   <button id="pvpLocalBtn" type="button">🎮 PvP local — mesmo aparelho</button>
   <label>Seu nome<input id="pvpName" maxlength="24" value="Jogador" placeholder="Seu apelido"></label>
@@ -225,40 +245,42 @@ button{font:inherit;cursor:pointer}button:disabled{cursor:not-allowed;opacity:.4
  </div>
 </section>
 <div id="pvpBar" class="pvp-bar" hidden><span id="pvpMatchTitle">PvP</span><span id="pvpMatchStatus">Preparação</span></div>
-<main class="layout"><section class="panel"><div class="panel-top"><div><div class="section-eyebrow">Tabuleiro tático</div><h2 id="arenaTitle">Sua formação</h2></div><div class="badge-round" id="roundBadge">RODADA 1</div></div><div class="arenaframe"><div class="arena-labels"><span class="enemylabel">▼ ADVERSÁRIOS</span><span class="allylabel">SUAS MINIATURAS ▲</span></div><div class="board-stage"><div id="board" class="board" role="group" aria-label="Tabuleiro com seis colunas e seis linhas"></div><div class="fx-layer" id="fxLayer" aria-hidden="true"></div></div></div><div class="board-footer"><p class="phase-note" id="phaseNote"></p><div class="battle-row"><button id="fightBtn" class="primary">⚔️ INICIAR BATALHA</button><button id="speedBtn" class="secondary" hidden>⏩ 2×</button></div><div class="battle-tip" id="battleTip">💡 Toque em uma miniatura e depois em uma casa verde para mudar sua posição. A linha de frente protege os atiradores.</div><div class="report-toolbar"><button class="secondary report-toggle" id="reportBtn" type="button" aria-expanded="false" aria-controls="reportPanel" hidden>📊 Ver estatísticas</button></div><section class="report-section" id="reportPanel" aria-label="Estatísticas de combate" hidden><div id="reportBody"></div></section></div></section>
+<main class="layout"><section class="panel"><div class="panel-top"><div><div class="section-eyebrow">Tabuleiro tático</div><h2 id="arenaTitle">Sua formação</h2></div><div class="badge-round" id="roundBadge">RODADA 1</div></div><div class="arenaframe"><div class="terrain-heading" id="terrainHeading" aria-live="polite">🌿 Clareira</div><div class="arena-labels"><span class="enemylabel">▼ ADVERSÁRIOS</span><span class="allylabel">SUAS MINIATURAS ▲</span></div><div class="board-stage"><div id="board" class="board" role="group" aria-label="Tabuleiro com seis colunas e seis linhas"></div><div class="fx-layer" id="fxLayer" aria-hidden="true"></div></div></div><div class="board-footer"><p class="phase-note" id="phaseNote"></p><div class="battle-row"><button id="fightBtn" class="primary">⚔️ INICIAR BATALHA</button><button id="speedBtn" class="secondary" hidden>⏩ 2×</button></div><div class="battle-tip" id="battleTip">💡 Toque em uma miniatura e depois em uma casa verde para mudar sua posição. A linha de frente protege os atiradores.</div><div class="report-toolbar"><button class="secondary report-toggle" id="reportBtn" type="button" aria-expanded="false" aria-controls="reportPanel" hidden>📊 Ver estatísticas</button></div><section class="report-section" id="reportPanel" aria-label="Estatísticas de combate" hidden><div id="reportBody"></div></section></div></section>
 <div class="column"><section class="panel" id="shopPanel"><div class="panel-top"><div><div class="section-eyebrow">Recrutamento</div><h2>Loja de miniaturas</h2><div class="forge-hint" style="margin:5px 0 0">Toque para ver atributos antes de confirmar a compra.</div></div><div class="badge-round" id="armyBadge">0 / 3 EM CAMPO</div></div><div id="shop" class="shop-grid"></div><div class="shop-actions"><button id="rerollBtn" class="secondary">🔄 Renovar · 2 🪙</button><button id="oddsBtn" class="secondary">ℹ️ Dicas</button></div></section>
 <section class="panel"><div class="panel-top"><div><div class="section-eyebrow">Unidades guardadas</div><h2>Banco de reservas</h2></div><div class="badge-round" id="benchBadge">0 / 7</div></div><div id="bench" class="bench"></div><div id="unitInfo" class="unit-info"></div></section>
 <section class="panel" id="forgePanel"><div class="panel-top"><div><div class="section-eyebrow">Oficina do reino</div><h2>Forja de equipamentos</h2></div><div class="badge-round" id="forgeBadge">2 OFERTAS</div></div><div class="forge-body"><div class="forge-offers" id="forgeOffers"></div><div class="item-section-label" id="inventoryLabel">Mochila · 0 itens</div><div class="item-stash" id="itemStash"></div><div id="itemDetails" class="item-detail" role="region" aria-label="Descrição do item selecionado" aria-live="polite" hidden></div><section class="craft-section" id="craftPanel" hidden aria-hidden="true"><div id="craftSlots"></div><div id="craftPreview"></div><button id="craftBtn" type="button" hidden disabled></button><div id="recipeList"></div></section><p class="forge-hint">Toque na mochila para inspecionar um item e ver sua descrição completa. Selecione uma miniatura no campo ou no banco e use <b>Equipar</b>. Cada miniatura pode carregar 2 itens. Itens raros agora aparecem apenas como recompensas de chefes e bênçãos.</p></div></section>
-<section class="panel"><div class="panel-top"><div><div class="section-eyebrow">Bônus de equipe</div><h2>Alianças</h2></div><div class="badge-round">2 / 4 DIFERENTES</div></div><div class="traits" id="traits"></div><p class="forge-hint" style="margin:0 14px 13px">Cada aliança tem bônus com 2 e 4 personagens diferentes. Cópias repetidas contam apenas uma vez.</p></section></div></main><div class="audio-bar" role="group" aria-label="Controles de áudio"><span id="audioStatus" class="audio-status">🎵 Música desligada · toque em 🎵 para ligar</span><label for="volumeSlider" class="audio-volume-label">Volume <input id="volumeSlider" type="range" min="0" max="100" step="5" value="35" aria-label="Volume da música e dos efeitos"><span id="volumeValue">35%</span></label></div><div class="footnote">Salvamento automático no aparelho · Jogue sem instalar nada · <button id="resetBtn" type="button" style="background:none;border:0;color:#b8ccd9;text-decoration:underline;font-size:11px;padding:2px 4px">Recomeçar</button></div></div>
-<div class="modal hidden" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-body"><div class="modal-icon" id="modalIcon">🏆</div><h2 id="modalTitle">Vitória!</h2><p id="modalText"></p><div id="modalReward" class="reward"></div><button id="modalAction" class="primary">PRÓXIMA RODADA</button><button id="modalReportBtn" class="secondary modal-report-toggle" type="button" hidden aria-expanded="false" aria-controls="modalReport">📊 Ver relatório completo</button><section id="modalReport" class="modal-report" hidden><div id="modalReportBody"></div></section><span class="modal-sub" id="modalSub"></span></div></div><div class="modal hidden" id="shopModal" role="dialog" aria-modal="true" aria-labelledby="shopInspectName"><div class="modal-body shop-inspect-body"><button id="shopInspectClose" class="shop-inspect-close" type="button" aria-label="Fechar ficha">×</button><div id="shopInspectHeader" class="shop-inspect-header"></div><div class="shop-inspect-heading">Atributos da miniatura ★</div><div id="shopInspectStats" class="shop-inspect-stats"></div><div class="shop-inspect-heading">Habilidade e função</div><div id="shopInspectSkill" class="shop-inspect-skill"></div><div class="shop-inspect-heading">Bônus de aliança</div><div id="shopInspectTraits" class="shop-inspect-traits"></div><div class="shop-inspect-actions"><button id="shopInspectCancel" class="secondary" type="button">Voltar</button><button id="shopInspectConfirm" class="primary" type="button">Comprar</button></div><p id="shopInspectNote" class="shop-inspect-note" aria-live="polite"></p></div></div><div class="modal hidden" id="blessingModal" role="dialog" aria-modal="true" aria-labelledby="blessingTitle"><div class="modal-body"><div class="modal-icon">✨</div><h2 id="blessingTitle">Escolha uma bênção</h2><p id="blessingText"></p><div id="blessingChoices" class="blessing-grid"></div><span class="modal-sub" id="blessingSub"></span></div></div><div class="toast" id="toast" aria-live="polite"></div>
+<section class="panel"><div class="panel-top"><div><div class="section-eyebrow">Bônus de equipe</div><h2>Alianças</h2></div><div class="badge-round">2 / 4 DIFERENTES</div></div><div class="traits" id="traits"></div><p class="forge-hint" style="margin:0 14px 13px">Cada aliança tem bônus com 2 e 4 personagens diferentes. Cópias repetidas contam apenas uma vez.</p></section></div></main><div class="audio-bar" role="group" aria-label="Controles de áudio"><span id="audioStatus" class="audio-status">🎵 Música desligada · toque em 🎵 para ligar</span><label for="volumeSlider" class="audio-volume-label">Volume <input id="volumeSlider" type="range" min="0" max="100" step="5" value="35" aria-label="Volume da música e dos efeitos"><span id="volumeValue">35%</span></label></div><div class="footnote">Salvamento automático no aparelho · Jogue sem instalar nada · <button type="button" id="simulatorOpenBtn" style="background:none;border:0;color:#c1dfec;text-decoration:underline;font-size:11px;padding:2px 4px">📊 Simulador de balanceamento</button> · <button id="resetBtn" type="button" style="background:none;border:0;color:#b8ccd9;text-decoration:underline;font-size:11px;padding:2px 4px">Recomeçar</button></div></div>
+<div class="modal hidden" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-body"><div class="modal-icon" id="modalIcon">🏆</div><h2 id="modalTitle">Vitória!</h2><p id="modalText"></p><div id="modalReward" class="reward"></div><button id="modalAction" class="primary">PRÓXIMA RODADA</button><button id="modalReportBtn" class="secondary modal-report-toggle" type="button" hidden aria-expanded="false" aria-controls="modalReport">📊 Ver relatório completo</button><section id="modalReport" class="modal-report" hidden><div id="modalReportBody"></div></section><span class="modal-sub" id="modalSub"></span></div></div><div class="modal hidden" id="shopModal" role="dialog" aria-modal="true" aria-labelledby="shopInspectName"><div class="modal-body shop-inspect-body"><button id="shopInspectClose" class="shop-inspect-close" type="button" aria-label="Fechar ficha">×</button><div id="shopInspectHeader" class="shop-inspect-header"></div><div class="shop-inspect-heading">Atributos da miniatura ★</div><div id="shopInspectStats" class="shop-inspect-stats"></div><div class="shop-inspect-heading">Habilidade e função</div><div id="shopInspectSkill" class="shop-inspect-skill"></div><div class="shop-inspect-heading">Bônus de aliança</div><div id="shopInspectTraits" class="shop-inspect-traits"></div><div class="shop-inspect-actions"><button id="shopInspectCancel" class="secondary" type="button">Voltar</button><button id="shopInspectConfirm" class="primary" type="button">Comprar</button></div><p id="shopInspectNote" class="shop-inspect-note" aria-live="polite"></p></div></div><div class="modal hidden" id="blessingModal" role="dialog" aria-modal="true" aria-labelledby="blessingTitle"><div class="modal-body"><div class="modal-icon">✨</div><h2 id="blessingTitle">Escolha uma bênção</h2><p id="blessingText"></p><div id="blessingChoices" class="blessing-grid"></div><span class="modal-sub" id="blessingSub"></span></div></div><div class="modal hidden" id="simulatorModal" role="dialog" aria-modal="true" aria-labelledby="simTitle"><div class="modal-body" style="max-width:560px"><h2 id="simTitle">📊 Laboratório de balanceamento</h2><p class="modal-sub">Simulações internas com o motor de combate, equipes, itens e posições aleatórias. Os resultados são estimativas, não garantias.</p><div class="simulator-panel"><div class="simulator-actions"><button type="button" class="primary" id="simRunBtn">Simular 200 duelos</button><button type="button" class="secondary" id="simCloseBtn">Fechar</button></div><div class="simulator-progress" id="simProgress">Pronto para simular.</div><div class="simulator-track"><span id="simProgressBar" style="width:0%"></span></div><div class="simulator-results" id="simResults"></div></div></div></div><div class="toast" id="toast" aria-live="polite"></div>
 <script>
 (()=>{'use strict';
 const TYPES={
  guard:{name:'Guardião',short:'Guardião',icon:'🛡️',group:'ferro',cost:2,hp:110,atk:12,armor:6,speed:.93,range:1,skill:'Escudo reforçado',tip:'Muito resistente; ganha escudo.'},
  spear:{name:'Lanceiro',short:'Lanceiro',icon:'🔱',group:'ferro',cost:2,hp:84,atk:17,armor:3,speed:1.1,range:2,skill:'Estocada',tip:'Ataca a até 2 casas.'},
  axe:{name:'Berserker',short:'Berserker',icon:'🪓',group:'ferro',cost:3,hp:103,atk:24,armor:2,speed:.99,range:1,skill:'Fúria',tip:'Causa mais dano ferido.'},
- bow:{name:'Arqueira',short:'Arqueira',icon:'🏹',group:'selva',cost:2,hp:62,atk:22,armor:0,speed:1.3,range:4,skill:'Disparo duplo',tip:'Ataca à distância; dispara duas flechas.'},
+ bow:{name:'Arqueira',short:'Arqueira',icon:'🏹',group:'selva',cost:2,hp:62,atk:20,armor:0,speed:1.23,range:4,skill:'Disparo duplo',tip:'Ataca à distância; dispara duas flechas.'},
  druid:{name:'Druida',short:'Druida',icon:'🌿',group:'selva',cost:3,hp:81,atk:14,armor:1,speed:1.06,range:3,skill:'Regeneração',tip:'Cura aliados próximos.'},
- hunter:{name:'Caçadora',short:'Caçadora',icon:'🦊',group:'selva',cost:3,hp:74,atk:23,armor:1,speed:1.22,range:3,skill:'Tiro certeiro',tip:'Chance alta de golpe crítico.'},
- mage:{name:'Feiticeira',short:'Feiticeira',icon:'🔮',group:'arcano',cost:3,hp:67,atk:23,armor:0,speed:1.05,range:3,skill:'Explosão arcana',tip:'Acerta inimigos próximos.'},
+ hunter:{name:'Caçadora',short:'Caçadora',icon:'🦊',group:'selva',cost:3,hp:74,atk:23,armor:1,speed:1.22,range:3,skill:'Tiro certeiro',tip:'A cada 4 ataques, aplica dano verdadeiro que ignora defesas.'},
+ mage:{name:'Feiticeira',short:'Feiticeira',icon:'🔮',group:'arcano',cost:3,hp:67,atk:23,armor:0,speed:1.05,range:3,skill:'Explosão arcana',tip:'Acerta uma área e causa queimadura mágica.'},
  cleric:{name:'Oráculo',short:'Oráculo',icon:'✨',group:'arcano',cost:2,hp:72,atk:11,armor:1,speed:1.03,range:3,skill:'Luz restauradora',tip:'Cura o aliado mais ferido.'},
- golem:{name:'Golem',short:'Golem',icon:'🪨',group:'arcano',cost:4,hp:152,atk:17,armor:6,speed:.78,range:1,skill:'Pele de pedra',tip:'Resiste a muitos golpes.'},
+ golem:{name:'Golem',short:'Golem',icon:'🪨',group:'arcano',cost:4,hp:152,atk:17,armor:6,speed:.78,range:1,skill:'Pele de pedra',tip:'Ganha escudo e pode atordoar no golpe reforçado.'},
  rogue:{name:'Assassina',short:'Assassina',icon:'🗡️',group:'sombra',cost:3,hp:68,atk:27,armor:1,speed:1.37,range:1,skill:'Golpe nas costas',tip:'Prioriza adversários frágeis.'},
- ghost:{name:'Espectro',short:'Espectro',icon:'👻',group:'sombra',cost:4,hp:83,atk:29,armor:1,speed:1.23,range:2,skill:'Roubo de vida',tip:'Recupera vida ao atacar.'},
+ ghost:{name:'Espectro',short:'Espectro',icon:'👻',group:'sombra',cost:4,hp:83,atk:29,armor:1,speed:1.23,range:2,skill:'Roubo de vida',tip:'Drena vida ao atacar e reduz a cura inimiga.'},
  paladin:{name:'Paladina',short:'Paladina',icon:'🌟',group:'ferro',cost:3,hp:112,atk:16,armor:5,speed:.97,range:1,skill:'Cúpula protetora',tip:'A cada 3 ações, concede escudos a 2 aliados.'},
  sentinel:{name:'Sentinela',short:'Sentinela',icon:'🗼',group:'ferro',cost:2,hp:122,atk:11,armor:5,speed:.9,range:1,skill:'Provocação',tip:'Força inimigos próximos a atacá-la por 2 turnos.'},
  toxic:{name:'Arqueira Tóxica',short:'Tóxica',icon:'🐍',group:'selva',cost:3,hp:68,atk:19,armor:0,speed:1.18,range:4,skill:'Flecha venenosa',tip:'Envenena alvos causando dano por 3 ações.'},
  shaman:{name:'Xamã',short:'Xamã',icon:'🌱',group:'selva',cost:3,hp:83,atk:16,armor:2,speed:1.01,range:3,skill:'Raízes profundas',tip:'Enraíza inimigos: eles não podem se mover por 2 ações.'},
- frost:{name:'Criomante',short:'Criomante',icon:'❄️',group:'arcano',cost:3,hp:67,atk:18,armor:1,speed:1.06,range:3,skill:'Prisão glacial',tip:'Congela o alvo, cancelando sua próxima ação.'},
+ frost:{name:'Criomante',short:'Criomante',icon:'❄️',group:'arcano',cost:3,hp:67,atk:18,armor:1,speed:1.06,range:3,skill:'Prisão glacial',tip:'Congela e aplica lentidão; pode ser resistida.'},
  storm:{name:'Tempestária',short:'Tempestária',icon:'⚡',group:'arcano',cost:4,hp:72,atk:21,armor:0,speed:1.04,range:4,skill:'Raio em cadeia',tip:'O raio salta para mais 2 inimigos diferentes.'},
  necro:{name:'Necromante',short:'Necromante',icon:'☠️',group:'sombra',cost:4,hp:80,atk:22,armor:1,speed:1.01,range:3,skill:'Maldição sombria',tip:'Amaldiçoa o alvo: dano contínuo e ataques enfraquecidos.'},
- shade:{name:'Sombra Errante',short:'Errante',icon:'🌘',group:'sombra',cost:3,hp:73,atk:24,armor:1,speed:1.29,range:1,skill:'Passo sombrio',tip:'Teleporta para a retaguarda inimiga e golpeia.'}
+ shade:{name:'Sombra Errante',short:'Errante',icon:'🌘',group:'sombra',cost:3,hp:73,atk:24,armor:1,speed:1.29,range:1,skill:'Passo sombrio',tip:'Teleporta, causa dano mágico extra e reduz cura do alvo.'}
 };
 // Afinidades de dano independentes da aliança: Golem é Arcano, mas ataca fisicamente.
 const MAGICAL_ATTACKERS=new Set(['druid','mage','cleric','ghost','shaman','frost','storm','necro']);
 const MAGIC_RESIST={guard:2,spear:2,axe:1,bow:1,druid:5,hunter:2,mage:6,cleric:7,golem:3,rogue:1,ghost:7,paladin:5,sentinel:3,toxic:2,shaman:5,frost:6,storm:6,necro:7,shade:3};
 const attackKind=type=>MAGICAL_ATTACKERS.has(type)?'magic':'physical';
-const kindLabel=kind=>kind==='magic'?'🔮 Mágico':'⚔️ Físico';
+const kindLabel=kind=>kind==='magic'?'🔮 Mágico':kind==='true'?'✴️ Verdadeiro':kind==='support'?'💚 Suporte':'⚔️ Físico';
+const SKILL_KINDS={guard:'support',spear:'physical',axe:'physical',bow:'physical',druid:'support',hunter:'true',mage:'magic',cleric:'support',golem:'physical',rogue:'physical',ghost:'magic',paladin:'support',sentinel:'support',toxic:'magic',shaman:'magic',frost:'magic',storm:'magic',necro:'magic',shade:'magic'};
+const skillKind=type=>SKILL_KINDS[type]||attackKind(type);
 const GROUPS={
  ferro:{name:'Ferro',icon:'⚒️',color:'#d99568',desc:'+3 armadura para toda a equipe',tier4:'+6 armadura e +18 de escudo inicial'},
  selva:{name:'Selva',icon:'🍃',color:'#55a876',desc:'+20% velocidade para toda a equipe',tier4:'+30% velocidade e regeneração periódica'},
@@ -369,6 +391,16 @@ const roleOf=type=>TYPE_ROLES[type]||'fighter';
 const PROJECTILES=new Set(['bow','hunter','toxic','spear']);
 const FRONTLINERS=new Set(['guard','golem','paladin','sentinel']);
 const SPECIAL_SUPPORTS=new Set(['cleric','druid','shaman']);
+const STATUS_INFO={burn:{name:'Queimadura',icon:'🔥'},stun:{name:'Atordoamento',icon:'💫'},antiheal:{name:'Corta-cura',icon:'🚫'},slow:{name:'Lentidão',icon:'🐌'},freeze:{name:'Congelamento',icon:'❄️'},root:{name:'Raízes',icon:'🌱'},poison:{name:'Veneno',icon:'☠️'},curse:{name:'Maldição',icon:'🌑'}};
+const ARENAS=[
+ {id:'meadow',name:'Clareira',desc:'Campo aberto: movimentação livre.',walls:[],runes:[],bog:[]},
+ {id:'ruins',name:'Ruínas',desc:'Rochas centrais bloqueiam caminhos e disparos.',walls:[[1,2],[4,3]],runes:[],bog:[]},
+ {id:'arcane',name:'Santuário arcano',desc:'Casas rúnicas concedem +15% ao dano mágico.',walls:[],runes:[[2,2],[3,3]],bog:[]},
+ {id:'swamp',name:'Pântano',desc:'Casas alagadas reduzem a velocidade de ação em 20%.',walls:[],runes:[],bog:[[1,2],[4,3],[2,3],[3,2]]}
+];
+const arenaForRound=round=>ARENAS[(Math.max(1,round)-1)%ARENAS.length];
+const sameCell=(x,y,coords)=>coords.some(([a,b])=>a===x&&b===y);
+const arenaAt=(x,y,arena)=>sameCell(x,y,(arena||ARENAS[0]).walls)?'wall':sameCell(x,y,(arena||ARENAS[0]).runes)?'arcane':sameCell(x,y,(arena||ARENAS[0]).bog)?'bog':null;
 const MAX_EQUIP=2;
 const MAX_BENCH=7, SAVE_KEY='miniaturas-liga-v1';let nextId=1,game,battle=null,clock=null,audioCtx=null,soundOn=false,toastTimer=null,musicBus=null,fxBus=null,musicTimer=null,musicTheme='',musicStep=0,nextMusicTime=0,musicNoise=null,volume=readAudioVolume(),reportOpen=false,reportSide='player',modalReportOpen=false,modalReportSide='player',selectedInventoryIndex=null,craftSelection=[],pendingShopSlot=null,blessingChoices=[];
 const $=id=>document.getElementById(id),rnd=n=>Math.floor(Math.random()*n),choice=a=>a[rnd(a.length)],dist=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y),esc=s=>String(s).replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -467,7 +499,7 @@ function inspectShop(i){
  $('shopInspectHeader').innerHTML=`<div class="shop-inspect-icon" style="--unit-color:${g.color}">${miniArt(game.shop[i])}</div><div><h2 id="shopInspectName" class="shop-inspect-name">${esc(t.name)}</h2><div class="shop-inspect-sub">${g.icon} ${g.name} · ${role.icon} ${role.name}<div>⭐ 1 estrela · 🪙 ${t.cost} moedas</div></div></div>`;
  const attrs=[['❤️',t.hp,'Vida'],[attackKind(game.shop[i])==='magic'?'🔮':'⚔️',t.atk,attackKind(game.shop[i])==='magic'?'Ataque mágico':'Ataque físico'],['🛡️',t.armor,'Armadura'],['🪬',MAGIC_RESIST[game.shop[i]],'Resist. mágica'],['⚡',t.speed.toFixed(2),'Velocidade'],['🎯',t.range,'Alcance']];
  $('shopInspectStats').innerHTML=attrs.map(([icon,value,label])=>`<div class="shop-inspect-stat"><b>${icon} ${value}</b><small>${label}</small></div>`).join('');
- $('shopInspectSkill').innerHTML=`<strong>${esc(t.skill)}</strong>${esc(t.tip)}<div class="damage-explainer">Ataque básico: <b>${kindLabel(attackKind(game.shop[i]))}</b> · 🛡️ Armadura reduz o físico · 🪬 Resistência mágica reduz o mágico</div><div style="margin-top:7px;color:#b9d5cc">${esc(role.tip)}</div>`;
+ $('shopInspectSkill').innerHTML=`<strong>${esc(t.skill)} · ${kindLabel(skillKind(game.shop[i]))}</strong>${esc(t.tip)}<div class="damage-explainer">Ataque básico: <b>${kindLabel(attackKind(game.shop[i]))}</b> · 🛡️ Armadura reduz o físico · 🪬 Resistência mágica reduz o mágico</div><div style="margin-top:7px;color:#b9d5cc">${esc(role.tip)}</div>`;
  $('shopInspectTraits').innerHTML=`<b>${g.icon} ${g.name}</b><div>2 diferentes: ${esc(g.desc)}</div><div>4 diferentes: ${esc(g.tier4)}</div><div style="margin-top:5px;color:#e7c8ad">Miniaturas repetidas da mesma classe contam apenas uma vez para a aliança.</div>`;
  const full=game.roster.length>=MAX_BENCH+capacity(),canAfford=game.gold>=t.cost;
  $('shopInspectConfirm').disabled=!canAfford||full;
@@ -513,7 +545,7 @@ function spawn(piece,side){
  const power=Math.pow(1.68,star-1),gear=((side==='player'||pvp.active)?(piece.items||[]):[]).map(id=>ITEMS[id]).filter(Boolean);
  const sum=stat=>gear.reduce((n,it)=>n+(it[stat]||0),0),soloBuff=(!pvp.active&&side==='player'&&game.globalBuffs)?game.globalBuffs:{atk:0,armor:0,speed:0,hp:0},bossBoost=piece.bossTag?1.32:1;
  const maxHp=Math.round((Math.round(t.hp*power*level)+sum('hp')+(soloBuff.hp||0))*bossBoost);
- return{id:side==='enemy'?nextId++:piece.id,type:piece.type,star,side,x:piece.x,y:piece.y,maxHp,hp:maxHp,atk:Math.round((Math.round(t.atk*Math.pow(1.51,star-1)*level)+sum('atk')+(soloBuff.atk||0))*(piece.bossTag?1.14:1)),armor:t.armor+Math.max(0,star-1)*2+(side==='enemy'&&!pvp.active?Math.floor((game.round-1)/5):0)+sum('armor')+(soloBuff.armor||0)+(piece.bossTag?3:0),resist:(MAGIC_RESIST[piece.type]||0)+Math.max(0,star-1)*2+(side==='enemy'&&!pvp.active?Math.floor((game.round-1)/7):0)+sum('resist')+(piece.bossTag?2:0),speed:(t.speed*(1+sum('speed')+(soloBuff.speed||0)))*(piece.bossTag?1.06:1),range:t.range,meter:Math.random()*1.1,strikes:0,shield:sum('shield')+(piece.bossTag?22:0),gearCrit:sum('crit'),leech:sum('leech'),pierce:sum('pierce'),magicPierce:sum('magicPierce'),healBoost:sum('heal'),items:(piece.items||[]).slice(),freeze:0,root:0,poison:null,curse:null,tauntId:null,tauntActions:0,blinkUsed:false,lastInterceptTick:-99,bossTag:piece.bossTag||null,stats:{damage:0,physicalDamage:0,magicDamage:0,taken:0,physicalTaken:0,magicTaken:0,healing:0,blocked:0,shieldMade:0,kills:0,crits:0,skills:0,hits:0,leech:0,intercepts:0,flanks:0,retreats:0,pierces:0}};
+ return{id:side==='enemy'?nextId++:piece.id,type:piece.type,star,side,x:piece.x,y:piece.y,maxHp,hp:maxHp,atk:Math.round((Math.round(t.atk*Math.pow(1.51,star-1)*level)+sum('atk')+(soloBuff.atk||0))*(piece.bossTag?1.14:1)),armor:t.armor+Math.max(0,star-1)*2+(side==='enemy'&&!pvp.active?Math.floor((game.round-1)/5):0)+sum('armor')+(soloBuff.armor||0)+(piece.bossTag?3:0),resist:(MAGIC_RESIST[piece.type]||0)+Math.max(0,star-1)*2+(side==='enemy'&&!pvp.active?Math.floor((game.round-1)/7):0)+sum('resist')+(piece.bossTag?2:0),speed:(t.speed*(1+sum('speed')+(soloBuff.speed||0)))*(piece.bossTag?1.06:1),range:t.range,meter:Math.random()*1.1,strikes:0,shield:sum('shield')+(piece.bossTag?22:0),gearCrit:sum('crit'),leech:sum('leech'),pierce:sum('pierce'),magicPierce:sum('magicPierce'),healBoost:sum('heal'),items:(piece.items||[]).slice(),freeze:0,root:0,poison:null,curse:null,burn:null,stun:0,antiheal:0,slow:0,ccResist:Math.min(.42,Math.max(0,(t.armor+(MAGIC_RESIST[piece.type]||0))*0.014)),tauntId:null,tauntActions:0,blinkUsed:false,lastInterceptTick:-99,bossTag:piece.bossTag||null,stats:{damage:0,physicalDamage:0,magicDamage:0,trueDamage:0,taken:0,physicalTaken:0,magicTaken:0,trueTaken:0,healing:0,blocked:0,shieldMade:0,kills:0,crits:0,skills:0,hits:0,leech:0,intercepts:0,flanks:0,retreats:0,pierces:0}};
 }
 function applyTraitBuffs(list){
  const traits=countTraits(list);
@@ -533,20 +565,30 @@ function startBattle(){
  game.phase='combat';game.selected=null;reportOpen=false;modalReportOpen=false;
  $('fxLayer').replaceChildren();let allies=deployed().map(u=>spawn(u,'player')),enemies=game.preview.map(u=>spawn(u,'enemy'));
  const traits=applyTraitBuffs(allies),enemyTraits=applyTraitBuffs(enemies);
- battle={allies,enemies,traits,enemyTraits,round:game.round,tick:0,speed:1,lastHit:null,lastAction:null,fx:[],log:'As miniaturas avançam!',stop:false,bossTag:game.bossInfo?.effect||null,bossName:game.bossInfo?.name||'',bossDesc:game.bossInfo?.desc||''};
+ battle={allies,enemies,traits,enemyTraits,round:game.round,tick:0,speed:1,lastHit:null,lastAction:null,fx:[],log:'As miniaturas avançam!',stop:false,bossTag:game.bossInfo?.effect||null,bossName:game.bossInfo?.name||'',bossDesc:game.bossInfo?.desc||'',arena:arenaForRound(game.round)};
  playNote(720);render();if(pvp.active&&pvp.seat===0)pvpSendFrame();schedule();
 }
 function schedule(){clearTimeout(clock);if(game.phase==='combat')clock=setTimeout(()=>{tickBattle();schedule()},battle?.speed===2?185:370)}
 function living(side){return (side==='player'?battle.allies:battle.enemies).filter(u=>u.hp>0)}
 function occupied(x,y,except){return [...battle.allies,...battle.enemies].some(u=>u.hp>0&&u.id!==except.id&&u.x===x&&u.y===y)}
+function lineClear(from,to){
+ const steps=Math.max(Math.abs(from.x-to.x),Math.abs(from.y-to.y))*5;
+ if(steps<=0)return true;
+ for(let i=1;i<steps;i++){
+  const ratio=i/steps,x=Math.floor(from.x+.5+(to.x-from.x)*ratio),y=Math.floor(from.y+.5+(to.y-from.y)*ratio);
+  if(arenaAt(x,y,battle?.arena)==='wall')return false;
+ }
+ return true;
+}
+function canReachTarget(actor,target){return dist(actor,target)<=actor.range&&lineClear(actor,target)}
 function pathToTarget(actor,target){
  let queue=[{x:actor.x,y:actor.y,first:null,steps:0}],seen=new Set([`${actor.x},${actor.y}`]);
  while(queue.length){
   const node=queue.shift();
-  if(node.steps>0&&Math.abs(node.x-target.x)+Math.abs(node.y-target.y)<=actor.range)return node.first;
+  if(node.steps>0&&Math.abs(node.x-target.x)+Math.abs(node.y-target.y)<=actor.range&&lineClear(node,target))return node.first;
   for(let [dx,dy] of [[0,actor.side==='player'?-1:1],[-1,0],[1,0],[0,actor.side==='player'?1:-1]]){
    let x=node.x+dx,y=node.y+dy,key=`${x},${y}`;
-   if(x<0||x>5||y<0||y>5||seen.has(key)||occupied(x,y,actor))continue;
+   if(x<0||x>5||y<0||y>5||seen.has(key)||arenaAt(x,y,battle?.arena)==='wall'||occupied(x,y,actor))continue;
    seen.add(key);queue.push({x,y,first:node.first||{x,y},steps:node.steps+1})
   }
  }
@@ -617,6 +659,7 @@ function flankBonus(actor,target){
 function mitigateDamage(raw,target,kind,attacker){
  // Redução fixa para manter os números familiares a quem jogava a versão anterior.
  // Só a defesa da categoria correspondente reduz o ataque, e nunca abaixo de 3.
+ if(kind==='true')return Math.max(1,Math.round(raw));
  const defense=kind==='magic'?(target.resist||0):(target.armor||0);
  const penetration=kind==='magic'?(attacker?.magicPierce||0):(attacker?.pierce||0);
  return Math.max(3,Math.round(raw-Math.max(0,defense-penetration)));
@@ -624,17 +667,18 @@ function mitigateDamage(raw,target,kind,attacker){
 function recordDamage(owner,target,kind,healthLoss,shieldAbs){
  if(owner){
   owner.stats.damage+=shieldAbs+healthLoss;
-  owner.stats[kind==='magic'?'magicDamage':'physicalDamage']=(owner.stats[kind==='magic'?'magicDamage':'physicalDamage']||0)+shieldAbs+healthLoss;
+  const key=kind==='true'?'trueDamage':kind==='magic'?'magicDamage':'physicalDamage';owner.stats[key]=(owner.stats[key]||0)+shieldAbs+healthLoss;
   owner.stats.hits++;
  }
  target.stats.taken+=healthLoss;target.stats.blocked+=shieldAbs;
- const takenKey=kind==='magic'?'magicTaken':'physicalTaken';target.stats[takenKey]=(target.stats[takenKey]||0)+healthLoss;
+ const takenKey=kind==='true'?'trueTaken':kind==='magic'?'magicTaken':'physicalTaken';target.stats[takenKey]=(target.stats[takenKey]||0)+healthLoss;
 }
 function effectDamage(actor,target,scale=1,forcedKind=null){
  const kind=forcedKind||attackKind(actor.type),wasAlive=target.hp>0;
  const critical=Math.random()<(.055+(actor.critBonus||0)+(actor.gearCrit||0)+(actor.type==='hunter'?.16:0)+(actor.type==='rogue'?.1:0));
  const weakened=actor.curse?.actions>0?.75:1;
- const raw=actor.atk*scale*weakened*(critical?1.65:1);
+ const terrainBoost=kind==='magic'&&arenaAt(actor.x,actor.y,battle?.arena)==='arcane'?1.15:1;
+ const raw=actor.atk*scale*weakened*terrainBoost*(critical?1.65:1);
  const potential=mitigateDamage(raw,target,kind,actor);
  const shieldAbs=Math.min(Math.max(0,target.shield||0),potential);target.shield-=shieldAbs;
  const healthLoss=Math.min(target.hp,Math.max(0,potential-shieldAbs));target.hp=Math.max(0,target.hp-healthLoss);
@@ -643,11 +687,11 @@ function effectDamage(actor,target,scale=1,forcedKind=null){
  battle.lastHit=target.id;battle.lastAction={id:actor.id,kind:scale>1.05?'special':'attacking'};
  const vamp=(actor.type==='ghost'?.27:0)+(actor.leech||0);
  if(vamp&&healthLoss>0){const restored=restoreHealth(actor,actor,Math.round(healthLoss*vamp),'leech');actor.stats.leech+=restored;if(restored>0)battle.fx.push({kind:'aura',style:'leech',x:actor.x,y:actor.y})}
- battle.fx.push({kind:actor.range>2?'shot':'strike',sx:actor.x,sy:actor.y,x:target.x,y:target.y,dmg:healthLoss,blocked:shieldAbs,critical,damageKind:kind,style:kind==='magic'?(actor.type==='ghost'||actor.type==='necro'?'shadow':'arcane'):actor.type==='spear'?'pierce':actor.range>2?'arrow':'blade'});
+ battle.fx.push({kind:actor.range>2?'shot':'strike',sx:actor.x,sy:actor.y,x:target.x,y:target.y,dmg:healthLoss,blocked:shieldAbs,critical,damageKind:kind,style:kind==='true'?'holy':kind==='magic'?(actor.type==='ghost'||actor.type==='necro'?'shadow':'arcane'):actor.type==='spear'?'pierce':actor.range>2?'arrow':'blade'});
  return {dmg:healthLoss,absorbed:shieldAbs,critical,kind};
 }
 function restoreHealth(source,target,amount,style='heal'){
- const got=Math.max(0,Math.min(target.maxHp-target.hp,Math.round(amount)));
+ const got=Math.max(0,Math.min(target.maxHp-target.hp,Math.round(amount*(target.antiheal>0?.5:1))));
  target.hp+=got;if(got){source.stats.healing+=got;
  battle.fx.push({kind:'heal',sx:source.x,sy:source.y,x:target.x,y:target.y,dmg:got,style});
  battle.lastAction={id:source.id,kind:'casting'};
@@ -665,7 +709,7 @@ function raiseShield(actor,amount,max=60,label='ESCUDO',source=actor){
 }
 function directStatusDamage(owner,target,amount,style,damageKind='magic'){
  if(target.hp<=0)return 0;
- const kind=damageKind==='physical'?'physical':'magic';
+ const kind=damageKind==='true'?'true':damageKind==='physical'?'physical':'magic';
  const potential=mitigateDamage(amount,target,kind,owner),before=target.hp;
  const shieldHit=Math.min(Math.max(0,target.shield||0),potential);target.shield-=shieldHit;
  const dealt=Math.min(target.hp,Math.max(0,potential-shieldHit));target.hp-=dealt;
@@ -675,7 +719,20 @@ function directStatusDamage(owner,target,amount,style,damageKind='magic'){
  return dealt;
 }
 function findActor(id){return [...battle.allies,...battle.enemies].find(u=>u.id===id)}
+function applyControl(target,status,actions,owner){
+ if(!target||target.hp<=0)return false;
+ const resisted=Math.random()<(target.ccResist||0);
+ if(resisted){battle.fx.push({kind:'skill',x:target.x,y:target.y,label:'RESISTIU',style:'shield'});return false}
+ target[status]=Math.max(target[status]||0,Math.max(1,Math.ceil(actions*(1-(target.ccResist||0)))));
+ battle.fx.push({kind:'skill',x:target.x,y:target.y,label:STATUS_INFO[status]?.name||status,style:'frost'});
+ return true;
+}
 function processConditions(actor){
+ if(actor.burn?.actions>0){
+  directStatusDamage(findActor(actor.burn.source),actor,actor.burn.damage,'burn','magic');
+  actor.burn.actions--;if(actor.burn.actions===0)actor.burn=null;
+ }
+ if(actor.hp<=0)return false;
  if(actor.poison?.actions>0){
   directStatusDamage(findActor(actor.poison.source),actor,actor.poison.damage,'poison');actor.poison.actions--;
   if(actor.poison.actions===0)actor.poison=null;
@@ -687,6 +744,8 @@ function processConditions(actor){
   actor.curse.actions--;if(actor.curse.actions===0)actor.curse=null;
  }
  if(actor.hp<=0)return false;
+ if(actor.antiheal>0)actor.antiheal--;
+ if(actor.stun>0){actor.stun--;battle.log=`${TYPES[actor.type].name} está atordoado!`;return false;}
  if(actor.freeze>0){actor.freeze--;battle.log=`${TYPES[actor.type].name} perdeu uma ação por congelamento!`;battle.fx.push({kind:'aura',style:'frost',x:actor.x,y:actor.y});return false}
  return true;
 }
@@ -696,7 +755,7 @@ function blinkToBackline(actor,opponents){
  const rear=selectTarget(actor,opponents,living(actor.side)).find(u=>['support','ranged','caster'].includes(roleOf(u.type)))||selectTarget(actor,opponents,living(actor.side))[0];if(!rear)return false;
  for(const [dx,dy] of [[0,actor.side==='player'?-1:1],[-1,0],[1,0],[0,actor.side==='player'?1:-1]]){
   const x=rear.x+dx,y=rear.y+dy;
-  if(x>=0&&x<6&&y>=0&&y<6&&!occupied(x,y,actor)){
+  if(x>=0&&x<6&&y>=0&&y<6&&!occupied(x,y,actor)&&arenaAt(x,y,battle?.arena)!=='wall'){
    actor.x=x;actor.y=y;actor.blinkUsed=true;skillCue(actor,'PASSO SOMBRIO','shadow');
    battle.fx.push({kind:'aura',style:'shadow',x,y});battle.log='Sombra Errante saltou para a retaguarda!';return true;
   }
@@ -706,7 +765,7 @@ function blinkToBackline(actor,opponents){
 function performTurn(actor){
  if(actor.hp<=0)return;
  const opponents=living(actor.side==='player'?'enemy':'player'),team=living(actor.side);
- if(!opponents.length)return;if(!processConditions(actor))return;const rooted=actor.root>0;if(rooted)actor.root--;actor.strikes++;const type=actor.type;
+ if(!opponents.length)return;if(actor.slow>0)actor.slow--;if(!processConditions(actor))return;const rooted=actor.root>0;if(rooted)actor.root--;actor.strikes++;const type=actor.type;
  if((type==='cleric'||type==='druid')&&skillReady(actor,3)){
   const wounded=team.filter(u=>u.hp/u.maxHp<.92).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp);
   if(wounded.length){
@@ -729,18 +788,18 @@ function performTurn(actor){
  // Infiltradores procuram o flanco mesmo que haja um tanque ao alcance;
  // provocação ativa obriga o alvo, sem poder ser burlada por inimigos próximos.
  const insist=forced||roleOf(type)==='flank';
- let target=insist?candidates[0]:(candidates.find(t=>dist(actor,t)<=actor.range)||candidates[0]);if(!target)return;
- if(dist(actor,target)>actor.range){
+ let target=insist?candidates[0]:(candidates.find(t=>canReachTarget(actor,t))||candidates[0]);if(!target)return;
+ if(!canReachTarget(actor,target)){
   if(rooted){battle.log=`${TYPES[type].name} está preso em raízes!`;return}
   let step=pathToTarget(actor,target);
   if(!step&&!forced){
    // Se o caminho ideal foi bloqueado, atacar outra unidade em alcance é melhor que travar.
-   const alternative=candidates.find(u=>dist(actor,u)<=actor.range);
+   const alternative=candidates.find(u=>canReachTarget(actor,u));
    if(alternative)target=alternative;
    else for(const enemy of candidates.slice(1)){step=pathToTarget(actor,enemy);if(step){target=enemy;break}}
   }
   if(step){actor.x=step.x;actor.y=step.y;battle.fx.push({kind:'move',x:actor.x,y:actor.y,id:actor.id});battle.lastAction={id:actor.id,kind:'moving'};battle.log=`${TYPES[type].name} se reposicionou.`;return}
-  if(dist(actor,target)>actor.range)return;
+  if(!canReachTarget(actor,target))return;
  }
  const retreat=!rooted&&findRetreat(actor,opponents,target);
  if(retreat){actor.x=retreat.x;actor.y=retreat.y;actor.stats.retreats++;battle.fx.push({kind:'aura',style:'frost',x:actor.x,y:actor.y});battle.lastAction={id:actor.id,kind:'moving'};battle.log=`${TYPES[type].name} recuou para manter distância!`;return}
@@ -750,13 +809,14 @@ function performTurn(actor){
  if(type==='axe'&&actor.hp/actor.maxHp<.55){boost=1.65;skill='FÚRIA'}
  if(type==='spear'&&actor.strikes%3===0){boost=1.65;skill='ESTOCADA'}
  if(type==='rogue'&&actor.strikes%4===0){boost=2.1;skill='EMBOSCADA'}
- if(type==='hunter'&&actor.strikes%4===0){boost=1.7;skill='TIRO CERTEIRO'}
+ if(type==='hunter'&&actor.strikes%4===0){boost=1.25;skill='TIRO CERTEIRO'}
  if(flankBonus(actor,target)){boost*=1.23;actor.stats.flanks++;if(!skill)skill='FLANCO';}
  if(skill)skillCue(actor,skill,type==='spear'?'pierce':'special');
- const {dmg,critical,kind}=effectDamage(actor,target,boost);
- battle.log=`${TYPES[type].name}: ${dmg} de dano ${kind==='magic'?'mágico':'físico'}${critical?' crítico!':'!'}`;
+ const skillAttack=type==='hunter'&&actor.strikes%4===0?'true':null;
+ const {dmg,critical,kind}=effectDamage(actor,target,boost,skillAttack);
+ battle.log=`${TYPES[type].name}: ${dmg} de dano ${kind==='magic'?'mágico':kind==='true'?'verdadeiro':'físico'}${critical?' crítico!':'!'}`;
  if(type==='guard'&&actor.strikes%3===0){raiseShield(actor,actor.maxHp*.15,40,'GUARDA');battle.log='Guardião ergueu um escudo!'}
- if(type==='golem'&&actor.strikes%3===0){raiseShield(actor,actor.maxHp*.13,52,'PELE DE PEDRA')}
+ if(type==='golem'&&actor.strikes%3===0){raiseShield(actor,actor.maxHp*.13,52,'PELE DE PEDRA');if(target.hp>0)applyControl(target,'stun',1,actor)}
  if(type==='bow'&&actor.strikes%4===0&&target.hp>0){skillCue(actor,'DISPARO DUPLO','pierce');effectDamage(actor,target,.6)}
  if(type==='spear'&&actor.strikes%3===0){
   const behind=opponents.filter(u=>u.hp>0&&u.id!==target.id&&
@@ -768,7 +828,8 @@ function performTurn(actor){
  if(type==='mage'&&actor.strikes%3===0){
   skillCue(actor,'EXPLOSÃO ARCANA','arcane');battle.fx.push({kind:'aura',style:'arcane',x:target.x,y:target.y});
   opponents.filter(u=>u.hp>0&&u.id!==target.id&&Math.max(Math.abs(target.x-u.x),Math.abs(target.y-u.y))<=1).forEach(u=>effectDamage(actor,u,.53));
-  battle.log='Explosão arcana atingiu a área!';
+  if(target.hp>0)target.burn={source:actor.id,damage:Math.max(4,Math.round(actor.atk*.22)),actions:2};
+  battle.log='Explosão arcana atingiu a área e aplicou queimadura!';
  }
  if(type==='sentinel'&&skillReady(actor,3)){
   const provoked=opponents.filter(u=>u.hp>0&&dist(actor,u)<=3).slice(0,3);
@@ -780,10 +841,10 @@ function performTurn(actor){
   skillCue(actor,'VENENO','poison');battle.fx.push({kind:'aura',style:'poison',x:target.x,y:target.y});battle.log='Flecha venenosa aplicada!';
  }
  if(type==='shaman'&&skillReady(actor,3)&&target.hp>0){
-  target.root=Math.max(target.root,2);skillCue(actor,'RAÍZES','poison');battle.fx.push({kind:'aura',style:'poison',x:target.x,y:target.y});battle.log='Xamã enraizou o inimigo!';
+  applyControl(target,'root',2,actor);skillCue(actor,'RAÍZES','poison');battle.fx.push({kind:'aura',style:'poison',x:target.x,y:target.y});battle.log='Xamã enraizou o inimigo!';
  }
  if(type==='frost'&&skillReady(actor,4)&&target.hp>0){
-  target.freeze=Math.max(target.freeze,1);skillCue(actor,'CONGELAR','frost');battle.fx.push({kind:'aura',style:'frost',x:target.x,y:target.y});battle.log='Criomante congelou o inimigo!';
+  applyControl(target,'freeze',1,actor);applyControl(target,'slow',3,actor);skillCue(actor,'CONGELAR','frost');battle.fx.push({kind:'aura',style:'frost',x:target.x,y:target.y});battle.log='Criomante congelou o inimigo!';
  }
  if(type==='storm'&&skillReady(actor,3)){
   const others=opponents.filter(u=>u.hp>0&&u.id!==target.id).sort((a,b)=>dist(target,a)-dist(target,b)).slice(0,2);
@@ -793,8 +854,8 @@ function performTurn(actor){
   target.curse={source:actor.id,damage:Math.max(4,Math.round(actor.atk*.23)),actions:3};
   skillCue(actor,'MALDIÇÃO','shadow');battle.fx.push({kind:'aura',style:'shadow',x:target.x,y:target.y});battle.log='Necromante aplicou maldição!';
  }
- if(type==='shade'&&skillReady(actor,3)&&target.hp>0){skillCue(actor,'CORTE SOMBRIO','shadow');effectDamage(actor,target,.45,'magic')}
- if(type==='ghost'&&actor.strikes%3===0)skillCue(actor,'DRENAR VIDA','shadow');
+ if(type==='shade'&&skillReady(actor,3)&&target.hp>0){skillCue(actor,'CORTE SOMBRIO','shadow');effectDamage(actor,target,.45,'magic');target.antiheal=3}
+ if(type==='ghost'&&actor.strikes%3===0){skillCue(actor,'DRENAR VIDA','shadow');if(target.hp>0)target.antiheal=2;}
  if(battle.tick%5===0)playNote(250,.022);
 }
 
@@ -808,7 +869,7 @@ function applyBossHazards(){
  else if(battle.bossTag==='toxic'&&battle.tick%7===0){const targets=living('player').sort((a,b)=>a.hp-b.hp).slice(0,2);targets.forEach(t=>t.poison={source:boss.id,damage:Math.max(5,Math.round(boss.atk*.22)),actions:3});if(targets.length){battle.fx.push({kind:'skill',x:boss.x,y:boss.y,label:'NÉVOA TÓXICA',style:'poison'});battle.log='A Matriarca espalhou veneno!';}}
  else if(battle.bossTag==='shadow'&&battle.tick%6===0){const target=living('player').sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];if(target){target.curse={source:boss.id,damage:Math.max(5,Math.round(boss.atk*.2)),actions:3};battle.fx.push({kind:'skill',x:boss.x,y:boss.y,label:'MALDIÇÃO',style:'shadow'});battle.log='O Lich Sombrio lançou uma maldição!';}}
 }
-function tickBattle(){if(!battle||game.phase!=='combat')return;battle.tick++;battle.lastHit=null;if(battle.tick%7===0){for(const [side,traits] of [['player',battle.traits],['enemy',battle.enemyTraits]]){if(traits?.selva>=4)living(side).forEach(u=>restoreHealth(u,u,Math.round(u.maxHp*.055),'heal'))}}applyBossHazards();let all=[...living('player'),...living('enemy')].sort((a,b)=>b.speed-a.speed);if(battle.tick%2===0)all.reverse();for(const actor of all){if(actor.hp<=0)continue;actor.meter+=actor.speed; if(actor.meter>=1.85){actor.meter-=1.85;performTurn(actor)}if(!living('player').length||!living('enemy').length)break}
+function tickBattle(){if(!battle||game.phase!=='combat')return;battle.tick++;battle.lastHit=null;if(battle.tick%7===0){for(const [side,traits] of [['player',battle.traits],['enemy',battle.enemyTraits]]){if(traits?.selva>=4)living(side).forEach(u=>restoreHealth(u,u,Math.round(u.maxHp*.055),'heal'))}}applyBossHazards();let all=[...living('player'),...living('enemy')].sort((a,b)=>b.speed-a.speed);if(battle.tick%2===0)all.reverse();for(const actor of all){if(actor.hp<=0)continue;actor.meter+=actor.speed*(actor.slow>0?.72:1)*(arenaAt(actor.x,actor.y,battle?.arena)==='bog'?.8:1); if(actor.meter>=1.85){actor.meter-=1.85;performTurn(actor)}if(!living('player').length||!living('enemy').length)break}
  if(!living('enemy').length||!living('player').length||battle.tick>=115){let win;if(!living('enemy').length)win=true;else if(!living('player').length)win=false;else{let allySum=living('player').reduce((n,u)=>n+u.hp/u.maxHp,0);let enemySum=living('enemy').reduce((n,u)=>n+u.hp/u.maxHp,0);win=allySum>enemySum}endBattle(win);return}render();drawBattleFx();if(pvp.active&&pvp.seat===0)pvpSendFrame();}
 function endBattle(win){
  if(pvp.active){pvpEndBattle(win);return}
@@ -853,10 +914,10 @@ function reportHtml(report,side){
  <div class="report-tabs" role="tablist" aria-label="Equipe do relatório"><button type="button" role="tab" data-report-side="player" aria-selected="${ours}">🟢 Seu time (${report.allies.length})</button><button type="button" role="tab" data-report-side="enemy" aria-selected="${!ours}">🔴 Inimigos (${report.enemies.length})</button></div>
  <div class="report-rows">${sorted.map((u,i)=>{
   const st=u.stats,col=GROUPS[TYPES[u.type].group].color;
-  return `<div class="report-unit"><div class="report-unit-head"><span class="report-icon" style="--unit-color:${col}">${miniArt(u.type)}</span><span class="report-unit-title"><strong>${esc(TYPES[u.type].name)} ${'★'.repeat(u.star)}</strong><small>${esc(TYPES[u.type].skill)} · ${u.hp>0?Math.ceil(u.hp)+' PV restantes':'Abatida'}</small></span><span class="report-unit-rank">${i===0?'🏅 ':'#'+(i+1)+' · '}${st.damage} dano</span></div><div class="report-meter" title="Participação no dano"><span style="width:${Math.max(0,Math.min(100,Math.round(st.damage/maxDmg*100)))}%"></span></div><div class="report-metrics"><span><b>${st.healing}</b>💚 Cura</span><span><b>${st.taken}</b>❤️ Recebido</span><span><b>${st.blocked}</b>🛡️ Bloqueado</span><span><b>${st.kills} / ${st.skills}</b>💥 KOs / skills</span></div><div class="damage-split"><span>⚔️ Físico: <b>${st.physicalDamage||0}</b></span><span>🔮 Mágico: <b>${st.magicDamage||0}</b></span></div>${(st.intercepts||st.flanks||st.retreats||st.pierces)?`<div class="report-tactics">${st.intercepts?'🛡️ '+st.intercepts+' interceptações · ':''}${st.flanks?'🗡️ '+st.flanks+' ataques pelo flanco · ':''}${st.retreats?'🏃 '+st.retreats+' recuos · ':''}${st.pierces?'🔱 '+st.pierces+' perfurações':''}</div>`:''}</div>`
+  return `<div class="report-unit"><div class="report-unit-head"><span class="report-icon" style="--unit-color:${col}">${miniArt(u.type)}</span><span class="report-unit-title"><strong>${esc(TYPES[u.type].name)} ${'★'.repeat(u.star)}</strong><small>${esc(TYPES[u.type].skill)} · ${u.hp>0?Math.ceil(u.hp)+' PV restantes':'Abatida'}</small></span><span class="report-unit-rank">${i===0?'🏅 ':'#'+(i+1)+' · '}${st.damage} dano</span></div><div class="report-meter" title="Participação no dano"><span style="width:${Math.max(0,Math.min(100,Math.round(st.damage/maxDmg*100)))}%"></span></div><div class="report-metrics"><span><b>${st.healing}</b>💚 Cura</span><span><b>${st.taken}</b>❤️ Recebido</span><span><b>${st.blocked}</b>🛡️ Bloqueado</span><span><b>${st.kills} / ${st.skills}</b>💥 KOs / skills</span></div><div class="damage-split"><span>⚔️ Físico: <b>${st.physicalDamage||0}</b></span><span>🔮 Mágico: <b>${st.magicDamage||0}</b></span><span>✴️ Verdadeiro: <b>${st.trueDamage||0}</b></span></div>${(st.intercepts||st.flanks||st.retreats||st.pierces)?`<div class="report-tactics">${st.intercepts?'🛡️ '+st.intercepts+' interceptações · ':''}${st.flanks?'🗡️ '+st.flanks+' ataques pelo flanco · ':''}${st.retreats?'🏃 '+st.retreats+' recuos · ':''}${st.pierces?'🔱 '+st.pierces+' perfurações':''}</div>`:''}</div>`
  }).join('')}</div>
  ${mvp?`<div class="report-mvp">⭐ Destaque: <strong>${esc(TYPES[mvp.type].name)}</strong> · ${mvp.stats.damage} dano, ${mvp.stats.healing} cura, ${mvp.stats.taken+mvp.stats.blocked} de resistência.</div>`:''}
- <p class="report-note">⚔️ Armadura reduz dano físico; 🪬 resistência mágica reduz dano mágico. Os totais incluem dano causado à vida e aos escudos. Cura registra apenas vida efetivamente restaurada.</p>`;
+ <p class="report-note">⚔️ Armadura reduz dano físico; 🪬 resistência mágica reduz dano mágico; ✴️ dano verdadeiro ignora ambas as defesas. Os totais incluem dano causado à vida e aos escudos. Cura registra apenas vida efetivamente restaurada.</p>`;
 }
 function renderReports(){
  const active=game.phase==='combat'&&battle,report=active?makeReport(battle,null):game.lastReport;
@@ -872,12 +933,12 @@ function updateModalReport(){
  $('modalReport').hidden=!modalReportOpen;$('modal').querySelector('.modal-body').classList.toggle('has-report',modalReportOpen);
  if(modalReportOpen&&game?.lastReport)$('modalReportBody').innerHTML=reportHtml(game.lastReport,modalReportSide);
 }
-function render(){if(!game)return;if(pvp.active){$('lifeStat').hidden=true;$('roundBadge').textContent=`DUELO ${pvp.round}`;}else{$('lifeStat').hidden=false;}syncMusicTheme();$('gold').textContent=game.gold;$('lives').textContent=game.lives;$('wins').textContent=game.wins;$('roundBadge').textContent=pvp.active?`DUELO ${pvp.round}`:`RODADA ${game.round}${game.round%5===0?' · CHEFE':''}`;$('arenaTitle').textContent=game.phase==='combat'?'Combate em andamento':game.phase==='prep'?'Sua formação':game.phase==='pvp_wait'?'Equipe confirmada':'Fim da batalha';$('armyBadge').textContent=`${deployed().length} / ${capacity()} EM CAMPO`;$('benchBadge').textContent=`${bench().length} / ${MAX_BENCH}`;renderBoard();renderShop();renderBench();renderInfo();renderForge();renderTraits();renderActions();renderReports()}
-function miniHTML(piece,foe=false){let t=TYPES[piece.type],c=GROUPS[t.group].color,isBattle=piece.hp!==undefined,health=isBattle?Math.round(piece.hp/piece.maxHp*100):100;const hit=isBattle&&battle?.lastHit===piece.id?' hit':'';const anim=isBattle&&battle?.lastAction?.id===piece.id?' '+battle.lastAction.kind:'';return `<div class="mini ${foe?'foe':''}${hit}${anim}" style="--unit-color:${c}"><div class="mini-name">${esc(t.name)}</div><div class="mini-base">${miniArt(piece.type)}</div>${!foe&&piece.items?.length?`<span class="mini-equipped" title="Itens equipados">${piece.items.map(id=>ITEMS[id]?.icon||'◆').join('')}</span>`:''}${!isBattle?`<span class="mini-role" title="${ROLES[roleOf(piece.type)].name}">${ROLES[roleOf(piece.type)].icon}</span>`:''}${piece.star>1?`<div class="mini-star">${'★'.repeat(piece.star)}</div>`:''}${isBattle&&piece.shield>0?`<span class="mini-shield" title="Escudo restante">🛡${Math.ceil(piece.shield)}</span>`:''}${isBattle&&piece.freeze>0?`<span class="status-badge" title="Congelada">❄️</span>`:isBattle&&piece.poison?.actions>0?`<span class="status-badge" title="Envenenada">☠️</span>`:isBattle&&piece.curse?.actions>0?`<span class="status-badge" title="Amaldiçoada">🌑</span>`:isBattle&&piece.root>0?`<span class="status-badge" title="Enraizada">🌿</span>`:''}<div class="hp"><span style="width:${health}%"></span></div></div>`}
-function renderBoard(){const board=$('board');let nodes=[],allies=game.phase==='combat'?(battle?.allies||[]).filter(u=>u.hp>0):deployed(),foes=game.phase==='combat'?(battle?.enemies||[]).filter(u=>u.hp>0):game.preview,selected=game.roster.find(u=>u.id===game.selected);for(let y=0;y<6;y++)for(let x=0;x<6;x++){let p=allies.find(u=>u.x===x&&u.y===y),e=foes.find(u=>u.x===x&&u.y===y),possible=game.phase==='prep'&&y>=4,canPlace=possible&&selected&&!p;nodes.push(`<button type="button" class="cell ${y<=1?'enemy-zone':y>=4?'player-zone':''} ${possible?'placeable':''} ${p?.id===game.selected?'selected':''} ${canPlace?'move-target':''}" data-x="${x}" data-y="${y}" ${possible?'':'tabindex="-1"'} aria-label="${p?TYPES[p.type].name:e?`Inimigo ${TYPES[e.type].name}`:possible?'Casa livre':'Campo vazio'}, coluna ${x+1}, linha ${y+1}">${p?miniHTML(p):e?miniHTML(e,true):canPlace?'<span class="target-dot" style="font-size:15px;color:#9bdeae">＋</span>':''}</button>`)}board.innerHTML=nodes.join('');}
-function renderShop(){let disabled=game.phase!=='prep';$('shop').innerHTML=game.shop.map((type,i)=>{if(!type)return `<div class="shop-card sold" aria-label="Comprada"><div style="margin:auto;font-size:12px">✓ Recrutada</div></div>`;let t=TYPES[type],g=GROUPS[t.group],afford=game.gold>=t.cost;return `<button type="button" class="shop-card ${afford?'':'unaffordable'}" data-inspect-shop="${i}" style="--unit-color:${g.color}" ${disabled?'disabled':''} aria-label="Ver atributos e compra de ${esc(t.name)}" title="Toque para ver os atributos e decidir se deseja comprar"><span class="art-icon">${miniArt(type)}</span><span class="shop-details"><div class="shop-name">${esc(t.name)}</div><div class="shop-group">${g.icon} ${g.name} · ${ROLES[roleOf(type)].icon} ${ROLES[roleOf(type)].name}</div><div class="shop-quickstats">❤️ ${t.hp} · ${attackKind(type)==='magic'?'🔮':'⚔️'} ${t.atk} · 🛡️ ${t.armor} · 🪬 ${MAGIC_RESIST[type]}<br>⚡ ${t.speed.toFixed(2)} · 🎯 ${t.range}</div><div class="shop-desc skill-desc">${esc(t.skill)}</div><div class="shop-see">👁 Ver ficha e comprar</div></span><span class="price">${t.cost} 🪙</span></button>`}).join('');$('rerollBtn').disabled=disabled||game.gold<2}
+function render(){if(!game)return;if(pvp.active){$('lifeStat').hidden=true;$('roundBadge').textContent=`DUELO ${pvp.round}`;}else{$('lifeStat').hidden=false;}syncMusicTheme();$('gold').textContent=game.gold;$('lives').textContent=game.lives;$('wins').textContent=game.wins;$('roundBadge').textContent=pvp.active?`DUELO ${pvp.round}`:`RODADA ${game.round}${game.round%5===0?' · CHEFE':''}`;$('arenaTitle').textContent=game.phase==='combat'?'Combate em andamento':game.phase==='prep'?'Sua formação':game.phase==='pvp_wait'?'Equipe confirmada':'Fim da batalha';const arenaName=(game.phase==='combat'&&battle?.arena)||arenaForRound(game.round);$('terrainHeading').textContent=`🗺️ ${arenaName.name} — ${arenaName.desc}`;$('armyBadge').textContent=`${deployed().length} / ${capacity()} EM CAMPO`;$('benchBadge').textContent=`${bench().length} / ${MAX_BENCH}`;renderBoard();renderShop();renderBench();renderInfo();renderForge();renderTraits();renderActions();renderReports();if(pvp.active&&!pvp.local)savePvpSession()}
+function miniHTML(piece,foe=false){let t=TYPES[piece.type],c=GROUPS[t.group].color,isBattle=piece.hp!==undefined,health=isBattle?Math.round(piece.hp/piece.maxHp*100):100;const hit=isBattle&&battle?.lastHit===piece.id?' hit':'';const anim=isBattle&&battle?.lastAction?.id===piece.id?' '+battle.lastAction.kind:'';return `<div class="mini ${foe?'foe':''}${hit}${anim}" style="--unit-color:${c}"><div class="mini-name">${esc(t.name)}</div><div class="mini-base">${miniArt(piece.type)}</div>${!foe&&piece.items?.length?`<span class="mini-equipped" title="Itens equipados">${piece.items.map(id=>ITEMS[id]?.icon||'◆').join('')}</span>`:''}${!isBattle?`<span class="mini-role" title="${ROLES[roleOf(piece.type)].name}">${ROLES[roleOf(piece.type)].icon}</span>`:''}${piece.star>1?`<div class="mini-star">${'★'.repeat(piece.star)}</div>`:''}${isBattle&&piece.shield>0?`<span class="mini-shield" title="Escudo restante">🛡${Math.ceil(piece.shield)}</span>`:''}${isBattle&&piece.stun>0?`<span class="status-badge" title="Atordoamento">💫</span>`:isBattle&&piece.burn?.actions>0?`<span class="status-badge" title="Queimadura">🔥</span>`:isBattle&&piece.antiheal>0?`<span class="status-badge" title="Corta-cura">🚫</span>`:isBattle&&piece.slow>0?`<span class="status-badge" title="Lentidão">🐌</span>`:isBattle&&piece.freeze>0?`<span class="status-badge" title="Congelada">❄️</span>`:isBattle&&piece.poison?.actions>0?`<span class="status-badge" title="Envenenada">☠️</span>`:isBattle&&piece.curse?.actions>0?`<span class="status-badge" title="Amaldiçoada">🌑</span>`:isBattle&&piece.root>0?`<span class="status-badge" title="Enraizada">🌿</span>`:''}<div class="hp"><span style="width:${health}%"></span></div></div>`}
+function renderBoard(){const board=$('board');let nodes=[],allies=game.phase==='combat'?(battle?.allies||[]).filter(u=>u.hp>0):deployed(),foes=game.phase==='combat'?(battle?.enemies||[]).filter(u=>u.hp>0):game.preview,selected=game.roster.find(u=>u.id===game.selected);for(let y=0;y<6;y++)for(let x=0;x<6;x++){let p=allies.find(u=>u.x===x&&u.y===y),e=foes.find(u=>u.x===x&&u.y===y),terrain=arenaAt(x,y,(game.phase==='combat'&&battle?.arena)||arenaForRound(game.round)),possible=game.phase==='prep'&&y>=4,canPlace=possible&&selected&&!p;nodes.push(`<button type="button" class="cell ${terrain?'terrain-'+terrain:''} ${y<=1?'enemy-zone':y>=4?'player-zone':''} ${possible?'placeable':''} ${p?.id===game.selected?'selected':''} ${canPlace?'move-target':''}" data-x="${x}" data-y="${y}" ${possible?'':'tabindex="-1"'} aria-label="${p?TYPES[p.type].name:e?`Inimigo ${TYPES[e.type].name}`:possible?'Casa livre':'Campo vazio'}, coluna ${x+1}, linha ${y+1}">${terrain==='wall'?'':p?miniHTML(p):e?miniHTML(e,true):canPlace?'<span class="target-dot" style="font-size:15px;color:#9bdeae">＋</span>':''}</button>`)}board.innerHTML=nodes.join('');}
+function renderShop(){let disabled=game.phase!=='prep';$('shop').innerHTML=game.shop.map((type,i)=>{if(!type)return `<div class="shop-card sold" aria-label="Comprada"><div style="margin:auto;font-size:12px">✓ Recrutada</div></div>`;let t=TYPES[type],g=GROUPS[t.group],afford=game.gold>=t.cost;return `<button type="button" class="shop-card ${afford?'':'unaffordable'}" data-inspect-shop="${i}" style="--unit-color:${g.color}" ${disabled?'disabled':''} aria-label="Ver atributos e compra de ${esc(t.name)}" title="Toque para ver os atributos e decidir se deseja comprar"><span class="art-icon">${miniArt(type)}</span><span class="shop-details"><div class="shop-name">${esc(t.name)}</div><div class="shop-group">${g.icon} ${g.name} · ${ROLES[roleOf(type)].icon} ${ROLES[roleOf(type)].name}</div><div class="shop-quickstats">❤️ ${t.hp} · ${attackKind(type)==='magic'?'🔮':'⚔️'} ${t.atk} · 🛡️ ${t.armor} · 🪬 ${MAGIC_RESIST[type]}<br>⚡ ${t.speed.toFixed(2)} · 🎯 ${t.range}</div><div class="shop-desc skill-desc">${esc(t.skill)} · ${kindLabel(skillKind(type))}</div><div class="shop-see">👁 Ver ficha e comprar</div></span><span class="price">${t.cost} 🪙</span></button>`}).join('');$('rerollBtn').disabled=disabled||game.gold<2}
 function renderBench(){$('bench').innerHTML=`<div class="bench-list">${bench().length?bench().map(u=>`<button class="bench-piece ${game.selected===u.id?'picked':''}" data-bench="${u.id}" ${game.phase!=='prep'?'disabled':''}><span class="art-icon" style="--unit-color:${GROUPS[TYPES[u.type].group].color}">${miniArt(u.type)}</span><span class="short">${esc(TYPES[u.type].name)}<br>${'★'.repeat(u.star)}</span></button>`).join(''):'<div class="empty-bench">Nenhuma unidade na reserva.</div>'}</div>`}
-function renderInfo(){const u=game.roster.find(u=>u.id===game.selected);if(!u){$('unitInfo').innerHTML='<span>Selecione uma miniatura para ver seus atributos ou vendê-la. Três cópias iguais se fundem e sobem de nível.</span>';return}let t=TYPES[u.type],g=GROUPS[t.group];const gear=(u.items||[]).map(id=>ITEMS[id]).filter(Boolean),sum=stat=>gear.reduce((n,it)=>n+(it[stat]||0),0);$('unitInfo').innerHTML=`<div class="info-line"><strong>${t.icon} ${esc(t.name)} ${'★'.repeat(u.star)}</strong><span>${g.name} · ${u.x===null?'Reserva':'Em campo'}</span></div><div>❤️ ${Math.round(t.hp*Math.pow(1.68,u.star-1))+sum('hp')+(pvp.active?0:game.globalBuffs?.hp||0)} · ${attackKind(u.type)==='magic'?'🔮':'⚔️'} ${Math.round(t.atk*Math.pow(1.51,u.star-1))+sum('atk')+(pvp.active?0:game.globalBuffs?.atk||0)} · 🛡️ ${t.armor+Math.max(0,u.star-1)*2+sum('armor')+(pvp.active?0:game.globalBuffs?.armor||0)} · 🪬 ${MAGIC_RESIST[u.type]+Math.max(0,u.star-1)*2+sum('resist')} · ⚡ ${(t.speed*(1+sum('speed')+(pvp.active?0:game.globalBuffs?.speed||0))).toFixed(2)} · 🎯 ${t.range}</div><div class="damage-explainer">Ataque básico: ${kindLabel(attackKind(u.type))}. 🛡️ Protege do físico; 🪬 protege do mágico.</div><div style="font-size:11px;color:#b4cae0">${sum('crit')?'Crítico +'+Math.round(sum('crit')*100)+'% · ':''}${sum('leech')?'Roubo de vida '+Math.round(sum('leech')*100)+'% · ':''}${sum('pierce')?'Penetração física '+sum('pierce')+' · ':''}${sum('magicPierce')?'Penetração mágica '+sum('magicPierce')+' · ':''}${sum('heal')?'Cura +'+Math.round(sum('heal')*100)+'% · ':''}${sum('shield')?'Escudo +'+sum('shield'):''}</div><div>${esc(t.skill)}: ${esc(t.tip)}</div><div class="role-tip">${ROLES[roleOf(u.type)].icon} <b>${ROLES[roleOf(u.type)].name}:</b> ${ROLES[roleOf(u.type)].tip}</div><div class="equip-inline">${(u.items||[]).length?(u.items||[]).map((id,i)=>`<button class="equip-slot" data-unequip="${i}" title="Toque para retirar" ${game.phase!=='prep'?'disabled':''}>${ITEMS[id]?.icon||'◆'} ${esc(ITEMS[id]?.name||id)} ✕</button>`).join(''):'<span style="font-size:11px;color:#a7bacb">Sem equipamentos (2 espaços)</span>'}</div>${game.phase==='prep'?`${u.x!==null?'<button class="secondary" id="benchSelectedBtn" style="padding:7px 10px;font-size:11px;margin:8px 7px 0 0">Guardar</button>':''}<button class="sell" id="sellBtn">Vender · +${t.cost*Math.pow(3,u.star-1)} 🪙</button>`:''}`}
+function renderInfo(){const u=game.roster.find(u=>u.id===game.selected);if(!u){$('unitInfo').innerHTML='<span>Selecione uma miniatura para ver seus atributos ou vendê-la. Três cópias iguais se fundem e sobem de nível.</span>';return}let t=TYPES[u.type],g=GROUPS[t.group];const gear=(u.items||[]).map(id=>ITEMS[id]).filter(Boolean),sum=stat=>gear.reduce((n,it)=>n+(it[stat]||0),0);$('unitInfo').innerHTML=`<div class="info-line"><strong>${t.icon} ${esc(t.name)} ${'★'.repeat(u.star)}</strong><span>${g.name} · ${u.x===null?'Reserva':'Em campo'}</span></div><div>❤️ ${Math.round(t.hp*Math.pow(1.68,u.star-1))+sum('hp')+(pvp.active?0:game.globalBuffs?.hp||0)} · ${attackKind(u.type)==='magic'?'🔮':'⚔️'} ${Math.round(t.atk*Math.pow(1.51,u.star-1))+sum('atk')+(pvp.active?0:game.globalBuffs?.atk||0)} · 🛡️ ${t.armor+Math.max(0,u.star-1)*2+sum('armor')+(pvp.active?0:game.globalBuffs?.armor||0)} · 🪬 ${MAGIC_RESIST[u.type]+Math.max(0,u.star-1)*2+sum('resist')} · ⚡ ${(t.speed*(1+sum('speed')+(pvp.active?0:game.globalBuffs?.speed||0))).toFixed(2)} · 🎯 ${t.range}</div><div class="damage-explainer">Ataque básico: ${kindLabel(attackKind(u.type))}. 🛡️ Protege do físico; 🪬 protege do mágico.</div><div style="font-size:11px;color:#b4cae0">${sum('crit')?'Crítico +'+Math.round(sum('crit')*100)+'% · ':''}${sum('leech')?'Roubo de vida '+Math.round(sum('leech')*100)+'% · ':''}${sum('pierce')?'Penetração física '+sum('pierce')+' · ':''}${sum('magicPierce')?'Penetração mágica '+sum('magicPierce')+' · ':''}${sum('heal')?'Cura +'+Math.round(sum('heal')*100)+'% · ':''}${sum('shield')?'Escudo +'+sum('shield'):''}</div><div>${esc(t.skill)} (${kindLabel(skillKind(u.type))}): ${esc(t.tip)}</div><div class="role-tip">${ROLES[roleOf(u.type)].icon} <b>${ROLES[roleOf(u.type)].name}:</b> ${ROLES[roleOf(u.type)].tip}</div><div class="equip-inline">${(u.items||[]).length?(u.items||[]).map((id,i)=>`<button class="equip-slot" data-unequip="${i}" title="Toque para retirar" ${game.phase!=='prep'?'disabled':''}>${ITEMS[id]?.icon||'◆'} ${esc(ITEMS[id]?.name||id)} ✕</button>`).join(''):'<span style="font-size:11px;color:#a7bacb">Sem equipamentos (2 espaços)</span>'}</div>${game.phase==='prep'?`${u.x!==null?'<button class="secondary" id="benchSelectedBtn" style="padding:7px 10px;font-size:11px;margin:8px 7px 0 0">Guardar</button>':''}<button class="sell" id="sellBtn">Vender · +${t.cost*Math.pow(3,u.star-1)} 🪙</button>`:''}`}
 function inspectItem(i){if(!Number.isInteger(i)||!game.inventory[i])return;selectedInventoryIndex=i;renderForge();}
 function renderForge(){
  const disabled=game.phase!=='prep';
@@ -918,7 +979,7 @@ function drawBattleFx(){
   if(ev.kind==='barrier'){add('fx-barrier',end.x,end.y,740,{'--ring':'58px'});continue}
   if(ev.kind==='aura'){add('fx-aoe',end.x,end.y,680,{'--ring':style==='arcane'?'85px':'57px','--fxcolor':color});continue}
   if(ev.kind==='death'){const el=add('fx-death',end.x,end.y,700);el.textContent='✦';continue}
-  if(ev.kind==='status'){add('fx-burst',end.x,end.y,470,{'--fxcolor':color});const dot=add('fx-number '+(ev.damageKind==='magic'?'magic-dmg':'physical-dmg'),end.x,end.y,670);dot.textContent=ev.dmg?'−'+ev.dmg:ev.blocked?'BLOQ.':'';continue}
+  if(ev.kind==='status'){add('fx-burst',end.x,end.y,470,{'--fxcolor':color});const dot=add('fx-number '+(ev.damageKind==='true'?'true-dmg':ev.damageKind==='magic'?'magic-dmg':'physical-dmg'),end.x,end.y,670);dot.textContent=ev.dmg?'−'+ev.dmg:ev.blocked?'BLOQ.':'';continue}
   if(ev.kind==='heal'){
    if(ev.sx!==ev.x||ev.sy!==ev.y){const a=pos(ev.sx,ev.sy);const el=add('fx-streak healbeam',a.x,a.y,430,{'--fxdx':(end.x-a.x)+'px','--fxdy':(end.y-a.y)+'px','--fxcolor':'#8dffc2'});}
    add('fx-burst',end.x,end.y,470,{'--fxcolor':'#92fbc3'});
@@ -928,7 +989,7 @@ function drawBattleFx(){
   }else{add('fx-slash',end.x,end.y,440,{'--fxcolor':color});}
   if(ev.kind!=='heal'&&ev.blocked>0)add('fx-barrier',end.x,end.y,550,{'--ring':'38px'});
   if(ev.kind==='strike'||ev.kind==='shot'||ev.kind==='heal'){
-   const num=add('fx-number'+(ev.kind==='heal'?' heal':(ev.damageKind==='magic'?' magic-dmg':' physical-dmg')+(ev.critical?' crit':'')),end.x,end.y,670);
+   const num=add('fx-number'+(ev.kind==='heal'?' heal':(ev.damageKind==='true'?' true-dmg':ev.damageKind==='magic'?' magic-dmg':' physical-dmg')+(ev.critical?' crit':'')),end.x,end.y,670);
    num.textContent=ev.kind==='heal'?'+'+ev.dmg:ev.dmg>0?'−'+ev.dmg+(ev.critical?'!':''):ev.blocked>0?'BLOQ.':'';
   }
  }
@@ -1000,19 +1061,94 @@ $('reportBody').addEventListener('click',e=>{const tab=e.target.closest('[data-r
 $('modalReportBtn').onclick=()=>{modalReportOpen=!modalReportOpen;updateModalReport()};
 $('modalReportBody').addEventListener('click',e=>{const tab=e.target.closest('[data-report-side]');if(tab){modalReportSide=tab.dataset.reportSide;updateModalReport()}});
 $('resetBtn').onclick=()=>{if(pvp.active){showToast('Saia do PvP antes de reiniciar o solo');return}if(window.confirm('Recomeçar do zero? Seu progresso atual será perdido.')){clearTimeout(clock);battle=null;closeModal();newRun()}};
-$('helpBtn').onclick=()=>openModal('📜','Como jogar','Na loja, toque em uma miniatura para ver os atributos e confirme se quiser comprar. Toque em uma unidade para selecioná-la e depois toque em uma das duas linhas verdes para posicionar ou trocar. As batalhas acontecem automaticamente. Unidades diferentes da mesma aliança dão bônus com duas em campo e um segundo bônus com quatro. Unidades repetidas contam apenas uma vez. Duas cópias do mesmo personagem contam como apenas uma para a aliança. Três unidades idênticas de mesmo nível se fundem em uma mais forte. Tanques na linha da frente podem interceptar tiros físicos destinados à retaguarda; assassinos buscam unidades frágeis, e magos podem atingir áreas. Na Forja, compre equipamentos, toque em um item da mochila para ler sua descrição, selecione uma miniatura e use Equipar. Cada miniatura aceita 2 itens. Itens raros aparecem como recompensas especiais nas rodadas de chefe e em algumas bênçãos. Você perde uma vida por derrota. Sobreviva o maior número de rodadas possível!','','ENTENDI','Dica: Guardião, Golem, Sentinela e Paladina interceptam flechas disparadas contra aliados logo atrás.',closeModal);
+$('helpBtn').onclick=()=>openModal('📜','Como jogar','Na loja, toque em uma miniatura para ver os atributos e confirme se quiser comprar. Toque em uma unidade para selecioná-la e depois toque em uma das duas linhas verdes para posicionar ou trocar. As batalhas acontecem automaticamente. Unidades diferentes da mesma aliança dão bônus com duas em campo e um segundo bônus com quatro. Unidades repetidas contam apenas uma vez. Duas cópias do mesmo personagem contam como apenas uma para a aliança. Três unidades idênticas de mesmo nível se fundem em uma mais forte. Tanques na linha da frente interceptam tiros, assassinos procuram a retaguarda e as habilidades podem causar dano físico, mágico ou verdadeiro. Queimadura, atordoamento, corta-cura, lentidão e resistência a controle afetam as batalhas. Cada rodada usa uma arena diferente com terrenos e obstáculos. Na Forja, compre equipamentos, toque em um item da mochila para ler sua descrição, selecione uma miniatura e use Equipar. Cada miniatura aceita 2 itens. Itens raros aparecem como recompensas especiais nas rodadas de chefe e em algumas bênçãos. Você perde uma vida por derrota. Sobreviva o maior número de rodadas possível!','','ENTENDI','Dica: Guardião, Golem, Sentinela e Paladina interceptam flechas disparadas contra aliados logo atrás.',closeModal);
 $('oddsBtn').onclick=()=>openModal('💡','Estratégias','O posicionamento é decisivo: coloque tanques à frente dos arqueiros; atiradores tentam recuar de inimigos próximos; infiltradores priorizam suportes, e lanceiros podem atravessar alvos em linha. Cada aliança oferece dois patamares: 2 e 4 personagens diferentes. Ferro protege e concede escudos; Selva acelera e regenera; Arcano aumenta o ataque e Sombra fortalece críticos e roubo de vida. Ganhe 1 moeda extra para cada 10 que tiver guardadas, até 3. Equipamentos melhoram ataque, vida, velocidade, crítico e cura. Armadura reduz dano físico, resistência mágica reduz dano mágico. Lance perfura armadura; Foco arcano perfura resistência mágica. Na Forja, compre itens básicos e use a mochila para ler a descrição antes de equipar. Itens raros agora vêm de chefes e recompensas especiais. Ao vencer as rodadas múltiplas de 3 e os chefes, você encontra um item. A cada três rodadas, você libera mais um espaço para lutar. Nas rodadas 5, 10, 15... surgem chefes com efeitos exclusivos; após rodadas importantes, você pode escolher uma bênção permanente.','','VAMOS JOGAR','O progresso é salvo automaticamente neste navegador.',closeModal);
-window.__miniGameDebug={inspectShop,closeShopInspect,confirmShopBuy,craftItem,selectCraftIngredient,selectCraftRecipe,renderCraft,recipeFrom,recipes:RARE_RECIPES,shopModalIsOpen:()=>!$('shopModal').classList.contains('hidden'),getCraftSelection:()=>craftSelection.slice(),makeReport,reportHtml,restoreHealth,effectDamage,performTurn,getState:()=>JSON.parse(JSON.stringify({game,battle})),buy,selectOrMove,startBattle,tickBattle,reset:newRun,skipToResult:()=>{for(let i=0;i<250&&game.phase==='combat';i++)tickBattle()},types:TYPES,items:ITEMS,buyItem,equipItem,unequipItem,rollForge,miniArt,countTraits,inspectItem,applyTraitBuffs,processConditions,directStatusDamage,blinkToBackline,roleOf,selectTarget,findRetreat,interceptTarget,formationAdvice,pathToTarget,battleRef:()=>battle};
+
+let simulatorRunning=false,simulatorStop=false;
+function simFormation(pool,side){
+ const positions=side==='player'?[[1,4],[2,4],[3,5],[4,5],[0,5],[5,4]]:[[1,1],[2,1],[3,0],[4,0],[0,0],[5,1]];
+ const cnt=4+Math.floor(Math.random()*2),chosen=[];
+ for(let i=0;i<cnt;i++){const id=choice(pool),pos=positions[i],equipped=Math.random()<.58?[choice(itemList())]:[];chosen.push({type:id,star:Math.random()<.12?2:1,x:pos[0],y:pos[1],items:equipped});}
+ return chosen;
+}
+function simOne(result){
+ const oldBattle=battle,oldPhase=game.phase,oldRound=game.round,oldBoss=game.bossInfo,oldBuffs=game.globalBuffs,oldId=nextId;
+ const pool=Object.keys(TYPES),round=4;
+ game.round=round;game.phase='combat';game.bossInfo=null;game.globalBuffs={hp:0,atk:0,armor:0,speed:0};
+ let allySpecs=simFormation(pool,'player'),foeSpecs=simFormation(pool,'enemy');
+ const allies=allySpecs.map(u=>spawn(u,'player')),enemies=foeSpecs.map(u=>spawn(u,'enemy'));
+ battle={allies,enemies,traits:applyTraitBuffs(allies),enemyTraits:applyTraitBuffs(enemies),arena:ARENAS[0],round,tick:0,fx:[],lastHit:null,lastAction:null,log:'',bossTag:null};
+ try{
+  for(let i=0;i<95;i++){
+   battle.tick=i+1;
+   const actors=[...allies,...enemies].filter(u=>u.hp>0).sort((a,b)=>b.speed-a.speed);
+   for(const actor of actors){if(actor.hp<=0)continue;actor.meter+=actor.speed;if(actor.meter>=1.85){actor.meter-=1.85;performTurn(actor)}if(!allies.some(u=>u.hp>0)||!enemies.some(u=>u.hp>0))break;}
+   battle.fx.length=0;
+   if(!allies.some(u=>u.hp>0)||!enemies.some(u=>u.hp>0))break;
+  }
+  const a=allies.filter(u=>u.hp>0).reduce((n,u)=>n+u.hp/u.maxHp,0),b=enemies.filter(u=>u.hp>0).reduce((n,u)=>n+u.hp/u.maxHp,0),winner=a>b?'player':'enemy';
+  const note=(units,won)=>{
+   const unique=new Set(units.map(u=>u.type));
+   unique.forEach(type=>{const rec=result.units[type]||(result.units[type]={games:0,wins:0});rec.games++;if(won)rec.wins++});
+   const groups=countTraits(units);for(const [grp,n] of Object.entries(groups))if(n>=2){const rec=result.groups[grp]||(result.groups[grp]={games:0,wins:0});rec.games++;if(won)rec.wins++}
+   new Set(units.flatMap(u=>u.items||[])).forEach(item=>{const rec=result.items[item]||(result.items[item]={games:0,wins:0});rec.games++;if(won)rec.wins++});
+  };
+  note(allies,winner==='player');note(enemies,winner==='enemy');result.total++;
+ }finally{battle=oldBattle;game.phase=oldPhase;game.round=oldRound;game.bossInfo=oldBoss;game.globalBuffs=oldBuffs;nextId=oldId;}
+}
+function simShow(result){
+ const format=(obj,nameFn,minGames=7)=>Object.entries(obj).filter(([k,v])=>v.games>=minGames).sort((a,b)=>b[1].games-a[1].games).map(([id,v])=>`<div class="simulator-line"><span>${esc(nameFn(id))}</span><span>${v.games} jogos</span><b>${Math.round(100*v.wins/v.games)}%</b></div>`).join('');
+ $('simResults').innerHTML=`<strong>Miniaturas (participações e vitórias)</strong>${format(result.units,id=>TYPES[id].name)}<strong>Alianças com pelo menos 2 diferentes</strong>${format(result.groups,id=>GROUPS[id].name)}<strong>Itens</strong>${format(result.items,id=>ITEMS[id].name,5)}<small style="color:#b4c8d8">Resultados de amostra aleatória; classes com poucas partidas têm grande incerteza. Não alteram seu jogo salvo.</small>`;
+}
+function startSimulator(){
+ if(simulatorRunning)return;
+ simulatorRunning=true;simulatorStop=false;$('simRunBtn').disabled=true;
+ const result={total:0,units:{},groups:{},items:{}},target=200;
+ const batch=()=>{
+  if(simulatorStop){simulatorRunning=false;$('simRunBtn').disabled=false;return}
+  for(let i=0;i<8&&result.total<target;i++)simOne(result);
+  $('simProgress').textContent=`${result.total} de ${target} batalhas simuladas`;$('simProgressBar').style.width=`${Math.round(100*result.total/target)}%`;
+  if(result.total<target)setTimeout(batch,20);
+  else{simulatorRunning=false;$('simRunBtn').disabled=false;simShow(result);}
+ };
+ batch();
+}
+$('simulatorOpenBtn').onclick=()=>{if(pvp.active||game.phase==='combat'){showToast('Simulador disponível apenas fora de uma batalha');return}$('simulatorModal').classList.remove('hidden')};
+$('simCloseBtn').onclick=()=>{$('simulatorModal').classList.add('hidden')};
+$('simRunBtn').onclick=startSimulator;
+window.__miniGameDebug={inspectShop,closeShopInspect,confirmShopBuy,craftItem,selectCraftIngredient,selectCraftRecipe,renderCraft,recipeFrom,recipes:RARE_RECIPES,shopModalIsOpen:()=>!$('shopModal').classList.contains('hidden'),getCraftSelection:()=>craftSelection.slice(),makeReport,reportHtml,restoreHealth,effectDamage,performTurn,getState:()=>JSON.parse(JSON.stringify({game,battle})),buy,selectOrMove,startBattle,tickBattle,reset:newRun,skipToResult:()=>{for(let i=0;i<250&&game.phase==='combat';i++)tickBattle()},types:TYPES,items:ITEMS,buyItem,equipItem,unequipItem,rollForge,miniArt,countTraits,inspectItem,applyTraitBuffs,processConditions,directStatusDamage,blinkToBackline,roleOf,selectTarget,findRetreat,interceptTarget,formationAdvice,pathToTarget,battleRef:()=>battle,arenaAt,arenaForRound,applyControl,skillKind,runSim:simOne,simFormation};
 
 // ===== PvP em mesmo aparelho e por WebSocket (servidor do pacote) =====
-let pvp={active:false,local:false,seat:0,round:1,wins:[0,0],ready:false,starting:false,socket:null,room:'',names:['Jogador 1','Jogador 2'],connected:[true,true],otherUnits:[],localGames:[],soloGame:null,lastWinner:null,matchDone:false,waitingNext:false,server:''};
+let pvp={active:false,local:false,seat:0,round:1,wins:[0,0],ready:false,starting:false,socket:null,room:'',names:['Jogador 1','Jogador 2'],connected:[true,true],otherUnits:[],localGames:[],soloGame:null,lastWinner:null,matchDone:false,waitingNext:false,server:'',reconnectToken:'',reconnectAttempts:0,reconnectTimer:null,leaving:false};
+const PVP_SESSION_KEY='miniaturas-pvp-online-v2';
+function savePvpSession(){
+ if(!pvp.active||pvp.local||!pvp.reconnectToken||!pvp.room)return;
+ try{
+  const state={time:Date.now(),room:pvp.room,token:pvp.reconnectToken,seat:pvp.seat,round:pvp.round,
+    wins:pvp.wins,names:pvp.names,nextId,game:{...game,phase:'prep',selected:null,preview:[]}};
+  sessionStorage.setItem(PVP_SESSION_KEY,JSON.stringify(state));
+ }catch{}
+}
+function restorePvpSession(){
+ let data;try{data=JSON.parse(sessionStorage.getItem(PVP_SESSION_KEY)||'null')}catch{return false}
+ if(!data||!data.token||!/^[A-Z0-9]{6}$/.test(data.room)||Date.now()-data.time>140000||!data.game||!Array.isArray(data.game.roster))return false;
+ pvpActivate(false);
+ pvp.room=data.room;pvp.reconnectToken=data.token;pvp.seat=data.seat===1?1:0;
+ pvp.round=Number(data.round)||1;pvp.wins=Array.isArray(data.wins)?data.wins:[0,0];
+ pvp.names=Array.isArray(data.names)?data.names:['Jogador 1','Jogador 2'];pvp.connected=[false,false];
+ game=data.game;game.phase='pvp_wait';game.round=pvp.round;game.selected=null;
+ nextId=Math.max(nextId,Number(data.nextId)||1);
+ $('pvpCode').hidden=false;$('pvpCode').textContent=`SALA ${pvp.room}`;$('pvpCopyBtn').hidden=false;
+ pvpSetStatus('Restaurando a sala após recarregar a página...');render();pvpScheduleReconnect();
+ return true;
+}
 function pvpFreshGame(){
  return {round:1,gold:12,lives:3,wins:0,roster:[newUnit('guard',2,4),newUnit('bow',3,5)],shop:[],preview:[],forge:[],inventory:[],selected:null,phase:'prep',highScore:0,lastReport:null};
 }
 function pvpMakeGame(){let keep=game;game=pvpFreshGame();rollShop(true);rollForge();game.preview=[];let created=game;game=keep;return created}
 function pvpActivate(isLocal){
  clearTimeout(clock);battle=null;closeModal();closeShopInspect();
- pvp.soloGame=game;pvp.active=true;pvp.local=isLocal;pvp.ready=false;pvp.starting=false;pvp.round=1;pvp.wins=[0,0];pvp.matchDone=false;pvp.lastWinner=null;pvp.waitingNext=false;
+ pvp.leaving=false;pvp.soloGame=game;pvp.active=true;pvp.local=isLocal;pvp.ready=false;pvp.starting=false;pvp.round=1;pvp.wins=[0,0];pvp.matchDone=false;pvp.lastWinner=null;pvp.waitingNext=false;
  pvp.localGames=isLocal?[pvpMakeGame(),pvpMakeGame()]:[];
  game=isLocal?pvp.localGames[0]:pvpMakeGame();pvp.seat=0;
  $('pvpShell').hidden=false;$('pvpBar').hidden=false;$('pvpSetup').hidden=true;$('pvpLeaveBtn').hidden=false;
@@ -1021,7 +1157,7 @@ function pvpActivate(isLocal){
 function pvpLeave(){
  if(!pvp.active){$('pvpShell').hidden=true;return}
  clearTimeout(clock);battle=null;closeModal();closeShopInspect();
- if(pvp.socket){try{pvp.socket.send(JSON.stringify({type:'leave'}));pvp.socket.close()}catch{}pvp.socket=null}
+ pvp.leaving=true;clearTimeout(pvp.reconnectTimer);pvp.reconnectTimer=null;pvp.reconnectToken='';try{sessionStorage.removeItem(PVP_SESSION_KEY)}catch{}if(pvp.socket){try{pvp.socket.send(JSON.stringify({type:'leave'}));pvp.socket.close()}catch{}pvp.socket=null}
  game=pvp.soloGame||game;pvp.active=false;pvp.local=false;pvp.soloGame=null;pvp.ready=false;pvp.room='';
  $('pvpBar').hidden=true;$('pvpSetup').hidden=false;$('pvpLeaveBtn').hidden=true;$('pvpCode').hidden=true;$('pvpCopyBtn').hidden=true;
  $('pvpStatus').textContent='PvP encerrado. Progresso solo retomado.';
@@ -1060,14 +1196,15 @@ function pvpStartHost(opponents){
 function pvpGuestFrame(frame){
  if(!pvp.active||pvp.seat!==1)return;
  const f=JSON.parse(JSON.stringify(frame));
- battle={...f,allies:f.enemies.map(u=>({...u,side:'player',y:5-u.y})),enemies:f.allies.map(u=>({...u,side:'enemy',y:5-u.y})),traits:f.enemyTraits,enemyTraits:f.traits,fx:[]};
+ const mirrored=f.arena?{...f.arena,walls:(f.arena.walls||[]).map(([x,y])=>[x,5-y]),runes:(f.arena.runes||[]).map(([x,y])=>[x,5-y]),bog:(f.arena.bog||[]).map(([x,y])=>[x,5-y])}:arenaForRound(game.round);
+ battle={...f,allies:f.enemies.map(u=>({...u,side:'player',y:5-u.y})),enemies:f.allies.map(u=>({...u,side:'enemy',y:5-u.y})),arena:mirrored,traits:f.enemyTraits,enemyTraits:f.traits,fx:[]};
  game.phase='combat';render();
 }
 function pvpSend(msg){if(pvp.socket&&pvp.socket.readyState===1){try{pvp.socket.send(JSON.stringify(msg))}catch{}}}
 function pvpSendFrame(){
  if(!battle||pvp.seat!==0||!pvp.active||pvp.local)return;
- const {allies,enemies,traits,enemyTraits,round,tick,speed,lastHit,lastAction,log}=battle;
- pvpSend({type:'frame',frame:{allies,enemies,traits,enemyTraits,round,tick,speed,lastHit,lastAction,log}});
+ const {allies,enemies,traits,enemyTraits,round,tick,speed,lastHit,lastAction,log,arena}=battle;
+ pvpSend({type:'frame',frame:{allies,enemies,traits,enemyTraits,round,tick,speed,lastHit,lastAction,log,arena}});
 }
 function pvpEndBattle(hostWin){
  clearTimeout(clock);if(!pvp.active)return;
@@ -1122,33 +1259,65 @@ function pvpServerUrl(){
  const u=new URL(raw);if(!['http:','https:','ws:','wss:'].includes(u.protocol))throw Error('Endereço de servidor inválido.');
  return (u.protocol==='https:'?'wss:':u.protocol==='http:'?'ws:':u.protocol)+'//'+u.host+'/ws';
 }
+function pvpWireSocket(socket,payload,reconnect=false){
+ pvp.socket=socket;
+ const timeout=setTimeout(()=>{if(socket.readyState!==1)socket.close()},10000);
+ socket.addEventListener('open',()=>{clearTimeout(timeout);pvp.reconnectAttempts=0;socket.send(JSON.stringify(payload))});
+ socket.addEventListener('message',ev=>{let msg;try{msg=JSON.parse(ev.data)}catch{return}pvpMessage(msg)});
+ socket.addEventListener('error',()=>{pvpSetStatus('⚠️ Falha na conexão com o servidor.')});
+ socket.addEventListener('close',()=>{
+  clearTimeout(timeout);if(pvp.socket!==socket)return;
+  $('pvpCreateBtn').disabled=false;$('pvpJoinBtn').disabled=false;
+  if(pvp.active&&!pvp.local&&!pvp.leaving){
+   clearTimeout(clock);battle=null;game.phase='pvp_wait';pvp.ready=false;render();
+   pvpSetStatus('⚠️ Conexão interrompida. Tentando voltar à sala automaticamente...');
+   pvpScheduleReconnect();
+  }else if(!pvp.leaving)pvpSetStatus('Sem conexão ao servidor.');
+ });
+}
+function pvpScheduleReconnect(){
+ if(!pvp.active||pvp.local||pvp.leaving||!pvp.reconnectToken||!pvp.room)return;
+ clearTimeout(pvp.reconnectTimer);
+ if(pvp.reconnectAttempts>=32){pvpSetStatus('Não foi possível reconectar. Saia do PvP e crie outra sala.');return}
+ const delay=Math.min(5000,1200+pvp.reconnectAttempts*350);
+ pvp.reconnectTimer=setTimeout(()=>{
+  if(!pvp.active||pvp.leaving)return;
+  pvp.reconnectAttempts++;
+  let socket,url;
+  try{url=pvpServerUrl();socket=new WebSocket(url)}catch{pvpScheduleReconnect();return}
+  pvpWireSocket(socket,{type:'resume',code:pvp.room,token:pvp.reconnectToken,name:pvp.names[pvp.seat]},true);
+ },delay);
+}
 function pvpConnect(action){
  if(pvp.active)return;
  let url;try{url=pvpServerUrl()}catch(e){pvpSetStatus(e.message);return}
  $('pvpCreateBtn').disabled=true;$('pvpJoinBtn').disabled=true;
- const socket=new WebSocket(url);pvp.socket=socket;
  const payload=action==='create'?{type:'create',name:$('pvpName').value.trim().slice(0,24)||'Jogador'}:{type:'join',code:$('pvpJoinCode').value.trim().toUpperCase(),name:$('pvpName').value.trim().slice(0,24)||'Jogador'};
- const timeout=setTimeout(()=>{if(socket.readyState!==1)socket.close()},8000);
+ pvp.leaving=false;pvp.reconnectAttempts=0;
  pvpSetStatus('Conectando ao servidor de salas...');
- socket.addEventListener('open',()=>{clearTimeout(timeout);socket.send(JSON.stringify(payload))});
- socket.addEventListener('message',ev=>{let msg;try{msg=JSON.parse(ev.data)}catch{return}pvpMessage(msg)});
- socket.addEventListener('error',()=>{pvpSetStatus('Falha de conexão. Verifique se o servidor está publicado e ativo.')});
- socket.addEventListener('close',()=>{clearTimeout(timeout);$('pvpCreateBtn').disabled=false;$('pvpJoinBtn').disabled=false;if(pvp.active&&!pvp.local)pvpSetStatus('⚠️ Conexão perdida. Saia do PvP e entre na sala novamente.');else pvpSetStatus('Sem conexão ao servidor.')});
+ pvpWireSocket(new WebSocket(url),payload);
 }
 function pvpMessage(msg){
  if(msg.type==='error'){
   if(pvp.active&&game.phase==='pvp_wait'&&!pvp.local){game.phase='prep';pvp.ready=false;render()}
-  pvpSetStatus('⚠️ '+(msg.message||'Erro na sala.'));return
+  pvpSetStatus('⚠️ '+(msg.message||'Erro na sala.'));if(pvp.active&&pvp.reconnectToken&&msg.message?.includes('Reconexão')){try{pvp.socket.close()}catch{}}return
  }
  if(msg.type==='room_closed'&&pvp.active){
+  pvp.reconnectToken='';pvp.leaving=true;clearTimeout(pvp.reconnectTimer);try{sessionStorage.removeItem(PVP_SESSION_KEY)}catch{}
   clearTimeout(clock);battle=null;game.phase='pvp_wait';pvpSetStatus('⚠️ O criador saiu. Encerre este PvP e entre em uma nova sala.');render();return
  }
  if(msg.type==='joined'){
-  pvpActivate(false);pvp.seat=msg.seat;pvp.round=msg.round||1;pvp.wins=msg.wins||[0,0];pvp.room=msg.code;pvp.names=msg.names||['Jogador 1','Jogador 2'];pvp.connected=msg.connected||[true,false];
+  const resuming=!!msg.reconnected&&pvp.active;
+  if(!resuming)pvpActivate(false);else{clearTimeout(pvp.reconnectTimer);pvp.reconnectAttempts=0;clearTimeout(clock);battle=null;game.phase='prep';game.preview=[];game.selected=null;pvp.ready=false;pvp.waitingNext=false;}
+  pvp.reconnectToken=msg.token||pvp.reconnectToken;pvp.seat=msg.seat;pvp.round=msg.round||1;pvp.wins=msg.wins||[0,0];pvp.room=msg.code;game.round=pvp.round;pvp.names=msg.names||['Jogador 1','Jogador 2'];pvp.connected=msg.connected||[true,false];
   $('pvpCode').hidden=false;$('pvpCode').textContent=`SALA ${pvp.room}`;$('pvpCopyBtn').hidden=false;
-  pvpSetStatus(pvp.connected.every(Boolean)?'Os dois jogadores entraram. Prepare seu time.':'Sala criada. Compartilhe o código ou convite com seu amigo.');render();
+  pvpSetStatus(resuming?(pvp.connected.every(Boolean)?'✅ Reconectado. Prepare sua equipe novamente.':'✅ Reconectado. Aguardando o amigo voltar.'):(pvp.connected.every(Boolean)?'Os dois jogadores entraram. Prepare seu time.':'Sala criada. Compartilhe o código ou convite com seu amigo.'));render();
+ }else if(msg.type==='connection_lost'&&pvp.active&&!pvp.local){
+  clearTimeout(clock);battle=null;game.phase='prep';game.preview=[];pvp.ready=false;pvp.waitingNext=false;
+  pvp.round=msg.round||pvp.round;game.round=pvp.round;pvp.wins=msg.wins||pvp.wins;pvp.connected[Number(msg.seat)]=false;
+  pvpSetStatus(`⚠️ Jogador ${Number(msg.seat)+1} desconectou. Sala reservada por ${msg.graceSeconds||150} segundos. Aguarde a reconexão.`);render();
  }else if(msg.type==='state'&&pvp.active&&!pvp.local){
-  pvp.names=msg.names||pvp.names;pvp.connected=msg.connected||pvp.connected;pvp.wins=msg.wins||pvp.wins;pvp.round=msg.round||pvp.round;
+  pvp.names=msg.names||pvp.names;pvp.connected=msg.connected||pvp.connected;pvp.wins=msg.wins||pvp.wins;pvp.round=msg.round||pvp.round;game.round=pvp.round;
   if(!pvp.connected.every(Boolean)&&['combat','result','pvp_wait'].includes(game.phase)){
    clearTimeout(clock);battle=null;game.phase='prep';game.preview=[];pvp.ready=false;pvp.waitingNext=false;render();
   }
@@ -1163,7 +1332,7 @@ function pvpMessage(msg){
   pvp.wins=msg.wins;pvp.matchDone=!!msg.done;
   pvpShowResult(!!msg.hostWin);
  }else if(msg.type==='nextRound'&&pvp.active&&!pvp.local){
-  pvp.round=msg.round;pvp.wins=msg.wins;pvp.ready=false;pvp.waitingNext=false;
+  pvp.round=msg.round;pvp.wins=msg.wins;pvp.ready=false;pvp.waitingNext=false;game.round=pvp.round;
   if(msg.rematch){game=pvpMakeGame();game.round=1;}
   else{pvpRefreshRound(game,pvp.round,msg.lastWinner===pvp.seat)}
   battle=null;game.phase='prep';pvpSetStatus('Nova rodada! Prepare e confirme a equipe.');render();
@@ -1175,9 +1344,9 @@ $('pvpCreateBtn').onclick=()=>pvpConnect('create');$('pvpJoinBtn').onclick=()=>p
 $('pvpLeaveBtn').onclick=()=>{if(confirm('Abandonar o duelo e voltar ao modo solo?'))pvpLeave()};
 $('pvpCopyBtn').onclick=async()=>{const base=$('pvpServer').value.trim()||(/^https?:$/.test(location.protocol)?location.origin:'');const link=base?base.replace(/\/$/,'')+'/?room='+encodeURIComponent(pvp.room):'Código da sala: '+pvp.room;try{await navigator.clipboard.writeText(link);showToast('Convite copiado!')}catch{prompt('Copie este convite:',link)}};
 try{const code=new URLSearchParams(location.search).get('room');if(code&&/^[A-Z0-9]{6}$/i.test(code)){$('pvpJoinCode').value=code.toUpperCase();$('pvpShell').hidden=false;}}catch{}
-window.__miniPvpDebug={startLocal:pvpStartLocal,ready:pvpReady,leave:pvpLeave,getState:()=>({active:pvp.active,local:pvp.local,seat:pvp.seat,round:pvp.round,wins:[...pvp.wins],phase:game.phase,roster:game.roster,server:pvp.server}),advance:pvpAdvance,pvpStartHost,pvpShowResult};
+window.__miniPvpDebug={startLocal:pvpStartLocal,ready:pvpReady,leave:pvpLeave,getState:()=>({active:pvp.active,local:pvp.local,seat:pvp.seat,round:pvp.round,wins:[...pvp.wins],phase:game.phase,roster:game.roster,server:pvp.server,hasReconnectToken:!!pvp.reconnectToken,reconnectAttempts:pvp.reconnectAttempts}),advance:pvpAdvance,pvpStartHost,pvpShowResult};
 
-if(!load())newRun();else render();updateAudioStatus();
+if(!load())newRun();else render();updateAudioStatus();restorePvpSession();
 })();
 </script>
 </body></html>
