@@ -19,7 +19,8 @@ MAX_ROOMS = 200
 ROOM_TTL = 2 * 60 * 60
 RECONNECT_GRACE = 150
 ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-ALLOWED_TYPES = set('guard spear axe bow druid hunter mage cleric golem rogue ghost paladin sentinel toxic shaman frost storm necro shade'.split())
+ALLOWED_TYPES = set('guard spear axe bow druid hunter mage cleric golem rogue ghost paladin sentinel toxic shaman frost storm necro shade pyro tide earth spark seraph monk templar oracle'.split())
+ALLOWED_ITEMS=set('sword mail ward focus boots amulet ring orb staff charm shield lance bloodblade bastion windfang divine piercer heart arcana wardsteps'.split())
 # This is an authoritative relay for lobby, score and turns; the room creator runs
 # the actual combat simulation. It is appropriate for friendly unranked games.
 ROOMS = {}
@@ -36,6 +37,9 @@ class Room:
     next_ready: list = field(default_factory=lambda: [False, False])
     units: list = field(default_factory=lambda: [[], []])
     wins: list = field(default_factory=lambda: [0, 0])
+    series_wins: list = field(default_factory=lambda: [0, 0])
+    history: list = field(default_factory=list)
+    prep_deadline: float = 0.0
     round: int = 1
     phase: str = 'prep'
     last_winner: int | None = None
@@ -47,7 +51,8 @@ class Room:
     def message(self):
         return {'type':'state','code':self.code,'round':self.round,'wins':self.wins,
                 'names':self.names,'connected':[bool(ws and not ws.closed) for ws in self.clients],
-                'ready':self.ready,'phase':self.phase,'paused':any(self.claimed[i] and not self.clients[i] for i in (0,1))}
+                'ready':self.ready,'phase':self.phase,'seriesWins':self.series_wins,
+                'history':self.history[-10:], 'prepDeadline':int(self.prep_deadline*1000), 'paused':any(self.claimed[i] and not self.clients[i] for i in (0,1))}
 
 async def send(ws, data):
     if ws and not ws.closed:
@@ -78,7 +83,7 @@ def validate_units(raw, round_number):
             raise ValueError('Tipo ou estrela inválido.')
         if type(x) != int or type(y) != int or not 0 <= x < 6 or y not in (4,5) or (x,y) in coords:
             raise ValueError('Posição fora da área ou ocupada.')
-        if not isinstance(items, list) or len(items) > 2 or any(not isinstance(i,str) or len(i)>25 for i in items):
+        if not isinstance(items, list) or len(items) > 2 or any(not isinstance(i,str) or i not in ALLOWED_ITEMS for i in items):
             raise ValueError('Equipamento inválido.')
         coords.add((x,y))
         units.append({'type':typ,'star':star,'x':x,'y':y,'items':items})
@@ -134,9 +139,11 @@ async def ws_handler(request):
                     room.disconnected_at[seat]=0.
                     if not reconnected: room.names[seat]=name
                     room.touch()
+                    if all(room.clients) and room.phase=='prep' and not room.prep_deadline:room.prep_deadline=time.time()+120
                     await send(ws, {'type':'joined','code':room.code,'seat':seat,'round':room.round,'wins':room.wins,'token':room.tokens[seat],
                                     'reconnected':reconnected,'phase':room.phase,
-                                    'names':room.names,'connected':[bool(x and not x.closed) for x in room.clients]})
+                                    'names':room.names,'connected':[bool(x and not x.closed) for x in room.clients],
+                                    'seriesWins':room.series_wins,'history':room.history[-10:],'prepDeadline':int(room.prep_deadline*1000)})
                     await broadcast(room,room.message())
                 elif kind == 'leave':
                     voluntary=True
@@ -156,6 +163,7 @@ async def ws_handler(request):
                     room.ready[seat]=True
                     room.touch()
                     if all(room.ready):
+                        room.prep_deadline=0
                         room.phase='combat'
                         for i,c in enumerate(room.clients):
                             await send(c, {'type':'start','round':room.round,'opponentUnits':room.units[1-i]})
@@ -177,10 +185,14 @@ async def ws_handler(request):
                     room.last_winner=0 if event['hostWin'] else 1
                     room.wins[room.last_winner]+=1
                     done=max(room.wins)>=3
-                    if done: room.phase='done'
+                    if done:
+                        room.phase='done'
+                        room.series_wins[room.last_winner]+=1
+                        room.history.append({'names':room.names[:], 'score':room.wins[:], 'winner':room.last_winner, 'at':int(time.time())})
+                        room.history=room.history[-20:]
                     room.next_ready=[False,False]
                     room.touch()
-                    await broadcast(room, {'type':'result','hostWin':event['hostWin'],'wins':room.wins,'done':done})
+                    await broadcast(room, {'type':'result','hostWin':event['hostWin'],'wins':room.wins,'done':done,'seriesWins':room.series_wins,'history':room.history[-10:]})
                 elif kind == 'next':
                     if room.phase not in ('result','done'):
                         continue
@@ -194,6 +206,7 @@ async def ws_handler(request):
                         room.next_ready=[False,False]
                         room.units=[[],[]]
                         room.phase='prep'
+                        room.prep_deadline=time.time()+120
                         await broadcast(room, {'type':'nextRound','round':room.round,'wins':room.wins,
                                                'rematch':rematch,'lastWinner':room.last_winner})
                         room.last_winner=None
@@ -215,6 +228,7 @@ async def ws_handler(request):
                     await send(room.clients[1],{'type':'room_closed'})
                 else:
                     room.phase='prep'
+                    room.prep_deadline=0
                     room.ready=[False,False]
                     room.units=[[],[]]
                     await broadcast(room,room.message())
@@ -225,6 +239,7 @@ async def ws_handler(request):
                     elif room.phase == 'done':
                         room.round=1;room.wins=[0,0]
                     room.phase='prep'
+                    room.prep_deadline=0
                     room.units=[[],[]]
                     room.ready=[False,False]
                     room.next_ready=[False,False]
@@ -244,6 +259,12 @@ async def cleanup(app):
         cutoff = time.monotonic()-ROOM_TTL
         now=time.monotonic()
         for code,room in list(ROOMS.items()):
+            if room.phase=='prep' and room.prep_deadline and time.time()>room.prep_deadline and all(room.clients):
+                room.ready=[False,False]
+                room.units=[[],[]]
+                room.prep_deadline=time.time()+120
+                await broadcast(room,{'type':'prep_timeout','message':'Tempo de preparação reiniciado. Confirme sua equipe novamente.'})
+                await broadcast(room,room.message())
             host_expired=room.claimed[0] and room.clients[0] is None and room.disconnected_at[0] and now-room.disconnected_at[0]>RECONNECT_GRACE
             all_offline=not any(room.clients)
             if host_expired or (all_offline and room.updated<cutoff):
