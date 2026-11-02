@@ -426,6 +426,7 @@ async def index(_request):
     html=html.replace("vs=pvp.quick?'Jogo rápido · IA':pvp.local?'Modo local':", "vs=pvp.ranked?'PvP ranqueado':pvp.quick?'Jogo rápido · IA':pvp.local?'Modo local':", 1)
     html=html.replace("pvp.active=false;pvp.local=false;pvp.quick=false;pvp.soloGame=null;", "pvp.active=false;pvp.ranked=false;pvp.local=false;pvp.quick=false;pvp.soloGame=null;", 1)
     html=apply_quad_html(html)
+    html=apply_friend_fx_html(html)
     return web.Response(text=html,content_type='text/html',headers={'Cache-Control':'no-store'})
 
 async def friends_client(_request):
@@ -532,6 +533,7 @@ from account_api import install_account_api, AuthError, COOKIE_NAME
 from ranked_api import install_ranked
 from quad_api import install_quad
 from quad_client_injection import apply_quad_html
+from friend_fx_patch import apply_friend_fx_html, verify_friend_fx_patch
 app=web.Application(client_max_size=350_000)
 app['mini_rooms']=ROOMS
 app.add_routes([web.get('/',index),web.get('/friends_client.js',friends_client),web.get('/profile_client.js',profile_client),web.get('/ranked_client.js',ranked_client),web.get('/play_menu_client.js',play_menu_client),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
@@ -543,6 +545,11 @@ async def verify_quad_rounds(_app):
     result=await smoke()
     logging.info('Quad smoke verificado: %s',result)
 app.on_startup.append(verify_quad_rounds)
+async def verify_online_battle_fx(_app):
+    html=(ROOT/'index.html').read_text(encoding='utf-8')
+    verify_friend_fx_patch(html)
+    logging.info('FX online: sincronização e espelhamento de eventos validados')
+app.on_startup.append(verify_online_battle_fx)
 app.on_startup.append(verify_preparation_track)
 app.cleanup_ctx.append(background)
 if __name__=='__main__':
