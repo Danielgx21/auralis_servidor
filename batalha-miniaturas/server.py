@@ -8,6 +8,8 @@ import logging
 import os
 import secrets
 import string
+import tempfile
+import hashlib
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -293,6 +295,42 @@ async def ws_handler(request):
 async def index(_request):
     return web.FileResponse(ROOT/'index.html', headers={'Cache-Control':'no-store'})
 
+# v2.9: trilha de preparação original disponibilizada por arquivo MP3.
+# Os fragmentos binários ficam na branch exclusiva do jogo, nunca nos outros jogos.
+PREP_AUDIO_PARTS = 13
+PREP_AUDIO_SIZE = 3710752
+PREP_AUDIO_SHA256 = '26c474648c7a7e2d74c02b92012d487074ba6944f04933f1c8bce27d74c02254'
+PREP_AUDIO_CACHE = Path(tempfile.gettempdir()) / 'batalha-miniaturas-preparacao-v29.mp3'
+
+def preparation_music_file():
+    if PREP_AUDIO_CACHE.is_file() and PREP_AUDIO_CACHE.stat().st_size == PREP_AUDIO_SIZE:
+        return PREP_AUDIO_CACHE
+    parts = [ROOT / 'assets' / f'Seven_Measured_Steps_{i:02d}.part' for i in range(PREP_AUDIO_PARTS)]
+    if not all(p.is_file() for p in parts):
+        raise web.HTTPNotFound(text='Trilha de preparação indisponível no servidor.')
+    temporary = PREP_AUDIO_CACHE.with_name(PREP_AUDIO_CACHE.name + '.' + secrets.token_hex(6) + '.tmp')
+    try:
+        digest = hashlib.sha256()
+        with temporary.open('wb') as output:
+            for part in parts:
+                with part.open('rb') as source:
+                    while True:
+                        chunk = source.read(65536)
+                        if not chunk:
+                            break
+                        digest.update(chunk)
+                        output.write(chunk)
+        if temporary.stat().st_size != PREP_AUDIO_SIZE or digest.hexdigest() != PREP_AUDIO_SHA256:
+            raise web.HTTPInternalServerError(text='Falha de integridade da trilha de preparação.')
+        os.replace(temporary, PREP_AUDIO_CACHE)
+    finally:
+        temporary.unlink(missing_ok=True)
+    return PREP_AUDIO_CACHE
+
+async def preparation_music(_request):
+    path = preparation_music_file()
+    return web.FileResponse(path, headers={'Cache-Control':'public, max-age=3600', 'Content-Type':'audio/mpeg'})
+
 async def health(_request):
     return web.json_response({'ok':True, 'rooms':len(ROOMS)})
 
@@ -323,7 +361,7 @@ async def background(app):
     except asyncio.CancelledError:pass
 
 app=web.Application(client_max_size=220_000)
-app.add_routes([web.get('/',index),web.get('/ws',ws_handler),web.get('/health',health)])
+app.add_routes([web.get('/',index),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
 app.cleanup_ctx.append(background)
 if __name__=='__main__':
     web.run_app(app, host='0.0.0.0', port=int(os.getenv('PORT','8000')))
