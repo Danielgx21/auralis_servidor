@@ -20,6 +20,10 @@ ROOM_TTL = 2 * 60 * 60
 RECONNECT_GRACE = 150
 ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 ALLOWED_TYPES = set('guard spear axe bow druid hunter mage cleric golem rogue ghost paladin sentinel toxic shaman frost storm necro shade pyro tide earth spark seraph monk templar oracle'.split())
+DECK_SIZE=10
+MAX_DECK_GROUP=4
+PVP_START_HP=70
+TYPE_GROUPS={'ferro':set('guard spear axe paladin sentinel'.split()),'selva':set('bow druid hunter toxic shaman'.split()),'arcano':set('mage cleric golem frost storm'.split()),'sombra':set('rogue ghost necro shade'.split()),'elemental':set('pyro tide earth spark'.split()),'sagrado':set('seraph monk templar oracle'.split())}
 ALLOWED_ITEMS=set('sword mail ward focus boots amulet ring orb staff charm shield lance bloodblade bastion windfang divine piercer heart arcana wardsteps'.split())
 # This is an authoritative relay for lobby, score and turns; the room creator runs
 # the actual combat simulation. It is appropriate for friendly unranked games.
@@ -37,6 +41,8 @@ class Room:
     next_ready: list = field(default_factory=lambda: [False, False])
     units: list = field(default_factory=lambda: [[], []])
     wins: list = field(default_factory=lambda: [0, 0])
+    hp: list = field(default_factory=lambda: [PVP_START_HP,PVP_START_HP])
+    decks: list = field(default_factory=lambda: [None,None])
     series_wins: list = field(default_factory=lambda: [0, 0])
     history: list = field(default_factory=list)
     prep_deadline: float = 0.0
@@ -50,7 +56,7 @@ class Room:
 
     def message(self):
         return {'type':'state','code':self.code,'round':self.round,'wins':self.wins,
-                'names':self.names,'connected':[bool(ws and not ws.closed) for ws in self.clients],
+                'names':self.names,'hp':self.hp,'connected':[bool(ws and not ws.closed) for ws in self.clients],
                 'ready':self.ready,'phase':self.phase,'seriesWins':self.series_wins,
                 'history':self.history[-10:], 'prepDeadline':int(self.prep_deadline*1000), 'paused':any(self.claimed[i] and not self.clients[i] for i in (0,1))}
 
@@ -67,6 +73,31 @@ async def broadcast(room, data):
 
 async def error(ws, message):
     await send(ws, {'type':'error','message':message})
+
+def validate_deck(raw):
+    if not isinstance(raw,list) or len(raw)!=DECK_SIZE or len(set(str(x) for x in raw))!=DECK_SIZE or any(not isinstance(x,str) or x not in ALLOWED_TYPES for x in raw):
+        raise ValueError('Escolha exatamente 10 personagens diferentes.')
+    counts={}
+    for typ in raw:
+        group=next((key for key,types in TYPE_GROUPS.items() if typ in types),None)
+        if not group:raise ValueError('Aliança inválida no elenco.')
+        counts[group]=counts.get(group,0)+1
+        if counts[group]>MAX_DECK_GROUP:raise ValueError('Máximo de quatro personagens por aliança.')
+    if len(counts)<3:raise ValueError('Escolha ao menos três alianças.')
+    return raw[:]
+
+def calc_pvp_damage(round_number,survivors):
+    return min(25,2+(max(1,round_number)-1)//5+sum(survivors))
+
+def validate_survivors(raw,original):
+    if not isinstance(raw,list) or len(raw)>len(original) or len(raw)>6 or any(type(star)!=int or star<1 or star>3 for star in raw):
+        raise ValueError('Sobreviventes inválidos.')
+    from collections import Counter
+    counts=Counter(u['star'] for u in original)
+    for star in raw:
+        counts[star]-=1
+        if counts[star]<0:raise ValueError('Estrelas sobreviventes não conferem.')
+    return raw
 
 def validate_units(raw, round_number):
     max_count = min(6, 3 + (round_number - 1) // 3)
@@ -140,7 +171,7 @@ async def ws_handler(request):
                     if not reconnected: room.names[seat]=name
                     room.touch()
                     if all(room.clients) and room.phase=='prep' and not room.prep_deadline:room.prep_deadline=time.time()+120
-                    await send(ws, {'type':'joined','code':room.code,'seat':seat,'round':room.round,'wins':room.wins,'token':room.tokens[seat],
+                    await send(ws, {'type':'joined','code':room.code,'seat':seat,'round':room.round,'wins':room.wins,'hp':room.hp,'token':room.tokens[seat],
                                     'reconnected':reconnected,'phase':room.phase,
                                     'names':room.names,'connected':[bool(x and not x.closed) for x in room.clients],
                                     'seriesWins':room.series_wins,'history':room.history[-10:],'prepDeadline':int(room.prep_deadline*1000)})
@@ -157,9 +188,15 @@ async def ws_handler(request):
                         await error(ws,'Aguardando seu amigo entrar na sala.');continue
                     try:
                         units = validate_units(event.get('units'),room.round)
+                        proposed_deck=validate_deck(event.get('deck'))
+                        if room.decks[seat] is not None and proposed_deck!=room.decks[seat]:
+                            raise ValueError('O elenco fica fixo até acabar a partida.')
+                        if any(u['type'] not in proposed_deck for u in units):
+                            raise ValueError('Há personagens fora do elenco escolhido.')
                     except ValueError as exc:
                         await error(ws,str(exc));continue
                     room.units[seat]=units
+                    if room.decks[seat] is None:room.decks[seat]=proposed_deck
                     room.ready[seat]=True
                     room.touch()
                     if all(room.ready):
@@ -183,16 +220,19 @@ async def ws_handler(request):
                         continue
                     room.phase='result'
                     room.last_winner=0 if event['hostWin'] else 1
+                    survived=validate_survivors(event.get('survivorStars'),room.units[room.last_winner])
                     room.wins[room.last_winner]+=1
-                    done=max(room.wins)>=3
+                    damage=calc_pvp_damage(room.round,survived)
+                    room.hp[1-room.last_winner]=max(0,room.hp[1-room.last_winner]-damage)
+                    done=min(room.hp)<=0
                     if done:
                         room.phase='done'
                         room.series_wins[room.last_winner]+=1
-                        room.history.append({'names':room.names[:], 'score':room.wins[:], 'winner':room.last_winner, 'at':int(time.time())})
+                        room.history.append({'names':room.names[:], 'score':room.wins[:], 'hp':room.hp[:], 'winner':room.last_winner, 'at':int(time.time())})
                         room.history=room.history[-20:]
                     room.next_ready=[False,False]
                     room.touch()
-                    await broadcast(room, {'type':'result','hostWin':event['hostWin'],'wins':room.wins,'done':done,'seriesWins':room.series_wins,'history':room.history[-10:]})
+                    await broadcast(room, {'type':'result','hostWin':event['hostWin'],'wins':room.wins,'hp':room.hp,'damage':damage,'survivorStars':survived,'done':done,'seriesWins':room.series_wins,'history':room.history[-10:]})
                 elif kind == 'next':
                     if room.phase not in ('result','done'):
                         continue
@@ -201,13 +241,16 @@ async def ws_handler(request):
                     if all(room.next_ready):
                         rematch=room.phase=='done'
                         room.round=1 if rematch else room.round+1
-                        if rematch: room.wins=[0,0]
+                        if rematch:
+                            room.wins=[0,0]
+                            room.hp=[PVP_START_HP,PVP_START_HP]
+                            room.decks=[None,None]
                         room.ready=[False,False]
                         room.next_ready=[False,False]
                         room.units=[[],[]]
                         room.phase='prep'
                         room.prep_deadline=time.time()+120
-                        await broadcast(room, {'type':'nextRound','round':room.round,'wins':room.wins,
+                        await broadcast(room, {'type':'nextRound','round':room.round,'wins':room.wins,'hp':room.hp,
                                                'rematch':rematch,'lastWinner':room.last_winner})
                         room.last_winner=None
                     else:
@@ -237,13 +280,13 @@ async def ws_handler(request):
                 if room.phase in ('combat','result','done'):
                     if room.phase == 'result':room.round+=1
                     elif room.phase == 'done':
-                        room.round=1;room.wins=[0,0]
+                        room.round=1;room.wins=[0,0];room.hp=[PVP_START_HP,PVP_START_HP];room.decks=[None,None]
                     room.phase='prep'
                     room.prep_deadline=0
                     room.units=[[],[]]
                     room.ready=[False,False]
                     room.next_ready=[False,False]
-                await broadcast(room,{'type':'connection_lost','seat':seat,'graceSeconds':RECONNECT_GRACE,'round':room.round,'wins':room.wins})
+                await broadcast(room,{'type':'connection_lost','seat':seat,'graceSeconds':RECONNECT_GRACE,'round':room.round,'wins':room.wins,'hp':room.hp})
                 await broadcast(room,room.message())
     return ws
 

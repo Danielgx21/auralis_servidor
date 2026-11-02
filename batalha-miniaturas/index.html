@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#101a2a"><title>Batalha de Miniaturas — PvP v2.5</title>
+<meta name="theme-color" content="#101a2a"><title>Batalha de Miniaturas — PvP v2.6</title>
 <style>
 :root{--bg:#0e1727;--panel:#17253a;--panel2:#1c2d44;--line:#34475e;--text:#eff5fb;--muted:#aec0d1;--gold:#ffd58b;--green:#78e2bd;--red:#ff8a93;--blue:#88c8ff;--shadow:0 16px 38px rgba(0,0,0,.23)}
 *{box-sizing:border-box}[hidden]{display:none!important}html{height:100%;-webkit-tap-highlight-color:transparent}body{margin:0;min-height:100%;color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;background:radial-gradient(ellipse at 12% 0%,#243750 0%,transparent 45%),radial-gradient(ellipse at 96% 90%,#203044 0%,transparent 47%),#0c1422}
@@ -231,6 +231,33 @@ button{font:inherit;cursor:pointer}button:disabled{cursor:not-allowed;opacity:.4
 .feature-list{display:grid;gap:8px;margin-top:12px}.feature-card{display:flex;gap:11px;align-items:flex-start;border:1px solid #466076;background:#1a2e44;border-radius:11px;padding:10px}.feature-card .art-icon{flex:0 0 50px;width:50px;height:50px}.feature-card .art-icon svg{width:49px;height:49px}.feature-card strong{font-size:13px;color:#ffdea1}.feature-card small{display:block;font-size:11px;color:#c9dbea;line-height:1.45;margin-top:4px}.feature-card button{background:#32536a;color:white;border:1px solid #6e9fa7;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:900;margin-left:auto;white-space:nowrap}.feature-card button:disabled{opacity:.45}.tourney-names{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}.feature-chip{display:inline-block;font-size:10px;background:#31455c;border-radius:6px;padding:3px 7px;margin:3px 4px 0 0;color:#e6f3ff}.feature-highlight{border-color:#e1c77e;background:#39382e}
 @media(max-width:390px){.feature-nav{gap:4px}.feature-nav button{padding:7px 8px;font-size:10px}.feature-card{padding:8px}.feature-card .art-icon{flex-basis:38px;width:38px;height:38px}.feature-card .art-icon svg{width:37px;height:37px}.tourney-names{grid-template-columns:1fr}}
 .pvp-prep-timer{margin:8px 0;color:#ffdb91;font-size:12px;font-weight:850}.pvp-prep-timer.expired{color:#ff9696}
+
+
+/* v2.6 — baralho antes da partida e vidas PvP */
+.pvp-bar{flex-wrap:wrap}
+.pvp-hp-line{width:100%;flex:1 0 100%;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.hp-pair span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%}
+
+.deck-summary{margin:8px 13px 13px;border:1px solid #7292a7;background:#182c41;border-radius:12px;padding:12px;display:grid;gap:7px}
+.deck-summary strong{color:#f5dca4;font-size:13px}.deck-summary small{color:#b8d2df;font-size:11px;line-height:1.4}
+.deck-summary button{border:1px solid #a7cfca;background:#255452;color:#f5fff9;font-weight:900;padding:10px;border-radius:10px}
+.deck-summary button[disabled]{opacity:.6}.deck-summary .needs-deck{color:#ffbea2}
+.deck-grids{display:grid;gap:9px;max-height:50vh;overflow:auto;margin:10px 0 12px;padding:4px}
+.deck-group{border:1px solid #3d5c72;background:#172c42;border-radius:11px;padding:9px}
+.deck-group h3{font-size:12px;margin:0 0 8px;color:#f6d99f;display:flex;justify-content:space-between;gap:8px}
+.deck-group-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.deck-unit{border:1px solid #47637c;border-radius:9px;background:#253850;color:#f3f9ff;padding:8px 7px;display:flex;align-items:center;gap:7px;min-width:0;text-align:left}
+.deck-unit .deck-icon{font-size:22px}.deck-unit span:last-child{min-width:0;font-weight:800;font-size:11px;overflow:hidden;text-overflow:ellipsis}
+.deck-unit small{display:block;color:#b9cedd;font-size:10px;font-weight:600}
+.deck-unit.on{border-color:#f1d28a;background:#4a4936;box-shadow:inset 0 0 0 1px #ffe6aa40}
+.deck-unit[disabled]:not(.on){opacity:.48}.deck-footer{padding:11px 0 0;border-top:1px solid #4c6275}
+.deck-footer strong{display:block;color:#eddaab;font-size:12px;margin-bottom:10px}
+.deck-footer button{width:100%;padding:12px}
+.pvp-hp-line{display:grid;gap:5px;margin-top:6px}.pvp-hp-line .hp-pair{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:900;font-size:12px;color:#fff0d1}
+.pvp-health-track{height:8px;border-radius:30px;background:#122338;overflow:hidden;border:1px solid #465875}
+.pvp-health-track span{display:block;height:100%;background:linear-gradient(90deg,#e36f7a,#ffcc8e);transition:width .25s}
+.pvp-health-track.alt span{background:linear-gradient(90deg,#65cbb7,#a7e9c4)}
+@media(max-width:390px){.deck-unit{padding:7px 4px;gap:3px}.deck-unit .deck-icon{font-size:19px}.deck-unit span:last-child{font-size:10px}.deck-group{padding:7px}}
 </style>
 </head>
 <body>
@@ -238,8 +265,8 @@ button{font:inherit;cursor:pointer}button:disabled{cursor:not-allowed;opacity:.4
 <header class="header"><div class="brand"><div class="brand-mark">♟</div><div><h1>Batalha de<br>Miniaturas</h1><p>LIGA DOS REINOS</p></div></div><div class="header-right"><div class="stats"><div class="stat gold" title="Moedas"><span>🪙</span><b id="gold">0</b></div><div class="stat life" id="lifeStat" title="Vidas"><span>♥</span><b id="lives">3</b></div><div class="stat win" title="Vitórias"><span>🏆</span><b id="wins">0</b></div></div><button id="pvpOpenBtn" class="pvp-open" type="button">👥 PvP</button><button class="iconbtn" id="soundBtn" title="Ligar música e efeitos" aria-label="Ligar música e efeitos" aria-pressed="false">🎵</button><button class="iconbtn" id="helpBtn" title="Como jogar" aria-label="Como jogar">?</button></div></header>
 <nav class="feature-nav" aria-label="Navegação do jogo"><button id="catalogOpenBtn" type="button">📖 Catálogo · 27</button><button id="campaignOpenBtn" type="button">🗺️ Campanha</button><button id="historyOpenBtn" type="button">🏆 Histórico PvP</button></nav>
 <section class="pvp-shell" id="pvpShell" hidden>
- <div class="pvp-panel"><h2>⚔️ Duelo entre amigos · Melhor de 5</h2>
- <p class="pvp-help">Cada jogador monta sua própria equipe. Depois de ambos confirmarem, as miniaturas lutam automaticamente. O primeiro a vencer <b>3 batalhas</b> ganha. O progresso solo fica separado. Se a conexão cair, a sala fica reservada por até 150 segundos e o jogo tenta voltar automaticamente. A rodada em andamento poderá ser reiniciada.</p>
+ <div class="pvp-panel"><h2>⚔️ Duelo entre amigos · Sistema de vida</h2>
+ <p class="pvp-help">Cada jogador monta sua própria equipe. Depois de ambos confirmarem, as miniaturas lutam automaticamente. Cada jogador começa com <b>70 pontos de vida</b>. Quem perde sofre dano conforme os inimigos sobreviventes e a rodada. A partida acaba quando alguém chega a zero. O progresso solo fica separado. Se a conexão cair, a sala fica reservada por até 150 segundos e o jogo tenta voltar automaticamente. A rodada em andamento poderá ser reiniciada.</p>
  <div class="pvp-controls" id="pvpSetup">
   <button id="pvpLocalBtn" type="button">🎮 PvP local — mesmo aparelho</button><button id="tournamentOpenBtn" type="button">🏆 Torneio local · 4 amigos</button>
   <label>Seu nome<input id="pvpName" maxlength="24" value="Jogador" placeholder="Seu apelido"></label>
@@ -254,16 +281,16 @@ button{font:inherit;cursor:pointer}button:disabled{cursor:not-allowed;opacity:.4
  <p id="pvpOnlineNote">Para jogar em dois aparelhos, abra a versão hospedada com o servidor incluído no ZIP. O arquivo HTML sozinho permite PvP local.</p>
  </div>
 </section>
-<div id="pvpBar" class="pvp-bar" hidden><span id="pvpMatchTitle">PvP</span><span id="pvpMatchStatus">Preparação</span></div>
+<div id="pvpBar" class="pvp-bar" hidden><span id="pvpMatchTitle">PvP</span><span id="pvpMatchStatus">Preparação</span><div class="pvp-hp-line" id="pvpHpBars"></div></div>
 <main class="layout"><section class="panel"><div class="panel-top"><div><div class="section-eyebrow">Tabuleiro tático</div><h2 id="arenaTitle">Sua formação</h2></div><div class="badge-round" id="roundBadge">RODADA 1</div></div><div class="arenaframe"><div class="terrain-heading" id="terrainHeading" aria-live="polite">🌿 Clareira</div><div class="arena-labels"><span class="enemylabel">▼ ADVERSÁRIOS</span><span class="allylabel">SUAS MINIATURAS ▲</span></div><div class="board-stage"><div id="board" class="board" role="group" aria-label="Tabuleiro com seis colunas e seis linhas"></div><div class="fx-layer" id="fxLayer" aria-hidden="true"></div></div></div><div class="board-footer"><p class="phase-note" id="phaseNote"></p><div class="battle-row"><button id="fightBtn" class="primary">⚔️ INICIAR BATALHA</button><button id="speedBtn" class="secondary" hidden>⏩ 2×</button></div><div class="battle-tip" id="battleTip">💡 Toque em uma miniatura e depois em uma casa verde para mudar sua posição. A linha de frente protege os atiradores.</div><div class="report-toolbar"><button class="secondary report-toggle" id="reportBtn" type="button" aria-expanded="false" aria-controls="reportPanel" hidden>📊 Ver estatísticas</button></div><section class="report-section" id="reportPanel" aria-label="Estatísticas de combate" hidden><div id="reportBody"></div></section></div></section>
-<div class="column"><section class="panel" id="shopPanel"><div class="panel-top"><div><div class="section-eyebrow">Recrutamento</div><h2>Loja de miniaturas</h2><div class="forge-hint" style="margin:5px 0 0">Toque para ver atributos antes de confirmar a compra.</div></div><div class="badge-round" id="armyBadge">0 / 3 EM CAMPO</div></div><div id="shop" class="shop-grid"></div><div class="shop-actions"><button id="rerollBtn" class="secondary">🔄 Renovar · 2 🪙</button><button id="oddsBtn" class="secondary">ℹ️ Dicas</button></div></section>
+<div class="column"><section class="panel" id="shopPanel"><div class="panel-top"><div><div class="section-eyebrow">Recrutamento</div><h2>Loja de miniaturas</h2><div class="forge-hint" style="margin:5px 0 0">Toque para ver atributos antes de confirmar a compra.</div></div><div class="badge-round" id="armyBadge">0 / 3 EM CAMPO</div></div><div id="deckSummary" class="deck-summary"></div><div id="shop" class="shop-grid"></div><div class="shop-actions"><button id="rerollBtn" class="secondary">🔄 Renovar · 2 🪙</button><button id="oddsBtn" class="secondary">ℹ️ Dicas</button></div></section>
 <section class="panel"><div class="panel-top"><div><div class="section-eyebrow">Unidades guardadas</div><h2>Banco de reservas</h2></div><div class="badge-round" id="benchBadge">0 / 7</div></div><div id="bench" class="bench"></div><div id="unitInfo" class="unit-info"></div></section>
 <section class="panel" id="forgePanel"><div class="panel-top"><div><div class="section-eyebrow">Oficina do reino</div><h2>Forja de equipamentos</h2></div><div class="badge-round" id="forgeBadge">2 OFERTAS</div></div><div class="forge-body"><div class="forge-offers" id="forgeOffers"></div><div class="item-section-label" id="inventoryLabel">Mochila · 0 itens</div><div class="item-stash" id="itemStash"></div><div id="itemDetails" class="item-detail" role="region" aria-label="Descrição do item selecionado" aria-live="polite" hidden></div><section class="craft-section" id="craftPanel" hidden aria-hidden="true"><div id="craftSlots"></div><div id="craftPreview"></div><button id="craftBtn" type="button" hidden disabled></button><div id="recipeList"></div></section><p class="forge-hint">Toque na mochila para inspecionar um item e ver sua descrição completa. Selecione uma miniatura no campo ou no banco e use <b>Equipar</b>. Cada miniatura pode carregar 2 itens. Itens raros agora aparecem apenas como recompensas de chefes e bênçãos.</p></div></section>
 <section class="panel"><div class="panel-top"><div><div class="section-eyebrow">Bônus de equipe</div><h2>Alianças</h2></div><div class="badge-round">2 / 4 DIFERENTES</div></div><div class="traits" id="traits"></div><p class="forge-hint" style="margin:0 14px 13px">Cada aliança tem bônus com 2 e 4 personagens diferentes. Cópias repetidas contam apenas uma vez.</p></section></div></main><div class="audio-bar" role="group" aria-label="Controles de áudio"><span id="audioStatus" class="audio-status">🎵 Música desligada · toque em 🎵 para ligar</span><label for="volumeSlider" class="audio-volume-label">Volume <input id="volumeSlider" type="range" min="0" max="100" step="5" value="35" aria-label="Volume da música e dos efeitos"><span id="volumeValue">35%</span></label></div><div class="footnote">Salvamento automático no aparelho · Jogue sem instalar nada · <button type="button" id="simulatorOpenBtn" style="background:none;border:0;color:#c1dfec;text-decoration:underline;font-size:11px;padding:2px 4px">📊 Simulador de balanceamento</button> · <button id="resetBtn" type="button" style="background:none;border:0;color:#b8ccd9;text-decoration:underline;font-size:11px;padding:2px 4px">Recomeçar</button></div></div>
-<div class="modal hidden modal-feature" id="catalogModal" role="dialog" aria-modal="true" aria-labelledby="catalogTitle"><div class="modal-body wide-feature"><button class="feature-close" data-feature-close="catalogModal" aria-label="Fechar">×</button><h2 id="catalogTitle">📖 Catálogo dos Reinos</h2><p>Consulte atributos, habilidades, alianças e equipamentos antes de comprar.</p><div class="feature-controls"><input id="catalogSearch" placeholder="Buscar miniatura ou habilidade" aria-label="Pesquisar miniatura"><select id="catalogGroup" aria-label="Filtrar aliança"><option value="">Todas as alianças</option></select><button id="catalogItemsBtn" type="button">⚔️ Itens</button></div><div id="catalogResults" class="feature-list"></div></div></div>
+<div class="modal hidden modal-feature" id="deckModal" role="dialog" aria-modal="true" aria-labelledby="deckTitle"><div class="modal-body wide-feature"><button class="feature-close" id="deckCloseBtn" type="button" aria-label="Fechar seleção">×</button><h2 id="deckTitle">🎴 Monte seu elenco</h2><p>Escolha <b>10 miniaturas diferentes</b> para a partida. No máximo 4 da mesma aliança e pelo menos 3 alianças no total. A loja só oferecerá as escolhidas. Três cópias iguais evoluem para ★★.</p><div id="deckGrid" class="deck-grids"></div><div class="deck-footer"><strong id="deckStatus"></strong><button class="primary" id="deckConfirmBtn" type="button">✅ Confirmar elenco</button></div></div></div><div class="modal hidden modal-feature" id="catalogModal" role="dialog" aria-modal="true" aria-labelledby="catalogTitle"><div class="modal-body wide-feature"><button class="feature-close" data-feature-close="catalogModal" aria-label="Fechar">×</button><h2 id="catalogTitle">📖 Catálogo dos Reinos</h2><p>Consulte atributos, habilidades, alianças e equipamentos antes de comprar.</p><div class="feature-controls"><input id="catalogSearch" placeholder="Buscar miniatura ou habilidade" aria-label="Pesquisar miniatura"><select id="catalogGroup" aria-label="Filtrar aliança"><option value="">Todas as alianças</option></select><button id="catalogItemsBtn" type="button">⚔️ Itens</button></div><div id="catalogResults" class="feature-list"></div></div></div>
 <div class="modal hidden modal-feature" id="campaignModal" role="dialog" aria-modal="true" aria-labelledby="campaignTitle"><div class="modal-body wide-feature"><button class="feature-close" data-feature-close="campaignModal" aria-label="Fechar">×</button><h2 id="campaignTitle">🗺️ Campanha dos Reinos</h2><p>Derrote os chefes para abrir regiões. A região escolhida muda a arena; desafios opcionais dão mais moedas, mas fortalecem os inimigos.</p><div id="campaignResults" class="feature-list"></div></div></div>
 <div class="modal hidden modal-feature" id="historyModal" role="dialog" aria-modal="true" aria-labelledby="historyTitle"><div class="modal-body wide-feature"><button class="feature-close" data-feature-close="historyModal" aria-label="Fechar">×</button><h2 id="historyTitle">🏆 Histórico dos duelos</h2><p>Resultados salvos neste navegador. Os placares privados do servidor valem enquanto a sala estiver ativa.</p><div id="historyResults" class="feature-list"></div></div></div>
-<div class="modal hidden modal-feature" id="tournamentModal" role="dialog" aria-modal="true" aria-labelledby="tournamentTitle"><div class="modal-body wide-feature"><button class="feature-close" data-feature-close="tournamentModal" aria-label="Fechar">×</button><h2 id="tournamentTitle">🏆 Torneio de quatro amigos</h2><p>Todos jogam no mesmo aparelho: duas semifinais e a final. Cada duelo é melhor de cinco.</p><div class="tourney-names"><input class="tourney-name" maxlength="24" value="Amigo 1" aria-label="Nome do jogador 1"><input class="tourney-name" maxlength="24" value="Amigo 2" aria-label="Nome do jogador 2"><input class="tourney-name" maxlength="24" value="Amigo 3" aria-label="Nome do jogador 3"><input class="tourney-name" maxlength="24" value="Amigo 4" aria-label="Nome do jogador 4"></div><button id="tournamentStartBtn" class="primary" type="button">Começar semifinal 1</button><div id="tournamentBracket" class="feature-list"></div></div></div>
+<div class="modal hidden modal-feature" id="tournamentModal" role="dialog" aria-modal="true" aria-labelledby="tournamentTitle"><div class="modal-body wide-feature"><button class="feature-close" data-feature-close="tournamentModal" aria-label="Fechar">×</button><h2 id="tournamentTitle">🏆 Torneio de quatro amigos</h2><p>Todos jogam no mesmo aparelho: duas semifinais e a final. Cada duelo termina quando um jogador fica sem vida.</p><div class="tourney-names"><input class="tourney-name" maxlength="24" value="Amigo 1" aria-label="Nome do jogador 1"><input class="tourney-name" maxlength="24" value="Amigo 2" aria-label="Nome do jogador 2"><input class="tourney-name" maxlength="24" value="Amigo 3" aria-label="Nome do jogador 3"><input class="tourney-name" maxlength="24" value="Amigo 4" aria-label="Nome do jogador 4"></div><button id="tournamentStartBtn" class="primary" type="button">Começar semifinal 1</button><div id="tournamentBracket" class="feature-list"></div></div></div>
 <div class="modal hidden" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-body"><div class="modal-icon" id="modalIcon">🏆</div><h2 id="modalTitle">Vitória!</h2><p id="modalText"></p><div id="modalReward" class="reward"></div><button id="modalAction" class="primary">PRÓXIMA RODADA</button><button id="modalReportBtn" class="secondary modal-report-toggle" type="button" hidden aria-expanded="false" aria-controls="modalReport">📊 Ver relatório completo</button><section id="modalReport" class="modal-report" hidden><div id="modalReportBody"></div></section><span class="modal-sub" id="modalSub"></span></div></div><div class="modal hidden" id="shopModal" role="dialog" aria-modal="true" aria-labelledby="shopInspectName"><div class="modal-body shop-inspect-body"><button id="shopInspectClose" class="shop-inspect-close" type="button" aria-label="Fechar ficha">×</button><div id="shopInspectHeader" class="shop-inspect-header"></div><div class="shop-inspect-heading">Atributos da miniatura ★</div><div id="shopInspectStats" class="shop-inspect-stats"></div><div class="shop-inspect-heading">Habilidade e função</div><div id="shopInspectSkill" class="shop-inspect-skill"></div><div class="shop-inspect-heading">Bônus de aliança</div><div id="shopInspectTraits" class="shop-inspect-traits"></div><div class="shop-inspect-actions"><button id="shopInspectCancel" class="secondary" type="button">Voltar</button><button id="shopInspectConfirm" class="primary" type="button">Comprar</button></div><p id="shopInspectNote" class="shop-inspect-note" aria-live="polite"></p></div></div><div class="modal hidden" id="blessingModal" role="dialog" aria-modal="true" aria-labelledby="blessingTitle"><div class="modal-body"><div class="modal-icon">✨</div><h2 id="blessingTitle">Escolha uma bênção</h2><p id="blessingText"></p><div id="blessingChoices" class="blessing-grid"></div><span class="modal-sub" id="blessingSub"></span></div></div><div class="modal hidden" id="simulatorModal" role="dialog" aria-modal="true" aria-labelledby="simTitle"><div class="modal-body" style="max-width:560px"><h2 id="simTitle">📊 Laboratório de balanceamento</h2><p class="modal-sub">Simulações internas com o motor de combate, equipes, itens e posições aleatórias. Os resultados são estimativas, não garantias.</p><div class="simulator-panel"><div class="simulator-actions"><button type="button" class="primary" id="simRunBtn">Simular 200 duelos</button><button type="button" class="secondary" id="simCloseBtn">Fechar</button></div><div class="simulator-progress" id="simProgress">Pronto para simular.</div><div class="simulator-track"><span id="simProgressBar" style="width:0%"></span></div><div class="simulator-results" id="simResults"></div></div></div></div><div class="toast" id="toast" aria-live="polite"></div>
 <script>
 (()=>{'use strict';
@@ -456,6 +483,54 @@ const MAX_EQUIP=2;
 const MAX_BENCH=7, SAVE_KEY='miniaturas-liga-v1';let nextId=1,game,battle=null,clock=null,audioCtx=null,soundOn=false,toastTimer=null,musicBus=null,fxBus=null,musicTimer=null,musicTheme='',musicStep=0,nextMusicTime=0,musicNoise=null,volume=readAudioVolume(),reportOpen=false,reportSide='player',modalReportOpen=false,modalReportSide='player',selectedInventoryIndex=null,craftSelection=[],pendingShopSlot=null,blessingChoices=[];
 const $=id=>document.getElementById(id),rnd=n=>Math.floor(Math.random()*n),choice=a=>a[rnd(a.length)],dist=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y),esc=s=>String(s).replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const deployed=()=>game.roster.filter(u=>u.x!==null), bench=()=>game.roster.filter(u=>u.x===null),capacity=()=>Math.min(6,3+Math.floor((game.round-1)/3));
+const DECK_SIZE=10, MAX_GROUP_DECK=4, PVP_START_HP=70;
+const DEFAULT_DECK=['guard','spear','bow','druid','mage','cleric','rogue','ghost','pyro','seraph'];
+let deckDraft=[];
+function deckCounts(deck){const c={};for(const id of deck)if(TYPES[id])c[TYPES[id].group]=(c[TYPES[id].group]||0)+1;return c}
+function validDeck(deck){
+ if(!Array.isArray(deck)||deck.length!==DECK_SIZE||new Set(deck).size!==DECK_SIZE||deck.some(id=>!TYPES[id]))return false;
+ const c=deckCounts(deck);return Object.keys(c).length>=3&&Object.values(c).every(n=>n<=MAX_GROUP_DECK);
+}
+function migrateDeck(g){
+ if(validDeck(g.deck)){g.deckConfirmed=!!g.deckConfirmed;return}
+ const pool=[...new Set((g.roster||[]).map(u=>u.type).filter(id=>TYPES[id])),...DEFAULT_DECK,...Object.keys(TYPES)];
+ const deck=[],counts={};for(const id of pool){if(deck.length>=DECK_SIZE)break;if(deck.includes(id))continue;const group=TYPES[id].group;if((counts[group]||0)>=MAX_GROUP_DECK)continue;deck.push(id);counts[group]=(counts[group]||0)+1}
+ g.deck=validDeck(deck)?deck:DEFAULT_DECK.slice();g.deckConfirmed=true;
+}
+function deckEditable(){return !!game&&game.phase==='prep'&&game.round===1&&!game.deckConfirmed&&!pvp.matchDone}
+function openDeckModal(){
+ if(!game)return;
+ migrateDeck(game);
+ deckDraft=game.deck.slice();renderDeckModal();$('deckModal').classList.remove('hidden');
+}
+function closeDeckModal(){$('deckModal').classList.add('hidden')}
+function renderDeckModal(){
+ const counts=deckCounts(deckDraft),groups=[...new Set(Object.values(TYPES).map(t=>t.group))];
+ $('deckGrid').innerHTML=groups.map(id=>{const g=GROUPS[id],ids=Object.keys(TYPES).filter(k=>TYPES[k].group===id),n=counts[id]||0;
+ return `<div class="deck-group"><h3><span>${g.icon} ${esc(g.name)}</span><span>${n}/${MAX_GROUP_DECK}</span></h3><div class="deck-group-items">${ids.map(k=>{const t=TYPES[k],on=deckDraft.includes(k),disabled=!on&&(deckDraft.length>=DECK_SIZE||n>=MAX_GROUP_DECK);return `<button type="button" class="deck-unit ${on?'on':''}" data-deck-type="${k}" ${disabled?'disabled':''} aria-pressed="${on}"><span class="deck-icon">${t.icon}</span><span>${esc(t.name)}<small>${t.cost} 🪙 · ${esc(t.skill)}</small></span></button>`}).join('')}</div></div>`}).join('');
+ const selected=deckDraft.length,groupsUsed=Object.keys(counts).length;
+ $('deckStatus').textContent=`${selected}/${DECK_SIZE} selecionadas · ${groupsUsed} alianças ${validDeck(deckDraft)?'· Elenco válido':'· Escolha 10 de pelo menos 3 alianças'}`;
+ $('deckConfirmBtn').disabled=!validDeck(deckDraft)||!deckEditable();
+}
+function toggleDeckType(id){if(!deckEditable()||!TYPES[id])return;const i=deckDraft.indexOf(id);if(i>=0)deckDraft.splice(i,1);else{if(deckDraft.length>=DECK_SIZE)return;const c=deckCounts(deckDraft);if((c[TYPES[id].group]||0)>=MAX_GROUP_DECK)return;deckDraft.push(id)}renderDeckModal()}
+function confirmDeck(){
+ if(!deckEditable()||!validDeck(deckDraft))return;
+ game.deck=deckDraft.slice();game.deckConfirmed=true;
+ const starters=game.deck.slice().sort((a,b)=>TYPES[a].cost-TYPES[b].cost).slice(0,2);
+ game.roster=[newUnit(starters[0],2,4),newUnit(starters[1],3,5)];
+ game.gold=Math.max(2,game.gold-Math.max(0,TYPES[starters[0]].cost-2)-Math.max(0,TYPES[starters[1]].cost-2));
+ game.selected=null;game.shop=[];rollShop(true);closeDeckModal();save();render();showToast('Elenco definido! Só esses 10 aparecem na loja.');
+}
+function renderDeckSummary(){
+ const el=$('deckSummary');if(!el)return;
+ if(!game.deck){el.innerHTML='';return}
+ const c=deckCounts(game.deck),tags=Object.keys(c).map(id=>`${GROUPS[id].icon}${c[id]}`).join(' · ');
+ el.innerHTML=`<strong>🎴 Seu elenco · ${game.deck.length}/${DECK_SIZE} tipos</strong><small>${tags} · A loja usa apenas seu elenco, aumentando as chances de juntar três cópias.</small><button type="button" id="deckOpenBtn">${game.deckConfirmed?'👁 Ver elenco desta partida':'🎴 Escolher 10 miniaturas antes de jogar'}</button>${!game.deckConfirmed?'<small class="needs-deck">É preciso confirmar o elenco antes de comprar ou começar.</small>':''}`;
+}
+function pvpDamage(round,stars){
+ const survivorStars=(Array.isArray(stars)?stars:[]).map(x=>Math.max(1,Math.min(3,Number(x)||1))).slice(0,6);
+ return Math.min(25,2+Math.floor((Math.max(1,round)-1)/5)+survivorStars.reduce((n,star)=>n+star,0));
+}
 function miniArt(type){
  const group=GROUPS[TYPES[type].group],trim='<path d="M9 50Q9 37 19 33L35 33Q45 37 47 50Z" fill="#263c56" stroke="#132233" stroke-width="1.7"/>',
  face='<ellipse cx="28" cy="23" rx="10.5" ry="12" fill="#f4c79c" stroke="#704d41" stroke-width="1.6"/><circle cx="24" cy="23" r="1.15" fill="#292b35"/><circle cx="32" cy="23" r="1.15" fill="#292b35"/><path d="M26 29q2 2 4 0" fill="none" stroke="#8e5351" stroke-width="1.3"/>',
@@ -517,13 +592,13 @@ function applyBlessing(i){
  closeBlessingModal(); render(); save();
  showToast(`✨ ${chosen.name}: ${summary}`);
 }
-function newRun(){pendingShopSlot=null;craftSelection=[];closeShopInspect();selectedInventoryIndex=null;nextId=1;game={round:1,gold:8,lives:3,wins:0,roster:[newUnit('guard',2,4),newUnit('bow',3,5)],shop:[],preview:[],forge:[],inventory:[],selected:null,phase:'prep',highScore:readHighScore(),lastReport:null,globalBuffs:{atk:0,armor:0,speed:0,hp:0},bossInfo:null,campaign:{region:'valley',bosses:[],challenge:false,challengeWins:0}};rollShop(true);rollForge();makePreview();save();render();}
+function newRun(){pendingShopSlot=null;craftSelection=[];closeShopInspect();selectedInventoryIndex=null;nextId=1;game={round:1,gold:8,lives:3,wins:0,roster:[newUnit('guard',2,4),newUnit('bow',3,5)],shop:[],preview:[],forge:[],inventory:[],selected:null,phase:'prep',highScore:readHighScore(),lastReport:null,globalBuffs:{atk:0,armor:0,speed:0,hp:0},bossInfo:null,campaign:{region:'valley',bosses:[],challenge:false,challengeWins:0},deck:DEFAULT_DECK.slice(),deckConfirmed:false};rollShop(true);rollForge();makePreview();save();render();openDeckModal();}
 function readHighScore(){try{return Number(localStorage.getItem('miniaturas-recorde')||0)}catch{return 0}}
 function save(){if(pvp.active)return;if(game?.phase==='combat'||game?.phase==='result')return;try{localStorage.setItem(SAVE_KEY,JSON.stringify({game:{...game,phase:'prep',selected:null},nextId}))}catch{}}
-function load(){try{craftSelection=[];pendingShopSlot=null;selectedInventoryIndex=null;const blob=JSON.parse(localStorage.getItem(SAVE_KEY));if(!blob||!blob.game||!Array.isArray(blob.game.roster)||!Array.isArray(blob.game.shop)||!Array.isArray(blob.game.preview))return false;game=blob.game;nextId=blob.nextId||100;game.phase='prep';game.selected=null;game.inventory=Array.isArray(game.inventory)?game.inventory:[];game.forge=Array.isArray(game.forge)?game.forge:[];game.globalBuffs=game.globalBuffs||{atk:0,armor:0,speed:0,hp:0};game.bossInfo=game.bossInfo||null;game.campaign=game.campaign||{region:'valley',bosses:[],challenge:false,challengeWins:0};if(!Array.isArray(game.campaign.bosses))game.campaign.bosses=[];if(!Array.isArray(game.campaign.relics))game.campaign.relics=[];if(!game.forge.length)rollForge();game.roster.forEach(u=>{if(!Array.isArray(u.items))u.items=[]});return true}catch{return false}}
-function rollShop(free=false){if(!free){if(game.phase!=='prep'||game.gold<2)return;game.gold-=2;playNote(380)}const pool=Object.keys(TYPES).flatMap(id=>Array.from({length:Math.max(1,5-TYPES[id].cost)},()=>id));game.shop=Array.from({length:4},()=>choice(pool));save();render();}
+function load(){try{craftSelection=[];pendingShopSlot=null;selectedInventoryIndex=null;const blob=JSON.parse(localStorage.getItem(SAVE_KEY));if(!blob||!blob.game||!Array.isArray(blob.game.roster)||!Array.isArray(blob.game.shop)||!Array.isArray(blob.game.preview))return false;game=blob.game;nextId=blob.nextId||100;game.phase='prep';game.selected=null;game.inventory=Array.isArray(game.inventory)?game.inventory:[];game.forge=Array.isArray(game.forge)?game.forge:[];game.globalBuffs=game.globalBuffs||{atk:0,armor:0,speed:0,hp:0};game.bossInfo=game.bossInfo||null;game.campaign=game.campaign||{region:'valley',bosses:[],challenge:false,challengeWins:0};if(!Array.isArray(game.campaign.bosses))game.campaign.bosses=[];if(!Array.isArray(game.campaign.relics))game.campaign.relics=[];if(!game.forge.length)rollForge();game.roster.forEach(u=>{if(!Array.isArray(u.items))u.items=[]});const hadDeck=validDeck(game.deck);migrateDeck(game);if(!hadDeck&&Array.isArray(game.shop))game.shop=game.shop.map(type=>type&&!game.deck.includes(type)?choice(game.deck):type);return true}catch{return false}}
+function rollShop(free=false){if(!free){if(!game.deckConfirmed){openDeckModal();return}if(game.phase!=='prep'||game.gold<2)return;game.gold-=2;playNote(380)}const pool=(validDeck(game.deck)?game.deck:Object.keys(TYPES)).flatMap(id=>Array.from({length:Math.max(1,5-TYPES[id].cost)},()=>id));game.shop=Array.from({length:4},()=>choice(pool));save();render();}
 function rollForge(){const pool=itemList();game.forge=Array.from({length:2},()=>pool.splice(rnd(pool.length),1)[0]);}
-function buyItem(slot){if(game.phase!=='prep'||!game.forge[slot])return;const id=game.forge[slot],it=ITEMS[id];if(game.gold<it.cost){showToast('Moedas insuficientes para o item');return}game.gold-=it.cost;game.inventory.push(id);game.forge[slot]=null;selectedInventoryIndex=null;craftSelection=[];playNote(710);showToast(`${it.name} comprado! Selecione uma miniatura.`);save();render();}
+function buyItem(slot){if(!game.deckConfirmed){openDeckModal();return}if(game.phase!=='prep'||!game.forge[slot])return;const id=game.forge[slot],it=ITEMS[id];if(game.gold<it.cost){showToast('Moedas insuficientes para o item');return}game.gold-=it.cost;game.inventory.push(id);game.forge[slot]=null;selectedInventoryIndex=null;craftSelection=[];playNote(710);showToast(`${it.name} comprado! Selecione uma miniatura.`);save();render();}
 function equipItem(i){if(game.phase!=='prep'||!game.inventory[i])return;const u=game.roster.find(u=>u.id===game.selected);if(!u){showToast('Selecione uma miniatura antes de equipar');return}u.items=u.items||[];if(u.items.length>=MAX_EQUIP){showToast('Esta miniatura já tem 2 equipamentos');return}const id=game.inventory.splice(i,1)[0];u.items.push(id);selectedInventoryIndex=null;craftSelection=[];playNote(800);showToast(`${ITEMS[id].name} equipado em ${TYPES[u.type].name}`);save();render();}
 function unequipItem(slot){if(game.phase!=='prep')return;const u=game.roster.find(u=>u.id===game.selected);if(!u||!u.items||!u.items[slot])return;const id=u.items.splice(slot,1)[0];game.inventory.push(id);selectedInventoryIndex=null;craftSelection=[];playNote(520);showToast(`${ITEMS[id].name} voltou à mochila`);save();render();}
 function selectCraftIngredient(i){
@@ -570,7 +645,7 @@ function inspectShop(i){
 function closeShopInspect(){const dialog=$('shopModal');if(dialog)dialog.classList.add('hidden');pendingShopSlot=null}
 function confirmShopBuy(){if(pendingShopSlot===null)return;const i=pendingShopSlot;closeShopInspect();buy(i)}
 function firstFree(type){let ranks=TYPES[type].range<=2?[4,5]:[5,4];for(let y of ranks){for(let x of [2,3,1,4,0,5])if(!deployed().some(p=>p.x===x&&p.y===y))return{x,y}}return null}
-function buy(i){if(game.phase!=='prep'||game.shop[i]===null||game.shop[i]===undefined)return;const type=game.shop[i],cost=TYPES[type].cost;if(game.gold<cost){showToast('Moedas insuficientes');return}if(game.roster.length>=MAX_BENCH+capacity()){showToast('Equipe e banco cheios!');return}game.gold-=cost;const spot=deployed().length<capacity()?firstFree(type):null;let u=newUnit(type,spot?.x??null,spot?.y??null);game.roster.push(u);game.shop[i]=null;game.selected=u.id;playNote(600);const upgraded=checkFusion();showToast(upgraded||`${TYPES[type].name} recrutado!`);save();render();}
+function buy(i){if(!game.deckConfirmed){openDeckModal();return}if(game.phase!=='prep'||game.shop[i]===null||game.shop[i]===undefined)return;const type=game.shop[i],cost=TYPES[type].cost;if(game.gold<cost){showToast('Moedas insuficientes');return}if(game.roster.length>=MAX_BENCH+capacity()){showToast('Equipe e banco cheios!');return}game.gold-=cost;const spot=deployed().length<capacity()?firstFree(type):null;let u=newUnit(type,spot?.x??null,spot?.y??null);game.roster.push(u);game.shop[i]=null;game.selected=u.id;playNote(600);const upgraded=checkFusion();showToast(upgraded||`${TYPES[type].name} recrutado!`);save();render();}
 function checkFusion(){let messages=[];let fusion=true;while(fusion){fusion=false;for(let type of Object.keys(TYPES)){for(let star of [1,2]){const matches=game.roster.filter(u=>u.type===type&&u.star===star);if(matches.length>=3){matches.sort((a,b)=>(b.x!==null)-(a.x!==null));const kept=matches[0],removed=matches.slice(1,3);if(kept.x===null){const old=removed.find(u=>u.x!==null);if(old){kept.x=old.x;kept.y=old.y}}kept.star++;removed.forEach(u=>game.inventory.push(...(u.items||[])));game.roster=game.roster.filter(u=>!removed.some(r=>r.id===u.id));game.selected=kept.id;messages.push(`${TYPES[type].name} evoluiu para ${'★'.repeat(kept.star)}!`);fusion=true;break}}if(fusion)break}}return messages.join(' ')}
 function selectOrMove(x,y){if(game.phase!=='prep'||y<4)return;let target=deployed().find(u=>u.x===x&&u.y===y);const held=game.roster.find(u=>u.id===game.selected);if(held){if(target?.id===held.id){game.selected=null}else if(held.x===null){if(target){target.x=null;target.y=null;held.x=x;held.y=y;showToast('Miniaturas trocadas!')}else{if(deployed().length>=capacity()){showToast('Limite de unidades em campo');return}held.x=x;held.y=y}game.selected=null;playNote(460)}else{let oldX=held.x,oldY=held.y;held.x=x;held.y=y;if(target){target.x=oldX;target.y=oldY}game.selected=null;playNote(440)}}else if(target){game.selected=target.id;playNote(490)}save();render()}
 function selectBench(id){if(game.phase!=='prep')return;game.selected=game.selected===id?null:id;render();}
@@ -625,6 +700,7 @@ function applyTraitBuffs(list){
 }
 function startBattle(){
  if(pvp.active&&!pvp.starting)return;
+ if(!game.deckConfirmed){openDeckModal();return}
  if(game.phase!=='prep')return;
  if(!deployed().length){showToast('Coloque pelo menos uma miniatura');return}
  game.phase='combat';game.selected=null;reportOpen=false;modalReportOpen=false;
@@ -1030,12 +1106,12 @@ function updateModalReport(){
  $('modalReport').hidden=!modalReportOpen;$('modal').querySelector('.modal-body').classList.toggle('has-report',modalReportOpen);
  if(modalReportOpen&&game?.lastReport)$('modalReportBody').innerHTML=reportHtml(game.lastReport,modalReportSide);
 }
-function render(){if(!game)return;if(pvp.active){$('lifeStat').hidden=true;$('roundBadge').textContent=`DUELO ${pvp.round}`;}else{$('lifeStat').hidden=false;}syncMusicTheme();$('gold').textContent=game.gold;$('lives').textContent=game.lives;$('wins').textContent=game.wins;$('roundBadge').textContent=pvp.active?`DUELO ${pvp.round}`:`RODADA ${game.round}${game.round%5===0?' · CHEFE':''}`;$('arenaTitle').textContent=game.phase==='combat'?'Combate em andamento':game.phase==='prep'?'Sua formação':game.phase==='pvp_wait'?'Equipe confirmada':'Fim da batalha';const arenaName=(game.phase==='combat'&&battle?.arena)||currentArena();$('terrainHeading').textContent=`🗺️ ${arenaName.name} — ${arenaName.desc}`;$('armyBadge').textContent=`${deployed().length} / ${capacity()} EM CAMPO`;$('benchBadge').textContent=`${bench().length} / ${MAX_BENCH}`;renderBoard();renderShop();renderBench();renderInfo();renderForge();renderTraits();renderActions();renderReports();if(pvp.active&&!pvp.local)savePvpSession()}
+function render(){if(!game)return;renderDeckSummary();if(pvp.active){$('lifeStat').hidden=true;$('roundBadge').textContent=`DUELO ${pvp.round}`;}else{$('lifeStat').hidden=false;}syncMusicTheme();$('gold').textContent=game.gold;$('lives').textContent=game.lives;$('wins').textContent=game.wins;$('roundBadge').textContent=pvp.active?`DUELO ${pvp.round}`:`RODADA ${game.round}${game.round%5===0?' · CHEFE':''}`;$('arenaTitle').textContent=game.phase==='combat'?'Combate em andamento':game.phase==='prep'?'Sua formação':game.phase==='pvp_wait'?'Equipe confirmada':'Fim da batalha';const arenaName=(game.phase==='combat'&&battle?.arena)||currentArena();$('terrainHeading').textContent=`🗺️ ${arenaName.name} — ${arenaName.desc}`;$('armyBadge').textContent=`${deployed().length} / ${capacity()} EM CAMPO`;$('benchBadge').textContent=`${bench().length} / ${MAX_BENCH}`;renderBoard();renderShop();renderBench();renderInfo();renderForge();renderTraits();renderActions();renderReports();if(pvp.active&&!pvp.local)savePvpSession()}
 function activeStatusSummary(u){return Object.entries(STATUS_INFO).filter(([id])=>id==='poison'||id==='curse'||id==='burn'?u[id]?.actions>0:u[id]>0).map(([id,v])=>v.name).join(', ')||'Sem efeitos';}
 function activeStatusIcons(u){return Object.entries(STATUS_INFO).filter(([id])=>id==='poison'||id==='curse'||id==='burn'?u[id]?.actions>0:u[id]>0).slice(0,3).map(([id,v])=>v.icon).join('')}
 function miniHTML(piece,foe=false){let t=TYPES[piece.type],c=GROUPS[t.group].color,isBattle=piece.hp!==undefined,health=isBattle?Math.round(piece.hp/piece.maxHp*100):100;const hit=isBattle&&battle?.lastHit===piece.id?' hit':'';const anim=isBattle&&battle?.lastAction?.id===piece.id?' '+battle.lastAction.kind:'';return `<div class="mini ${foe?'foe':''}${hit}${anim}" style="--unit-color:${c}"><div class="mini-name">${esc(t.name)}</div><div class="mini-base">${miniArt(piece.type)}</div>${!foe&&piece.items?.length?`<span class="mini-equipped" title="Itens equipados">${piece.items.map(id=>ITEMS[id]?.icon||'◆').join('')}</span>`:''}${!isBattle?`<span class="mini-role" title="${ROLES[roleOf(piece.type)].name}">${ROLES[roleOf(piece.type)].icon}</span>`:''}${piece.star>1?`<div class="mini-star">${'★'.repeat(piece.star)}</div>`:''}${isBattle&&piece.shield>0?`<span class="mini-shield" title="Escudo restante">🛡${Math.ceil(piece.shield)}</span>`:''}${isBattle?`<span class="status-badge" title="${esc(activeStatusSummary(piece))}">${activeStatusIcons(piece)}</span>`:''}<div class="hp"><span style="width:${health}%"></span></div></div>`}
 function renderBoard(){const board=$('board');let nodes=[],allies=game.phase==='combat'?(battle?.allies||[]).filter(u=>u.hp>0):deployed(),foes=game.phase==='combat'?(battle?.enemies||[]).filter(u=>u.hp>0):game.preview,selected=game.roster.find(u=>u.id===game.selected);for(let y=0;y<6;y++)for(let x=0;x<6;x++){let p=allies.find(u=>u.x===x&&u.y===y),e=foes.find(u=>u.x===x&&u.y===y),terrain=arenaAt(x,y,(game.phase==='combat'&&battle?.arena)||currentArena()),possible=game.phase==='prep'&&y>=4,canPlace=possible&&selected&&!p;nodes.push(`<button type="button" class="cell ${terrain?'terrain-'+terrain:''} ${y<=1?'enemy-zone':y>=4?'player-zone':''} ${possible?'placeable':''} ${p?.id===game.selected?'selected':''} ${canPlace?'move-target':''}" data-x="${x}" data-y="${y}" ${possible?'':'tabindex="-1"'} aria-label="${p?TYPES[p.type].name:e?`Inimigo ${TYPES[e.type].name}`:possible?'Casa livre':'Campo vazio'}, coluna ${x+1}, linha ${y+1}">${terrain==='wall'?'':p?miniHTML(p):e?miniHTML(e,true):canPlace?'<span class="target-dot" style="font-size:15px;color:#9bdeae">＋</span>':''}</button>`)}board.innerHTML=nodes.join('');}
-function renderShop(){let disabled=game.phase!=='prep';$('shop').innerHTML=game.shop.map((type,i)=>{if(!type)return `<div class="shop-card sold" aria-label="Comprada"><div style="margin:auto;font-size:12px">✓ Recrutada</div></div>`;let t=TYPES[type],g=GROUPS[t.group],afford=game.gold>=t.cost;return `<button type="button" class="shop-card ${afford?'':'unaffordable'}" data-inspect-shop="${i}" style="--unit-color:${g.color}" ${disabled?'disabled':''} aria-label="Ver atributos e compra de ${esc(t.name)}" title="Toque para ver os atributos e decidir se deseja comprar"><span class="art-icon">${miniArt(type)}</span><span class="shop-details"><div class="shop-name">${esc(t.name)}</div><div class="shop-group">${g.icon} ${g.name} · ${ROLES[roleOf(type)].icon} ${ROLES[roleOf(type)].name}</div><div class="shop-quickstats">❤️ ${t.hp} · ${attackKind(type)==='magic'?'🔮':'⚔️'} ${t.atk} · 🛡️ ${t.armor} · 🪬 ${MAGIC_RESIST[type]}<br>⚡ ${t.speed.toFixed(2)} · 🎯 ${t.range}</div><div class="shop-desc skill-desc">${esc(t.skill)} · ${kindLabel(skillKind(type))}</div><div class="shop-see">👁 Ver ficha e comprar</div></span><span class="price">${t.cost} 🪙</span></button>`}).join('');$('rerollBtn').disabled=disabled||game.gold<2}
+function renderShop(){let disabled=game.phase!=='prep'||!game.deckConfirmed;$('shop').innerHTML=game.shop.map((type,i)=>{if(!type)return `<div class="shop-card sold" aria-label="Comprada"><div style="margin:auto;font-size:12px">✓ Recrutada</div></div>`;let t=TYPES[type],g=GROUPS[t.group],afford=game.gold>=t.cost;return `<button type="button" class="shop-card ${afford?'':'unaffordable'}" data-inspect-shop="${i}" style="--unit-color:${g.color}" ${disabled?'disabled':''} aria-label="Ver atributos e compra de ${esc(t.name)}" title="Toque para ver os atributos e decidir se deseja comprar"><span class="art-icon">${miniArt(type)}</span><span class="shop-details"><div class="shop-name">${esc(t.name)}</div><div class="shop-group">${g.icon} ${g.name} · ${ROLES[roleOf(type)].icon} ${ROLES[roleOf(type)].name}</div><div class="shop-quickstats">❤️ ${t.hp} · ${attackKind(type)==='magic'?'🔮':'⚔️'} ${t.atk} · 🛡️ ${t.armor} · 🪬 ${MAGIC_RESIST[type]}<br>⚡ ${t.speed.toFixed(2)} · 🎯 ${t.range}</div><div class="shop-desc skill-desc">${esc(t.skill)} · ${kindLabel(skillKind(type))}</div><div class="shop-see">👁 Ver ficha e comprar</div></span><span class="price">${t.cost} 🪙</span></button>`}).join('');$('rerollBtn').disabled=disabled||game.gold<2}
 function renderBench(){$('bench').innerHTML=`<div class="bench-list">${bench().length?bench().map(u=>`<button class="bench-piece ${game.selected===u.id?'picked':''}" data-bench="${u.id}" ${game.phase!=='prep'?'disabled':''}><span class="art-icon" style="--unit-color:${GROUPS[TYPES[u.type].group].color}">${miniArt(u.type)}</span><span class="short">${esc(TYPES[u.type].name)}<br>${'★'.repeat(u.star)}</span></button>`).join(''):'<div class="empty-bench">Nenhuma unidade na reserva.</div>'}</div>`}
 function renderInfo(){const u=game.roster.find(u=>u.id===game.selected);if(!u){$('unitInfo').innerHTML='<span>Selecione uma miniatura para ver seus atributos ou vendê-la. Três cópias iguais se fundem e sobem de nível.</span>';return}let t=TYPES[u.type],g=GROUPS[t.group];const gear=(u.items||[]).map(id=>ITEMS[id]).filter(Boolean),sum=stat=>gear.reduce((n,it)=>n+(it[stat]||0),0);$('unitInfo').innerHTML=`<div class="info-line"><strong>${t.icon} ${esc(t.name)} ${'★'.repeat(u.star)}</strong><span>${g.name} · ${u.x===null?'Reserva':'Em campo'}</span></div><div>❤️ ${Math.round(t.hp*Math.pow(1.68,u.star-1))+sum('hp')+(pvp.active?0:game.globalBuffs?.hp||0)} · ${attackKind(u.type)==='magic'?'🔮':'⚔️'} ${Math.round(t.atk*Math.pow(1.51,u.star-1))+sum('atk')+(pvp.active?0:game.globalBuffs?.atk||0)} · 🛡️ ${t.armor+Math.max(0,u.star-1)*2+sum('armor')+(pvp.active?0:game.globalBuffs?.armor||0)} · 🪬 ${MAGIC_RESIST[u.type]+Math.max(0,u.star-1)*2+sum('resist')} · ⚡ ${(t.speed*(1+sum('speed')+(pvp.active?0:game.globalBuffs?.speed||0))).toFixed(2)} · 🎯 ${t.range}</div><div class="damage-explainer">Ataque básico: ${kindLabel(attackKind(u.type))}. 🛡️ Protege do físico; 🪬 protege do mágico.</div><div style="font-size:11px;color:#b4cae0">${sum('crit')?'Crítico +'+Math.round(sum('crit')*100)+'% · ':''}${sum('leech')?'Roubo de vida '+Math.round(sum('leech')*100)+'% · ':''}${sum('pierce')?'Penetração física '+sum('pierce')+' · ':''}${sum('magicPierce')?'Penetração mágica '+sum('magicPierce')+' · ':''}${sum('heal')?'Cura +'+Math.round(sum('heal')*100)+'% · ':''}${sum('shield')?'Escudo +'+sum('shield'):''}</div><div>${esc(t.skill)} (${kindLabel(skillKind(u.type))}): ${esc(t.tip)}</div><div class="role-tip">${ROLES[roleOf(u.type)].icon} <b>${ROLES[roleOf(u.type)].name}:</b> ${ROLES[roleOf(u.type)].tip}</div><div class="equip-inline">${(u.items||[]).length?(u.items||[]).map((id,i)=>`<button class="equip-slot" data-unequip="${i}" title="Toque para retirar" ${game.phase!=='prep'?'disabled':''}>${ITEMS[id]?.icon||'◆'} ${esc(ITEMS[id]?.name||id)} ✕</button>`).join(''):'<span style="font-size:11px;color:#a7bacb">Sem equipamentos (2 espaços)</span>'}</div>${game.phase==='prep'?`${u.x!==null?'<button class="secondary" id="benchSelectedBtn" style="padding:7px 10px;font-size:11px;margin:8px 7px 0 0">Guardar</button>':''}<button class="sell" id="sellBtn">Vender · +${t.cost*Math.pow(3,u.star-1)} 🪙</button>`:''}`}
 function inspectItem(i){if(!Number.isInteger(i)||!game.inventory[i])return;selectedInventoryIndex=i;renderForge();}
@@ -1108,7 +1184,7 @@ function formationAdvice(){
 function renderActions(){
  if(pvp.active){pvpRenderActions();return}
  const active=game.phase==='combat';
- $('fightBtn').disabled=game.phase!=='prep'||deployed().length===0;
+ $('fightBtn').disabled=game.phase!=='prep'||deployed().length===0||!game.deckConfirmed;
  $('fightBtn').textContent=active?'⚔️ LUTANDO...':game.phase==='result'?'BATALHA ENCERRADA':'⚔️ INICIAR BATALHA';
  $('speedBtn').hidden=!active;if(active)$('speedBtn').textContent=`⏩ ${battle.speed===1?'2×':'1×'}`;
  $('phaseNote').textContent=active?`${battle.log} · ${Math.max(0,Math.ceil((115-battle.tick)*.37/battle.speed))} s restantes (aprox.)`:game.phase==='prep'?`${game.preview.length} inimigos à frente. Você pode posicionar ${capacity()} miniaturas.${game.bossInfo?` 👑 Chefe: ${game.bossInfo.name} — ${game.bossInfo.desc}`:''}${buffsSummary()}`:'Batalha finalizada!';
@@ -1218,13 +1294,13 @@ $('simRunBtn').onclick=startSimulator;
 window.__miniGameDebug={inspectShop,closeShopInspect,confirmShopBuy,craftItem,selectCraftIngredient,selectCraftRecipe,renderCraft,recipeFrom,recipes:RARE_RECIPES,shopModalIsOpen:()=>!$('shopModal').classList.contains('hidden'),getCraftSelection:()=>craftSelection.slice(),makeReport,reportHtml,restoreHealth,effectDamage,performTurn,getState:()=>JSON.parse(JSON.stringify({game,battle})),buy,selectOrMove,startBattle,tickBattle,reset:newRun,skipToResult:()=>{for(let i=0;i<250&&game.phase==='combat';i++)tickBattle()},types:TYPES,items:ITEMS,buyItem,equipItem,unequipItem,rollForge,miniArt,countTraits,inspectItem,applyTraitBuffs,processConditions,directStatusDamage,blinkToBackline,roleOf,selectTarget,findRetreat,interceptTarget,formationAdvice,pathToTarget,battleRef:()=>battle,arenaAt,arenaForRound,applyControl,skillKind,runSim:simOne,simFormation};
 
 // ===== PvP em mesmo aparelho e por WebSocket (servidor do pacote) =====
-let pvp={active:false,local:false,seat:0,round:1,wins:[0,0],ready:false,starting:false,socket:null,room:'',names:['Jogador 1','Jogador 2'],connected:[true,true],otherUnits:[],localGames:[],soloGame:null,lastWinner:null,matchDone:false,waitingNext:false,server:'',reconnectToken:'',reconnectAttempts:0,reconnectTimer:null,leaving:false,matchRecorded:false,tournament:null,privateRank:[0,0],privateHistory:[],prepDeadline:0};
+let pvp={active:false,local:false,seat:0,round:1,wins:[0,0],ready:false,starting:false,socket:null,room:'',names:['Jogador 1','Jogador 2'],connected:[true,true],otherUnits:[],localGames:[],soloGame:null,lastWinner:null,matchDone:false,waitingNext:false,server:'',reconnectToken:'',reconnectAttempts:0,reconnectTimer:null,leaving:false,matchRecorded:false,tournament:null,privateRank:[0,0],privateHistory:[],prepDeadline:0,hp:[PVP_START_HP,PVP_START_HP],lastDamage:0};
 const PVP_SESSION_KEY='miniaturas-pvp-online-v2';
 function savePvpSession(){
  if(!pvp.active||pvp.local||!pvp.reconnectToken||!pvp.room)return;
  try{
   const state={time:Date.now(),room:pvp.room,token:pvp.reconnectToken,seat:pvp.seat,round:pvp.round,
-    wins:pvp.wins,names:pvp.names,nextId,game:{...game,phase:'prep',selected:null,preview:[]}};
+    wins:pvp.wins,hp:pvp.hp,names:pvp.names,nextId,game:{...game,phase:'prep',selected:null,preview:[]}};
   sessionStorage.setItem(PVP_SESSION_KEY,JSON.stringify(state));
  }catch{}
 }
@@ -1233,21 +1309,21 @@ function restorePvpSession(){
  if(!data||!data.token||!/^[A-Z0-9]{6}$/.test(data.room)||Date.now()-data.time>140000||!data.game||!Array.isArray(data.game.roster))return false;
  pvpActivate(false);
  pvp.room=data.room;pvp.reconnectToken=data.token;pvp.seat=data.seat===1?1:0;
- pvp.round=Number(data.round)||1;pvp.wins=Array.isArray(data.wins)?data.wins:[0,0];
+ pvp.round=Number(data.round)||1;pvp.wins=Array.isArray(data.wins)?data.wins:[0,0];pvp.hp=Array.isArray(data.hp)?data.hp:[PVP_START_HP,PVP_START_HP];
  pvp.names=Array.isArray(data.names)?data.names:['Jogador 1','Jogador 2'];pvp.connected=[false,false];
  game=data.game;game.phase='pvp_wait';game.round=pvp.round;game.selected=null;
- nextId=Math.max(nextId,Number(data.nextId)||1);
+ migrateDeck(game);nextId=Math.max(nextId,Number(data.nextId)||1);
  $('pvpCode').hidden=false;$('pvpCode').textContent=`SALA ${pvp.room}`;$('pvpCopyBtn').hidden=false;
  pvpSetStatus('Restaurando a sala após recarregar a página...');render();pvpScheduleReconnect();
  return true;
 }
 function pvpFreshGame(){
- return {round:1,gold:12,lives:3,wins:0,roster:[newUnit('guard',2,4),newUnit('bow',3,5)],shop:[],preview:[],forge:[],inventory:[],selected:null,phase:'prep',highScore:0,lastReport:null};
+ return {round:1,gold:12,lives:3,wins:0,roster:[newUnit('guard',2,4),newUnit('bow',3,5)],shop:[],preview:[],forge:[],inventory:[],selected:null,phase:'prep',highScore:0,lastReport:null,deck:DEFAULT_DECK.slice(),deckConfirmed:false};
 }
 function pvpMakeGame(){let keep=game;game=pvpFreshGame();rollShop(true);rollForge();game.preview=[];let created=game;game=keep;return created}
 function pvpActivate(isLocal){
  clearTimeout(clock);battle=null;closeModal();closeShopInspect();
- pvp.leaving=false;pvp.soloGame=game;pvp.active=true;pvp.local=isLocal;pvp.ready=false;pvp.starting=false;pvp.round=1;pvp.wins=[0,0];pvp.matchDone=false;pvp.lastWinner=null;pvp.waitingNext=false;pvp.matchRecorded=false;pvp.tournament=null;pvp.matchRecorded=false;
+ pvp.leaving=false;pvp.soloGame=game;pvp.active=true;pvp.local=isLocal;pvp.ready=false;pvp.starting=false;pvp.round=1;pvp.wins=[0,0];pvp.hp=[PVP_START_HP,PVP_START_HP];pvp.lastDamage=0;pvp.matchDone=false;pvp.lastWinner=null;pvp.waitingNext=false;pvp.matchRecorded=false;pvp.tournament=null;pvp.matchRecorded=false;
  pvp.localGames=isLocal?[pvpMakeGame(),pvpMakeGame()]:[];
  game=isLocal?pvp.localGames[0]:pvpMakeGame();pvp.seat=0;
  $('pvpShell').hidden=false;$('pvpBar').hidden=false;$('pvpSetup').hidden=true;$('pvpLeaveBtn').hidden=false;
@@ -1266,25 +1342,27 @@ function pvpSetStatus(s){$('pvpStatus').textContent=s;pvpUpdateBanner()}
 function pvpUpdateBanner(){
  if(!pvp.active)return;
  let me=pvp.local?`Jogador ${pvp.seat+1}`:(pvp.names[pvp.seat]||'Você'),vs=pvp.local?'Modo local':`Sala ${pvp.room}`;
- $('pvpMatchTitle').innerHTML=`⚔️ <strong>${esc(vs)}</strong> · ${esc(me)} · ${esc(pvp.names[0])} ${pvp.wins[0]} × ${pvp.wins[1]} ${esc(pvp.names[1])}`;
+ $('pvpMatchTitle').innerHTML=`⚔️ <strong>${esc(vs)}</strong> · ${esc(me)} · Rodada ${pvp.round} · Vitórias ${pvp.wins[0]} × ${pvp.wins[1]}`;
+ $('pvpHpBars').innerHTML=pvp.hp.map((life,i)=>`<div><div class="hp-pair"><span>${esc(pvp.names[i])}</span><span>❤️ ${Math.max(0,life)} / ${PVP_START_HP}</span></div><div class="pvp-health-track ${i?'alt':''}"><span style="width:${Math.max(0,Math.min(100,life/PVP_START_HP*100))}%"></span></div></div>`).join('');
  $('pvpMatchStatus').textContent=pvp.matchDone?'Partida encerrada':game.phase==='combat'?'⚔️ Combate automático':game.phase==='pvp_wait'?'✅ Aguardando o outro jogador':game.phase==='result'?'🏆 Resultado':'🛡️ Monte sua equipe';
 }
 function pvpStartLocal(){
  if(pvp.active)return;
- pvp.names=['Jogador 1','Jogador 2'];pvp.room='';pvpActivate(true);pvpSetStatus('Jogador 1 prepara a equipe. Depois toque em PRONTO e entregue o aparelho ao jogador 2.');
+ pvp.names=['Jogador 1','Jogador 2'];pvp.room='';pvpActivate(true);openDeckModal();pvpSetStatus('Jogador 1 prepara a equipe. Depois toque em PRONTO e entregue o aparelho ao jogador 2.');
 }
 function pvpReady(){
  if(!pvp.active||game.phase!=='prep')return;
+ if(!game.deckConfirmed){openDeckModal();return}
  let units=deployed();if(!units.length){showToast('Coloque pelo menos uma miniatura');return}
  if(pvp.local){
   if(pvp.seat===0){pvp.localGames[0]=game;game.phase='pvp_wait';pvp.otherUnits=pvpSnapshot();game=pvp.localGames[1];pvp.seat=1;
    $('pvpStatus').textContent='Jogador 1 pronto. Entregue o aparelho ao jogador 2 para ele montar a equipe.';
-   pvpUpdateBanner();render();window.scrollTo({top:0,behavior:'smooth'});return}
+   pvpUpdateBanner();render();if(!game.deckConfirmed)openDeckModal();window.scrollTo({top:0,behavior:'smooth'});return}
   pvp.localGames[1]=game;pvp.otherUnits=pvpSnapshot();game=pvp.localGames[0];pvp.seat=0;game.phase='prep';pvpStartHost(pvp.otherUnits);return;
  }
  if(!pvp.socket||pvp.socket.readyState!==1){showToast('Sem conexão com a sala');return}
  if(!pvp.connected.every(Boolean)){showToast('Aguarde seu amigo entrar na sala');return}
- pvp.ready=true;game.phase='pvp_wait';pvpSend({type:'ready',units:pvpSnapshot()});pvpSetStatus('Equipe confirmada. Aguardando o amigo.');render();
+ pvp.ready=true;game.phase='pvp_wait';pvpSend({type:'ready',units:pvpSnapshot(),deck:game.deck.slice()});pvpSetStatus('Equipe confirmada. Aguardando o amigo.');render();
 }
 function pvpSnapshot(){return deployed().map(u=>({type:u.type,star:u.star,x:u.x,y:u.y,items:(u.items||[]).slice(0,2)}))}
 function pvpStartHost(opponents){
@@ -1307,21 +1385,22 @@ function pvpSendFrame(){
 }
 function pvpEndBattle(hostWin){
  clearTimeout(clock);if(!pvp.active)return;
+ const alive=living(hostWin?'player':'enemy').map(u=>u.star||1);pvp.lastDamage=pvpDamage(pvp.round,alive);
  $('fxLayer').replaceChildren();
- if(pvp.local){pvp.wins[hostWin?0:1]++;pvp.lastWinner=hostWin?0:1;pvp.matchDone=pvp.wins.some(v=>v>=3);pvpShowResult(hostWin);}
- else{pvpSendFrame();game.phase='pvp_wait';pvpSend({type:'finish',hostWin:!!hostWin});pvpSetStatus('Aguardando confirmação do resultado na sala...');render()}
+ if(pvp.local){pvp.wins[hostWin?0:1]++;pvp.lastWinner=hostWin?0:1;pvp.hp[hostWin?1:0]=Math.max(0,pvp.hp[hostWin?1:0]-pvp.lastDamage);pvp.matchDone=pvp.hp.some(v=>v<=0);pvpShowResult(hostWin);}
+ else{pvpSendFrame();game.phase='pvp_wait';pvpSend({type:'finish',hostWin:!!hostWin,survivorStars:alive});pvpSetStatus('Aguardando confirmação do resultado na sala...');render()}
 }
 function pvpShowResult(hostWin){
  const iWon=hostWin=== (pvp.seat===0);
  game.phase='result';game.lastReport=battle?makeReport(battle,iWon):null;
  if(iWon)game.wins++;pvp.lastWinner=hostWin?0:1;
- pvp.matchDone=pvp.wins.some(n=>n>=3);
+ pvp.matchDone=pvp.hp.some(n=>n<=0);
  pvpUpdateBanner();render();playNote(iWon?850:270,.13);
  if(pvp.matchDone&&!pvp.matchRecorded){pvpRecordCompleted();pvp.matchRecorded=true;}
  const winner=pvp.names[pvp.lastWinner]||`Jogador ${pvp.lastWinner+1}`;
  openModal(pvp.matchDone?'🏆':iWon?'🥇':'⚔️',pvp.matchDone?`${winner} venceu o duelo!`:iWon?'Você venceu esta rodada!':'Seu adversário venceu!',
-  pvp.matchDone?`${winner} alcançou 3 vitórias. ${pvp.local?'Podem':'Vocês podem'} jogar uma revanche.`:`${winner} venceu a rodada ${pvp.round}. Placares: ${pvp.wins[0]} × ${pvp.wins[1]}.`,
-  `${pvp.names[0]} ${pvp.wins[0]} × ${pvp.wins[1]} ${pvp.names[1]}`,
+  pvp.matchDone?`${winner} venceu a disputa de resistência! ${pvp.local?'Podem':'Vocês podem'} jogar uma revanche.`:`${winner} venceu a rodada ${pvp.round} e causou ${pvp.lastDamage} de dano. A partida continua até alguém chegar a 0 vida.`,
+  `${pvp.names[0]} ❤️${pvp.hp[0]} · ❤️${pvp.hp[1]} ${pvp.names[1]} · ${pvp.wins[0]}×${pvp.wins[1]} vitórias`,
   pvp.matchDone?(pvp.tournament?'🏆 PRÓXIMO JOGO':'🔄 REVANCHE'):'➡️ PRÓXIMA RODADA',
   pvp.local?'As equipes permanecem entre as rodadas.':'Os dois jogadores precisam confirmar para continuar.',
   ()=>{closeModal();pvpAdvance()}
@@ -1336,10 +1415,10 @@ function pvpAdvance(){
  if(pvp.local){
   const wasDone=pvp.matchDone;
   if(wasDone&&pvp.tournament){tournamentAdvance();return;}
-  if(wasDone){pvp.wins=[0,0];pvp.round=1;pvp.matchDone=false;pvp.matchRecorded=false;pvp.localGames=[pvpMakeGame(),pvpMakeGame()];}
+  if(wasDone){pvp.wins=[0,0];pvp.hp=[PVP_START_HP,PVP_START_HP];pvp.round=1;pvp.matchDone=false;pvp.matchRecorded=false;pvp.localGames=[pvpMakeGame(),pvpMakeGame()];}
   else{pvp.round++;pvp.localGames[0]=game;for(let i=0;i<2;i++)pvpRefreshRound(pvp.localGames[i],pvp.round,pvp.lastWinner===i)}
   game=pvp.localGames[0];pvp.seat=0;pvp.lastWinner=null;battle=null;
-  pvpSetStatus('Jogador 1 começa a preparação. Toque em PRONTO para passar a vez.');render();return;
+  pvpSetStatus('Jogador 1 começa a preparação. Toque em PRONTO para passar a vez.');render();if(!game.deckConfirmed)openDeckModal();return;
  }
  if(pvp.waitingNext)return;
  pvp.waitingNext=true;pvpSend({type:'next'});pvpSetStatus('Você confirmou. Esperando o amigo confirmar também...');
@@ -1352,12 +1431,12 @@ function updatePrepTimer(){
 setInterval(updatePrepTimer,1000);
 function pvpRenderActions(){
  const active=game.phase==='combat',waiting=game.phase==='pvp_wait';
- $('fightBtn').disabled=game.phase!=='prep'||deployed().length===0;
+ $('fightBtn').disabled=game.phase!=='prep'||deployed().length===0||!game.deckConfirmed;
  $('fightBtn').textContent=waiting?'✅ PRONTO — AGUARDANDO':active?'⚔️ LUTANDO...':game.phase==='result'?'BATALHA ENCERRADA':'✅ CONFIRMAR EQUIPE';
  $('speedBtn').hidden=!active||pvp.seat!==0;
  if(!$('speedBtn').hidden)$('speedBtn').textContent=`⏩ ${battle?.speed===1?'2×':'1×'}`;
  $('phaseNote').textContent=waiting?'Equipe bloqueada enquanto espera o outro jogador.':active?'Duelo PvP: o combate usa as equipes e os itens dos dois jogadores.':game.phase==='prep'?`Rodada ${pvp.round}. Prepare até ${capacity()} miniaturas e confirme quando estiver pronto.`:'Duelo encerrado. Consulte o relatório.';
- $('battleTip').textContent=game.phase==='prep'?'📌 Cada jogador tem sua própria loja, mochila e formação. Os dois entram com as mesmas moedas iniciais.':active?'⚔️ As alianças e equipamentos dos dois lados influenciam o combate.':'🏆 Vence quem conseguir três vitórias.';
+ $('battleTip').textContent=game.phase==='prep'?'🎴 Cada jogador escolhe 10 tipos. O derrotado perde vida conforme os adversários sobreviventes e a rodada.':active?'⚔️ As alianças e equipamentos dos dois lados influenciam o combate.':'🏆 O primeiro jogador a ficar sem pontos de vida perde.';
  pvpUpdateBanner();updatePrepTimer();
 }
 function pvpServerUrl(){
@@ -1416,17 +1495,17 @@ function pvpMessage(msg){
  if(msg.type==='joined'){
   const resuming=!!msg.reconnected&&pvp.active;
   if(!resuming)pvpActivate(false);else{clearTimeout(pvp.reconnectTimer);pvp.reconnectAttempts=0;clearTimeout(clock);battle=null;game.phase='prep';game.preview=[];game.selected=null;pvp.ready=false;pvp.waitingNext=false;}
-  pvp.reconnectToken=msg.token||pvp.reconnectToken;pvp.seat=msg.seat;pvp.round=msg.round||1;pvp.wins=msg.wins||[0,0];pvp.room=msg.code;game.round=pvp.round;pvp.names=msg.names||['Jogador 1','Jogador 2'];pvp.connected=msg.connected||[true,false];pvp.privateRank=msg.seriesWins||[0,0];pvp.privateHistory=msg.history||[];pvp.prepDeadline=msg.prepDeadline||0;
+  pvp.reconnectToken=msg.token||pvp.reconnectToken;pvp.seat=msg.seat;pvp.round=msg.round||1;pvp.wins=msg.wins||[0,0];pvp.hp=msg.hp||pvp.hp;pvp.room=msg.code;game.round=pvp.round;pvp.names=msg.names||['Jogador 1','Jogador 2'];pvp.connected=msg.connected||[true,false];pvp.privateRank=msg.seriesWins||[0,0];pvp.privateHistory=msg.history||[];pvp.prepDeadline=msg.prepDeadline||0;
   $('pvpCode').hidden=false;$('pvpCode').textContent=`SALA ${pvp.room}`;$('pvpCopyBtn').hidden=false;
-  pvpSetStatus(resuming?(pvp.connected.every(Boolean)?'✅ Reconectado. Prepare sua equipe novamente.':'✅ Reconectado. Aguardando o amigo voltar.'):(pvp.connected.every(Boolean)?'Os dois jogadores entraram. Prepare seu time.':'Sala criada. Compartilhe o código ou convite com seu amigo.'));render();
+  if(!resuming&&!game.deckConfirmed)openDeckModal();pvpSetStatus(resuming?(pvp.connected.every(Boolean)?'✅ Reconectado. Prepare sua equipe novamente.':'✅ Reconectado. Aguardando o amigo voltar.'):(pvp.connected.every(Boolean)?'Os dois jogadores entraram. Prepare seu time.':'Sala criada. Compartilhe o código ou convite com seu amigo.'));render();
  }else if(msg.type==='connection_lost'&&pvp.active&&!pvp.local){
   clearTimeout(clock);battle=null;game.phase='prep';game.preview=[];pvp.ready=false;pvp.waitingNext=false;
-  pvp.round=msg.round||pvp.round;game.round=pvp.round;pvp.wins=msg.wins||pvp.wins;pvp.connected[Number(msg.seat)]=false;
+  pvp.round=msg.round||pvp.round;game.round=pvp.round;pvp.wins=msg.wins||pvp.wins;pvp.hp=msg.hp||pvp.hp;pvp.connected[Number(msg.seat)]=false;
   pvpSetStatus(`⚠️ Jogador ${Number(msg.seat)+1} desconectou. Sala reservada por ${msg.graceSeconds||150} segundos. Aguarde a reconexão.`);render();
  }else if(msg.type==='prep_timeout'&&pvp.active&&!pvp.local){
   game.phase='prep';pvp.ready=false;pvp.waitingNext=false;pvpSetStatus('⏱️ Tempo de preparação reiniciado. Confirme a equipe novamente.');render();
  }else if(msg.type==='state'&&pvp.active&&!pvp.local){
-  pvp.names=msg.names||pvp.names;pvp.connected=msg.connected||pvp.connected;pvp.privateRank=msg.seriesWins||pvp.privateRank;pvp.privateHistory=msg.history||pvp.privateHistory;pvp.prepDeadline=msg.prepDeadline||0;pvp.wins=msg.wins||pvp.wins;pvp.round=msg.round||pvp.round;game.round=pvp.round;
+  pvp.names=msg.names||pvp.names;pvp.connected=msg.connected||pvp.connected;pvp.privateRank=msg.seriesWins||pvp.privateRank;pvp.privateHistory=msg.history||pvp.privateHistory;pvp.prepDeadline=msg.prepDeadline||0;pvp.wins=msg.wins||pvp.wins;pvp.hp=msg.hp||pvp.hp;pvp.round=msg.round||pvp.round;game.round=pvp.round;
   if(!pvp.connected.every(Boolean)&&['combat','result','pvp_wait'].includes(game.phase)){
    clearTimeout(clock);battle=null;game.phase='prep';game.preview=[];pvp.ready=false;pvp.waitingNext=false;render();
   }
@@ -1438,13 +1517,13 @@ function pvpMessage(msg){
  }else if(msg.type==='frame'&&pvp.active&&!pvp.local){
   if(pvp.seat===1&&msg.frame)pvpGuestFrame(msg.frame)
  }else if(msg.type==='result'&&pvp.active&&!pvp.local){
-  pvp.wins=msg.wins;pvp.matchDone=!!msg.done;pvp.privateRank=msg.seriesWins||pvp.privateRank;pvp.privateHistory=msg.history||pvp.privateHistory;
+  pvp.wins=msg.wins;pvp.hp=msg.hp||pvp.hp;pvp.lastDamage=msg.damage||0;pvp.matchDone=!!msg.done;pvp.privateRank=msg.seriesWins||pvp.privateRank;pvp.privateHistory=msg.history||pvp.privateHistory;
   pvpShowResult(!!msg.hostWin);
  }else if(msg.type==='nextRound'&&pvp.active&&!pvp.local){
-  pvp.round=msg.round;pvp.wins=msg.wins;pvp.ready=false;pvp.matchRecorded=false;pvp.prepDeadline=Date.now()+120000;pvp.waitingNext=false;game.round=pvp.round;
+  pvp.round=msg.round;pvp.wins=msg.wins;pvp.hp=msg.hp||pvp.hp;pvp.ready=false;pvp.matchRecorded=false;pvp.prepDeadline=Date.now()+120000;pvp.waitingNext=false;game.round=pvp.round;
   if(msg.rematch){game=pvpMakeGame();game.round=1;}
   else{pvpRefreshRound(game,pvp.round,msg.lastWinner===pvp.seat)}
-  battle=null;game.phase='prep';pvpSetStatus('Nova rodada! Prepare e confirme a equipe.');render();
+  battle=null;game.phase='prep';pvpSetStatus('Nova rodada! Prepare e confirme a equipe.');render();if(!game.deckConfirmed)openDeckModal();
  }
 }
 
@@ -1455,7 +1534,7 @@ let catalogShowingItems=false;
 function readHistory(){try{const arr=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');return Array.isArray(arr)?arr:[]}catch{return []}}
 function pvpRecordCompleted(){
  const record={id:Date.now()+'-'+Math.random().toString(36).slice(2,7),at:new Date().toISOString(),
-  names:pvp.names.slice(),score:pvp.wins.slice(),winner:pvp.lastWinner,mode:pvp.local?(pvp.tournament?'torneio local':'duelo local'):'sala '+pvp.room};
+  names:pvp.names.slice(),score:pvp.wins.slice(),hp:pvp.hp.slice(),winner:pvp.lastWinner,mode:pvp.local?(pvp.tournament?'torneio local':'duelo local'):'sala '+pvp.room};
  const arr=readHistory();arr.unshift(record);try{localStorage.setItem(HISTORY_KEY,JSON.stringify(arr.slice(0,60)))}catch{}
  if(pvp.tournament){pvp.tournament.winners[pvp.tournament.step]=pvp.names[pvp.lastWinner];
   pvp.tournament.results.push(record);saveTournament()}
@@ -1493,7 +1572,7 @@ function renderHistory(){
  const arr=readHistory();const scores=new Map();for(const r of arr){for(let i=0;i<2;i++){let name=r.names?.[i]||`Jogador ${i+1}`;let st=scores.get(name)||{wins:0,loss:0};if(r.winner===i)st.wins++;else st.loss++;scores.set(name,st)}}
  const ranking=[...scores.entries()].sort((a,b)=>b[1].wins-a[1].wins);
  const serverHtml=pvp.active&&!pvp.local?`<div class="feature-card feature-highlight"><div><strong>🔒 Ranking desta sala ${esc(pvp.room)}</strong><small>${esc(pvp.names[0])}: ${pvp.privateRank[0]||0} séries · ${esc(pvp.names[1])}: ${pvp.privateRank[1]||0} séries</small><small>Este placar não é público e será apagado quando o servidor reiniciar.</small></div></div>`:'';
- $('historyResults').innerHTML=serverHtml+(ranking.length?`<div class="feature-card"><div><strong>🏅 Classificação neste aparelho</strong>${ranking.map(([name,st],i)=>`<small>${i+1}. ${esc(name)} · ${st.wins} vitórias / ${st.loss} derrotas</small>`).join('')}</div></div>`:'<p>Nenhum duelo completo registrado neste aparelho.</p>')+arr.slice(0,30).map(r=>`<div class="feature-card"><div><strong>🏆 ${esc(r.names?.[r.winner]||'Vencedor')}</strong><small>${esc(r.names?.[0]||'?')} ${r.score?.[0]||0} × ${r.score?.[1]||0} ${esc(r.names?.[1]||'?')}</small><small>${esc(r.mode||'Duelo')} · ${new Date(r.at).toLocaleString('pt-BR')}</small></div></div>`).join('');
+ $('historyResults').innerHTML=serverHtml+(ranking.length?`<div class="feature-card"><div><strong>🏅 Classificação neste aparelho</strong>${ranking.map(([name,st],i)=>`<small>${i+1}. ${esc(name)} · ${st.wins} vitórias / ${st.loss} derrotas</small>`).join('')}</div></div>`:'<p>Nenhum duelo completo registrado neste aparelho.</p>')+arr.slice(0,30).map(r=>`<div class="feature-card"><div><strong>🏆 ${esc(r.names?.[r.winner]||'Vencedor')}</strong><small>${esc(r.names?.[0]||'?')} ${r.score?.[0]||0} × ${r.score?.[1]||0} ${esc(r.names?.[1]||'?')}${r.hp?' · ❤️ '+r.hp.join(' × '):''}</small><small>${esc(r.mode||'Duelo')} · ${new Date(r.at).toLocaleString('pt-BR')}</small></div></div>`).join('');
 }
 function saveTournament(){if(pvp.tournament)try{localStorage.setItem(TOURNAMENT_KEY,JSON.stringify(pvp.tournament))}catch{}}
 function renderTournamentSetup(){const tournament=pvp.tournament;const el=$('tournamentBracket');
@@ -1502,15 +1581,15 @@ function renderTournamentSetup(){const tournament=pvp.tournament;const el=$('tou
 }
 function startTournament(){if(pvp.active)return;
  const names=[...document.querySelectorAll('.tourney-name')].map((el,i)=>el.value.trim().slice(0,24)||`Amigo ${i+1}`);
- const tournament={names,step:0,winners:[],results:[]};pvpStartLocal();pvp.tournament=tournament;pvp.names=[names[0],names[1]];saveTournament();closeFeature('tournamentModal');pvpSetStatus('🏆 Semifinal 1 — '+names[0]+' × '+names[1]+'. Cada jogador monta sua equipe.');render();
+ const tournament={names,step:0,winners:[],results:[]};pvpStartLocal();pvp.tournament=tournament;pvp.names=[names[0],names[1]];saveTournament();closeFeature('tournamentModal');pvpSetStatus('🏆 Semifinal 1 — '+names[0]+' × '+names[1]+'. Cada jogador escolhe 10 tipos e monta sua equipe.');render();
 }
 function tournamentAdvance(){
  const t=pvp.tournament;if(!t)return;
  t.step++;
  if(t.step>=3){const winner=t.winners[2];pvpLeave();openModal('🏆','Campeão do torneio: '+winner,'Final encerrada! Os resultados ficam no histórico deste aparelho.','','VOLTAR AO JOGO','',closeModal);return}
- pvp.wins=[0,0];pvp.round=1;pvp.matchDone=false;pvp.matchRecorded=false;pvp.lastWinner=null;pvp.localGames=[pvpMakeGame(),pvpMakeGame()];game=pvp.localGames[0];pvp.seat=0;battle=null;
+ pvp.wins=[0,0];pvp.hp=[PVP_START_HP,PVP_START_HP];pvp.round=1;pvp.matchDone=false;pvp.matchRecorded=false;pvp.lastWinner=null;pvp.localGames=[pvpMakeGame(),pvpMakeGame()];game=pvp.localGames[0];pvp.seat=0;battle=null;
  pvp.names=t.step===1?[t.names[2],t.names[3]]:[t.winners[0],t.winners[1]];
- saveTournament();pvpSetStatus(`🏆 ${t.step===1?'Semifinal 2':'Grande final'}: ${pvp.names[0]} × ${pvp.names[1]}.`);render();
+ saveTournament();pvpSetStatus(`🏆 ${t.step===1?'Semifinal 2':'Grande final'}: ${pvp.names[0]} × ${pvp.names[1]}.`);render();openDeckModal();
 }
 $('catalogOpenBtn').onclick=()=>openFeature('catalogModal');
 $('campaignOpenBtn').onclick=()=>openFeature('campaignModal');
@@ -1529,9 +1608,14 @@ window.__miniFeatures={renderCatalog,renderCampaign,renderHistory,startTournamen
 $('pvpOpenBtn').onclick=()=>{$('pvpShell').hidden=!$('pvpShell').hidden;if(!$('pvpShell').hidden)$('pvpShell').scrollIntoView({behavior:'smooth',block:'start'})};
 $('pvpLocalBtn').onclick=pvpStartLocal;
 $('pvpCreateBtn').onclick=()=>pvpConnect('create');$('pvpJoinBtn').onclick=()=>pvpConnect('join');
+$('deckSummary').addEventListener('click',e=>{if(e.target.closest('#deckOpenBtn'))openDeckModal()});
+$('deckGrid').addEventListener('click',e=>{const b=e.target.closest('[data-deck-type]');if(b)toggleDeckType(b.dataset.deckType)});
+$('deckConfirmBtn').onclick=confirmDeck;
+$('deckCloseBtn').onclick=closeDeckModal;
 $('pvpLeaveBtn').onclick=()=>{if(confirm('Abandonar o duelo e voltar ao modo solo?'))pvpLeave()};
 $('pvpCopyBtn').onclick=async()=>{const base=$('pvpServer').value.trim()||(/^https?:$/.test(location.protocol)?location.origin:'');const link=base?base.replace(/\/$/,'')+'/?room='+encodeURIComponent(pvp.room):'Código da sala: '+pvp.room;try{await navigator.clipboard.writeText(link);showToast('Convite copiado!')}catch{prompt('Copie este convite:',link)}};
 try{const code=new URLSearchParams(location.search).get('room');if(code&&/^[A-Z0-9]{6}$/i.test(code)){$('pvpJoinCode').value=code.toUpperCase();$('pvpShell').hidden=false;}}catch{}
+window.__miniDeckDebug={validDeck,pvpDamage,open:openDeckModal,confirm:confirmDeck,toggle:toggleDeckType,get:()=>({deck:game.deck,confirmed:game.deckConfirmed,pvpHp:pvp.hp.slice(),draft:deckDraft.slice()})};
 window.__miniPvpDebug={startLocal:pvpStartLocal,ready:pvpReady,leave:pvpLeave,getState:()=>({active:pvp.active,local:pvp.local,seat:pvp.seat,round:pvp.round,wins:[...pvp.wins],phase:game.phase,roster:game.roster,server:pvp.server,hasReconnectToken:!!pvp.reconnectToken,reconnectAttempts:pvp.reconnectAttempts}),advance:pvpAdvance,pvpStartHost,pvpShowResult};
 
 if(!load())newRun();else render();updateAudioStatus();restorePvpSession();
