@@ -25,6 +25,15 @@ ALLOWED_TYPES = set('guard spear axe bow druid hunter mage cleric golem rogue gh
 DECK_SIZE=14
 MAX_DECK_GROUP=5
 PVP_START_HP=70
+# Bênçãos PvP: duas escolhas independentes, antes das rodadas 5,9,13...
+PVP_BLESSING_EFFECTS={
+ 'gold':None, 'item':None, 'sword':('ad',2), 'magic':('ap',2),
+ 'armor':('armor',2), 'speed':('speed',0.06), 'vitality':('hp',14)
+}
+def pvp_buffs_zero():
+ return {'atk':0,'ad':0,'ap':0,'armor':0,'speed':0.0,'hp':0}
+def pvp_blessing_round(round_number):
+ return round_number>1 and (round_number-1)%4==0
 TYPE_GROUPS={'ferro':set('guard spear axe paladin sentinel'.split()),'selva':set('bow druid hunter toxic shaman'.split()),'arcano':set('mage cleric golem frost storm'.split()),'sombra':set('rogue ghost necro shade'.split()),'elemental':set('pyro tide earth spark'.split()),'sagrado':set('seraph monk templar oracle'.split())}
 ALLOWED_ITEMS=set('sword mail ward focus boots amulet ring orb staff charm shield lance bloodblade bastion windfang divine piercer heart arcana wardsteps'.split())
 # This is an authoritative relay for lobby, score and turns; the room creator runs
@@ -45,6 +54,10 @@ class Room:
     wins: list = field(default_factory=lambda: [0, 0])
     hp: list = field(default_factory=lambda: [PVP_START_HP,PVP_START_HP])
     decks: list = field(default_factory=lambda: [None,None])
+    blessing_offers: list = field(default_factory=lambda: [[],[]])
+    blessing_taken_round: list = field(default_factory=lambda: [0,0])
+    blessing_offer_round: int = 0
+    blessing_buffs: list = field(default_factory=lambda: [pvp_buffs_zero(),pvp_buffs_zero()])
     series_wins: list = field(default_factory=lambda: [0, 0])
     history: list = field(default_factory=list)
     prep_deadline: float = 0.0
@@ -52,6 +65,15 @@ class Room:
     phase: str = 'prep'
     last_winner: int | None = None
     updated: float = field(default_factory=time.monotonic)
+
+    def start_blessing_round(self):
+        if pvp_blessing_round(self.round):
+            picker=secrets.SystemRandom()
+            self.blessing_offers=[picker.sample(list(PVP_BLESSING_EFFECTS),3) for _ in range(2)]
+        else:
+            self.blessing_offers=[[],[]]
+        self.blessing_taken_round=[0,0]
+        self.blessing_offer_round=self.round if pvp_blessing_round(self.round) else 0
 
     def touch(self):
         self.updated = time.monotonic()
@@ -173,19 +195,44 @@ async def ws_handler(request):
                     if not reconnected: room.names[seat]=name
                     room.touch()
                     if all(room.clients) and room.phase=='prep' and not room.prep_deadline:room.prep_deadline=time.time()+120
+                    if pvp_blessing_round(room.round) and room.blessing_offer_round!=room.round:
+                        room.start_blessing_round()
                     await send(ws, {'type':'joined','code':room.code,'seat':seat,'round':room.round,'wins':room.wins,'hp':room.hp,'token':room.tokens[seat],
                                     'reconnected':reconnected,'phase':room.phase,
                                     'names':room.names,'connected':[bool(x and not x.closed) for x in room.clients],
-                                    'seriesWins':room.series_wins,'history':room.history[-10:],'prepDeadline':int(room.prep_deadline*1000)})
+                                    'seriesWins':room.series_wins,'history':room.history[-10:],'prepDeadline':int(room.prep_deadline*1000),
+                                     'blessingOffer':room.blessing_offers[seat],
+                                     'blessingTaken':room.blessing_taken_round[seat]==room.round,
+                                     'ownBuffs':room.blessing_buffs[seat]})
                     await broadcast(room,room.message())
+                    for i,c in enumerate(room.clients):
+                        await send(c,{'type':'blessingOffer','round':room.round,'options':room.blessing_offers[i],
+                                      'taken':room.blessing_taken_round[i]==room.round,'ownBuffs':room.blessing_buffs[i]})
                 elif kind == 'leave':
                     voluntary=True
                     break
                 elif not room or seat is None or room.clients[seat] is not ws:
                     await error(ws,'Entre em uma sala primeiro.')
+                elif kind == 'blessing':
+                    if room.phase!='prep' or not pvp_blessing_round(room.round):
+                        await error(ws,'Não há bênção disponível nesta rodada.');continue
+                    blessing_id=event.get('id')
+                    if not isinstance(blessing_id,str) or blessing_id not in room.blessing_offers[seat]:
+                        await error(ws,'Bênção fora das três opções disponíveis.');continue
+                    if room.blessing_taken_round[seat]==room.round:
+                        await error(ws,'A bênção desta rodada já foi escolhida.');continue
+                    effect=PVP_BLESSING_EFFECTS[blessing_id]
+                    if effect:
+                        stat,amount=effect
+                        room.blessing_buffs[seat][stat]=round(room.blessing_buffs[seat][stat]+amount,4)
+                    room.blessing_taken_round[seat]=room.round
+                    room.touch()
+                    await send(ws,{'type':'blessingConfirmed','id':blessing_id,'round':room.round,'ownBuffs':room.blessing_buffs[seat]})
                 elif kind == 'ready':
                     if room.phase != 'prep':
                         await error(ws,'A partida não está em preparação.');continue
+                    if pvp_blessing_round(room.round) and room.blessing_taken_round[seat]!=room.round:
+                        await error(ws,'Escolha a bênção desta rodada antes de confirmar a equipe.');continue
                     if not all(c and not c.closed for c in room.clients):
                         await error(ws,'Aguardando seu amigo entrar na sala.');continue
                     try:
@@ -205,7 +252,9 @@ async def ws_handler(request):
                         room.prep_deadline=0
                         room.phase='combat'
                         for i,c in enumerate(room.clients):
-                            await send(c, {'type':'start','round':room.round,'opponentUnits':room.units[1-i]})
+                            await send(c, {'type':'start','round':room.round,'opponentUnits':room.units[1-i],
+                                           'ownBuffs':room.blessing_buffs[i],
+                                           'opponentBuffs':room.blessing_buffs[1-i]})
                     else:
                         await broadcast(room,room.message())
                 elif kind == 'frame':
@@ -247,13 +296,18 @@ async def ws_handler(request):
                             room.wins=[0,0]
                             room.hp=[PVP_START_HP,PVP_START_HP]
                             room.decks=[None,None]
+                            room.blessing_buffs=[pvp_buffs_zero(),pvp_buffs_zero()]
+                        room.start_blessing_round()
                         room.ready=[False,False]
                         room.next_ready=[False,False]
                         room.units=[[],[]]
                         room.phase='prep'
                         room.prep_deadline=time.time()+120
-                        await broadcast(room, {'type':'nextRound','round':room.round,'wins':room.wins,'hp':room.hp,
-                                               'rematch':rematch,'lastWinner':room.last_winner})
+                        for i,c in enumerate(room.clients):
+                            await send(c, {'type':'nextRound','round':room.round,'wins':room.wins,'hp':room.hp,
+                                           'rematch':rematch,'lastWinner':room.last_winner,
+                                           'blessingOffer':room.blessing_offers[i],
+                                           'ownBuffs':room.blessing_buffs[i]})
                         room.last_winner=None
                     else:
                         await broadcast(room,room.message())
@@ -282,8 +336,9 @@ async def ws_handler(request):
                 if room.phase in ('combat','result','done'):
                     if room.phase == 'result':room.round+=1
                     elif room.phase == 'done':
-                        room.round=1;room.wins=[0,0];room.hp=[PVP_START_HP,PVP_START_HP];room.decks=[None,None]
+                        room.round=1;room.wins=[0,0];room.hp=[PVP_START_HP,PVP_START_HP];room.decks=[None,None];room.blessing_buffs=[pvp_buffs_zero(),pvp_buffs_zero()];room.start_blessing_round()
                     room.phase='prep'
+                    if pvp_blessing_round(room.round) and room.blessing_offer_round!=room.round:room.start_blessing_round()
                     room.prep_deadline=0
                     room.units=[[],[]]
                     room.ready=[False,False]
