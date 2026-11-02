@@ -85,6 +85,7 @@
     if(msg.type==='joined'&&msg.ranked){searching=false;clearInterval(timer);if(ui())ui().hidden=true;getRating().catch(()=>{})}
     if(msg.type==='ranked_rating'){displayRating(msg.rating);status(msg.won?'Vitória! +10 pontos':'Derrota. −10 pontos');getRating().catch(()=>{})}
     if(msg.type==='ranked_forfeit'){getRating().catch(()=>{})}
+    if(msg.type==='ranked_cancelled'){searching=false;clearInterval(timer);if(ui())ui().hidden=true;}
     if(msg.type==='ranked_error'){searching=false;clearInterval(timer);status(msg.message||'Busca interrompida.');$('miniRankedCancel').textContent='Voltar ao menu';}
   });
   document.addEventListener('click',ev=>{
@@ -98,6 +99,7 @@
       scheduled=true;Promise.resolve().then(()=>{scheduled=false;displayRating(lastRating)});
     }).observe(tab,{childList:true,subtree:true});
   }
+  if($('menuOpenBtn'))$('menuOpenBtn').addEventListener('click',()=>{if(searching)stop()},true);
   if($('homePvp'))$('homePvp').onclick=()=>play();
   ui();getRating().catch(()=>{});
 })();
