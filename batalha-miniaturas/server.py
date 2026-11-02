@@ -1,6 +1,6 @@
 """Servidor leve de duelos para Batalha de Miniaturas.
 Execute: pip install -r requirements.txt && python server.py
-Todos os dados são mantidos na memória; nenhuma conta é necessária.
+As salas são temporárias; o ranqueamento e as contas ficam no PostgreSQL.
 """
 import asyncio
 import json
@@ -82,7 +82,7 @@ class Room:
         return {'type':'state','code':self.code,'round':self.round,'wins':self.wins,
                 'names':self.names,'hp':self.hp,'connected':[bool(ws and not ws.closed) for ws in self.clients],
                 'ready':self.ready,'phase':self.phase,'seriesWins':self.series_wins,
-                'history':self.history[-10:], 'prepDeadline':int(self.prep_deadline*1000), 'paused':any(self.claimed[i] and not self.clients[i] for i in (0,1))}
+                'history':self.history[-10:], 'ranked':bool(getattr(self,'ranked',False)), 'prepDeadline':int(self.prep_deadline*1000), 'paused':any(self.claimed[i] and not self.clients[i] for i in (0,1))}
 
 async def send(ws, data):
     if ws and not ws.closed:
@@ -147,6 +147,7 @@ def validate_units(raw, round_number):
 async def ws_handler(request):
     ws = web.WebSocketResponse(heartbeat=30, max_msg_size=180_000)
     await ws.prepare(request)
+    ranked=request.app['mini_ranked']
     room = None
     seat = None
     voluntary = False
@@ -159,6 +160,21 @@ async def ws_handler(request):
                 if not isinstance(event,dict):
                     raise ValueError('Mensagem inválida')
                 kind = event.get('type')
+                if room is None and ws in ranked.by_socket:
+                    room,seat=ranked.by_socket[ws]
+                if kind=='ranked_queue':
+                    if room:
+                        await error(ws,'Você já está em partida.');continue
+                    try:
+                        matched=await ranked.register(request,ws)
+                    except AuthError as exc:
+                        await error(ws,str(exc));continue
+                    if matched:room,seat=matched
+                    continue
+                if kind=='ranked_cancel':
+                    await ranked.stop_queue(ws)
+                    voluntary=True
+                    break
                 if kind in ('create','join','resume'):
                     if room:
                         await error(ws,'Você já entrou em uma sala.');continue
@@ -178,11 +194,18 @@ async def ws_handler(request):
                         candidate = ROOMS.get(code)
                         if not candidate:
                             await error(ws,'Sala não encontrada ou expirada. Confira o código.');continue
+                        if getattr(candidate,'ranked',False) and kind!='resume':
+                            await error(ws,'Esta sala é exclusiva da fila ranqueada.');continue
                         if kind == 'resume':
                             token=str(event.get('token',''))
                             found=next((i for i in (0,1) if candidate.claimed[i] and secrets.compare_digest(candidate.tokens[i],token)),None)
                             if found is None or candidate.clients[found] is not None or not candidate.disconnected_at[found] or time.monotonic()-candidate.disconnected_at[found]>RECONNECT_GRACE:
                                 await error(ws,'Reconexão não autorizada ou expirada.');continue
+                            if getattr(candidate,'ranked',False):
+                                account=await asyncio.to_thread(ranked.db.from_session,request.cookies.get(COOKIE_NAME,''))
+                                if not account or account['id']!=candidate.ranked_ids[found]:
+                                    await error(ws,'Conta incompatível com a reconexão ranqueada.');continue
+                                ranked.by_socket[ws]=(candidate,found)
                             room,seat=candidate,found
                         else:
                             if candidate.phase != 'prep' or candidate.clients[1] is not None or (candidate.claimed[1] and candidate.disconnected_at[1] and time.monotonic()-candidate.disconnected_at[1]<RECONNECT_GRACE):
@@ -197,7 +220,7 @@ async def ws_handler(request):
                     if all(room.clients) and room.phase=='prep' and not room.prep_deadline:room.prep_deadline=time.time()+120
                     if pvp_blessing_round(room.round) and room.blessing_offer_round!=room.round:
                         room.start_blessing_round()
-                    await send(ws, {'type':'joined','code':room.code,'seat':seat,'round':room.round,'wins':room.wins,'hp':room.hp,'token':room.tokens[seat],
+                    await send(ws, {'type':'joined','ranked':bool(getattr(room,'ranked',False)),'code':room.code,'seat':seat,'round':room.round,'wins':room.wins,'hp':room.hp,'token':room.tokens[seat],
                                     'reconnected':reconnected,'phase':room.phase,
                                     'names':room.names,'connected':[bool(x and not x.closed) for x in room.clients],
                                     'seriesWins':room.series_wins,'history':room.history[-10:],'prepDeadline':int(room.prep_deadline*1000),
@@ -209,6 +232,8 @@ async def ws_handler(request):
                         await send(c,{'type':'blessingOffer','round':room.round,'options':room.blessing_offers[i],
                                       'taken':room.blessing_taken_round[i]==room.round,'ownBuffs':room.blessing_buffs[i]})
                 elif kind == 'leave':
+                    if room and getattr(room,'ranked',False) and room.phase!='done':
+                        await ranked.forfeit(room,seat)
                     voluntary=True
                     break
                 elif not room or seat is None or room.clients[seat] is not ws:
@@ -265,10 +290,29 @@ async def ws_handler(request):
                         continue
                     if len(frame['allies'])>12 or len(frame['enemies'])>12:
                         continue
+                    if getattr(room,'ranked',False):
+                        room.ranked_last_frame=frame
                     await send(room.clients[1], {'type':'frame','frame':frame})
                 elif kind == 'finish':
                     if room.phase != 'combat' or seat!=0 or type(event.get('hostWin'))!=bool:
                         continue
+                    if getattr(room,'ranked',False):
+                        frame=getattr(room,'ranked_last_frame',None)
+                        if not isinstance(frame,dict):
+                            await error(ws,'Resultado não validado: faltam quadros do combate.');continue
+                        a=[u for u in frame.get('allies',[]) if isinstance(u,dict) and isinstance(u.get('hp'),(int,float)) and u['hp']>0]
+                        b=[u for u in frame.get('enemies',[]) if isinstance(u,dict) and isinstance(u.get('hp'),(int,float)) and u['hp']>0]
+                        if not a and not b:
+                            await error(ws,'Resultado inválido: ambos os lados sem unidades.');continue
+                        if not b:expected=True
+                        elif not a:expected=False
+                        else:
+                            if not isinstance(frame.get('tick'),int) or frame['tick']<115:
+                                await error(ws,'A batalha ainda não terminou.');continue
+                            expected=sum(u['hp']/max(1,u.get('maxHp',1) if isinstance(u.get('maxHp'),(int,float)) else 1) for u in a)>sum(u['hp']/max(1,u.get('maxHp',1) if isinstance(u.get('maxHp'),(int,float)) else 1) for u in b)
+                        expected_stars=sorted(u.get('star') for u in (a if expected else b))
+                        if expected!=event['hostWin'] or sorted(event.get('survivorStars') or [])!=expected_stars:
+                            await error(ws,'Resultado inconsistente com os últimos quadros do combate.');continue
                     room.phase='result'
                     room.last_winner=0 if event['hostWin'] else 1
                     survived=validate_survivors(event.get('survivorStars'),room.units[room.last_winner])
@@ -284,7 +328,11 @@ async def ws_handler(request):
                     room.next_ready=[False,False]
                     room.touch()
                     await broadcast(room, {'type':'result','hostWin':event['hostWin'],'wins':room.wins,'hp':room.hp,'damage':damage,'survivorStars':survived,'done':done,'seriesWins':room.series_wins,'history':room.history[-10:]})
+                    if done and getattr(room,'ranked',False):
+                        await ranked.finish(room,room.last_winner)
                 elif kind == 'next':
+                    if getattr(room,'ranked',False) and room.phase=='done':
+                        await error(ws,'Ranqueado encerrado. Entre novamente na fila para outra partida.');continue
                     if room.phase not in ('result','done'):
                         continue
                     room.next_ready[seat]=True
@@ -314,6 +362,20 @@ async def ws_handler(request):
             except (ValueError,TypeError,KeyError) as exc:
                 await error(ws, f'Pedido inválido: {str(exc)[:110]}')
     finally:
+        if room is None and ws in ranked.by_socket:
+            room,seat=ranked.by_socket[ws]
+        await ranked.stop_queue(ws)
+        if room and seat is not None and room.clients[seat] is ws and getattr(room,'ranked',False):
+            room.clients[seat]=None
+            room.ready[seat]=False
+            room.touch()
+            room.disconnected_at[seat]=time.monotonic()
+            if voluntary and room.phase!='done':
+                await ranked.forfeit(room,seat)
+            elif not voluntary and room.phase!='done':
+                await broadcast(room,{'type':'connection_lost','seat':seat,'graceSeconds':RECONNECT_GRACE,
+                                      'round':room.round,'wins':room.wins,'hp':room.hp})
+            room=None
         if room and seat is not None and room.clients[seat] is ws:
             room.clients[seat]=None
             room.ready[seat]=False
@@ -347,9 +409,22 @@ async def ws_handler(request):
                 await broadcast(room,room.message())
     return ws
 
+RANKED_BRIDGE="window.__miniRankedBridge={\n showRanked(){modeShell(false);showGame();$('pvpShell').hidden=false;const h=$('pvpShell').querySelector('.pvp-panel h2');if(h)h.textContent='⚔️ PvP Ranqueado · 70 de vida';},\n showFriendly(){if(pvp.ranked&&!pvp.active)this.cancel();pvp.ranked=false;modeShell(false);showGame();$('pvpShell').hidden=false;const h=$('pvpShell').querySelector('.pvp-panel h2');if(h)h.textContent='⚔️ Duelo entre amigos · Sistema de vida';if($('miniRankedQueue'))$('miniRankedQueue').hidden=true;if($('pvpOnlineNote'))$('pvpOnlineNote').hidden=false;$('pvpSetup').hidden=false;},\n connect(){pvp.ranked=true;pvp.leaving=false;pvp.reconnectAttempts=0;pvpSetStatus('Procurando adversário ranqueado...');pvpWireSocket(new WebSocket(pvpServerUrl()),{type:'ranked_queue'});},\n cancel(){if(!pvp.active){pvp.leaving=true;try{pvp.socket?.send(JSON.stringify({type:'ranked_cancel'}));pvp.socket?.close()}catch{}pvp.socket=null;pvp.ranked=false;}},\n back(){this.cancel();showHome();},\n state(){return{active:!!pvp.active,ranked:!!pvp.ranked}}\n};"
+RANKED_MESSAGE_HEAD="if(msg.type==='ranked_wait'){document.dispatchEvent(new CustomEvent('mini-ranked',{detail:msg}));return;}\n  if(msg.type==='ranked_rating'){document.dispatchEvent(new CustomEvent('mini-ranked',{detail:msg}));showToast(msg.won?'🏆 Vitória ranqueada! +10 pontos':'⚔️ Derrota ranqueada. −10 pontos');return;}\n  if(msg.type==='ranked_forfeit'){document.dispatchEvent(new CustomEvent('mini-ranked',{detail:msg}));if(pvp.active){pvp.hp=msg.hp||pvp.hp;pvp.matchDone=true;pvpShowResult(msg.winner===0);}return;}\n  if(msg.type==='error'&&pvp.ranked&&!pvp.active){document.dispatchEvent(new CustomEvent('mini-ranked',{detail:{type:'ranked_error',message:msg.message}}));}\n  if(msg.type==='joined'&&msg.ranked)pvp.ranked=true;"
+RANKED_JOIN_FOOTER="render();pvpOpenPendingBlessing();\n  }else if(msg.type==='connection_lost'"
+RANKED_JOIN_REPLACE="render();pvpOpenPendingBlessing();if(msg.ranked){pvp.ranked=true;$('pvpCode').hidden=true;$('pvpCopyBtn').hidden=true;pvpSetStatus('Adversário encontrado! Prepare sua equipe.');document.dispatchEvent(new CustomEvent('mini-ranked',{detail:msg}));}\n  }else if(msg.type==='connection_lost'"
 async def index(_request):
     html=(ROOT/'index.html').read_text(encoding='utf-8')
-    html=html.replace('</body>', '<script defer src="/friends_client.js"></script><script defer src="/profile_client.js"></script></body>', 1)
+    html=html.replace('</body>', '<script defer src="/friends_client.js"></script><script defer src="/profile_client.js"></script><script defer src="/ranked_client.js"></script></body>', 1)
+
+    # Extensão pequena injetada em memória, sem substituir o HTML original aprovado.
+    html=html.replace('window.__miniPvpDebug=', RANKED_BRIDGE+'window.__miniPvpDebug=', 1)
+    html=html.replace('function pvpMessage(msg){', 'function pvpMessage(msg){'+RANKED_MESSAGE_HEAD, 1)
+    html=html.replace(RANKED_JOIN_FOOTER, RANKED_JOIN_REPLACE, 1)
+    html=html.replace("pvp.matchDone?(pvp.tournament?'🏆 PRÓXIMO JOGO':'🔄 REVANCHE')", "pvp.matchDone?(pvp.ranked?'🏠 VOLTAR AO MENU':pvp.tournament?'🏆 PRÓXIMO JOGO':'🔄 REVANCHE')", 1)
+    html=html.replace("function pvpAdvance(){\n  if(!pvp.active)return;", "function pvpAdvance(){\n  if(!pvp.active)return;\n  if(pvp.ranked&&pvp.matchDone){pvpLeave();showHome();return;}", 1)
+    html=html.replace("vs=pvp.quick?'Jogo rápido · IA':pvp.local?'Modo local':", "vs=pvp.ranked?'PvP ranqueado':pvp.quick?'Jogo rápido · IA':pvp.local?'Modo local':", 1)
+    html=html.replace("pvp.active=false;pvp.local=false;pvp.quick=false;pvp.soloGame=null;", "pvp.active=false;pvp.ranked=false;pvp.local=false;pvp.quick=false;pvp.soloGame=null;", 1)
     return web.Response(text=html,content_type='text/html',headers={'Cache-Control':'no-store'})
 
 async def friends_client(_request):
@@ -357,6 +432,9 @@ async def friends_client(_request):
 
 async def profile_client(_request):
     return web.FileResponse(ROOT/'profile_client.js',headers={'Cache-Control':'no-store'})
+
+async def ranked_client(_request):
+    return web.FileResponse(ROOT/'ranked_client.js',headers={'Cache-Control':'no-store'})
 
 # v2.9: trilha de preparação original disponibilizada por arquivo MP3.
 # Os fragmentos binários ficam na branch exclusiva do jogo, nunca nos outros jogos.
@@ -410,7 +488,22 @@ async def cleanup(app):
         await asyncio.sleep(15)
         cutoff = time.monotonic()-ROOM_TTL
         now=time.monotonic()
+        await app['mini_ranked'].maintenance()
         for code,room in list(ROOMS.items()):
+            if getattr(room,'ranked',False):
+                now=time.monotonic()
+                expired=next((i for i in (0,1) if room.clients[i] is None and room.disconnected_at[i]
+                             and now-room.disconnected_at[i]>RECONNECT_GRACE),None)
+                if expired is not None and room.phase!='done':
+                    if any(room.clients):
+                        await app['mini_ranked'].forfeit(room,expired)
+                    else:
+                        for uid in room.ranked_ids:app['mini_ranked'].active.pop(uid,None)
+                        ROOMS.pop(code,None)
+                        continue
+                if room.phase=='done' and (not any(room.clients) or room.updated<cutoff):
+                    ROOMS.pop(code,None)
+                continue
             if room.phase=='prep' and room.prep_deadline and time.time()>room.prep_deadline and all(room.clients):
                 room.ready=[False,False]
                 room.units=[[],[]]
@@ -431,11 +524,13 @@ async def background(app):
     try:await task
     except asyncio.CancelledError:pass
 
-from account_api import install_account_api
+from account_api import install_account_api, AuthError, COOKIE_NAME
+from ranked_api import install_ranked
 app=web.Application(client_max_size=350_000)
 app['mini_rooms']=ROOMS
-app.add_routes([web.get('/',index),web.get('/friends_client.js',friends_client),web.get('/profile_client.js',profile_client),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
-install_account_api(app)
+app.add_routes([web.get('/',index),web.get('/friends_client.js',friends_client),web.get('/profile_client.js',profile_client),web.get('/ranked_client.js',ranked_client),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
+account_store=install_account_api(app)
+install_ranked(app,account_store,ROOMS,Room,ALPHABET,MAX_ROOMS)
 app.on_startup.append(verify_preparation_track)
 app.cleanup_ctx.append(background)
 if __name__=='__main__':

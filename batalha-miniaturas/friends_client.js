@@ -51,7 +51,9 @@ function showInvites(){
 }
 function isPlaying(){return !!$('pvpLeaveBtn')&&!$('pvpLeaveBtn').hidden;}
 function openPvp(){
- if(isPlaying()||!$('homePvp'))return false;
+ if(isPlaying())return false;
+ if(window.__miniRankedBridge?.showFriendly){window.__miniRankedBridge.showFriendly();return true;}
+ if(!$('homePvp'))return false;
  $('homePvp').click();return true;
 }
 async function shareRoom(){
