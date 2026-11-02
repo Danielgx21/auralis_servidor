@@ -415,7 +415,7 @@ RANKED_JOIN_FOOTER="render();pvpOpenPendingBlessing();\n }else if(msg.type==='co
 RANKED_JOIN_REPLACE="render();pvpOpenPendingBlessing();if(msg.ranked){pvp.ranked=true;$('pvpCode').hidden=true;$('pvpCopyBtn').hidden=true;pvpSetStatus('Adversário encontrado! Prepare sua equipe.');document.dispatchEvent(new CustomEvent('mini-ranked',{detail:msg}));}\n }else if(msg.type==='connection_lost'"
 async def index(_request):
     html=(ROOT/'index.html').read_text(encoding='utf-8')
-    html=html.replace('</body>', '<script defer src="/friends_client.js"></script><script defer src="/profile_client.js"></script><script defer src="/ranked_client.js"></script><script defer src="/play_menu_client.js"></script></body>', 1)
+    html=html.replace('</body>', '<script defer src="/friends_client.js"></script><script defer src="/profile_client.js"></script><script defer src="/ranked_client.js"></script><script defer src="/play_menu_client.js"></script><script defer src="/battle_result_client.js"></script><script defer src="/battle_music_client.js"></script></body>', 1)
 
     # Extensão pequena injetada em memória, sem substituir o HTML original aprovado.
     html=html.replace('window.__miniPvpDebug=', RANKED_BRIDGE+'window.__miniPvpDebug=', 1)
@@ -427,6 +427,15 @@ async def index(_request):
     html=html.replace("pvp.active=false;pvp.local=false;pvp.quick=false;pvp.soloGame=null;", "pvp.active=false;pvp.ranked=false;pvp.local=false;pvp.quick=false;pvp.soloGame=null;", 1)
     html=apply_quad_html(html)
     html=apply_friend_fx_html(html)
+    # Não encerrar um ranqueado de 4 jogadores só por alguém chegar a zero
+    # em um confronto individual; a classificação é decidida pelo servidor.
+    old_finish='pvp.matchDone=pvp.hp.some(n=>n<=0);'
+    if html.count(old_finish)!=1:
+        raise RuntimeError('Pontuação do ranqueado não pode ser atualizada: fonte HTML modificada.')
+    html=html.replace(old_finish,'pvp.matchDone=pvp.quad?false:pvp.hp.some(n=>n<=0);',1)
+    html=html.replace('🔇 Sem áudio nesta versão','🔇 Efeitos desligados · música de combate no botão 🎵',1)
+    html=html.replace('Somente efeitos sonoros; sem música de fundo. Os controles também ficam disponíveis durante as partidas.',
+        'A música de combate tem controle independente. Os efeitos sonoros continuam desligados.',1)
     return web.Response(text=html,content_type='text/html',headers={'Cache-Control':'no-store'})
 
 async def friends_client(_request):
@@ -440,6 +449,12 @@ async def ranked_client(_request):
 
 async def play_menu_client(_request):
     return web.FileResponse(ROOT/'play_menu_client.js',headers={'Cache-Control':'no-store'})
+
+async def battle_result_client(_request):
+    return web.FileResponse(ROOT/'battle_result_client.js',headers={'Cache-Control':'no-store'})
+
+async def battle_music_client(_request):
+    return web.FileResponse(ROOT/'battle_music_client.js',headers={'Cache-Control':'no-store'})
 
 # v2.9: trilha de preparação original disponibilizada por arquivo MP3.
 # Os fragmentos binários ficam na branch exclusiva do jogo, nunca nos outros jogos.
@@ -536,7 +551,7 @@ from quad_client_injection import apply_quad_html
 from friend_fx_patch import apply_friend_fx_html, verify_friend_fx_patch
 app=web.Application(client_max_size=350_000)
 app['mini_rooms']=ROOMS
-app.add_routes([web.get('/',index),web.get('/friends_client.js',friends_client),web.get('/profile_client.js',profile_client),web.get('/ranked_client.js',ranked_client),web.get('/play_menu_client.js',play_menu_client),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
+app.add_routes([web.get('/',index),web.get('/friends_client.js',friends_client),web.get('/profile_client.js',profile_client),web.get('/ranked_client.js',ranked_client),web.get('/play_menu_client.js',play_menu_client),web.get('/battle_result_client.js',battle_result_client),web.get('/battle_music_client.js',battle_music_client),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
 account_store=install_account_api(app)
 ranked_service=install_ranked(app,account_store,ROOMS,Room,ALPHABET,MAX_ROOMS)
 install_quad(app,account_store,ranked_service,{'deck':validate_deck,'units':validate_units,'survivors':validate_survivors,'damage':calc_pvp_damage,'blessings':PVP_BLESSING_EFFECTS,'max_rooms':MAX_ROOMS})
