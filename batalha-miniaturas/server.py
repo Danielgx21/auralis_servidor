@@ -331,6 +331,14 @@ async def preparation_music(_request):
     path = preparation_music_file()
     return web.FileResponse(path, headers={'Cache-Control':'public, max-age=3600', 'Content-Type':'audio/mpeg'})
 
+async def verify_preparation_track(_app):
+    track = preparation_music_file()
+    with track.open('rb') as source:
+        checksum = hashlib.file_digest(source, 'sha256').hexdigest()
+    if checksum != PREP_AUDIO_SHA256:
+        raise RuntimeError('Trilha MP3 de preparação corrompida após reconstrução.')
+    logging.info('Trilha de preparação validada no servidor: %s bytes, SHA-256 OK', track.stat().st_size)
+
 async def health(_request):
     return web.json_response({'ok':True, 'rooms':len(ROOMS)})
 
@@ -362,6 +370,7 @@ async def background(app):
 
 app=web.Application(client_max_size=220_000)
 app.add_routes([web.get('/',index),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
+app.on_startup.append(verify_preparation_track)
 app.cleanup_ctx.append(background)
 if __name__=='__main__':
     web.run_app(app, host='0.0.0.0', port=int(os.getenv('PORT','8000')))
