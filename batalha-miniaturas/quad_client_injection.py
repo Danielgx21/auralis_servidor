@@ -4,6 +4,7 @@ Não substitui o HTML histórico: injeta pequenas funções no script da página
 """
 QUAD_HEAD = r"""
  if(msg.type==='quad_joined'){
+  if(!Array.isArray(msg.participants)||msg.participants.length!==4||!msg.pair){pvpSetStatus('Falha ao formar quatro participantes.');return;}
   const original=msg.reconnected&&pvp.active;
   if(!original){
    pvpMessage({type:'joined',ranked:true,code:msg.code,seat:msg.pair?.role||0,
@@ -167,6 +168,8 @@ def apply_quad_html(html):
       ("game=pvp.soloGame||game;pvp.active=false;pvp.ranked=false;",
        "game=pvp.soloGame||game;pvp.active=false;pvp.quad=false;pvp.ranked=false;"),
       ("type:'ranked_cancel'", "type:pvp.quad?'quad_cancel':'ranked_cancel'"),
+      ("}else if(!pvp.leaving)pvpSetStatus('Sem conexão ao servidor.');",
+       "}else if(!pvp.leaving){pvpSetStatus('Sem conexão ao servidor.');if(pvp.quad&&!pvp.active)document.dispatchEvent(new CustomEvent('mini-ranked',{detail:{type:'ranked_disconnected'}}));}"),
       ("}pvp.ranked=false;modeShell(false);showGame();", "}pvp.ranked=false;pvp.quad=false;modeShell(false);showGame();"),
       ("if(!data||!data.token||!/^[A-Z0-9]{6}$/.test(data.room)",
        "if(!data||!data.token||!/^[A-Z0-9]{6,8}$/.test(data.room)"),

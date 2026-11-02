@@ -2,7 +2,9 @@
 (() => {
   'use strict';
   const $=id=>document.getElementById(id);
-  let searching=false, startedAt=0, lastRating=null, timer=null;
+  let searching=false, startedAt=0, lastRating=null, timer=null, retryTimer=null, reconnectAttempts=0;
+  function layout(){const state=window.__miniRankedBridge?.state?.()||{};document.body.classList.toggle('mini-ranked-queueing',searching);document.body.classList.toggle('mini-ranked-active',!!state.active&&!!state.ranked)}
+  setInterval(layout,500);
   const css=document.createElement('style');
   css.textContent=[
     '#miniRankedQueue{display:grid;gap:14px;padding:18px;background:linear-gradient(135deg,#263c57,#152b42);border:1px solid #d4ae70;border-radius:16px;color:#edf4fb;margin:14px 0}',
@@ -15,7 +17,12 @@
     '@keyframes mini-rank-spin{to{transform:rotate(360deg)}}',
     '#miniRankedQueue .ranked-search-row{display:flex;align-items:center;gap:15px}',
     '#miniRankedCancel{min-height:48px;border-radius:11px;background:#2b4560;border:1px solid #89a4bc;color:#fff;font-size:15px}',
-    '#miniRankedQueue .ranked-clock{font-variant-numeric:tabular-nums;color:#a8cbec}'
+    '#miniRankedQueue .ranked-clock{font-variant-numeric:tabular-nums;color:#a8cbec}',
+    'body.mini-ranked-queueing #app>main,body.mini-ranked-queueing #app>.audio-bar,body.mini-ranked-queueing #app>.footnote{display:none!important}',
+    'body.mini-ranked-queueing #lifeStat,body.mini-ranked-active #lifeStat{display:none!important}',
+    'body.mini-ranked-queueing .header .stat.win,body.mini-ranked-active .header .stat.win{display:none!important}',
+    'body.mini-ranked-queueing #pvpShell>.pvp-panel>img{display:none!important}',
+    'body.mini-ranked-queueing #pvpSetup,body.mini-ranked-queueing #pvpBar,body.mini-ranked-queueing #fightBtn,body.mini-ranked-queueing #speedBtn{display:none!important}'
   ].join('\n');
   document.head.appendChild(css);
   function ui(){
@@ -56,7 +63,7 @@
   }
   function status(s){if($('miniRankedStatus'))$('miniRankedStatus').textContent=s;}
   function stop(){
-    searching=false;clearInterval(timer);timer=null;
+    searching=false;clearInterval(timer);timer=null;clearTimeout(retryTimer);retryTimer=null;reconnectAttempts=0;layout();
     if(ui())ui().hidden=true;
     const bridge=window.__miniRankedBridge;
     if(bridge?.state?.().active!==true)bridge?.cancel?.();
@@ -71,22 +78,27 @@
     if(!bridge){alert('Ranqueado não carregado. Atualize a página.');return;}
     bridge.showRanked();
     const panel=ui();if(!panel)return;
-    searching=true;startedAt=Date.now();panel.hidden=false;
+    searching=true;startedAt=Date.now();reconnectAttempts=0;panel.hidden=false;layout();
     $('pvpSetup').hidden=true;$('pvpBar').hidden=true;$('pvpCode').hidden=true;
     $('pvpCopyBtn').hidden=true;$('pvpLeaveBtn').hidden=true;
     if($('pvpOnlineNote'))$('pvpOnlineNote').hidden=true;
     status('Procurando jogador...');displayRating(lastRating);
-    clearInterval(timer);timer=setInterval(()=>{$('miniRankedTimer').textContent=Math.round((Date.now()-startedAt)/1000)+' s'},1000);
+    clearInterval(timer);timer=setInterval(()=>{if($('miniRankedTimer'))$('miniRankedTimer').textContent=Math.round((Date.now()-startedAt)/1000)+' s'},1000);
     try{bridge.connect()}catch(e){status('Falha de conexão: '+e.message);searching=false;clearInterval(timer);}
   }
   document.addEventListener('mini-ranked',ev=>{
     const msg=ev.detail||{};
-    if(msg.type==='ranked_wait'&&searching){status('Buscando até quatro participantes... '+(msg.playersWaiting||1)+' na fila');displayRating(msg.rating)}
-    if(msg.type==='joined'&&msg.ranked){searching=false;clearInterval(timer);if(ui())ui().hidden=true;getRating().catch(()=>{})}
+    if(msg.type==='ranked_wait'&&searching){const n=Number(msg.searchSeconds)||0;const extra=n>=90?' · completando com bots':n>=75?' · até 2 bots disponíveis':n>=60?' · até 1 bot disponível':' · bots em '+Math.max(0,90-n)+'s';status('Busca de 4 participantes: '+(msg.playersWaiting||1)+' na fila'+extra);displayRating(msg.rating)}
+    if(msg.type==='joined'&&msg.ranked){searching=false;clearInterval(timer);clearTimeout(retryTimer);reconnectAttempts=0;if(ui())ui().hidden=true;layout();getRating().catch(()=>{})}
     if(msg.type==='ranked_rating'){displayRating(msg.rating);status((msg.place||'')+'º lugar · '+(msg.delta>0?'+':'')+msg.delta+' pontos');getRating().catch(()=>{})}
     if(msg.type==='ranked_forfeit'){getRating().catch(()=>{})}
-    if(msg.type==='ranked_cancelled'){searching=false;clearInterval(timer);if(ui())ui().hidden=true;}
-    if(msg.type==='ranked_error'){searching=false;clearInterval(timer);status(msg.message||'Busca interrompida.');$('miniRankedCancel').textContent='Voltar ao menu';}
+    if(msg.type==='ranked_cancelled'){searching=false;clearInterval(timer);clearTimeout(retryTimer);if(ui())ui().hidden=true;layout();}
+    if(msg.type==='ranked_error'){searching=false;clearInterval(timer);clearTimeout(retryTimer);layout();status(msg.message||'Busca interrompida.');$('miniRankedCancel').textContent='Voltar ao menu';}
+    if(msg.type==='ranked_disconnected'&&searching){
+      status('Conexão interrompida. Reconectando à fila automaticamente...');
+      clearTimeout(retryTimer);const delay=Math.min(5000,1200+reconnectAttempts*500);reconnectAttempts++;
+      retryTimer=setTimeout(()=>{if(!searching)return;try{window.__miniRankedBridge?.connect()}catch(e){document.dispatchEvent(new CustomEvent('mini-ranked',{detail:{type:'ranked_disconnected'}}))}},delay);
+    }
   });
   document.addEventListener('click',ev=>{
     if(ev.target.closest?.('[data-home-tab="profile"]'))setTimeout(()=>getRating().catch(()=>{}),250);

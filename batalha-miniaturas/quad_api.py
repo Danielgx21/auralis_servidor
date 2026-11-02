@@ -75,6 +75,7 @@ class QuadLeague:
         self.room_limit=validators['max_rooms']
         self.games={}
         self.queues={}
+        self.recent_waiting={}
         self.sockets={}
         self.active={}
         self.lock=asyncio.Lock()
@@ -203,6 +204,7 @@ class QuadLeague:
             if seat.bot:seat.deck=random.Random(i+int(time.time())).sample(BOT_TYPES,14)
             else:
                 self.queues.pop(seat.user_id,None)
+                self.recent_waiting.pop(seat.user_id,None)
                 self.active[seat.user_id]=(code,i)
                 self.sockets[seat.ws]=(code,i)
         game.pairs=self.make_pairs(game)
@@ -245,12 +247,17 @@ class QuadLeague:
             return
         uid=user['id']
         async with self.lock:
+            old=self.queues.get(uid)
+            if old and old['ws'].closed:self.queues.pop(uid,None)
             if uid in self.active or uid in self.queues:
                 await ws.send_json({'type':'error','message':'Você já está em uma fila ou partida.'})
                 return
             rank=await asyncio.to_thread(self.ranked.rating,uid)
+            now=time.monotonic()
+            previous=self.recent_waiting.pop(uid,None)
+            since=previous[0] if previous and previous[1]>now else now
             self.queues[uid]={'ws':ws,'name':user['displayName'],
-                              'rating':rank['points'],'rating_data':rank,'since':time.monotonic()}
+                              'rating':rank['points'],'rating_data':rank,'since':since}
             await ws.send_json({'type':'ranked_wait','searchSeconds':0,'rating':rank,
                                 'playersWaiting':len(self.queues),'targetPlayers':4})
         await self.match_queue()
@@ -489,10 +496,13 @@ class QuadLeague:
                     else:
                         await self.advance(game)
 
-    async def disconnect(self,ws):
+    async def disconnect(self,ws,cancelled=False):
         self.sockets.pop(ws,None)
         for uid,item in list(self.queues.items()):
-            if item['ws'] is ws:self.queues.pop(uid,None)
+            if item['ws'] is ws:
+                self.queues.pop(uid,None)
+                if cancelled:self.recent_waiting.pop(uid,None)
+                else:self.recent_waiting[uid]=(item['since'],time.monotonic()+45)
         for game in self.games.values():
             for seat in game.seats:
                 if seat.ws is ws:
@@ -537,6 +547,9 @@ class QuadLeague:
 
     async def tick(self):
         await self.match_queue()
+        now=time.monotonic()
+        for uid,(_since,expires) in list(self.recent_waiting.items()):
+            if expires<=now:self.recent_waiting.pop(uid,None)
         for code,game in list(self.games.items()):
             if game.phase=='done':
                 if time.monotonic()-game.updated>120:self.games.pop(code,None)
@@ -570,7 +583,7 @@ class QuadLeague:
                 if ev.get('type')=='quad_queue':
                     await self.queue(ws,request);continue
                 if ev.get('type')=='quad_cancel':
-                    await self.disconnect(ws);await ws.close();break
+                    await self.disconnect(ws,cancelled=True);await ws.close();break
                 if ev.get('type')=='quad_resume':
                     if not await self.reconnect(ws,request,ev.get('code'),ev.get('token')):
                         await ws.send_json({'type':'error','message':'Não foi possível reconectar ao ranqueado.'})

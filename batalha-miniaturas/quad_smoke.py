@@ -103,7 +103,30 @@ async def smoke():
     await l2.resolve_pair(g2,0,False,[u['star'] for u in bot.units])
     assert g2.phase=='done',g2.phase
     assert any(e['type']=='quad_final' for e in ws.events)
-    return {'four_human_rounds':2,'human_with_bots':3,'results':True,
+    # Testes de integração da fila: nunca iniciar antes de preencher os quatro assentos.
+    for age,human_count,expected_bots in ((59,1,None),(61,3,1),(76,2,2),(91,1,3)):
+        check=build_league()
+        started=time.monotonic()
+        for idx in range(human_count):
+            ws3=FakeSocket()
+            check.queues[f'queue_{age}_{idx}']={'name':f'Pessoa {idx}','rating':100,
+                'ws':ws3,'since':started-age,'rating_data':{'points':100}}
+        await check.match_queue()
+        if expected_bots is None:
+            assert not check.games, 'Começou uma partida sem quatro participantes.'
+        else:
+            assert len(check.games)==1, f'Fallback dos bots falhou aos {age}s.'
+            match=next(iter(check.games.values()))
+            assert len(match.seats)==4 and sum(s.bot for s in match.seats)==expected_bots
+            assert all(s.bot or any(e.get('type')=='quad_joined' for e in s.ws.events) for s in match.seats)
+    reconnect_check=build_league()
+    lost=FakeSocket()
+    reconnect_check.queues['reconnect']={'name':'Jogador','rating':100,'ws':lost,
+        'since':time.monotonic()-89,'rating_data':{'points':100}}
+    await reconnect_check.disconnect(lost)
+    assert 'reconnect' not in reconnect_check.queues
+    assert 'reconnect' in reconnect_check.recent_waiting
+    return {'four_human_rounds':2,'queue_fallbacks':3,'disconnection_wait_saved':True,'human_with_bots':3,'results':True,
             'first_round_ready':True,'round_five_blessing':True}
 
 
