@@ -48,7 +48,7 @@
   function volume(){
     const e=$('volumeSlider');
     const n=Number(e?.value||35);
-    return Math.max(.025,Math.min(.35,Number.isFinite(n)?n/100*.28:.13));
+    return Math.max(.035,Math.min(.80,Number.isFinite(n)?n/100*1.35:.47));
   }
   function createCtx(){
     if(!AudioCtx)return false;
