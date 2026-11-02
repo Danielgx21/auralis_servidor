@@ -20,7 +20,7 @@ QUAD_HEAD = r"""
    game.phase='prep';
   }
   pvp.quad=true;pvp.ranked=true;pvp.quadSeat=msg.seat;pvp.quadCode=msg.code;
-  pvp.quadParticipants=msg.participants||[];
+  pvp.quadParticipants=msg.participants||[];pvp.quadOpponentSeat=msg.pair?.opponentSeat??null;
   if(!original){pvp.quadPlacements=[];pvp.quadRoundResult=null;pvp.quadRating=null;pvp.quadDelta=null;pvp.quadPlace=null;}
   if(msg.pair){
    pvp.seat=msg.pair.role;pvp.names=msg.pair.names;pvp.hp=msg.pair.hp;
@@ -44,7 +44,7 @@ QUAD_HEAD = r"""
  }
  if(msg.type==='quad_resume_result'){
   game.phase='result';pvp.waitingNext=false;
-  if(msg.pair){pvp.seat=msg.pair.role;pvp.names=msg.pair.names;pvp.hp=msg.pair.hp;}
+  if(msg.pair){pvp.seat=msg.pair.role;pvp.names=msg.pair.names;pvp.hp=msg.pair.hp;pvp.quadOpponentSeat=msg.pair.opponentSeat;}
   openModal('⚔️','Rodada concluída','Você voltou durante o intervalo entre rodadas.',
    'Confira sua equipe e confirme quando os outros estiverem prontos.',
    '➡️ PRÓXIMA RODADA','O jogo continuará com seus personagens salvos.',
@@ -70,7 +70,7 @@ QUAD_HEAD = r"""
  if(msg.type==='quad_start'){
   pvp.quad=true;pvp.quadPhase='combat';
   pvp.seat=msg.pair.role;pvp.names=msg.pair.names;
-  pvp.hp=msg.pair.hp;pvp.connected=[true,true];
+  pvp.quadOpponentSeat=msg.pair.opponentSeat;pvp.hp=msg.pair.hp;pvp.connected=[true,true];
   pvpMessage({type:'start',round:msg.round,opponentUnits:msg.opponentUnits,
    opponentBuffs:msg.opponentBuffs,ownBuffs:msg.ownBuffs});
   return;
@@ -82,7 +82,7 @@ QUAD_HEAD = r"""
   pvp.quadParticipants=msg.participants||pvp.quadParticipants;
   pvp.quadPhase='result';
   pvp.quadRoundResult={round:msg.round,damage:msg.damage,winnerSeat:msg.winnerSeat,loserSeat:msg.winnerSeat===pvp.quadSeat?msg.pair.opponentSeat:pvp.quadSeat};
-  pvp.seat=msg.pair.role;pvp.names=msg.pair.names;pvp.hp=msg.pair.hp;
+  pvp.seat=msg.pair.role;pvp.names=msg.pair.names;pvp.hp=msg.pair.hp;pvp.quadOpponentSeat=msg.pair.opponentSeat;
   const all=pvp.quadParticipants||[];
   const a=all.find(p=>p.seat===(msg.pair.role===0?pvp.quadSeat:msg.pair.opponentSeat));
   const b=all.find(p=>p.seat===(msg.pair.role===0?msg.pair.opponentSeat:pvp.quadSeat));
@@ -93,7 +93,7 @@ QUAD_HEAD = r"""
  }
  if(msg.type==='quad_next_round'){
   pvp.quadParticipants=msg.participants||pvp.quadParticipants||[];
-  pvp.quadPhase='prep';pvp.quadRoundResult=null;pvp.seat=msg.pair.role;
+  pvp.quadPhase='prep';pvp.quadRoundResult=null;pvp.seat=msg.pair.role;pvp.quadOpponentSeat=msg.pair.opponentSeat;
   pvp.names=msg.pair.names;pvp.hp=msg.pair.hp;
   pvp.connected=msg.pair.connected;
   pvpMessage({type:'nextRound',round:msg.round,wins:pvp.wins,
@@ -177,6 +177,11 @@ def apply_quad_html(html):
        "const state={time:Date.now(),room:pvp.room,token:pvp.reconnectToken,quad:!!pvp.quad,quadSeat:pvp.quadSeat,quadParticipants:pvp.quadParticipants,seat:pvp.seat,round:pvp.round,"),
       ("pvp.room=data.room;pvp.reconnectToken=data.token;pvp.seat=data.seat===1?1:0;",
        "pvp.room=data.room;pvp.reconnectToken=data.token;pvp.quad=!!data.quad;pvp.quadSeat=data.quadSeat;pvp.quadParticipants=data.quadParticipants||[];pvp.seat=data.seat===1?1:0;"),
+      # No ranqueado, não revelar a formação do adversário anterior durante a preparação.
+      ("(pvp.active&&game.phase==='prep'&&game.lastSeenOpponents?.length?game.lastSeenOpponents:game.preview)",
+       "(pvp.quad?[]:pvp.active&&game.phase==='prep'&&game.lastSeenOpponents?.length?game.lastSeenOpponents:game.preview)"),
+      ("const known=pvp.active&&game.phase==='prep'&&(game.lastSeenOpponents||[]).length>0;",
+       "const known=!pvp.quad&&pvp.active&&game.phase==='prep'&&(game.lastSeenOpponents||[]).length>0;"),
     ]
     for old,new in patches:
         if old not in html:

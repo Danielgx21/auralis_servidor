@@ -38,6 +38,10 @@ async def smoke():
     assert await l.start_match(plan)
     g=next(iter(l.games.values()))
     assert len(g.seats)==4 and len(g.pairs)==2
+    roster=l.snapshot(g)['participants']
+    assert len(roster)==4 and all(p['hp']==70 and p['name'] for p in roster)
+    assert {p['seat'] for p in roster}=={0,1,2,3}
+    assert all('isBot' in p and 'eliminated' in p for p in roster)
     assert all(any(e['type']=='quad_joined' for e in ws.events) for ws in sockets.values())
     # Reproduzir o clique real em "Confirmar equipe" na rodada 1.
     # Antes da correção, o servidor rejeitava todos os jogadores exigindo uma bênção.

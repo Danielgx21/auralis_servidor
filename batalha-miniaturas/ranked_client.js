@@ -3,7 +3,7 @@
   'use strict';
   const $=id=>document.getElementById(id);
   let searching=false, startedAt=0, lastRating=null, timer=null, retryTimer=null, reconnectAttempts=0;
-  function layout(){const state=window.__miniRankedBridge?.state?.()||{};document.body.classList.toggle('mini-ranked-queueing',searching);document.body.classList.toggle('mini-ranked-active',!!state.active&&!!state.ranked)}
+  function layout(){const state=window.__miniRankedBridge?.state?.()||{};document.body.classList.toggle('mini-ranked-queueing',searching);document.body.classList.toggle('mini-ranked-active',!!state.active&&!!state.ranked);rankedScoreboard(state)}
   setInterval(layout,500);
   const css=document.createElement('style');
   css.textContent=[
@@ -18,6 +18,25 @@
     '#miniRankedQueue .ranked-search-row{display:flex;align-items:center;gap:15px}',
     '#miniRankedCancel{min-height:48px;border-radius:11px;background:#2b4560;border:1px solid #89a4bc;color:#fff;font-size:15px}',
     '#miniRankedQueue .ranked-clock{font-variant-numeric:tabular-nums;color:#a8cbec}',
+    'body.mini-ranked-active #pvpBar{display:none!important}',
+    '#miniQuadScoreboard[hidden]{display:none!important}',
+    '#miniQuadScoreboard{margin:12px 0 16px;padding:13px;border:1.5px solid #d7ac70;border-radius:15px;background:linear-gradient(140deg,#283e59,#15283f);box-shadow:0 6px 18px #0005;color:#ecf4fa}',
+    '#miniQuadScoreboard .mq-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:0 2px 11px}',
+    '#miniQuadScoreboard .mq-top strong{font:800 17px Georgia,serif;color:#ffe1ab}',
+    '#miniQuadScoreboard .mq-top span{font-size:11px;color:#cddfeb}',
+    '#miniQuadScoreboard .mq-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}',
+    '#miniQuadScoreboard .mq-player{min-width:0;border:1px solid #57748b;border-radius:11px;background:#122a43;padding:10px 10px 9px}',
+    '#miniQuadScoreboard .mq-player.mq-me{border-color:#e9bc7d;background:linear-gradient(150deg,#3b3a4b,#193650)}',
+    '#miniQuadScoreboard .mq-player.mq-versus{border-color:#d78385}',
+    '#miniQuadScoreboard .mq-player.mq-out{opacity:.65}',
+    '#miniQuadScoreboard .mq-identity{display:flex;justify-content:space-between;align-items:start;gap:6px;min-height:36px}',
+    '#miniQuadScoreboard .mq-name{min-width:0;font-size:13px;font-weight:800;overflow-wrap:anywhere;line-height:1.2}',
+    '#miniQuadScoreboard .mq-tag{display:block;font-size:9px;font-weight:800;letter-spacing:.03em;color:#e9c38e;margin-top:5px}',
+    '#miniQuadScoreboard .mq-life{white-space:nowrap;font-size:12px;font-weight:900;color:#fff1d8;font-variant-numeric:tabular-nums}',
+    '#miniQuadScoreboard .mq-track{height:9px;margin-top:8px;overflow:hidden;background:#061829;border-radius:50px;border:1px solid #526b81}',
+    '#miniQuadScoreboard .mq-track>span{display:block;height:100%;background:linear-gradient(90deg,#bb6373,#edb38f);transition:width .2s}',
+    '#miniQuadScoreboard .mq-me .mq-track>span{background:linear-gradient(90deg,#75a49f,#b4dfc4)}',
+    '@media(min-width:760px){#miniQuadScoreboard .mq-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}',
     'body.mini-ranked-queueing #app>main,body.mini-ranked-queueing #app>.audio-bar,body.mini-ranked-queueing #app>.footnote{display:none!important}',
     'body.mini-ranked-queueing #lifeStat,body.mini-ranked-active #lifeStat{display:none!important}',
     'body.mini-ranked-queueing .header .stat.win,body.mini-ranked-active .header .stat.win{display:none!important}',
@@ -25,6 +44,37 @@
     'body.mini-ranked-queueing #pvpSetup,body.mini-ranked-queueing #pvpBar,body.mini-ranked-queueing #fightBtn,body.mini-ranked-queueing #speedBtn{display:none!important}'
   ].join('\n');
   document.head.appendChild(css);
+  const escapeHTML=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  let scoreSignature='';
+  function rankedScoreboard(state){
+    let board=$('miniQuadScoreboard');
+    if(!board){
+      const anchor=$('pvpBar');if(!anchor)return;
+      board=document.createElement('section');board.id='miniQuadScoreboard';board.hidden=true;
+      board.setAttribute('aria-label','Participantes e pontos de vida da ranqueada');
+      board.setAttribute('aria-live','polite');
+      anchor.insertAdjacentElement('afterend',board);
+    }
+    const active=!!state.active&&!!state.ranked&&!!state.quad;
+    board.hidden=!active;
+    if(!active){scoreSignature='';return}
+    const players=Array.isArray(state.participants)?state.participants:[];
+    const me=Number(state.seat),opponent=Number(state.opponentSeat);
+    const signature=JSON.stringify([players,me,opponent,state.round,state.phase]);
+    if(signature===scoreSignature)return;
+    scoreSignature=signature;
+    const phase=state.phase==='combat'?'⚔️ Em combate':state.phase==='pvp_wait'?'Aguardando jogadores':state.phase==='result'?'Rodada concluída':'Preparação';
+    board.innerHTML='<div class="mq-top"><strong>🏆 Ranqueada · Rodada '+escapeHTML(state.round||1)+'</strong><span>'+phase+' · 4 participantes</span></div>'+
+      '<div class="mq-grid">'+players.map(person=>{
+        const seat=Number(person.seat),hp=Math.max(0,Math.min(70,Number(person.hp)||0));
+        const mine=seat===me,versus=state.opponentSeat!=null&&seat===opponent;
+        const tag=mine?'VOCÊ':person.eliminated?'ELIMINADO':versus?'ADVERSÁRIO DESTA RODADA':person.isBot?'BOT':'PARTICIPANTE';
+        const classes='mq-player'+(mine?' mq-me':'')+(versus?' mq-versus':'')+(person.eliminated?' mq-out':'');
+        return '<div class="'+classes+'"><div class="mq-identity"><div class="mq-name">'+escapeHTML(person.name||'Jogador')+
+          (person.isBot?' 🤖':'')+'<small class="mq-tag">'+tag+'</small></div><span class="mq-life">❤️ '+hp+'/70</span></div>'+
+          '<div class="mq-track"><span style="width:'+(hp/70*100)+'%"></span></div></div>';
+      }).join('')+'</div>';
+  }
   function ui(){
     const panel=$('pvpSetup')?.parentElement;
     if(!panel)return null;
