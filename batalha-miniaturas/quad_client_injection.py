@@ -31,7 +31,22 @@ QUAD_HEAD = r"""
  if(msg.type==='quad_state'){
   pvp.quadParticipants=msg.participants||pvp.quadParticipants||[];
   pvp.quadPhase=msg.phase;
-  if(pvp.active){pvpUpdateBanner();}
+  if(pvp.active){
+   const pair=pvp.quadParticipants.find(p=>p.seat===pvp.quadSeat);
+   if(pair?.eliminated && msg.phase!=='done'){
+    game.phase='pvp_wait';pvp.ready=false;pvp.waitingNext=true;
+    pvpSetStatus('Você foi eliminado. Aguardando o fim da partida para ver sua colocação.');
+   }else pvpUpdateBanner();
+  }
+  return;
+ }
+ if(msg.type==='quad_resume_result'){
+  game.phase='result';pvp.waitingNext=false;
+  if(msg.pair){pvp.seat=msg.pair.role;pvp.names=msg.pair.names;pvp.hp=msg.pair.hp;}
+  openModal('⚔️','Rodada concluída','Você voltou durante o intervalo entre rodadas.',
+   'Confira sua equipe e confirme quando os outros estiverem prontos.',
+   '➡️ PRÓXIMA RODADA','O jogo continuará com seus personagens salvos.',
+   ()=>{closeModal();pvpAdvance()});
   return;
  }
  if(msg.type==='quad_blessing_offer'){

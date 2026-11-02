@@ -134,7 +134,8 @@ class QuadLeague:
     def snapshot(self,game):
         return {'type':'quad_state','round':game.round,'phase':game.phase,
                 'participants':[{'seat':i,'name':s.name,'hp':s.hp,'isBot':s.bot,
-                                 'eliminated':s.eliminated,'wins':s.wins,'place':s.placement}
+                                 'eliminated':s.eliminated,'wins':s.wins,'place':s.placement,
+                                 'connected':bool(s.bot or (s.ws and not s.ws.closed))}
                                 for i,s in enumerate(game.seats)],
                 'placements':game.placements[:], 'deadline':int(game.prep_deadline*1000)}
 
@@ -451,7 +452,7 @@ class QuadLeague:
             if not pair or game.phase!='combat' or pair[1]!=idx or pair[0] in game.finished_pairs:return
             if type(event.get('hostWin')) is not bool:return
             frame=game.last_frames.get(pair[0])
-            if not frame or frame.get('tick',0)<2:
+            if not frame or frame.get('tick',0)<1:
                 await self.send(seat,{'type':'error','message':'Resultado sem simulação de combate.'});return
             host_win=event['hostWin']
             alive_a=[u for u in frame.get('allies',[]) if isinstance(u,dict) and u.get('hp',0)>0]
@@ -515,6 +516,20 @@ class QuadLeague:
                       'blessingOffer':seat.blessing_choices,'ownBuffs':seat.buffs})
                 await self.send(seat,self.snapshot(game))
                 await self.signal_blessing(game,i)
+                pair=self.pair_for(game,i)
+                if game.phase=='combat' and pair and pair[0] not in game.finished_pairs:
+                    enemy=game.seats[pair[2] if pair[1]==i else pair[1]]
+                    await self.send(seat,{'type':'quad_start','round':game.round,
+                        'pair':self.pair_metadata(game,i),'opponentUnits':enemy.units,
+                        'opponentBuffs':enemy.buffs,'ownBuffs':seat.buffs})
+                elif game.phase=='result':
+                    await self.send(seat,{'type':'quad_resume_result','round':game.round,
+                         'pair':self.pair_metadata(game,i)})
+                elif game.phase=='done':
+                    await self.send(seat,{'type':'quad_final','placements':[
+                        {'place':place,'seat':j,'name':game.seats[j].name,'bot':game.seats[j].bot}
+                        for place,j in enumerate(game.placements,1)]})
+                await self.send_all(game,self.snapshot(game))
                 return (game,i)
         return None
 
