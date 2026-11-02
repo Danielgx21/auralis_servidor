@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#101a2a"><title>Batalha de Miniaturas — v2.8</title>
+<meta name="theme-color" content="#101a2a"><title>Batalha de Miniaturas — v2.8.1</title>
 <style>
 :root{--bg:#0e1727;--panel:#17253a;--panel2:#1c2d44;--line:#34475e;--text:#eff5fb;--muted:#aec0d1;--gold:#ffd58b;--green:#78e2bd;--red:#ff8a93;--blue:#88c8ff;--shadow:0 16px 38px rgba(0,0,0,.23)}
 *{box-sizing:border-box}[hidden]{display:none!important}html{height:100%;-webkit-tap-highlight-color:transparent}body{margin:0;min-height:100%;color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;background:radial-gradient(ellipse at 12% 0%,#243750 0%,transparent 45%),radial-gradient(ellipse at 96% 90%,#203044 0%,transparent 47%),#0c1422}
@@ -271,6 +271,7 @@ button{font:inherit;cursor:pointer}button:disabled{cursor:not-allowed;opacity:.4
 .menu-option{display:flex;flex-direction:column;gap:6px;align-items:flex-start;background:linear-gradient(150deg,#263d56,#182b40);border:1px solid #5a7b92;color:#f0f7ff;border-radius:16px;padding:17px 14px;text-align:left;min-height:151px;box-shadow:0 8px 18px #0002}
 .menu-option .menu-emoji{font-size:30px}.menu-option strong{font-size:clamp(15px,4.4vw,19px)}.menu-option small{color:#bdd1dc;font-size:12px;line-height:1.45}
 .menu-option:hover,.menu-option:focus-visible{border-color:#f3cb88;transform:translateY(-1px)}
+.menu-wrap>.feature-nav{margin:0;justify-content:center;gap:8px}.menu-wrap>.feature-nav button{flex:1 1 135px;max-width:210px}
 .menu-footer{color:#9fb8ca;text-align:center;font-size:11px;line-height:1.5}
 .menu-meta{border:1px solid #48647a;background:#182c3f;border-radius:12px;padding:12px;color:#bfd7e5;font-size:12px;line-height:1.5}
 .menu-meta b{color:#ffdfab}
@@ -295,19 +296,20 @@ button{font:inherit;cursor:pointer}button:disabled{cursor:not-allowed;opacity:.4
 <body>
 <section id="homeMenu" aria-label="Menu principal"><div class="menu-wrap">
  <div class="menu-logo"><svg class="realm-mark" viewBox="0 0 64 64" role="img" aria-label="Emblema com duas espadas e cristal" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="crestGold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffefb9"/><stop offset="1" stop-color="#c87d44"/></linearGradient></defs><path d="M32 4L55 13L52 41Q47 54 32 61Q17 54 12 41L9 13Z" fill="#162d46" stroke="url(#crestGold)" stroke-width="3"/><path d="M18 14L46 48M46 14L18 48" stroke="#ffe4a3" stroke-width="6" stroke-linecap="round"/><path d="M18 14L46 48M46 14L18 48" stroke="#6e9fc6" stroke-width="2.5" stroke-linecap="round"/><path d="M32 21L43 32L32 43L21 32Z" fill="#bb9dfb" stroke="#f6e9ff" stroke-width="2.5"/><path d="M32 21L32 43M21 32H43" stroke="#f3dfff" stroke-width="1.5" opacity=".75"/></svg></div><h1 class="menu-title">Batalha de Miniaturas</h1><p class="menu-sub">LIGA DOS REINOS</p>
- <p class="menu-version">Escolha como jogar · Versão 2.8</p>
+ <p class="menu-version">Escolha como jogar · Versão 2.8.1</p>
  <div class="menu-grid">
   <button id="homeCampaign" type="button" class="menu-option"><span class="menu-emoji">🗺️</span><strong>Campanha</strong><small>Continue sua jornada, enfrente chefes e conquiste regiões.</small></button>
   <button id="homePvp" type="button" class="menu-option"><span class="menu-emoji">⚔️</span><strong>PvP</strong><small>Duelo online com um amigo ou local, com 70 pontos de vida.</small></button>
   <button id="homeQuick" type="button" class="menu-option"><span class="menu-emoji">🤖</span><strong>Jogo rápido</strong><small>Mesmo formato do PvP, mas contra uma IA que evolui seu time.</small></button>
   <button id="homeDeck" type="button" class="menu-option"><span class="menu-emoji">🎴</span><strong>Escolha de elenco</strong><small>Monte seus 14 tipos favoritos, salvos para as próximas partidas.</small></button>
  </div>
- <div class="menu-meta" id="homeDeckSummary">🎴 Seu elenco está pronto para edição.</div>
+ <nav class="feature-nav" aria-label="Consultas e recursos"><button id="catalogOpenBtn" type="button">📖 Catálogo · 27</button><button id="campaignOpenBtn" type="button">🗺️ Regiões e desafios</button><button id="historyOpenBtn" type="button">🏆 Histórico PvP</button></nav>
+  <div class="menu-meta" id="homeDeckSummary">🎴 Seu elenco está pronto para edição.</div>
  <p class="menu-footer">Seu progresso solo é salvo neste navegador. O PvP online usa o servidor do jogo.</p>
 </div></section>
 <div id="app">
-<header class="header"><div class="brand"><div class="brand-mark"><svg class="realm-mark" viewBox="0 0 64 64" role="img" aria-label="Emblema com duas espadas e cristal" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="crestGoldHeader" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffefb9"/><stop offset="1" stop-color="#c87d44"/></linearGradient></defs><path d="M32 4L55 13L52 41Q47 54 32 61Q17 54 12 41L9 13Z" fill="#162d46" stroke="url(#crestGoldHeader)" stroke-width="3"/><path d="M18 14L46 48M46 14L18 48" stroke="#ffe4a3" stroke-width="6" stroke-linecap="round"/><path d="M18 14L46 48M46 14L18 48" stroke="#6e9fc6" stroke-width="2.5" stroke-linecap="round"/><path d="M32 21L43 32L32 43L21 32Z" fill="#bb9dfb" stroke="#f6e9ff" stroke-width="2.5"/><path d="M32 21L32 43M21 32H43" stroke="#f3dfff" stroke-width="1.5" opacity=".75"/></svg></div><div><h1>Batalha de<br>Miniaturas</h1><p>LIGA DOS REINOS</p></div></div><div class="header-right"><div class="stats"><div class="stat gold" title="Moedas"><span>🪙</span><b id="gold">0</b></div><div class="stat life" id="lifeStat" title="Vidas"><span>♥</span><b id="lives">3</b></div><div class="stat win" title="Vitórias"><span>🏆</span><b id="wins">0</b></div></div><button id="menuOpenBtn" class="menu-header-btn" type="button">☰ Menu</button><button id="pvpOpenBtn" class="pvp-open" type="button">👥 PvP</button><button class="iconbtn" id="soundBtn" title="Ligar música e efeitos" aria-label="Ligar música e efeitos" aria-pressed="false">🎵</button><button class="iconbtn" id="helpBtn" title="Como jogar" aria-label="Como jogar">?</button></div></header>
-<nav class="feature-nav" aria-label="Navegação do jogo"><button id="catalogOpenBtn" type="button">📖 Catálogo · 27</button><button id="campaignOpenBtn" type="button">🗺️ Campanha</button><button id="historyOpenBtn" type="button">🏆 Histórico PvP</button></nav>
+<header class="header"><div class="brand"><div class="brand-mark"><svg class="realm-mark" viewBox="0 0 64 64" role="img" aria-label="Emblema com duas espadas e cristal" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="crestGoldHeader" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffefb9"/><stop offset="1" stop-color="#c87d44"/></linearGradient></defs><path d="M32 4L55 13L52 41Q47 54 32 61Q17 54 12 41L9 13Z" fill="#162d46" stroke="url(#crestGoldHeader)" stroke-width="3"/><path d="M18 14L46 48M46 14L18 48" stroke="#ffe4a3" stroke-width="6" stroke-linecap="round"/><path d="M18 14L46 48M46 14L18 48" stroke="#6e9fc6" stroke-width="2.5" stroke-linecap="round"/><path d="M32 21L43 32L32 43L21 32Z" fill="#bb9dfb" stroke="#f6e9ff" stroke-width="2.5"/><path d="M32 21L32 43M21 32H43" stroke="#f3dfff" stroke-width="1.5" opacity=".75"/></svg></div><div><h1>Batalha de<br>Miniaturas</h1><p>LIGA DOS REINOS</p></div></div><div class="header-right"><div class="stats"><div class="stat gold" title="Moedas"><span>🪙</span><b id="gold">0</b></div><div class="stat life" id="lifeStat" title="Vidas"><span>♥</span><b id="lives">3</b></div><div class="stat win" title="Vitórias"><span>🏆</span><b id="wins">0</b></div></div><button id="menuOpenBtn" class="menu-header-btn" type="button">☰ Menu</button><button class="iconbtn" id="soundBtn" title="Ligar música e efeitos" aria-label="Ligar música e efeitos" aria-pressed="false">🎵</button><button class="iconbtn" id="helpBtn" title="Como jogar" aria-label="Como jogar">?</button></div></header>
+
 <section class="pvp-shell" id="pvpShell" hidden>
  <div class="pvp-panel"><h2>⚔️ Duelo entre amigos · Sistema de vida</h2>
  <p class="pvp-help">Cada jogador monta sua própria equipe. Depois de ambos confirmarem, as miniaturas lutam automaticamente. Cada jogador começa com <b>70 pontos de vida</b>. Quem perde sofre dano conforme os inimigos sobreviventes e a rodada. A partida acaba quando alguém chega a zero. O progresso solo fica separado. Se a conexão cair, a sala fica reservada por até 150 segundos e o jogo tenta voltar automaticamente. A rodada em andamento poderá ser reiniciada.</p>
@@ -1735,7 +1737,6 @@ document.querySelectorAll('[data-feature-close]').forEach(b=>b.onclick=()=>close
 document.querySelectorAll('.modal-feature').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeFeature(m.id)}));
 window.__miniFeatures={renderCatalog,renderCampaign,renderHistory,startTournament,tournamentAdvance,readHistory,openFeature,campaignRegion,currentArena,unlockedRegionCount,getTournament:()=>pvp.tournament,types:TYPES,groups:GROUPS};
 
-$('pvpOpenBtn').onclick=()=>{$('pvpShell').hidden=!$('pvpShell').hidden;if(!$('pvpShell').hidden)$('pvpShell').scrollIntoView({behavior:'smooth',block:'start'})};
 $('pvpLocalBtn').onclick=pvpStartLocal;
 $('pvpCreateBtn').onclick=()=>pvpConnect('create');$('pvpJoinBtn').onclick=()=>pvpConnect('join');
 $('deckSummary').addEventListener('click',e=>{if(e.target.closest('#deckOpenBtn'))openDeckModal()});
