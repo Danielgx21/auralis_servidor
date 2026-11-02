@@ -20,8 +20,8 @@ ROOM_TTL = 2 * 60 * 60
 RECONNECT_GRACE = 150
 ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 ALLOWED_TYPES = set('guard spear axe bow druid hunter mage cleric golem rogue ghost paladin sentinel toxic shaman frost storm necro shade pyro tide earth spark seraph monk templar oracle'.split())
-DECK_SIZE=10
-MAX_DECK_GROUP=4
+DECK_SIZE=14
+MAX_DECK_GROUP=5
 PVP_START_HP=70
 TYPE_GROUPS={'ferro':set('guard spear axe paladin sentinel'.split()),'selva':set('bow druid hunter toxic shaman'.split()),'arcano':set('mage cleric golem frost storm'.split()),'sombra':set('rogue ghost necro shade'.split()),'elemental':set('pyro tide earth spark'.split()),'sagrado':set('seraph monk templar oracle'.split())}
 ALLOWED_ITEMS=set('sword mail ward focus boots amulet ring orb staff charm shield lance bloodblade bastion windfang divine piercer heart arcana wardsteps'.split())
@@ -76,13 +76,13 @@ async def error(ws, message):
 
 def validate_deck(raw):
     if not isinstance(raw,list) or len(raw)!=DECK_SIZE or len(set(str(x) for x in raw))!=DECK_SIZE or any(not isinstance(x,str) or x not in ALLOWED_TYPES for x in raw):
-        raise ValueError('Escolha exatamente 10 personagens diferentes.')
+        raise ValueError('Escolha exatamente 14 personagens diferentes.')
     counts={}
     for typ in raw:
         group=next((key for key,types in TYPE_GROUPS.items() if typ in types),None)
         if not group:raise ValueError('Aliança inválida no elenco.')
         counts[group]=counts.get(group,0)+1
-        if counts[group]>MAX_DECK_GROUP:raise ValueError('Máximo de quatro personagens por aliança.')
+        if counts[group]>MAX_DECK_GROUP:raise ValueError('Máximo de cinco personagens por aliança.')
     if len(counts)<3:raise ValueError('Escolha ao menos três alianças.')
     return raw[:]
 
