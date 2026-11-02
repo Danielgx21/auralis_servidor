@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#101a2a"><title>Batalha de Miniaturas — PvP v2.6</title>
+<meta name="theme-color" content="#101a2a"><title>Batalha de Miniaturas — v2.7</title>
 <style>
 :root{--bg:#0e1727;--panel:#17253a;--panel2:#1c2d44;--line:#34475e;--text:#eff5fb;--muted:#aec0d1;--gold:#ffd58b;--green:#78e2bd;--red:#ff8a93;--blue:#88c8ff;--shadow:0 16px 38px rgba(0,0,0,.23)}
 *{box-sizing:border-box}[hidden]{display:none!important}html{height:100%;-webkit-tap-highlight-color:transparent}body{margin:0;min-height:100%;color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;background:radial-gradient(ellipse at 12% 0%,#243750 0%,transparent 45%),radial-gradient(ellipse at 96% 90%,#203044 0%,transparent 47%),#0c1422}
@@ -258,11 +258,41 @@ button{font:inherit;cursor:pointer}button:disabled{cursor:not-allowed;opacity:.4
 .pvp-health-track span{display:block;height:100%;background:linear-gradient(90deg,#e36f7a,#ffcc8e);transition:width .25s}
 .pvp-health-track.alt span{background:linear-gradient(90deg,#65cbb7,#a7e9c4)}
 @media(max-width:390px){.deck-unit{padding:7px 4px;gap:3px}.deck-unit .deck-icon{font-size:19px}.deck-unit span:last-child{font-size:10px}.deck-group{padding:7px}}
+
+/* v2.7 — Menu principal separado do tabuleiro */
+#homeMenu[hidden]{display:none!important}
+#homeMenu{position:fixed;inset:0;z-index:26;display:flex;justify-content:center;align-items:flex-start;background:radial-gradient(circle at 12% 6%,#2b4b61,#111c2e 52%,#080e1a);overflow-y:auto;padding:clamp(22px,4vh,50px) 13px 24px;color:#f4f8ff}
+.menu-wrap{width:min(640px,100%);margin:auto;display:grid;gap:16px}
+.menu-logo{text-align:center;font-size:clamp(40px,10vw,62px);line-height:1}
+.menu-title{text-align:center;font-size:clamp(28px,7vw,42px);font-weight:950;line-height:1.08;letter-spacing:-1px;margin:0}
+.menu-sub{text-align:center;color:#f0c882;letter-spacing:3px;font-size:11px;font-weight:900;margin:-7px 0 3px}
+.menu-version{text-align:center;color:#b3cada;font-size:12px;line-height:1.55;margin:0}
+.menu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.menu-option{display:flex;flex-direction:column;gap:6px;align-items:flex-start;background:linear-gradient(150deg,#263d56,#182b40);border:1px solid #5a7b92;color:#f0f7ff;border-radius:16px;padding:17px 14px;text-align:left;min-height:151px;box-shadow:0 8px 18px #0002}
+.menu-option .menu-emoji{font-size:30px}.menu-option strong{font-size:clamp(15px,4.4vw,19px)}.menu-option small{color:#bdd1dc;font-size:12px;line-height:1.45}
+.menu-option:hover,.menu-option:focus-visible{border-color:#f3cb88;transform:translateY(-1px)}
+.menu-footer{color:#9fb8ca;text-align:center;font-size:11px;line-height:1.5}
+.menu-meta{border:1px solid #48647a;background:#182c3f;border-radius:12px;padding:12px;color:#bfd7e5;font-size:12px;line-height:1.5}
+.menu-meta b{color:#ffdfab}
+.menu-header-btn{font-size:12px;white-space:nowrap;border:1px solid #7e9dac;background:#1d3b53;color:#e8f6fe;border-radius:10px;padding:9px 11px;font-weight:850}
+@media(max-width:360px){.menu-grid{gap:8px}.menu-option{padding:12px 11px;min-height:145px}.menu-option .menu-emoji{font-size:26px}.menu-option small{font-size:11px}}
 </style>
 </head>
 <body>
+<section id="homeMenu" aria-label="Menu principal"><div class="menu-wrap">
+ <div class="menu-logo">♟️</div><h1 class="menu-title">Batalha de Miniaturas</h1><p class="menu-sub">LIGA DOS REINOS</p>
+ <p class="menu-version">Escolha como jogar · Versão 2.7</p>
+ <div class="menu-grid">
+  <button id="homeCampaign" type="button" class="menu-option"><span class="menu-emoji">🗺️</span><strong>Campanha</strong><small>Continue sua jornada, enfrente chefes e conquiste regiões.</small></button>
+  <button id="homePvp" type="button" class="menu-option"><span class="menu-emoji">⚔️</span><strong>PvP</strong><small>Duelo online com um amigo ou local, com 70 pontos de vida.</small></button>
+  <button id="homeQuick" type="button" class="menu-option"><span class="menu-emoji">🤖</span><strong>Jogo rápido</strong><small>Mesmo formato do PvP, mas contra uma IA que evolui seu time.</small></button>
+  <button id="homeDeck" type="button" class="menu-option"><span class="menu-emoji">🎴</span><strong>Escolha de elenco</strong><small>Monte seus 14 tipos favoritos, salvos para as próximas partidas.</small></button>
+ </div>
+ <div class="menu-meta" id="homeDeckSummary">🎴 Seu elenco está pronto para edição.</div>
+ <p class="menu-footer">Seu progresso solo é salvo neste navegador. O PvP online usa o servidor do jogo.</p>
+</div></section>
 <div id="app">
-<header class="header"><div class="brand"><div class="brand-mark">♟</div><div><h1>Batalha de<br>Miniaturas</h1><p>LIGA DOS REINOS</p></div></div><div class="header-right"><div class="stats"><div class="stat gold" title="Moedas"><span>🪙</span><b id="gold">0</b></div><div class="stat life" id="lifeStat" title="Vidas"><span>♥</span><b id="lives">3</b></div><div class="stat win" title="Vitórias"><span>🏆</span><b id="wins">0</b></div></div><button id="pvpOpenBtn" class="pvp-open" type="button">👥 PvP</button><button class="iconbtn" id="soundBtn" title="Ligar música e efeitos" aria-label="Ligar música e efeitos" aria-pressed="false">🎵</button><button class="iconbtn" id="helpBtn" title="Como jogar" aria-label="Como jogar">?</button></div></header>
+<header class="header"><div class="brand"><div class="brand-mark">♟</div><div><h1>Batalha de<br>Miniaturas</h1><p>LIGA DOS REINOS</p></div></div><div class="header-right"><div class="stats"><div class="stat gold" title="Moedas"><span>🪙</span><b id="gold">0</b></div><div class="stat life" id="lifeStat" title="Vidas"><span>♥</span><b id="lives">3</b></div><div class="stat win" title="Vitórias"><span>🏆</span><b id="wins">0</b></div></div><button id="menuOpenBtn" class="menu-header-btn" type="button">☰ Menu</button><button id="pvpOpenBtn" class="pvp-open" type="button">👥 PvP</button><button class="iconbtn" id="soundBtn" title="Ligar música e efeitos" aria-label="Ligar música e efeitos" aria-pressed="false">🎵</button><button class="iconbtn" id="helpBtn" title="Como jogar" aria-label="Como jogar">?</button></div></header>
 <nav class="feature-nav" aria-label="Navegação do jogo"><button id="catalogOpenBtn" type="button">📖 Catálogo · 27</button><button id="campaignOpenBtn" type="button">🗺️ Campanha</button><button id="historyOpenBtn" type="button">🏆 Histórico PvP</button></nav>
 <section class="pvp-shell" id="pvpShell" hidden>
  <div class="pvp-panel"><h2>⚔️ Duelo entre amigos · Sistema de vida</h2>
@@ -287,7 +317,7 @@ button{font:inherit;cursor:pointer}button:disabled{cursor:not-allowed;opacity:.4
 <section class="panel"><div class="panel-top"><div><div class="section-eyebrow">Unidades guardadas</div><h2>Banco de reservas</h2></div><div class="badge-round" id="benchBadge">0 / 7</div></div><div id="bench" class="bench"></div><div id="unitInfo" class="unit-info"></div></section>
 <section class="panel" id="forgePanel"><div class="panel-top"><div><div class="section-eyebrow">Oficina do reino</div><h2>Forja de equipamentos</h2></div><div class="badge-round" id="forgeBadge">2 OFERTAS</div></div><div class="forge-body"><div class="forge-offers" id="forgeOffers"></div><div class="item-section-label" id="inventoryLabel">Mochila · 0 itens</div><div class="item-stash" id="itemStash"></div><div id="itemDetails" class="item-detail" role="region" aria-label="Descrição do item selecionado" aria-live="polite" hidden></div><section class="craft-section" id="craftPanel" hidden aria-hidden="true"><div id="craftSlots"></div><div id="craftPreview"></div><button id="craftBtn" type="button" hidden disabled></button><div id="recipeList"></div></section><p class="forge-hint">Toque na mochila para inspecionar um item e ver sua descrição completa. Selecione uma miniatura no campo ou no banco e use <b>Equipar</b>. Cada miniatura pode carregar 2 itens. Itens raros agora aparecem apenas como recompensas de chefes e bênçãos.</p></div></section>
 <section class="panel"><div class="panel-top"><div><div class="section-eyebrow">Bônus de equipe</div><h2>Alianças</h2></div><div class="badge-round">2 / 4 DIFERENTES</div></div><div class="traits" id="traits"></div><p class="forge-hint" style="margin:0 14px 13px">Cada aliança tem bônus com 2 e 4 personagens diferentes. Cópias repetidas contam apenas uma vez.</p></section></div></main><div class="audio-bar" role="group" aria-label="Controles de áudio"><span id="audioStatus" class="audio-status">🎵 Música desligada · toque em 🎵 para ligar</span><label for="volumeSlider" class="audio-volume-label">Volume <input id="volumeSlider" type="range" min="0" max="100" step="5" value="35" aria-label="Volume da música e dos efeitos"><span id="volumeValue">35%</span></label></div><div class="footnote">Salvamento automático no aparelho · Jogue sem instalar nada · <button type="button" id="simulatorOpenBtn" style="background:none;border:0;color:#c1dfec;text-decoration:underline;font-size:11px;padding:2px 4px">📊 Simulador de balanceamento</button> · <button id="resetBtn" type="button" style="background:none;border:0;color:#b8ccd9;text-decoration:underline;font-size:11px;padding:2px 4px">Recomeçar</button></div></div>
-<div class="modal hidden modal-feature" id="deckModal" role="dialog" aria-modal="true" aria-labelledby="deckTitle"><div class="modal-body wide-feature"><button class="feature-close" id="deckCloseBtn" type="button" aria-label="Fechar seleção">×</button><h2 id="deckTitle">🎴 Monte seu elenco</h2><p>Escolha <b>10 miniaturas diferentes</b> para a partida. No máximo 4 da mesma aliança e pelo menos 3 alianças no total. A loja só oferecerá as escolhidas. Três cópias iguais evoluem para ★★.</p><div id="deckGrid" class="deck-grids"></div><div class="deck-footer"><strong id="deckStatus"></strong><button class="primary" id="deckConfirmBtn" type="button">✅ Confirmar elenco</button></div></div></div><div class="modal hidden modal-feature" id="catalogModal" role="dialog" aria-modal="true" aria-labelledby="catalogTitle"><div class="modal-body wide-feature"><button class="feature-close" data-feature-close="catalogModal" aria-label="Fechar">×</button><h2 id="catalogTitle">📖 Catálogo dos Reinos</h2><p>Consulte atributos, habilidades, alianças e equipamentos antes de comprar.</p><div class="feature-controls"><input id="catalogSearch" placeholder="Buscar miniatura ou habilidade" aria-label="Pesquisar miniatura"><select id="catalogGroup" aria-label="Filtrar aliança"><option value="">Todas as alianças</option></select><button id="catalogItemsBtn" type="button">⚔️ Itens</button></div><div id="catalogResults" class="feature-list"></div></div></div>
+<div class="modal hidden modal-feature" id="deckModal" role="dialog" aria-modal="true" aria-labelledby="deckTitle"><div class="modal-body wide-feature"><button class="feature-close" id="deckCloseBtn" type="button" aria-label="Fechar seleção">×</button><h2 id="deckTitle">🎴 Monte seu elenco</h2><p id="deckIntro">Escolha as miniaturas que poderão aparecer na loja. Três cópias iguais evoluem para ★★.</p><p><b>14 tipos distintos</b> · Máximo de 5 por aliança · Mínimo de 3 alianças. A loja só oferece os tipos escolhidos.</p><div id="deckGrid" class="deck-grids"></div><div class="deck-footer"><strong id="deckStatus"></strong><button class="primary" id="deckConfirmBtn" type="button">✅ Confirmar elenco</button></div></div></div><div class="modal hidden modal-feature" id="catalogModal" role="dialog" aria-modal="true" aria-labelledby="catalogTitle"><div class="modal-body wide-feature"><button class="feature-close" data-feature-close="catalogModal" aria-label="Fechar">×</button><h2 id="catalogTitle">📖 Catálogo dos Reinos</h2><p>Consulte atributos, habilidades, alianças e equipamentos antes de comprar.</p><div class="feature-controls"><input id="catalogSearch" placeholder="Buscar miniatura ou habilidade" aria-label="Pesquisar miniatura"><select id="catalogGroup" aria-label="Filtrar aliança"><option value="">Todas as alianças</option></select><button id="catalogItemsBtn" type="button">⚔️ Itens</button></div><div id="catalogResults" class="feature-list"></div></div></div>
 <div class="modal hidden modal-feature" id="campaignModal" role="dialog" aria-modal="true" aria-labelledby="campaignTitle"><div class="modal-body wide-feature"><button class="feature-close" data-feature-close="campaignModal" aria-label="Fechar">×</button><h2 id="campaignTitle">🗺️ Campanha dos Reinos</h2><p>Derrote os chefes para abrir regiões. A região escolhida muda a arena; desafios opcionais dão mais moedas, mas fortalecem os inimigos.</p><div id="campaignResults" class="feature-list"></div></div></div>
 <div class="modal hidden modal-feature" id="historyModal" role="dialog" aria-modal="true" aria-labelledby="historyTitle"><div class="modal-body wide-feature"><button class="feature-close" data-feature-close="historyModal" aria-label="Fechar">×</button><h2 id="historyTitle">🏆 Histórico dos duelos</h2><p>Resultados salvos neste navegador. Os placares privados do servidor valem enquanto a sala estiver ativa.</p><div id="historyResults" class="feature-list"></div></div></div>
 <div class="modal hidden modal-feature" id="tournamentModal" role="dialog" aria-modal="true" aria-labelledby="tournamentTitle"><div class="modal-body wide-feature"><button class="feature-close" data-feature-close="tournamentModal" aria-label="Fechar">×</button><h2 id="tournamentTitle">🏆 Torneio de quatro amigos</h2><p>Todos jogam no mesmo aparelho: duas semifinais e a final. Cada duelo termina quando um jogador fica sem vida.</p><div class="tourney-names"><input class="tourney-name" maxlength="24" value="Amigo 1" aria-label="Nome do jogador 1"><input class="tourney-name" maxlength="24" value="Amigo 2" aria-label="Nome do jogador 2"><input class="tourney-name" maxlength="24" value="Amigo 3" aria-label="Nome do jogador 3"><input class="tourney-name" maxlength="24" value="Amigo 4" aria-label="Nome do jogador 4"></div><button id="tournamentStartBtn" class="primary" type="button">Começar semifinal 1</button><div id="tournamentBracket" class="feature-list"></div></div></div>
@@ -483,9 +513,14 @@ const MAX_EQUIP=2;
 const MAX_BENCH=7, SAVE_KEY='miniaturas-liga-v1';let nextId=1,game,battle=null,clock=null,audioCtx=null,soundOn=false,toastTimer=null,musicBus=null,fxBus=null,musicTimer=null,musicTheme='',musicStep=0,nextMusicTime=0,musicNoise=null,volume=readAudioVolume(),reportOpen=false,reportSide='player',modalReportOpen=false,modalReportSide='player',selectedInventoryIndex=null,craftSelection=[],pendingShopSlot=null,blessingChoices=[];
 const $=id=>document.getElementById(id),rnd=n=>Math.floor(Math.random()*n),choice=a=>a[rnd(a.length)],dist=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y),esc=s=>String(s).replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const deployed=()=>game.roster.filter(u=>u.x!==null), bench=()=>game.roster.filter(u=>u.x===null),capacity=()=>Math.min(6,3+Math.floor((game.round-1)/3));
-const DECK_SIZE=10, MAX_GROUP_DECK=4, PVP_START_HP=70;
-const DEFAULT_DECK=['guard','spear','bow','druid','mage','cleric','rogue','ghost','pyro','seraph'];
-let deckDraft=[];
+const DECK_SIZE=14, MAX_GROUP_DECK=5, PVP_START_HP=70;
+const DEFAULT_DECK=['guard','spear','bow','druid','mage','cleric','rogue','ghost','pyro','seraph','hunter','frost','earth','monk'];
+const DECK_PRESET_KEY='miniaturas-elenco-v27';
+let deckDraft=[],editingPreset=false;
+function readDeckPreset(){try{const deck=JSON.parse(localStorage.getItem(DECK_PRESET_KEY)||'null');return validDeck(deck)?deck.slice():DEFAULT_DECK.slice()}catch{return DEFAULT_DECK.slice()}}
+function saveDeckPreset(deck){try{localStorage.setItem(DECK_PRESET_KEY,JSON.stringify(deck))}catch{}}
+function updateHomeDeckLabel(){const el=$('homeDeckSummary');if(!el)return;const d=readDeckPreset(),counts=deckCounts(d);el.innerHTML=`<b>🎴 Elenco salvo: ${d.length}/${DECK_SIZE} tipos</b><div>${Object.keys(counts).map(k=>GROUPS[k].icon+' '+counts[k]).join(' · ')}</div><small>Mais tipos trazem variedade; menos tipos na loja favorecem fusões. Com 14, a loja oferece só cerca de metade das 27 miniaturas disponíveis.</small>`;}
+
 function deckCounts(deck){const c={};for(const id of deck)if(TYPES[id])c[TYPES[id].group]=(c[TYPES[id].group]||0)+1;return c}
 function validDeck(deck){
  if(!Array.isArray(deck)||deck.length!==DECK_SIZE||new Set(deck).size!==DECK_SIZE||deck.some(id=>!TYPES[id]))return false;
@@ -493,15 +528,19 @@ function validDeck(deck){
 }
 function migrateDeck(g){
  if(validDeck(g.deck)){g.deckConfirmed=!!g.deckConfirmed;return}
- const pool=[...new Set((g.roster||[]).map(u=>u.type).filter(id=>TYPES[id])),...DEFAULT_DECK,...Object.keys(TYPES)];
+ const pool=[...new Set((g.roster||[]).map(u=>u.type).filter(id=>TYPES[id])),...readDeckPreset(),...DEFAULT_DECK,...Object.keys(TYPES)];
  const deck=[],counts={};for(const id of pool){if(deck.length>=DECK_SIZE)break;if(deck.includes(id))continue;const group=TYPES[id].group;if((counts[group]||0)>=MAX_GROUP_DECK)continue;deck.push(id);counts[group]=(counts[group]||0)+1}
  g.deck=validDeck(deck)?deck:DEFAULT_DECK.slice();g.deckConfirmed=true;
 }
-function deckEditable(){return !!game&&game.phase==='prep'&&game.round===1&&!game.deckConfirmed&&!pvp.matchDone}
-function openDeckModal(){
+function deckEditable(){return editingPreset||!!game&&game.phase==='prep'&&game.round===1&&!game.deckConfirmed&&!pvp.matchDone}
+function openDeckModal(preset=false){
  if(!game)return;
- migrateDeck(game);
- deckDraft=game.deck.slice();renderDeckModal();$('deckModal').classList.remove('hidden');
+ editingPreset=!!preset;
+ if(!preset)migrateDeck(game);
+ deckDraft=preset?readDeckPreset():game.deck.slice();
+ $('deckTitle').textContent=preset?'🎴 Seu elenco para novas partidas':'🎴 Monte o elenco da partida';
+ $('deckIntro').textContent=preset?'Esta seleção ficará salva para suas próximas partidas. A campanha em andamento continua com o próprio elenco.':'Escolha as miniaturas que poderão aparecer na loja nesta partida.';
+ renderDeckModal();$('deckModal').classList.remove('hidden');
 }
 function closeDeckModal(){$('deckModal').classList.add('hidden')}
 function renderDeckModal(){
@@ -509,23 +548,24 @@ function renderDeckModal(){
  $('deckGrid').innerHTML=groups.map(id=>{const g=GROUPS[id],ids=Object.keys(TYPES).filter(k=>TYPES[k].group===id),n=counts[id]||0;
  return `<div class="deck-group"><h3><span>${g.icon} ${esc(g.name)}</span><span>${n}/${MAX_GROUP_DECK}</span></h3><div class="deck-group-items">${ids.map(k=>{const t=TYPES[k],on=deckDraft.includes(k),disabled=!on&&(deckDraft.length>=DECK_SIZE||n>=MAX_GROUP_DECK);return `<button type="button" class="deck-unit ${on?'on':''}" data-deck-type="${k}" ${disabled?'disabled':''} aria-pressed="${on}"><span class="deck-icon">${t.icon}</span><span>${esc(t.name)}<small>${t.cost} 🪙 · ${esc(t.skill)}</small></span></button>`}).join('')}</div></div>`}).join('');
  const selected=deckDraft.length,groupsUsed=Object.keys(counts).length;
- $('deckStatus').textContent=`${selected}/${DECK_SIZE} selecionadas · ${groupsUsed} alianças ${validDeck(deckDraft)?'· Elenco válido':'· Escolha 10 de pelo menos 3 alianças'}`;
+ $('deckStatus').textContent=`${selected}/${DECK_SIZE} selecionadas · ${groupsUsed} alianças ${validDeck(deckDraft)?'· Elenco válido':'· Escolha 14 de pelo menos 3 alianças'}`;
  $('deckConfirmBtn').disabled=!validDeck(deckDraft)||!deckEditable();
 }
 function toggleDeckType(id){if(!deckEditable()||!TYPES[id])return;const i=deckDraft.indexOf(id);if(i>=0)deckDraft.splice(i,1);else{if(deckDraft.length>=DECK_SIZE)return;const c=deckCounts(deckDraft);if((c[TYPES[id].group]||0)>=MAX_GROUP_DECK)return;deckDraft.push(id)}renderDeckModal()}
 function confirmDeck(){
  if(!deckEditable()||!validDeck(deckDraft))return;
+ if(editingPreset){saveDeckPreset(deckDraft);editingPreset=false;closeDeckModal();updateHomeDeckLabel();showToast('Elenco de 14 tipos salvo para novas partidas!');return}
  game.deck=deckDraft.slice();game.deckConfirmed=true;
  const starters=game.deck.slice().sort((a,b)=>TYPES[a].cost-TYPES[b].cost).slice(0,2);
  game.roster=[newUnit(starters[0],2,4),newUnit(starters[1],3,5)];
  game.gold=Math.max(2,game.gold-Math.max(0,TYPES[starters[0]].cost-2)-Math.max(0,TYPES[starters[1]].cost-2));
- game.selected=null;game.shop=[];rollShop(true);closeDeckModal();save();render();showToast('Elenco definido! Só esses 10 aparecem na loja.');
+ game.selected=null;game.shop=[];rollShop(true);closeDeckModal();save();render();showToast('Elenco definido! Só esses 14 aparecem na loja.');
 }
 function renderDeckSummary(){
  const el=$('deckSummary');if(!el)return;
  if(!game.deck){el.innerHTML='';return}
  const c=deckCounts(game.deck),tags=Object.keys(c).map(id=>`${GROUPS[id].icon}${c[id]}`).join(' · ');
- el.innerHTML=`<strong>🎴 Seu elenco · ${game.deck.length}/${DECK_SIZE} tipos</strong><small>${tags} · A loja usa apenas seu elenco, aumentando as chances de juntar três cópias.</small><button type="button" id="deckOpenBtn">${game.deckConfirmed?'👁 Ver elenco desta partida':'🎴 Escolher 10 miniaturas antes de jogar'}</button>${!game.deckConfirmed?'<small class="needs-deck">É preciso confirmar o elenco antes de comprar ou começar.</small>':''}`;
+ el.innerHTML=`<strong>🎴 Seu elenco · ${game.deck.length}/${DECK_SIZE} tipos</strong><small>${tags} · A loja usa apenas seu elenco, aumentando as chances de juntar três cópias.</small><button type="button" id="deckOpenBtn">${game.deckConfirmed?'👁 Ver elenco desta partida':'🎴 Escolher 14 miniaturas antes de jogar'}</button>${!game.deckConfirmed?'<small class="needs-deck">É preciso confirmar o elenco antes de comprar ou começar.</small>':''}`;
 }
 function pvpDamage(round,stars){
  const survivorStars=(Array.isArray(stars)?stars:[]).map(x=>Math.max(1,Math.min(3,Number(x)||1))).slice(0,6);
@@ -592,7 +632,7 @@ function applyBlessing(i){
  closeBlessingModal(); render(); save();
  showToast(`✨ ${chosen.name}: ${summary}`);
 }
-function newRun(){pendingShopSlot=null;craftSelection=[];closeShopInspect();selectedInventoryIndex=null;nextId=1;game={round:1,gold:8,lives:3,wins:0,roster:[newUnit('guard',2,4),newUnit('bow',3,5)],shop:[],preview:[],forge:[],inventory:[],selected:null,phase:'prep',highScore:readHighScore(),lastReport:null,globalBuffs:{atk:0,armor:0,speed:0,hp:0},bossInfo:null,campaign:{region:'valley',bosses:[],challenge:false,challengeWins:0},deck:DEFAULT_DECK.slice(),deckConfirmed:false};rollShop(true);rollForge();makePreview();save();render();openDeckModal();}
+function newRun(){pendingShopSlot=null;craftSelection=[];closeShopInspect();selectedInventoryIndex=null;nextId=1;game={round:1,gold:8,lives:3,wins:0,roster:[newUnit('guard',2,4),newUnit('bow',3,5)],shop:[],preview:[],forge:[],inventory:[],selected:null,phase:'prep',highScore:readHighScore(),lastReport:null,globalBuffs:{atk:0,armor:0,speed:0,hp:0},bossInfo:null,campaign:{region:'valley',bosses:[],challenge:false,challengeWins:0},deck:readDeckPreset(),deckConfirmed:false};rollShop(true);rollForge();makePreview();save();render();openDeckModal();}
 function readHighScore(){try{return Number(localStorage.getItem('miniaturas-recorde')||0)}catch{return 0}}
 function save(){if(pvp.active)return;if(game?.phase==='combat'||game?.phase==='result')return;try{localStorage.setItem(SAVE_KEY,JSON.stringify({game:{...game,phase:'prep',selected:null},nextId}))}catch{}}
 function load(){try{craftSelection=[];pendingShopSlot=null;selectedInventoryIndex=null;const blob=JSON.parse(localStorage.getItem(SAVE_KEY));if(!blob||!blob.game||!Array.isArray(blob.game.roster)||!Array.isArray(blob.game.shop)||!Array.isArray(blob.game.preview))return false;game=blob.game;nextId=blob.nextId||100;game.phase='prep';game.selected=null;game.inventory=Array.isArray(game.inventory)?game.inventory:[];game.forge=Array.isArray(game.forge)?game.forge:[];game.globalBuffs=game.globalBuffs||{atk:0,armor:0,speed:0,hp:0};game.bossInfo=game.bossInfo||null;game.campaign=game.campaign||{region:'valley',bosses:[],challenge:false,challengeWins:0};if(!Array.isArray(game.campaign.bosses))game.campaign.bosses=[];if(!Array.isArray(game.campaign.relics))game.campaign.relics=[];if(!game.forge.length)rollForge();game.roster.forEach(u=>{if(!Array.isArray(u.items))u.items=[]});const hadDeck=validDeck(game.deck);migrateDeck(game);if(!hadDeck&&Array.isArray(game.shop))game.shop=game.shop.map(type=>type&&!game.deck.includes(type)?choice(game.deck):type);return true}catch{return false}}
@@ -1294,7 +1334,7 @@ $('simRunBtn').onclick=startSimulator;
 window.__miniGameDebug={inspectShop,closeShopInspect,confirmShopBuy,craftItem,selectCraftIngredient,selectCraftRecipe,renderCraft,recipeFrom,recipes:RARE_RECIPES,shopModalIsOpen:()=>!$('shopModal').classList.contains('hidden'),getCraftSelection:()=>craftSelection.slice(),makeReport,reportHtml,restoreHealth,effectDamage,performTurn,getState:()=>JSON.parse(JSON.stringify({game,battle})),buy,selectOrMove,startBattle,tickBattle,reset:newRun,skipToResult:()=>{for(let i=0;i<250&&game.phase==='combat';i++)tickBattle()},types:TYPES,items:ITEMS,buyItem,equipItem,unequipItem,rollForge,miniArt,countTraits,inspectItem,applyTraitBuffs,processConditions,directStatusDamage,blinkToBackline,roleOf,selectTarget,findRetreat,interceptTarget,formationAdvice,pathToTarget,battleRef:()=>battle,arenaAt,arenaForRound,applyControl,skillKind,runSim:simOne,simFormation};
 
 // ===== PvP em mesmo aparelho e por WebSocket (servidor do pacote) =====
-let pvp={active:false,local:false,seat:0,round:1,wins:[0,0],ready:false,starting:false,socket:null,room:'',names:['Jogador 1','Jogador 2'],connected:[true,true],otherUnits:[],localGames:[],soloGame:null,lastWinner:null,matchDone:false,waitingNext:false,server:'',reconnectToken:'',reconnectAttempts:0,reconnectTimer:null,leaving:false,matchRecorded:false,tournament:null,privateRank:[0,0],privateHistory:[],prepDeadline:0,hp:[PVP_START_HP,PVP_START_HP],lastDamage:0};
+let pvp={active:false,local:false,quick:false,seat:0,round:1,wins:[0,0],ready:false,starting:false,socket:null,room:'',names:['Jogador 1','Jogador 2'],connected:[true,true],otherUnits:[],localGames:[],soloGame:null,lastWinner:null,matchDone:false,waitingNext:false,server:'',reconnectToken:'',reconnectAttempts:0,reconnectTimer:null,leaving:false,matchRecorded:false,tournament:null,privateRank:[0,0],privateHistory:[],prepDeadline:0,hp:[PVP_START_HP,PVP_START_HP],lastDamage:0};
 const PVP_SESSION_KEY='miniaturas-pvp-online-v2';
 function savePvpSession(){
  if(!pvp.active||pvp.local||!pvp.reconnectToken||!pvp.room)return;
@@ -1318,12 +1358,12 @@ function restorePvpSession(){
  return true;
 }
 function pvpFreshGame(){
- return {round:1,gold:12,lives:3,wins:0,roster:[newUnit('guard',2,4),newUnit('bow',3,5)],shop:[],preview:[],forge:[],inventory:[],selected:null,phase:'prep',highScore:0,lastReport:null,deck:DEFAULT_DECK.slice(),deckConfirmed:false};
+ return {round:1,gold:12,lives:3,wins:0,roster:[newUnit('guard',2,4),newUnit('bow',3,5)],shop:[],preview:[],forge:[],inventory:[],selected:null,phase:'prep',highScore:0,lastReport:null,deck:readDeckPreset(),deckConfirmed:false};
 }
 function pvpMakeGame(){let keep=game;game=pvpFreshGame();rollShop(true);rollForge();game.preview=[];let created=game;game=keep;return created}
 function pvpActivate(isLocal){
  clearTimeout(clock);battle=null;closeModal();closeShopInspect();
- pvp.leaving=false;pvp.soloGame=game;pvp.active=true;pvp.local=isLocal;pvp.ready=false;pvp.starting=false;pvp.round=1;pvp.wins=[0,0];pvp.hp=[PVP_START_HP,PVP_START_HP];pvp.lastDamage=0;pvp.matchDone=false;pvp.lastWinner=null;pvp.waitingNext=false;pvp.matchRecorded=false;pvp.tournament=null;pvp.matchRecorded=false;
+ pvp.leaving=false;pvp.soloGame=game;pvp.active=true;pvp.local=isLocal;pvp.quick=false;pvp.ready=false;pvp.starting=false;pvp.round=1;pvp.wins=[0,0];pvp.hp=[PVP_START_HP,PVP_START_HP];pvp.lastDamage=0;pvp.matchDone=false;pvp.lastWinner=null;pvp.waitingNext=false;pvp.matchRecorded=false;pvp.tournament=null;pvp.matchRecorded=false;
  pvp.localGames=isLocal?[pvpMakeGame(),pvpMakeGame()]:[];
  game=isLocal?pvp.localGames[0]:pvpMakeGame();pvp.seat=0;
  $('pvpShell').hidden=false;$('pvpBar').hidden=false;$('pvpSetup').hidden=true;$('pvpLeaveBtn').hidden=false;
@@ -1333,7 +1373,7 @@ function pvpLeave(){
  if(!pvp.active){$('pvpShell').hidden=true;return}
  clearTimeout(clock);battle=null;closeModal();closeShopInspect();
  pvp.leaving=true;clearTimeout(pvp.reconnectTimer);pvp.reconnectTimer=null;pvp.reconnectToken='';try{sessionStorage.removeItem(PVP_SESSION_KEY)}catch{}if(pvp.socket){try{pvp.socket.send(JSON.stringify({type:'leave'}));pvp.socket.close()}catch{}pvp.socket=null}
- game=pvp.soloGame||game;pvp.active=false;pvp.local=false;pvp.soloGame=null;pvp.ready=false;pvp.room='';
+ game=pvp.soloGame||game;pvp.active=false;pvp.local=false;pvp.quick=false;pvp.soloGame=null;pvp.ready=false;pvp.room='';
  $('pvpBar').hidden=true;$('pvpSetup').hidden=false;$('pvpLeaveBtn').hidden=true;$('pvpCode').hidden=true;$('pvpCopyBtn').hidden=true;
  $('pvpStatus').textContent='PvP encerrado. Progresso solo retomado.';
  render();
@@ -1341,13 +1381,62 @@ function pvpLeave(){
 function pvpSetStatus(s){$('pvpStatus').textContent=s;pvpUpdateBanner()}
 function pvpUpdateBanner(){
  if(!pvp.active)return;
- let me=pvp.local?`Jogador ${pvp.seat+1}`:(pvp.names[pvp.seat]||'Você'),vs=pvp.local?'Modo local':`Sala ${pvp.room}`;
+ let me=pvp.quick?'Você':pvp.local?`Jogador ${pvp.seat+1}`:(pvp.names[pvp.seat]||'Você'),vs=pvp.quick?'Jogo rápido · IA':pvp.local?'Modo local':`Sala ${pvp.room}`;
  $('pvpMatchTitle').innerHTML=`⚔️ <strong>${esc(vs)}</strong> · ${esc(me)} · Rodada ${pvp.round} · Vitórias ${pvp.wins[0]} × ${pvp.wins[1]}`;
  $('pvpHpBars').innerHTML=pvp.hp.map((life,i)=>`<div><div class="hp-pair"><span>${esc(pvp.names[i])}</span><span>❤️ ${Math.max(0,life)} / ${PVP_START_HP}</span></div><div class="pvp-health-track ${i?'alt':''}"><span style="width:${Math.max(0,Math.min(100,life/PVP_START_HP*100))}%"></span></div></div>`).join('');
  $('pvpMatchStatus').textContent=pvp.matchDone?'Partida encerrada':game.phase==='combat'?'⚔️ Combate automático':game.phase==='pvp_wait'?'✅ Aguardando o outro jogador':game.phase==='result'?'🏆 Resultado':'🛡️ Monte sua equipe';
 }
+function quickPrepareAI(){
+ const ai=pvp.localGames[1];if(!ai)return;
+ const saved=game;game=ai;
+ try{
+  const target=capacity(),choices=ai.deck.slice().filter(id=>TYPES[id].cost<=Math.max(2,2+Math.floor(pvp.round/3)));
+  // A IA também compra cópias repetidas para buscar ★★ e ★★★.
+  const purchases=pvp.round===1?1:Math.min(5,2+Math.floor(pvp.round/4));
+  for(let i=0;i<purchases;i++){
+   const affordable=choices.filter(id=>TYPES[id].cost<=ai.gold);
+   if(!affordable.length)break;
+   const owned=ai.roster.filter(u=>u.star===1).map(u=>u.type),prioritized=affordable.filter(id=>owned.includes(id));
+   const choicePool=prioritized.length&&Math.random()<.64?prioritized:affordable;
+   const type=choice(choicePool),cost=TYPES[type].cost;
+   if(ai.roster.length>=target+MAX_BENCH)break;
+   ai.gold-=cost;ai.roster.push(newUnit(type));checkFusion();
+  }
+  // Melhor equipe disponível, com protetores na linha de frente e distância na retaguarda.
+  ai.roster.forEach(u=>{u.x=null;u.y=null});
+  const best=ai.roster.slice().sort((a,b)=>((b.star-1)*100+TYPES[b.type].cost*8+TYPES[b.type].hp*.04)-((a.star-1)*100+TYPES[a.type].cost*8+TYPES[a.type].hp*.04)).slice(0,target);
+  const front=best.filter(u=>['front','fighter','flank'].includes(roleOf(u.type))),back=best.filter(u=>!front.includes(u));
+  const frontCells=[[2,4],[3,4],[1,4],[4,4],[0,4],[5,4]];
+  const backCells=[[2,5],[3,5],[1,5],[4,5],[0,5],[5,5]];
+  let f=0,b=0;for(const u of [...front,...back]){
+   let cell;if(['front','fighter','flank'].includes(roleOf(u.type)))cell=frontCells[f++]||backCells[b++];
+   else cell=backCells[b++]||frontCells[f++];
+   u.x=cell[0];u.y=cell[1];
+  }
+  if(pvp.round>=3){for(const u of best){if(!u.items?.length&&Math.random()<.25)u.items=[choice(itemList())]}}
+ }finally{game=saved}
+}
+function pvpSnapshotAI(){return (pvp.localGames[1]?.roster||[]).filter(u=>u.x!==null).map(u=>({type:u.type,star:u.star,x:u.x,y:u.y,items:(u.items||[]).slice(0,2)}))}
+function modeShell(isQuick){
+ const title=$('pvpShell').querySelector('.pvp-panel h2'),info=$('pvpShell').querySelector('.pvp-help');
+ if(isQuick){title.textContent='🤖 Jogo rápido · Você contra IA';info.innerHTML='Monte sua equipe e enfrente uma IA que compra e evolui miniaturas entre rodadas. Vocês começam com <b>70 pontos de vida</b>. O derrotado sofre dano conforme o número e as estrelas dos sobreviventes, e o combate continua até alguém zerar a vida.';$('pvpOnlineNote').hidden=true;$('pvpLeaveBtn').textContent='← Encerrar jogo rápido';}
+ else{title.textContent='⚔️ Duelo entre amigos · Sistema de vida';info.innerHTML='Cada jogador monta sua própria equipe e os dois começam com <b>70 pontos de vida</b>. O derrotado sofre dano conforme as miniaturas sobreviventes. A partida termina quando alguém chega a zero. No PvP online, a sala reserva sua vaga por até 150 segundos se a conexão cair.';$('pvpOnlineNote').hidden=false;$('pvpLeaveBtn').textContent='← Sair do PvP e voltar à campanha';}
+}
+function startQuickGame(){
+ if(pvp.active){showToast('Encerre a partida atual primeiro');return}
+ pvp.names=['Você','IA Estrategista'];pvp.room='';pvpActivate(true);pvp.quick=true;
+ pvp.names=['Você','IA Estrategista'];modeShell(true);
+ // Elenco independente, com tipos sorteados e distribuição por aliança válida.
+ const ai=pvp.localGames[1],pool=Object.keys(TYPES).sort(()=>Math.random()-.5),count={};
+ const picked=[];for(const id of pool){const group=TYPES[id].group;if(picked.length>=DECK_SIZE)break;if((count[group]||0)>=MAX_GROUP_DECK)continue;picked.push(id);count[group]=(count[group]||0)+1}
+ ai.deck=validDeck(picked)?picked:DEFAULT_DECK.slice();ai.deckConfirmed=true;
+ ai.roster=[newUnit(ai.deck[0],2,4),newUnit(ai.deck[1],3,5)];
+ game=pvp.localGames[0];pvp.seat=0;
+ pvpSetStatus('🤖 Jogo rápido contra IA. Vocês começam com 70 de vida; quem perder recebe dano conforme os sobreviventes.');
+ render();if(!game.deckConfirmed)openDeckModal();
+}
 function pvpStartLocal(){
- if(pvp.active)return;
+ if(pvp.active)return;modeShell(false);
  pvp.names=['Jogador 1','Jogador 2'];pvp.room='';pvpActivate(true);openDeckModal();pvpSetStatus('Jogador 1 prepara a equipe. Depois toque em PRONTO e entregue o aparelho ao jogador 2.');
 }
 function pvpReady(){
@@ -1355,6 +1444,7 @@ function pvpReady(){
  if(!game.deckConfirmed){openDeckModal();return}
  let units=deployed();if(!units.length){showToast('Coloque pelo menos uma miniatura');return}
  if(pvp.local){
+  if(pvp.quick){pvp.localGames[0]=game;quickPrepareAI();pvpStartHost(pvpSnapshotAI());return;}
   if(pvp.seat===0){pvp.localGames[0]=game;game.phase='pvp_wait';pvp.otherUnits=pvpSnapshot();game=pvp.localGames[1];pvp.seat=1;
    $('pvpStatus').textContent='Jogador 1 pronto. Entregue o aparelho ao jogador 2 para ele montar a equipe.';
    pvpUpdateBanner();render();if(!game.deckConfirmed)openDeckModal();window.scrollTo({top:0,behavior:'smooth'});return}
@@ -1402,7 +1492,7 @@ function pvpShowResult(hostWin){
   pvp.matchDone?`${winner} venceu a disputa de resistência! ${pvp.local?'Podem':'Vocês podem'} jogar uma revanche.`:`${winner} venceu a rodada ${pvp.round} e causou ${pvp.lastDamage} de dano. A partida continua até alguém chegar a 0 vida.`,
   `${pvp.names[0]} ❤️${pvp.hp[0]} · ❤️${pvp.hp[1]} ${pvp.names[1]} · ${pvp.wins[0]}×${pvp.wins[1]} vitórias`,
   pvp.matchDone?(pvp.tournament?'🏆 PRÓXIMO JOGO':'🔄 REVANCHE'):'➡️ PRÓXIMA RODADA',
-  pvp.local?'As equipes permanecem entre as rodadas.':'Os dois jogadores precisam confirmar para continuar.',
+  pvp.quick?'A IA também compra miniaturas e busca evoluções a cada rodada.':pvp.local?'As equipes permanecem entre as rodadas.':'Os dois jogadores precisam confirmar para continuar.',
   ()=>{closeModal();pvpAdvance()}
  );$('modalReportBtn').hidden=!game.lastReport;
 }
@@ -1418,7 +1508,7 @@ function pvpAdvance(){
   if(wasDone){pvp.wins=[0,0];pvp.hp=[PVP_START_HP,PVP_START_HP];pvp.round=1;pvp.matchDone=false;pvp.matchRecorded=false;pvp.localGames=[pvpMakeGame(),pvpMakeGame()];}
   else{pvp.round++;pvp.localGames[0]=game;for(let i=0;i<2;i++)pvpRefreshRound(pvp.localGames[i],pvp.round,pvp.lastWinner===i)}
   game=pvp.localGames[0];pvp.seat=0;pvp.lastWinner=null;battle=null;
-  pvpSetStatus('Jogador 1 começa a preparação. Toque em PRONTO para passar a vez.');render();if(!game.deckConfirmed)openDeckModal();return;
+  pvpSetStatus(pvp.quick?'🤖 A IA está pronta. Monte seu time e confirme para o próximo confronto.':'Jogador 1 começa a preparação. Toque em PRONTO para passar a vez.');render();if(!game.deckConfirmed)openDeckModal();return;
  }
  if(pvp.waitingNext)return;
  pvp.waitingNext=true;pvpSend({type:'next'});pvpSetStatus('Você confirmou. Esperando o amigo confirmar também...');
@@ -1432,11 +1522,11 @@ setInterval(updatePrepTimer,1000);
 function pvpRenderActions(){
  const active=game.phase==='combat',waiting=game.phase==='pvp_wait';
  $('fightBtn').disabled=game.phase!=='prep'||deployed().length===0||!game.deckConfirmed;
- $('fightBtn').textContent=waiting?'✅ PRONTO — AGUARDANDO':active?'⚔️ LUTANDO...':game.phase==='result'?'BATALHA ENCERRADA':'✅ CONFIRMAR EQUIPE';
+ $('fightBtn').textContent=waiting?'✅ PRONTO — AGUARDANDO':active?'⚔️ LUTANDO...':game.phase==='result'?'BATALHA ENCERRADA':(pvp.quick?'⚔️ ENFRENTAR IA':'✅ CONFIRMAR EQUIPE');
  $('speedBtn').hidden=!active||pvp.seat!==0;
  if(!$('speedBtn').hidden)$('speedBtn').textContent=`⏩ ${battle?.speed===1?'2×':'1×'}`;
  $('phaseNote').textContent=waiting?'Equipe bloqueada enquanto espera o outro jogador.':active?'Duelo PvP: o combate usa as equipes e os itens dos dois jogadores.':game.phase==='prep'?`Rodada ${pvp.round}. Prepare até ${capacity()} miniaturas e confirme quando estiver pronto.`:'Duelo encerrado. Consulte o relatório.';
- $('battleTip').textContent=game.phase==='prep'?'🎴 Cada jogador escolhe 10 tipos. O derrotado perde vida conforme os adversários sobreviventes e a rodada.':active?'⚔️ As alianças e equipamentos dos dois lados influenciam o combate.':'🏆 O primeiro jogador a ficar sem pontos de vida perde.';
+ $('battleTip').textContent=game.phase==='prep'?'🎴 Cada jogador escolhe 14 tipos. O derrotado perde vida conforme os adversários sobreviventes e a rodada.':active?'⚔️ As alianças e equipamentos dos dois lados influenciam o combate.':'🏆 O primeiro jogador a ficar sem pontos de vida perde.';
  pvpUpdateBanner();updatePrepTimer();
 }
 function pvpServerUrl(){
@@ -1475,7 +1565,7 @@ function pvpScheduleReconnect(){
  },delay);
 }
 function pvpConnect(action){
- if(pvp.active)return;
+ if(pvp.active)return;modeShell(false);
  let url;try{url=pvpServerUrl()}catch(e){pvpSetStatus(e.message);return}
  $('pvpCreateBtn').disabled=true;$('pvpJoinBtn').disabled=true;
  const payload=action==='create'?{type:'create',name:$('pvpName').value.trim().slice(0,24)||'Jogador'}:{type:'join',code:$('pvpJoinCode').value.trim().toUpperCase(),name:$('pvpName').value.trim().slice(0,24)||'Jogador'};
@@ -1534,7 +1624,7 @@ let catalogShowingItems=false;
 function readHistory(){try{const arr=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');return Array.isArray(arr)?arr:[]}catch{return []}}
 function pvpRecordCompleted(){
  const record={id:Date.now()+'-'+Math.random().toString(36).slice(2,7),at:new Date().toISOString(),
-  names:pvp.names.slice(),score:pvp.wins.slice(),hp:pvp.hp.slice(),winner:pvp.lastWinner,mode:pvp.local?(pvp.tournament?'torneio local':'duelo local'):'sala '+pvp.room};
+  names:pvp.names.slice(),score:pvp.wins.slice(),hp:pvp.hp.slice(),winner:pvp.lastWinner,mode:pvp.quick?'jogo rápido contra IA':pvp.local?(pvp.tournament?'torneio local':'duelo local'):'sala '+pvp.room};
  const arr=readHistory();arr.unshift(record);try{localStorage.setItem(HISTORY_KEY,JSON.stringify(arr.slice(0,60)))}catch{}
  if(pvp.tournament){pvp.tournament.winners[pvp.tournament.step]=pvp.names[pvp.lastWinner];
   pvp.tournament.results.push(record);saveTournament()}
@@ -1615,10 +1705,26 @@ $('deckCloseBtn').onclick=closeDeckModal;
 $('pvpLeaveBtn').onclick=()=>{if(confirm('Abandonar o duelo e voltar ao modo solo?'))pvpLeave()};
 $('pvpCopyBtn').onclick=async()=>{const base=$('pvpServer').value.trim()||(/^https?:$/.test(location.protocol)?location.origin:'');const link=base?base.replace(/\/$/,'')+'/?room='+encodeURIComponent(pvp.room):'Código da sala: '+pvp.room;try{await navigator.clipboard.writeText(link);showToast('Convite copiado!')}catch{prompt('Copie este convite:',link)}};
 try{const code=new URLSearchParams(location.search).get('room');if(code&&/^[A-Z0-9]{6}$/i.test(code)){$('pvpJoinCode').value=code.toUpperCase();$('pvpShell').hidden=false;}}catch{}
-window.__miniDeckDebug={validDeck,pvpDamage,open:openDeckModal,confirm:confirmDeck,toggle:toggleDeckType,get:()=>({deck:game.deck,confirmed:game.deckConfirmed,pvpHp:pvp.hp.slice(),draft:deckDraft.slice()})};
-window.__miniPvpDebug={startLocal:pvpStartLocal,ready:pvpReady,leave:pvpLeave,getState:()=>({active:pvp.active,local:pvp.local,seat:pvp.seat,round:pvp.round,wins:[...pvp.wins],phase:game.phase,roster:game.roster,server:pvp.server,hasReconnectToken:!!pvp.reconnectToken,reconnectAttempts:pvp.reconnectAttempts}),advance:pvpAdvance,pvpStartHost,pvpShowResult};
+window.__miniDeckDebug={readPreset:readDeckPreset,validDeck,pvpDamage,open:openDeckModal,confirm:confirmDeck,toggle:toggleDeckType,get:()=>({deck:game.deck,confirmed:game.deckConfirmed,pvpHp:pvp.hp.slice(),draft:deckDraft.slice()})};
+window.__miniPvpDebug={startQuick:startQuickGame,startLocal:pvpStartLocal,ready:pvpReady,leave:pvpLeave,getState:()=>({active:pvp.active,local:pvp.local,seat:pvp.seat,round:pvp.round,wins:[...pvp.wins],phase:game.phase,roster:game.roster,server:pvp.server,hasReconnectToken:!!pvp.reconnectToken,reconnectAttempts:pvp.reconnectAttempts}),advance:pvpAdvance,pvpStartHost,pvpShowResult};
 
-if(!load())newRun();else render();updateAudioStatus();restorePvpSession();
+
+// ===== Menu principal v2.7 =====
+function showHome(){
+ if(pvp.active){if(!window.confirm('Sair desta partida e voltar ao menu?'))return;pvpLeave()}
+ closeModal();closeShopInspect();for(const id of ['deckModal','catalogModal','campaignModal','historyModal','tournamentModal','simulatorModal']){const el=$(id);if(el)el.classList.add('hidden')}
+ $('homeMenu').hidden=false;updateHomeDeckLabel();window.scrollTo({top:0,behavior:'instant'});
+}
+function showGame(){ $('homeMenu').hidden=true;render();window.scrollTo({top:0,behavior:'instant'});}
+$('menuOpenBtn').onclick=showHome;
+$('homeCampaign').onclick=()=>{showGame();$('pvpShell').hidden=true;if(!game.deckConfirmed)openDeckModal()};
+$('homePvp').onclick=()=>{modeShell(false);showGame();$('pvpShell').hidden=false;$('pvpShell').scrollIntoView({behavior:'instant',block:'start'})};
+$('homeQuick').onclick=()=>{showGame();$('pvpShell').hidden=false;startQuickGame()};
+$('homeDeck').onclick=()=>openDeckModal(true);
+if(!load())newRun();else render();updateAudioStatus();const resumed=restorePvpSession();
+if(!resumed){closeDeckModal();$('homeMenu').hidden=false;updateHomeDeckLabel()}
+else $('homeMenu').hidden=true;
+try{const invitation=new URLSearchParams(location.search).get('room');if(invitation){$('homeMenu').hidden=true;$('pvpShell').hidden=false;}}catch{}
 })();
 </script>
 </body></html>
