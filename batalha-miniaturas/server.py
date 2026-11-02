@@ -425,6 +425,7 @@ async def index(_request):
     html=html.replace("function pvpAdvance(){\n if(!pvp.active)return;", "function pvpAdvance(){\n  if(!pvp.active)return;\n  if(pvp.ranked&&pvp.matchDone){pvpLeave();showHome();return;}", 1)
     html=html.replace("vs=pvp.quick?'Jogo rápido · IA':pvp.local?'Modo local':", "vs=pvp.ranked?'PvP ranqueado':pvp.quick?'Jogo rápido · IA':pvp.local?'Modo local':", 1)
     html=html.replace("pvp.active=false;pvp.local=false;pvp.quick=false;pvp.soloGame=null;", "pvp.active=false;pvp.ranked=false;pvp.local=false;pvp.quick=false;pvp.soloGame=null;", 1)
+    html=apply_quad_html(html)
     return web.Response(text=html,content_type='text/html',headers={'Cache-Control':'no-store'})
 
 async def friends_client(_request):
@@ -529,11 +530,14 @@ async def background(app):
 
 from account_api import install_account_api, AuthError, COOKIE_NAME
 from ranked_api import install_ranked
+from quad_api import install_quad
+from quad_client_injection import apply_quad_html
 app=web.Application(client_max_size=350_000)
 app['mini_rooms']=ROOMS
 app.add_routes([web.get('/',index),web.get('/friends_client.js',friends_client),web.get('/profile_client.js',profile_client),web.get('/ranked_client.js',ranked_client),web.get('/play_menu_client.js',play_menu_client),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
 account_store=install_account_api(app)
-install_ranked(app,account_store,ROOMS,Room,ALPHABET,MAX_ROOMS)
+ranked_service=install_ranked(app,account_store,ROOMS,Room,ALPHABET,MAX_ROOMS)
+install_quad(app,account_store,ranked_service,{'deck':validate_deck,'units':validate_units,'survivors':validate_survivors,'damage':calc_pvp_damage,'blessings':PVP_BLESSING_EFFECTS,'max_rooms':MAX_ROOMS})
 app.on_startup.append(verify_preparation_track)
 app.cleanup_ctx.append(background)
 if __name__=='__main__':

@@ -24,10 +24,10 @@
     let el=$('miniRankedQueue');
     if(!el){
       el=document.createElement('section');el.id='miniRankedQueue';el.hidden=true;
-      el.innerHTML='<h3>⚔️ PvP ranqueado</h3><p>Adversários escolhidos automaticamente por pontuação.</p>'+
+      el.innerHTML='<h3>⚔️ Ranqueado · 4 jogadores</h3><p>Buscando adversários de elo parecido. Se a espera for longa, bots completam a partida.</p>'+
         '<div><span class="ranked-badge" id="miniRankedDivision">Bronze</span> <strong class="ranked-number" id="miniRankedPoints">100</strong> pontos</div>'+
         '<div class="ranked-search-row"><span class="ranked-spinner" aria-hidden="true"></span><div><strong id="miniRankedStatus">Entrando na fila...</strong><br><small class="ranked-clock" id="miniRankedTimer">0 s</small></div></div>'+
-        '<p>Buscamos alguém com pontuação próxima e ampliamos a faixa gradualmente. Vitória: +10; derrota: −10, até zero.</p>'+
+        '<p>Quatro participantes por partida. 1º: +15, 2º: +5, 3º: −5 e 4º: −15 pontos.</p>'+
         '<button id="miniRankedCancel" type="button">Cancelar busca e voltar</button>';
       panel.insertBefore(el,$('pvpSetup'));
       $('miniRankedCancel').addEventListener('click',()=>{stop();window.__miniRankedBridge?.back?.()});
@@ -81,9 +81,9 @@
   }
   document.addEventListener('mini-ranked',ev=>{
     const msg=ev.detail||{};
-    if(msg.type==='ranked_wait'&&searching){status('Aguardando jogador com elo parecido...');displayRating(msg.rating)}
+    if(msg.type==='ranked_wait'&&searching){status('Buscando até quatro participantes... '+(msg.playersWaiting||1)+' na fila');displayRating(msg.rating)}
     if(msg.type==='joined'&&msg.ranked){searching=false;clearInterval(timer);if(ui())ui().hidden=true;getRating().catch(()=>{})}
-    if(msg.type==='ranked_rating'){displayRating(msg.rating);status(msg.won?'Vitória! +10 pontos':'Derrota. −10 pontos');getRating().catch(()=>{})}
+    if(msg.type==='ranked_rating'){displayRating(msg.rating);status((msg.place||'')+'º lugar · '+(msg.delta>0?'+':'')+msg.delta+' pontos');getRating().catch(()=>{})}
     if(msg.type==='ranked_forfeit'){getRating().catch(()=>{})}
     if(msg.type==='ranked_cancelled'){searching=false;clearInterval(timer);if(ui())ui().hidden=true;}
     if(msg.type==='ranked_error'){searching=false;clearInterval(timer);status(msg.message||'Busca interrompida.');$('miniRankedCancel').textContent='Voltar ao menu';}
