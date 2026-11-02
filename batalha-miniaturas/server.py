@@ -415,7 +415,7 @@ RANKED_JOIN_FOOTER="render();pvpOpenPendingBlessing();\n }else if(msg.type==='co
 RANKED_JOIN_REPLACE="render();pvpOpenPendingBlessing();if(msg.ranked){pvp.ranked=true;$('pvpCode').hidden=true;$('pvpCopyBtn').hidden=true;pvpSetStatus('Adversário encontrado! Prepare sua equipe.');document.dispatchEvent(new CustomEvent('mini-ranked',{detail:msg}));}\n }else if(msg.type==='connection_lost'"
 async def index(_request):
     html=(ROOT/'index.html').read_text(encoding='utf-8')
-    html=html.replace('</body>', '<script defer src="/friends_client.js"></script><script defer src="/profile_client.js"></script><script defer src="/ranked_client.js"></script></body>', 1)
+    html=html.replace('</body>', '<script defer src="/friends_client.js"></script><script defer src="/profile_client.js"></script><script defer src="/ranked_client.js"></script><script defer src="/play_menu_client.js"></script></body>', 1)
 
     # Extensão pequena injetada em memória, sem substituir o HTML original aprovado.
     html=html.replace('window.__miniPvpDebug=', RANKED_BRIDGE+'window.__miniPvpDebug=', 1)
@@ -435,6 +435,9 @@ async def profile_client(_request):
 
 async def ranked_client(_request):
     return web.FileResponse(ROOT/'ranked_client.js',headers={'Cache-Control':'no-store'})
+
+async def play_menu_client(_request):
+    return web.FileResponse(ROOT/'play_menu_client.js',headers={'Cache-Control':'no-store'})
 
 # v2.9: trilha de preparação original disponibilizada por arquivo MP3.
 # Os fragmentos binários ficam na branch exclusiva do jogo, nunca nos outros jogos.
@@ -528,7 +531,7 @@ from account_api import install_account_api, AuthError, COOKIE_NAME
 from ranked_api import install_ranked
 app=web.Application(client_max_size=350_000)
 app['mini_rooms']=ROOMS
-app.add_routes([web.get('/',index),web.get('/friends_client.js',friends_client),web.get('/profile_client.js',profile_client),web.get('/ranked_client.js',ranked_client),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
+app.add_routes([web.get('/',index),web.get('/friends_client.js',friends_client),web.get('/profile_client.js',profile_client),web.get('/ranked_client.js',ranked_client),web.get('/play_menu_client.js',play_menu_client),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
 account_store=install_account_api(app)
 install_ranked(app,account_store,ROOMS,Room,ALPHABET,MAX_ROOMS)
 app.on_startup.append(verify_preparation_track)
