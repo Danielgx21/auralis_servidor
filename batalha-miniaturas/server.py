@@ -35,7 +35,7 @@ def pvp_buffs_zero():
 def pvp_blessing_round(round_number):
  return round_number>1 and (round_number-1)%4==0
 TYPE_GROUPS={'ferro':set('guard spear axe paladin sentinel'.split()),'selva':set('bow druid hunter toxic shaman'.split()),'arcano':set('mage cleric golem frost storm'.split()),'sombra':set('rogue ghost necro shade'.split()),'elemental':set('pyro tide earth spark'.split()),'sagrado':set('seraph monk templar oracle'.split())}
-ALLOWED_ITEMS=set('sword mail ward focus boots amulet ring orb staff charm shield lance bloodblade bastion windfang divine piercer heart arcana wardsteps'.split())
+ALLOWED_ITEMS=set('sword mail ward focus boots amulet ring orb staff charm shield lance bloodblade bastion windfang divine piercer heart arcana wardsteps hourglass trailboots plagueblade hexstaff thornmail'.split())
 # This is an authoritative relay for lobby, score and turns; the room creator runs
 # the actual combat simulation. It is appropriate for friendly unranked games.
 ROOMS = {}
@@ -423,8 +423,10 @@ async def background(app):
     try:await task
     except asyncio.CancelledError:pass
 
-app=web.Application(client_max_size=220_000)
+from account_api import install_account_api
+app=web.Application(client_max_size=350_000)
 app.add_routes([web.get('/',index),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
+install_account_api(app)
 app.on_startup.append(verify_preparation_track)
 app.cleanup_ctx.append(background)
 if __name__=='__main__':
