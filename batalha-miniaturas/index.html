@@ -306,6 +306,7 @@ button{font:inherit;cursor:pointer}button:disabled{cursor:not-allowed;opacity:.4
   <button id="homeQuick" type="button" class="menu-option"><span class="menu-emoji">🤖</span><strong>Jogo rápido</strong><small>Mesmo formato do PvP, mas contra uma IA que evolui seu time.</small></button>
   <button id="homeDeck" type="button" class="menu-option"><span class="menu-emoji">🎴</span><strong>Escolha de elenco</strong><small>Monte seus 14 tipos favoritos, salvos para as próximas partidas.</small></button>
  </div>
+ <button id="homePrepMusicBtn" type="button" class="menu-header-btn" style="justify-self:center;width:min(100%,320px)">🎼 Música da preparação · escolher MP3</button>
  <nav class="feature-nav" aria-label="Consultas e recursos"><button id="catalogOpenBtn" type="button">📖 Catálogo · 27</button><button id="campaignOpenBtn" type="button">🗺️ Regiões e desafios</button><button id="historyOpenBtn" type="button">🏆 Histórico PvP</button></nav>
   <div class="menu-meta" id="homeDeckSummary">🎴 Seu elenco está pronto para edição.</div>
  <p class="menu-footer">Seu progresso solo é salvo neste navegador. O PvP online usa o servidor do jogo.</p>
@@ -1812,6 +1813,7 @@ $('homeCampaign').onclick=()=>{showGame();$('pvpShell').hidden=true;if(!game.dec
 $('homePvp').onclick=()=>{modeShell(false);showGame();$('pvpShell').hidden=false;$('pvpShell').scrollIntoView({behavior:'instant',block:'start'})};
 $('homeQuick').onclick=()=>{showGame();$('pvpShell').hidden=false;startQuickGame()};
 $('homeDeck').onclick=()=>openDeckModal(true);
+ $('homePrepMusicBtn').onclick=()=>$('prepMusicFile').click();
 if(!load())newRun();else render();updateAudioStatus();const resumed=restorePvpSession();
 if(!resumed){closeDeckModal();$('homeMenu').hidden=false;updateHomeDeckLabel()}
 else $('homeMenu').hidden=true;
