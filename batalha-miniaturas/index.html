@@ -1304,7 +1304,7 @@ function rememberAudioVolume(){try{localStorage.setItem('miniaturas-volume',Stri
 let prepTrackReady=false,prepTrackRequested=false,prepTrackError=false;
 function syncPrepPlayback(){
  const player=$('prepAudio');if(!player)return;
- const shouldPlay=soundOn&&!document.hidden&&musicTheme==='prep'&&prepTrackReady;
+ const shouldPlay=soundOn&&!document.hidden&&musicTheme==='prep'&&!prepTrackError&&(prepTrackRequested||prepTrackReady);
  if(shouldPlay){if(player.paused){const result=player.play();if(result?.catch)result.catch(()=>{});}}
  else if(!player.paused)player.pause();
 }
