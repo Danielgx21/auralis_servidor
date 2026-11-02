@@ -348,7 +348,12 @@ async def ws_handler(request):
     return ws
 
 async def index(_request):
-    return web.FileResponse(ROOT/'index.html', headers={'Cache-Control':'no-store'})
+    html=(ROOT/'index.html').read_text(encoding='utf-8')
+    html=html.replace('</body>', '<script defer src="/friends_client.js"></script></body>', 1)
+    return web.Response(text=html,content_type='text/html',headers={'Cache-Control':'no-store'})
+
+async def friends_client(_request):
+    return web.FileResponse(ROOT/'friends_client.js',headers={'Cache-Control':'no-store'})
 
 # v2.9: trilha de preparação original disponibilizada por arquivo MP3.
 # Os fragmentos binários ficam na branch exclusiva do jogo, nunca nos outros jogos.
@@ -425,7 +430,8 @@ async def background(app):
 
 from account_api import install_account_api
 app=web.Application(client_max_size=350_000)
-app.add_routes([web.get('/',index),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
+app['mini_rooms']=ROOMS
+app.add_routes([web.get('/',index),web.get('/friends_client.js',friends_client),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
 install_account_api(app)
 app.on_startup.append(verify_preparation_track)
 app.cleanup_ctx.append(background)

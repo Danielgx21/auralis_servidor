@@ -358,4 +358,6 @@ def install_account_api(app):
     app.router.add_route('GET','/api/account/{action}',api_handler)
     app.router.add_route('POST','/api/account/{action}',api_handler)
     app.router.add_route('PUT','/api/account/{action}',api_handler)
+    from friends_api import install_friends_api
+    install_friends_api(app,store)
     return store
