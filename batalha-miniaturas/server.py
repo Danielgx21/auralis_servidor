@@ -538,6 +538,11 @@ app.add_routes([web.get('/',index),web.get('/friends_client.js',friends_client),
 account_store=install_account_api(app)
 ranked_service=install_ranked(app,account_store,ROOMS,Room,ALPHABET,MAX_ROOMS)
 install_quad(app,account_store,ranked_service,{'deck':validate_deck,'units':validate_units,'survivors':validate_survivors,'damage':calc_pvp_damage,'blessings':PVP_BLESSING_EFFECTS,'max_rooms':MAX_ROOMS})
+async def verify_quad_rounds(_app):
+    from quad_smoke import smoke
+    result=await smoke()
+    logging.info('Quad smoke verificado: %s',result)
+app.on_startup.append(verify_quad_rounds)
 app.on_startup.append(verify_preparation_track)
 app.cleanup_ctx.append(background)
 if __name__=='__main__':
