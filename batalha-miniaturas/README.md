@@ -1,46 +1,26 @@
-# Batalha de Miniaturas — v2.0 (solo + PvP online)
+# Batalha de Miniaturas — v2.5
 
-Jogo de estratégia casual para navegador, com 19 miniaturas, equipamentos, alianças, dano físico, mágico e verdadeiro, arenas, efeitos de status e simulador de balanceamento com 200 duelos.
+Jogo de combate automático no navegador, com modo solo, PvP e campanha.
 
-## Jogo publicado
+## Conteúdo da versão
+- PvP online de **2 jogadores** por código, reconexão de 150 segundos e preparação com prazo de 120 segundos (reiniciável).
+- Ranking e histórico de séries **privados da sala**, temporários em memória.
+- Torneio **local de 4 participantes**, no mesmo aparelho, em duas semifinais e uma final.
+- **27 miniaturas** em seis alianças: Ferro, Selva, Arcano, Sombra, Elemental e Sagrado.
+- Catálogo com ficha, atributos, tipo de dano, habilidades e equipamento sugerido.
+- Campanha de cinco regiões e chefes, desafios opcionais mais difíceis e relíquias.
+- Simulador de balanceamento de 200 duelos, no navegador.
 
-https://batalha-de-miniaturas-pvp.onrender.com
-
-O servidor é um Web Service separado no Render, conectado à branch `batalha-miniaturas-online` do repositório `Danielgx21/auralis_servidor`.
-
-### Configuração do serviço existente
-
-- Runtime: Python
+## Render
+- Repo: `Danielgx21/auralis_servidor`
+- Branch: `batalha-miniaturas-online`
 - Build: `pip install -r batalha-miniaturas/requirements.txt`
 - Start: `python batalha-miniaturas/server.py`
-- Root: repositório (sem rootDir separado)
+- URL: https://batalha-de-miniaturas-pvp.onrender.com
 
-### PvP online
-
-Entre no site, abra **PvP**, crie uma sala e envie o código. Cada jogador prepara uma equipe no próprio dispositivo e confirma a formação. O primeiro a vencer três batalhas ganha.
-
-As salas estão em memória. Se uma conexão cair, o servidor reserva a vaga por até **150 segundos** e o navegador tenta reconectar automaticamente com token exclusivo. Se a aba for recarregada rapidamente, a sessão do PvP poderá ser recuperada por `sessionStorage`. A rodada em andamento pode recomeçar após a reconexão, com o placar das rodadas concluídas preservado. Reiniciar o serviço do Render elimina as salas; a reconexão não garante continuidade após reinício ou expiração.
-
-A simulação do PvP é conduzida pelo aparelho do criador e retransmitida por WebSocket, sem antitrapaça. Indicada apenas para partidas casuais entre amigos.
-
-### Executar localmente
-
-```bash
-pip install -r requirements.txt
-python server.py
-```
-
-Abra `http://localhost:8000` no navegador. O modo solo também funciona em arquivo HTML, sem servidor.
-
-### Rotas
-
-- `/` — jogo
-- `/ws` — WebSocket
-- `/health` — JSON de saúde
-
-### Arquivos
-
-- `index.html` — jogo completo
-- `server.py` — servidor WebSocket
-- `requirements.txt` — dependência do servidor
-- `render.yaml` — blueprint opcional para publicação isolada
+## Limites importantes
+- Torneio para quatro amigos funciona localmente; o modo online permanece 1 × 1.
+- Resultados do navegador dependem de armazenamento local; resultados da sala somem se o serviço reiniciar.
+- O criador da sala simula as batalhas e o servidor transmite; não há antitrapaça.
+- Render gratuito pode ficar suspenso por inatividade.
+- As branches `main` e `manual-criaturas-v1` não devem ser alteradas.
