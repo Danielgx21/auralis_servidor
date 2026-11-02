@@ -20,6 +20,7 @@ QUAD_HEAD = r"""
   }
   pvp.quad=true;pvp.ranked=true;pvp.quadSeat=msg.seat;pvp.quadCode=msg.code;
   pvp.quadParticipants=msg.participants||[];
+  if(!original){pvp.quadPlacements=[];pvp.quadRoundResult=null;pvp.quadRating=null;pvp.quadDelta=null;pvp.quadPlace=null;}
   if(msg.pair){
    pvp.seat=msg.pair.role;pvp.names=msg.pair.names;pvp.hp=msg.pair.hp;
    pvp.connected=msg.pair.connected;
@@ -79,6 +80,7 @@ QUAD_HEAD = r"""
  if(msg.type==='quad_result'){
   pvp.quadParticipants=msg.participants||pvp.quadParticipants;
   pvp.quadPhase='result';
+  pvp.quadRoundResult={round:msg.round,damage:msg.damage,winnerSeat:msg.winnerSeat,loserSeat:msg.winnerSeat===pvp.quadSeat?msg.pair.opponentSeat:pvp.quadSeat};
   pvp.seat=msg.pair.role;pvp.names=msg.pair.names;pvp.hp=msg.pair.hp;
   const all=pvp.quadParticipants||[];
   const a=all.find(p=>p.seat===(msg.pair.role===0?pvp.quadSeat:msg.pair.opponentSeat));
@@ -90,7 +92,7 @@ QUAD_HEAD = r"""
  }
  if(msg.type==='quad_next_round'){
   pvp.quadParticipants=msg.participants||pvp.quadParticipants||[];
-  pvp.quadPhase='prep';pvp.seat=msg.pair.role;
+  pvp.quadPhase='prep';pvp.quadRoundResult=null;pvp.seat=msg.pair.role;
   pvp.names=msg.pair.names;pvp.hp=msg.pair.hp;
   pvp.connected=msg.pair.connected;
   pvpMessage({type:'nextRound',round:msg.round,wins:pvp.wins,
@@ -99,6 +101,7 @@ QUAD_HEAD = r"""
   savePvpSession();return;
  }
  if(msg.type==='quad_rating'){
+  pvp.quadRating=msg.rating||null;pvp.quadDelta=msg.delta;pvp.quadPlace=msg.place;
   document.dispatchEvent(new CustomEvent('mini-ranked',{
    detail:{type:'ranked_rating',rating:msg.rating,delta:msg.delta,
     place:msg.place,won:msg.place<=2}
@@ -106,7 +109,7 @@ QUAD_HEAD = r"""
   return;
  }
  if(msg.type==='quad_final'){
-  pvp.quadPhase='done';pvp.matchDone=true;
+  pvp.quadPhase='done';pvp.matchDone=true;pvp.quadPlacements=msg.placements||[];
   const own=msg.placements?.find(p=>p.seat===pvp.quadSeat);
   const label=own?own.place+'º lugar':'Partida encerrada';
   const places=(msg.placements||[]).map(p=>p.place+'º '+p.name+(p.bot?' 🤖':'')).join(' · ');

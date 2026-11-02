@@ -39,6 +39,7 @@
 @media(max-width:350px){#modal.mini-result .mr-stats{gap:4px}#modal.mini-result .mr-stat{padding:7px 2px}#modal.mini-result .modal-body{padding-left:10px;padding-right:10px}#modal.mini-result .mr-heading{margin-left:-10px;margin-right:-10px}}
 @media(prefers-reduced-motion:no-preference){#modal.mini-result:not(.hidden) .modal-body{animation:mr-show .22s ease-out}@keyframes mr-show{from{transform:translateY(10px);opacity:.7}to{transform:none;opacity:1}}}
   `;
+  css.textContent+="\n#modal.mini-result{padding:max(10px,env(safe-area-inset-top)) 10px max(12px,env(safe-area-inset-bottom));overscroll-behavior:contain}\n#modal.mini-result .modal-body{box-sizing:border-box;max-height:calc(100dvh - 22px);width:min(530px,100%);max-width:100%;padding-bottom:calc(17px + env(safe-area-inset-bottom))}\n#modal.mini-result .mr-person{min-width:0}\n#modal.mini-result .mr-name{line-height:1.4}\n#modal.mini-result #modalText{overflow-wrap:anywhere}\n#modal.mini-result #modalAction{touch-action:manipulation}\n#modal.mini-result .mr-requeue{width:100%;min-height:48px;margin:5px 0 10px;border:1px solid #87a9ca;border-radius:12px;background:#253f59;color:#fff;font-weight:850;font-size:14px;touch-action:manipulation}\n#modal.mini-result .mr-requeue[hidden]{display:none!important}\n";
   document.head.append(css);
   const body=modal.querySelector('.modal-body'),ico=$('modalIcon'),title=$('modalTitle'),paragraph=$('modalText'),reward=$('modalReward'),button=$('modalAction');
   const header=document.createElement('div');header.className='mr-heading';const eyebrow=document.createElement('span');eyebrow.className='mr-eyebrow';header.append(eyebrow,ico,title);body.insertBefore(header,body.firstChild);
@@ -46,6 +47,9 @@
   function element(tag,cls,value){const e=document.createElement(tag);if(cls)e.className=cls;if(value!==undefined)e.textContent=String(value);return e}
   function stats(values){const el=element('div','mr-stats');values.forEach(([key,val])=>{const card=element('div','mr-stat');card.append(element('span','mr-key',key),element('strong','mr-value',val));el.append(card)});summary.append(el)}
   function standings(players,ranking){const list=element('div','mr-list');for(const p of players){const row=element('div','mr-person');if(p.me)row.classList.add('mr-me');if(ranking&&p.place<=2)row.classList.add('mr-top');if(ranking&&p.place>=3)row.classList.add('mr-low');const position=element('span','mr-place',ranking?`${p.place}º`:(p.icon||'⚔'));const details=element('div','mr-detail');details.append(element('span','mr-name',(p.name||'Jogador')+(p.bot?' 🤖':'')));if(p.hp!=null){const track=element('div','mr-track'),fill=document.createElement('i');fill.style.width=Math.max(0,Math.min(100,Number(p.hp)/70*100))+'%';track.append(fill);details.append(track)}row.append(position,details,element('span','mr-hp',p.hp==null?(p.me?'VOCÊ':''):`♥ ${Math.max(0,p.hp)}/70`));list.append(row)}summary.append(list)}
+  const another=document.createElement('button');
+  another.type='button';another.className='mr-requeue';another.textContent='⚔️ BUSCAR OUTRA PARTIDA';another.hidden=true;
+  body.insertBefore(another,$('modalSub'));
   const prior=window.openModal;
   window.openModal=function(icon,heading,description,rewardText,action,footer,callback){
     const ret=prior.apply(this,arguments);let online=false,quad=false,campaign=false;
@@ -53,26 +57,64 @@
     const result=campaign||(online&&(/rodada|duelo|lugar|vitória|derrota|venceu/i.test(String(heading))||quad));
     modal.classList.toggle('mini-result',result);modal.classList.remove('mr-loss');
     if(!result)return ret;
-    summary.replaceChildren();
+    summary.replaceChildren();another.hidden=true;
     let victory=/vitória|venceu|1º lugar|2º lugar/i.test(String(heading));
     try{if(online&&!quad)victory=pvp.seat===pvp.lastWinner}catch{}
     modal.classList.toggle('mr-loss',!victory);
     eyebrow.textContent=quad?(/^\dº lugar/i.test(heading)?'CLASSIFICAÇÃO FINAL':'CONFRONTO CONCLUÍDO'):online?(pvp.matchDone?'FIM DA PARTIDA':'RESULTADO DA RODADA'):'RESULTADO DE BATALHA';
     if(quad){
       const participants=Array.isArray(pvp.quadParticipants)?pvp.quadParticipants:[];
-      const finished=/^\dº lugar/i.test(String(heading))||pvp.quadPhase==='done';
+      const finished=pvp.quadPhase==='done'||(pvp.matchDone&&Array.isArray(pvp.quadPlacements)&&pvp.quadPlacements.length===4);
+      const mine=participants.find(p=>p.seat===pvp.quadSeat);
       if(finished){
-        const people=String(rewardText||'').split(/\s+·\s+/).map(s=>s.match(/^(\d)º\s+(.+?)(\s+🤖)?$/)).filter(Boolean).map(m=>{const data=participants.find(p=>p.name===m[2]);return{place:Number(m[1]),name:m[2],bot:!!m[3]||!!data?.isBot,me:data?.seat===pvp.quadSeat,hp:data?.hp}});
-        const place=Number(String(heading).match(/^\d/)?.[0]);const points={1:'+15',2:'+5',3:'−5',4:'−15'};
-        if(place>0&&place<5)stats([['Colocação',place+'º'],['Pontos',points[place]],['Jogadores','4']]);
-        if(people.length===4){standings(people,true);reward.hidden=true}
-        paragraph.textContent='Sua classificação final está definida. Veja sua posição na partida.';
-      }else{
-        const me=participants.find(p=>p.seat===pvp.quadSeat);
-        stats([['Rodada',pvp.round],['Dano',pvp.lastDamage||0],['Sua vida',(me?.hp??0)+'/70']]);
-        if(participants.length)standings(participants.map(p=>({name:p.name,hp:p.hp,bot:p.isBot,me:p.seat===pvp.quadSeat,icon:p.isBot?'🤖':'⚔'})),false);
-        paragraph.textContent='Confronto concluído. A classificação continua sendo disputada.';
+        const placements=Array.isArray(pvp.quadPlacements)?pvp.quadPlacements:[];
+        const own=placements.find(p=>p.seat===pvp.quadSeat);
+        const place=Number(own?.place||pvp.quadPlace||0);
+        const delta=Number.isFinite(Number(pvp.quadDelta))?Number(pvp.quadDelta):({1:15,2:5,3:-5,4:-15}[place]??null);
+        const points=delta==null?'—':(delta>0?'+':'')+delta;
+        const rating=pvp.quadRating;
+        eyebrow.textContent='CLASSIFICAÇÃO FINAL · 4 PARTICIPANTES';
+        title.textContent=place?place+'º LUGAR':'PARTIDA ENCERRADA';
+        ico.textContent=place===1?'🏆':place===2?'🥈':'🛡️';
+        modal.classList.toggle('mr-loss',place>=3);
+        paragraph.textContent='A partida terminou. Confira a classificação e seus pontos.';
+        stats([['Sua posição',place?place+'º':'—'],['Ranking',points],['Elo atualizado',rating?(rating.division||'Bronze')+' · '+rating.points:'—']]);
+        if(placements.length===4){
+          const list=element('div','mr-list');
+          for(const person of placements.slice().sort((a,b)=>a.place-b.place)){
+            const row=element('div','mr-person'+(person.seat===pvp.quadSeat?' mr-me':'')+(person.place<=2?' mr-top':' mr-low'));
+            const info=element('div','mr-detail');
+            info.append(element('span','mr-name',person.name+(person.seat===pvp.quadSeat?' · VOCÊ':'')+(person.bot?' 🤖':'')));
+            info.append(element('small','mr-key',person.bot?'BOT · sem pontos':person.seat===pvp.quadSeat?'Sua classificação':'Participante'));
+            row.append(element('span','mr-place',person.place+'º'),info,
+             element('span','mr-hp',person.bot?'BOT':person.seat===pvp.quadSeat?points+' pts':''));
+            list.append(row);
+          }
+          summary.append(list);
+        }
         reward.hidden=true;
+        button.textContent='🏠 VOLTAR AO MENU';
+        button.onclick=()=>{closeModal();pvpLeave();showHome()};
+        another.hidden=false;
+        another.onclick=()=>{closeModal();pvpLeave();showHome();setTimeout(()=>$('homePvp')?.click(),40)};
+        $('modalSub').textContent='Ranking salvo na conta. Bots não recebem pontos.';
+      }else{
+        const data=pvp.quadRoundResult||{};
+        const winner=participants.find(p=>p.seat===data.winnerSeat);
+        const loser=participants.find(p=>p.seat===data.loserSeat);
+        const won=data.winnerSeat===pvp.quadSeat;
+        const eliminated=!!mine?.eliminated;
+        eyebrow.textContent='RANQUEADO · RODADA '+(data.round||pvp.round);
+        title.textContent=won?'VITÓRIA NA RODADA':'DERROTA NA RODADA';
+        ico.textContent=won?'⚔️':'🛡️';
+        modal.classList.toggle('mr-loss',!won);
+        stats([['Rodada',data.round||pvp.round],['Dano',data.damage??pvp.lastDamage??'—'],['Sua vida',mine?.hp!=null?mine.hp+'/70':'—']]);
+        if(participants.length)standings(participants.map(p=>({name:p.name,hp:p.hp,bot:p.isBot,me:p.seat===pvp.quadSeat,icon:p.eliminated?'💀':'⚔️'})),false);
+        paragraph.textContent=winner&&loser?winner.name+' venceu '+loser.name+'.':'Confronto concluído.';
+        reward.hidden=true;
+        button.textContent=eliminated?'⏳ AGUARDAR CLASSIFICAÇÃO':'➡️ PRÓXIMA RODADA';
+        if(eliminated)button.onclick=()=>closeModal();
+        $('modalSub').textContent=eliminated?'Você foi eliminado. O resultado final aparecerá ao terminar a partida.':'Continue quando os participantes estiverem prontos.';
       }
     }else if(online){
       stats([['Rodada',pvp.round],['Dano',pvp.lastDamage||0],['Vitórias',(pvp.wins?.[0]||0)+' × '+(pvp.wins?.[1]||0)]]);
@@ -83,7 +125,7 @@
       const gold=String(rewardText||'').match(/\+(\d+)\s*🪙/);
       stats([['Rodada',game.round],['Resultado',victory?'Vitória':'Derrota'],['Ouro',gold?'+'+gold[1]:'—']]);
     }
-    if(/próxima rodada/i.test(button.textContent))button.textContent='CONTINUAR · PRÓXIMA RODADA';
+    if(/próxima rodada/i.test(button.textContent))button.textContent='➡️ CONTINUAR · PRÓXIMA RODADA';
     return ret;
   };
 })();
