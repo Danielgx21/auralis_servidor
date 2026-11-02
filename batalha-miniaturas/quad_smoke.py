@@ -39,11 +39,18 @@ async def smoke():
     g=next(iter(l.games.values()))
     assert len(g.seats)==4 and len(g.pairs)==2
     assert all(any(e['type']=='quad_joined' for e in ws.events) for ws in sockets.values())
-    for seat in g.seats:
-        seat.units=[{'type':'guard','star':1,'x':0,'y':5,'items':[]}]
-        seat.ready=True
-    await l.begin_battles(g)
-    assert g.phase=='combat'
+    # Reproduzir o clique real em "Confirmar equipe" na rodada 1.
+    # Antes da correção, o servidor rejeitava todos os jogadores exigindo uma bênção.
+    assert all(not seat.blessing_choices for seat in g.seats)
+    units=[{'type':'guard','star':1,'x':0,'y':5,'items':[]}]
+    deck=['guard','spear','axe','bow','druid','hunter','mage',
+          'cleric','golem','rogue','ghost','paladin','sentinel','toxic']
+    for i,seat in enumerate(g.seats):
+        await l.handle(seat.ws,g,i,{'type':'quad_ready','units':units,'deck':deck})
+    assert all(seat.ready for seat in g.seats), "A confirmação da equipe foi bloqueada."
+    assert g.phase=='combat', "A batalha não começou após todos confirmarem."
+    assert all(any(e['type']=='quad_ready_confirmed' for e in ws.events)
+               for ws in sockets.values())
     assert all(any(e['type']=='quad_start' for e in ws.events) for ws in sockets.values())
     for pair_idx,(a,b) in enumerate(g.pairs):
         await l.resolve_pair(g,pair_idx,True,[1])
@@ -54,6 +61,23 @@ async def smoke():
     assert g.round==2 and g.phase=='prep' and len(g.pairs)==2
     assert g.pairs==[(0,2),(1,3)]
     assert all(any(e['type']=='quad_next_round' for e in ws.events) for ws in sockets.values())
+    assert all(not seat.blessing_choices for seat in g.seats), "Bênção apareceu na rodada 2."
+
+    # A primeira bênção deve existir na rodada 5, e apenas nela ser obrigatória.
+    g.round=5
+    l.assign_blessings(g)
+    first=g.seats[0]
+    assert len(first.blessing_choices)==3, "Bênção ausente na rodada 5."
+    before=len(first.ws.events)
+    await l.handle(first.ws,g,0,{'type':'quad_ready','units':units,'deck':deck})
+    assert not first.ready, "Equipe foi aceita sem selecionar a bênção da rodada 5."
+    assert any(e.get('type')=='error' and 'bênção' in e.get('message','')
+               for e in first.ws.events[before:])
+    choice=first.blessing_choices[0]
+    await l.handle(first.ws,g,0,{'type':'quad_blessing','id':choice})
+    assert first.blessing_used==5
+    await l.handle(first.ws,g,0,{'type':'quad_ready','units':units,'deck':deck})
+    assert first.ready, "Equipe não foi aceita após selecionar a bênção da rodada 5."
 
     # Um humano que esperou 90 s pode começar com três bots.
     l2=build_league()
@@ -67,11 +91,11 @@ async def smoke():
     assert sum(s.bot for s in g2.seats)==3
     assert all(s.ready and 1<=len(s.units)<=6 for s in g2.seats if s.bot)
     human=next(s for s in g2.seats if not s.bot)
-    human.units=[{'type':'guard','star':1,'x':0,'y':5,'items':[]}]
-    human.ready=True
+    assert not human.blessing_choices, "Um bot forçou uma bênção na rodada 1."
     async def dont_write_score(_game):pass
     l2.score=dont_write_score
-    await l2.begin_battles(g2)
+    await l2.handle(ws,g2,0,{'type':'quad_ready','units':units,'deck':deck})
+    assert human.ready, "Confirmar equipe falhou em partida contra três bots."
     assert g2.phase=='combat'
     assert 1 in g2.finished_pairs # bot vs bot já foi resolvido
     g2.seats[0].hp=1
@@ -79,7 +103,8 @@ async def smoke():
     await l2.resolve_pair(g2,0,False,[u['star'] for u in bot.units])
     assert g2.phase=='done',g2.phase
     assert any(e['type']=='quad_final' for e in ws.events)
-    return {'four_human_rounds':2,'human_with_bots':3,'results':True}
+    return {'four_human_rounds':2,'human_with_bots':3,'results':True,
+            'first_round_ready':True,'round_five_blessing':True}
 
 
 def run_sync():

@@ -156,7 +156,7 @@ class QuadLeague:
                              bool(sb.bot or (sb.ws and not sb.ws.closed))]}
 
     def assign_blessings(self,game):
-        if (game.round-1)%4:
+        if game.round<=1 or (game.round-1)%4:
             for seat in game.seats:seat.blessing_choices=[]
             return
         for i,seat in enumerate(game.seats):
@@ -415,6 +415,8 @@ class QuadLeague:
         seat=game.seats[idx]
         kind=event.get('type')
         if kind=='quad_blessing':
+            if game.phase!='prep' or game.round<=1 or (game.round-1)%4!=0 or seat.eliminated:
+                await self.send(seat,{'type':'error','message':'Não há bênção nesta rodada.'});return
             try:self.apply_blessing(seat,event.get('id'),game.round)
             except ValueError as e:
                 await self.send(seat,{'type':'error','message':str(e)});return
@@ -422,7 +424,7 @@ class QuadLeague:
                                   'id':event['id'],'ownBuffs':seat.buffs})
         elif kind=='quad_ready':
             if game.phase!='prep' or seat.eliminated:return
-            if (game.round-1)%4==0 and seat.blessing_used!=game.round:
+            if game.round>1 and (game.round-1)%4==0 and seat.blessing_used!=game.round:
                 await self.send(seat,{'type':'error','message':'Escolha a bênção da rodada.'});return
             try:
                 units=self.validate_units(event.get('units'),game.round)
