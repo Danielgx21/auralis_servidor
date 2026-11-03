@@ -133,6 +133,13 @@ class AccountStore:
               '''CREATE TABLE IF NOT EXISTS mini_campaign_records (
                  user_id TEXT PRIMARY KEY REFERENCES mini_users(id) ON DELETE CASCADE,
                  best_wins BIGINT NOT NULL, best_wave BIGINT NOT NULL, updated_at BIGINT NOT NULL)''',
+              '''CREATE TABLE IF NOT EXISTS mini_wallets (
+                 user_id TEXT PRIMARY KEY REFERENCES mini_users(id) ON DELETE CASCADE,
+                 coins BIGINT NOT NULL DEFAULT 0 CHECK(coins>=0),
+                 crystals BIGINT NOT NULL DEFAULT 0 CHECK(crystals>=0),
+                 banner TEXT NOT NULL DEFAULT 'castelo',
+                 owned_banners TEXT NOT NULL DEFAULT '["castelo"]',
+                 updated_at BIGINT NOT NULL)''',
               '''CREATE INDEX IF NOT EXISTS mini_sessions_user ON mini_sessions (user_id)'''
             ]:self.query(con,statement)
 
@@ -280,6 +287,48 @@ class AccountStore:
             return {'saved':True,'revision':expected_revision+1,'savedAt':now}
 
 
+    # Economia cosmética: o navegador não escolhe preços nem edita saldos.
+    BANNER_CATALOG = {
+        'castelo': ('Estandarte do Castelo', 'free', 0),
+        'leao': ('Leão Real', 'coins', 100),
+        'espada': ('Espada do Reino', 'coins', 150),
+        'dragao': ('Dragão Ancestral', 'crystals', 25),
+    }
+
+    def economy(self,user_id,action=None,banner=None):
+        now=int(time.time())
+        with self.connection() as con:
+            row=self.query(con,'SELECT * FROM mini_wallets WHERE user_id=?',(user_id,)).fetchone()
+            if not row:
+                self.query(con,'''INSERT INTO mini_wallets
+                  (user_id,coins,crystals,banner,owned_banners,updated_at)
+                  VALUES (?,?,?,?,?,?)''',(user_id,0,0,'castelo','["castelo"]',now))
+                row=self.query(con,'SELECT * FROM mini_wallets WHERE user_id=?',(user_id,)).fetchone()
+            if action is not None:
+                if action not in ('equip','buy') or banner not in self.BANNER_CATALOG:
+                    raise AuthError('Operação de personalização inválida.')
+                owned=json.loads(row['owned_banners'])
+                label,currency,price=self.BANNER_CATALOG[banner]
+                if action=='equip':
+                    if banner not in owned:raise AuthError('Você ainda não possui esse estandarte.',403)
+                    self.query(con,'UPDATE mini_wallets SET banner=?,updated_at=? WHERE user_id=?',(banner,now,user_id))
+                else:
+                    if banner in owned:raise AuthError('Estandarte já adquirido.',409)
+                    if currency=='free':
+                        owned.append(banner)
+                        self.query(con,'UPDATE mini_wallets SET owned_banners=?,updated_at=? WHERE user_id=?',
+                                   (json.dumps(owned),now,user_id))
+                    else:
+                        field='coins' if currency=='coins' else 'crystals'
+                        result=self.query(con,'''UPDATE mini_wallets SET '''+field+'''='''+field+'''-?,owned_banners=?,updated_at=?
+                            WHERE user_id=? AND '''+field+'''>=?''',
+                            (price,json.dumps(owned+[banner]),now,user_id,price))
+                        if result.rowcount!=1:raise AuthError('Saldo insuficiente.',409)
+                row=self.query(con,'SELECT * FROM mini_wallets WHERE user_id=?',(user_id,)).fetchone()
+            return {'coins':int(row['coins']),'crystals':int(row['crystals']),
+                    'banner':row['banner'],'ownedBanners':json.loads(row['owned_banners']),
+                    'catalog':[{'id':key,'name':v[0],'currency':v[1],'price':v[2]} for key,v in self.BANNER_CATALOG.items()]}
+
 def request_ip(request):
     # Não confiar em cabeçalhos de IP enviados livremente pelo cliente.
     return request.remote or 'unknown'
@@ -370,6 +419,13 @@ def install_account_api(app):
                 response=web.json_response({'ok':True});response.headers['Cache-Control']='no-store'
                 return set_session_cookie(response,request,new_token)
 
+            if route=='economy' and request.method=='GET':
+                state=await asyncio.to_thread(store.economy,user['id'])
+                return web.json_response(state,headers={'Cache-Control':'no-store'})
+            if route=='economy' and request.method=='POST':
+                body=await json_body(request)
+                state=await asyncio.to_thread(store.economy,user['id'],body.get('action'),body.get('banner'))
+                return web.json_response(state,headers={'Cache-Control':'no-store'})
             if route=='record' and request.method=='GET':
                 record=await asyncio.to_thread(store.get_campaign_record,user['id'])
                 return web.json_response(record,headers={'Cache-Control':'no-store'})
