@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from aiohttp import web, WSMsgType
 from balance_patch import apply_balance_html
+from movement_patch import apply_movement_html
 
 logging.basicConfig(level=logging.INFO)
 ROOT = Path(__file__).parent
@@ -415,7 +416,7 @@ RANKED_MESSAGE_HEAD="if(msg.type==='ranked_wait'){document.dispatchEvent(new Cus
 RANKED_JOIN_FOOTER="render();pvpOpenPendingBlessing();\n }else if(msg.type==='connection_lost'"
 RANKED_JOIN_REPLACE="render();pvpOpenPendingBlessing();if(msg.ranked){pvp.ranked=true;$('pvpCode').hidden=true;$('pvpCopyBtn').hidden=true;pvpSetStatus('Adversário encontrado! Prepare sua equipe.');document.dispatchEvent(new CustomEvent('mini-ranked',{detail:msg}));}\n }else if(msg.type==='connection_lost'"
 async def index(_request):
-    html=apply_balance_html((ROOT/'index.html').read_text(encoding='utf-8'))
+    html=apply_movement_html(apply_balance_html((ROOT/'index.html').read_text(encoding='utf-8')))
     html=html.replace('</body>', '<script defer src="/friends_client.js"></script><script defer src="/profile_client.js"></script><script defer src="/ranked_client.js"></script><script defer src="/play_menu_client.js"></script><script defer src="/battle_result_client.js"></script><script defer src="/battle_music_client.js"></script></body>', 1)
 
     # Extensão pequena injetada em memória, sem substituir o HTML original aprovado.
