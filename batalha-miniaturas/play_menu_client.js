@@ -42,7 +42,7 @@ const miniKnightIcon="<svg class=\"mini-knight-avatar\" xmlns=\"http://www.w3.or
 const miniBannerCrest='';
 const brandFitStyle=document.createElement('style');brandFitStyle.textContent="\n@media (max-width:820px) {\n#homeMenu[data-active-tab=\"play\"] {max-height:100dvh!important;overflow:hidden!important;}\n#homeMenu[data-active-tab=\"play\"] .menu-logo {display:none!important;}\n#homeMenu[data-active-tab=\"play\"] .menu-title {font-size:clamp(15px,4.1vw,21px)!important;line-height:1.1!important;margin:3px 0!important;letter-spacing:0!important;}\n#homeMenu[data-active-tab=\"play\"] .menu-sub,\n#homeMenu[data-active-tab=\"play\"] .menu-version,\n#homeMenu[data-active-tab=\"play\"] .menu-footer,\n#homeMenu[data-active-tab=\"play\"] .menu-meta,\n#homeMenu[data-active-tab=\"play\"] .feature-nav,\n#homeMenu[data-active-tab=\"play\"] .menu-settings-btn {display:none!important;}\n#homeMenu[data-active-tab=\"play\"] .menu-wrap {gap:0!important;min-height:0!important;}\n#homeMenu[data-active-tab=\"play\"] #newPlay {grid-column:1/-1!important;width:100%!important;}\n}\n";document.head.append(brandFitStyle);
 const settingsFitStyle=document.createElement('style');settingsFitStyle.textContent="\n#homeMenu #newSettings{min-height:27px!important;min-width:27px!important;width:28px;border:1px solid #d8ae71!important;border-radius:7px!important;padding:0!important;background:#233c58!important;color:#ffe2aa!important;font-size:18px!important;line-height:1!important}\n#homeMenu #newPlay .new-wallet-balances{gap:4px}\n#homeMenu #newPlay .new-wallet-balances>span{padding:2px 5px}\n@media(max-width:360px){#homeMenu #newSettings{min-width:24px!important;width:24px;min-height:24px!important}}\n";document.head.append(settingsFitStyle);
-const fitStyle=document.createElement('style');fitStyle.textContent="@media(max-width:820px){\n#homeMenu[data-active-tab=\"play\"] .mini-hide-large-header{display:none!important}\n#homeMenu[data-active-tab=\"play\"] .menu-grid{min-height:0!important;max-height:none!important;overflow:visible!important}\n#homeMenu[data-active-tab=\"play\"] #newPlay{display:grid!important;grid-template-rows: minmax(25px,auto) 53px 63px minmax(82px,1fr) 46px 52px;gap:4px;min-width:0;height:var(--mini-fit-height,410px)!important;max-height:var(--mini-fit-height,410px)!important;min-height:0!important;overflow:hidden!important;padding:0 5px!important;margin:0 auto!important;box-sizing:border-box}\n#homeMenu #newPlay>*{min-height:0;min-width:0;box-sizing:border-box}\n#homeMenu #newPlay .new-wallet{min-height:0;margin:0;padding:0;font-size:12px}\n#homeMenu #newPlay .new-wallet strong{font-size:clamp(11px,2.7vw,13px);letter-spacing:.06em}\n#homeMenu #newPlay .new-profile{min-height:0;height:100%;padding:4px 10px;border-radius:13px}\n#homeMenu #newPlay .new-profile b{font-size:clamp(16px,4vw,21px)}\n#homeMenu #newPlay .new-profile small{font-size:10px}\n#homeMenu #newPlay .new-avatar-holder{width:44px;height:44px;border-radius:10px}\n#homeMenu #newPlay .new-profile-mark{width:36px;height:37px;font-size:19px;border-radius:8px}\n#homeMenu #newPlay .new-banner{min-height:0!important;height:100%!important;width:100%!important;overflow:hidden!important;position:relative}\n#homeMenu #newPlay .new-banner-caption{position:absolute;z-index:2;top:0;left:15%;width:70%;height:27px;line-height:1.1;padding:4px 5px;border-radius:10px;font-size:clamp(11px,3vw,15px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n#homeMenu #newPlay .new-banner-cloth{display:block;position:absolute;inset:14px 2.5% 0;width:95%!important;height:calc(100% - 14px)!important;margin:0!important;border:none!important;border-bottom:3px solid #f5c276!important;background-image:url(\"/assets/hub-art-generated.webp\")!important;background-size:100% auto!important;background-position:bottom center!important;background-repeat:no-repeat!important;clip-path:polygon(0 0,100% 0,98% 95%,50% 100%,2% 95%)!important;box-shadow:none!important}\n#homeMenu #newPlay .mini-banner-crest{display:none!important}\n#homeMenu #newPlay .new-banner-edit{width:26px;height:27px;right:6%;bottom:6px;font-size:16px;border-radius:7px}\n#homeMenu #newPlay .new-castle{display:flex;flex-direction:column;justify-content:center;min-height:0!important;height:100%;overflow:hidden;padding:2px 5px 5px!important;border-radius:13px!important}\n#homeMenu #newPlay #newCastleArt{min-height:0!important;height:auto!important;flex:1 1 auto;width:100%;margin:0!important;background-image:url(\"/assets/hub-art-generated.webp\")!important;background-size:100% auto!important;background-repeat:no-repeat!important;background-position:top center!important}\n#homeMenu #newPlay #newCastleArt>*{display:none!important}\n#homeMenu #newPlay .new-castle h2{flex:0 0 auto;line-height:1;margin:0 0 2px!important;font-size:clamp(14px,3.9vw,20px)!important}\n#homeMenu #newPlay .new-elo{flex:0 0 auto;align-self:center;font-size:clamp(10px,2.8vw,13px);line-height:1;padding:4px 8px;border-width:1px;white-space:nowrap}\n#homeMenu #newPlay .new-main{min-height:0;height:100%;border-radius:12px;font-size:clamp(19px,5.5vw,25px);box-shadow:0 2px 0 #82542c}\n#homeMenu #newPlay .new-modes{height:100%;gap:6px;min-height:0}\n#homeMenu #newPlay .new-modes button{height:100%;min-height:0!important;padding:3px 5px;border-radius:11px;font-size:clamp(10px,2.8vw,14px);line-height:1.2}\n#homeMenu #newPlay .new-modes img{height:29px!important;width:auto;max-width:29px!important}\n#homeMenu[data-active-tab=\"play\"] .menu-version{display:none!important}\n}\n@media(max-width:820px) and (max-height:670px){\n#homeMenu[data-active-tab=\"play\"] #newPlay{grid-template-rows:25px 44px 54px minmax(65px,1fr) 40px 45px;gap:3px}\n#homeMenu #newPlay .new-avatar-holder{width:36px;height:36px}\n#homeMenu #newPlay .new-profile-mark{width:32px;height:32px}\n}\n";document.head.append(fitStyle);
+const fitStyle=document.createElement('style');fitStyle.textContent="\n@media(max-width:820px){\n#homeMenu[data-active-tab=\"play\"]{overflow:hidden!important;max-height:100dvh!important}\n#homeMenu[data-active-tab=\"play\"] .menu-grid{overflow:visible!important;min-height:0!important;max-height:none!important}\n#homeMenu[data-active-tab=\"play\"] #newPlay{\n  display:grid!important;grid-template-columns:minmax(0,1fr);\n  width:100%!important;max-width:760px!important;\n  height:auto!important;max-height:none!important;min-height:0!important;\n  gap:var(--mini-row-gap,5px)!important;align-content:start!important;\n  padding:0 5px!important;margin:0 auto!important;overflow:hidden!important;\n  box-sizing:border-box!important;\n}\n#homeMenu #newPlay>*{min-height:0!important;min-width:0!important;box-sizing:border-box}\n#homeMenu #newPlay .new-wallet{height:100%;min-height:0!important;margin:0;padding:0;font-size:12px;align-items:center}\n#homeMenu #newPlay .new-wallet strong{font-size:clamp(10px,2.8vw,13px);letter-spacing:.06em}\n#homeMenu #newPlay .new-wallet-balances{gap:3px}\n#homeMenu #newPlay .new-wallet-balances>span{padding:2px 5px;min-height:25px}\n#homeMenu #newPlay .mini-wallet-icon{height:21px;width:21px}\n#homeMenu #newPlay .new-profile{height:100%;min-height:0!important;padding:4px 9px;border-radius:13px!important;gap:8px}\n#homeMenu #newPlay .new-profile b{font-size:clamp(17px,4.5vw,23px);line-height:1}\n#homeMenu #newPlay .new-profile small{font-size:clamp(9px,2.6vw,12px);line-height:1.15}\n#homeMenu #newPlay .new-avatar-holder{width:clamp(34px,10vw,47px);height:clamp(34px,10vw,47px);border-radius:9px}\n#homeMenu #newPlay .new-profile-mark{width:33px;height:35px;font-size:18px;border-radius:8px}\n#homeMenu #newPlay .new-banner{width:100%!important;height:100%!important;min-height:0!important;overflow:hidden!important;position:relative!important}\n#homeMenu #newPlay .new-banner-caption{\n  position:absolute;z-index:2;top:0;left:14%;width:72%;\n  padding:4px 5px!important;height:27px;line-height:1.1;\n  border-radius:10px;font-size:clamp(12px,3vw,16px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis\n}\n#homeMenu #newPlay .new-banner-cloth{\n  display:block!important;position:absolute!important;top:12px!important;bottom:0!important;\n  left:3%!important;width:94%!important;height:calc(100% - 12px)!important;\n  margin:0!important;padding:0!important;background:#47266f url(\"/assets/hub-art-generated.webp\") center bottom/100% auto no-repeat!important;\n  border:0!important;border-bottom:3px solid #f1bd66!important;box-shadow:none!important;\n  clip-path:polygon(0 0,100% 0,98% 95%,50% 100%,2% 95%)!important\n}\n#homeMenu #newPlay .mini-banner-crest,#homeMenu #newPlay .new-banner-edit{display:none!important}\n#homeMenu #newPlay .new-castle{\n height:100%;min-height:0!important;max-height:none!important;\n display:flex!important;flex-direction:column!important;align-items:center!important;\n justify-content:center!important;gap:0!important;overflow:hidden!important;\n padding:3px 5px 6px!important;border-radius:13px!important\n}\n#homeMenu #newPlay #newCastleArt{\n  width:100%;height:auto!important;flex:1 1 auto!important;min-height:0!important;\n  max-height:none!important;margin:0!important;position:relative;\n  background:transparent!important;overflow:hidden!important;display:grid!important;place-items:center\n}\n#homeMenu #newPlay #newCastleArt::before{\n  content:\"\";display:block;position:absolute;inset:0;\n  background-image:url(\"/assets/hub-art-generated.webp\");background-repeat:no-repeat;\n  background-size:118% auto;background-position:center top;\n}\n#homeMenu #newPlay #newCastleArt>*{display:none!important}\n#homeMenu #newPlay .new-castle h2{\n  display:block!important;flex:none!important;margin:0!important;\n  font:800 clamp(14px,4.2vw,21px)/1 Georgia,serif!important;text-align:center\n}\n#homeMenu #newPlay .new-elo{\n  display:inline-block!important;flex:none!important;align-self:center!important;\n  font-size:clamp(11px,3vw,14px)!important;line-height:1!important;\n  padding:4px 9px!important;border-width:1px!important;white-space:nowrap\n}\n#homeMenu #newPlay .new-main{\n height:100%!important;min-height:0!important;border-radius:11px!important;\n font-size:clamp(19px,5.6vw,27px)!important;box-shadow:0 2px 0 #855228!important\n}\n#homeMenu #newPlay .new-modes{height:100%!important;min-height:0!important;gap:6px!important}\n#homeMenu #newPlay .new-modes button{\n height:100%!important;min-height:0!important;min-width:0;\n padding:3px 5px!important;border-radius:11px!important;\n font-size:clamp(10px,2.9vw,15px)!important;line-height:1.12!important\n}\n#homeMenu #newPlay .new-modes img{height:27px!important;max-width:29px!important}\n#homeMenu[data-active-tab=\"play\"] .menu-version{display:none!important}\n}\n@media(max-width:360px){\n #homeMenu #newPlay .new-banner-caption{left:9%;width:82%}\n #homeMenu #newPlay .new-wallet strong{font-size:10px}\n #homeMenu #newPlay .new-wallet-balances>span{padding:1px 3px}\n}\n";document.head.append(fitStyle);
 const wrap=document.createElement('section');wrap.className='new-play';wrap.id='newPlay';
 wrap.innerHTML=
 '<div class="new-wallet"><strong>LIGA DOS REINOS</strong><div class="new-wallet-balances"><span>'+miniCoinIcon+' <b id="newCoins">—</b></span><span>'+miniGemIcon+' <b id="newCrystals">—</b></span><button type="button" id="newSettings" aria-label="Configurações">⚙</button></div></div>'+
@@ -125,32 +125,56 @@ document.querySelectorAll('[data-home-tab]').forEach(node=>{if(node!==nav&&node.
 $('navPlay')?.addEventListener('click',()=>{profileFromPlay=false;home.classList.remove('profile-from-play');refresh()});
 document.addEventListener('mini-ranked',refresh);
 
+let avatarPrimed=false,avatarPrimeInProgress=false;
+function readProfilePortrait(){
+ if(!account)return '';
+ const candidate=document.querySelector('[data-account-avatar="'+CSS.escape(String(account.avatar||''))+'"] img');
+ const chosen=candidate||document.querySelector('#realmAccountPanel .realm-account-heading img');
+ return chosen?.getAttribute('src')||'';
+}
 function renderChosenAvatar(){
  const holder=$('newAvatar');if(!holder)return;
- if(!account){holder.innerHTML=miniKnightIcon;return;}
+ if(!account){holder.textContent='👤';return;}
  const key=String(account.id||'')+':'+String(account.avatar||'');
- const selected=[...document.querySelectorAll('[data-account-avatar]')].find(node=>node.getAttribute('data-account-avatar')===account.avatar);
- const img=selected?.querySelector('img')||document.querySelector('#realmAccountPanel .realm-account-heading img');
- let src=img?.getAttribute('src');
- // A arte oficial da miniatura selecionada já está disponível no jogo.
- if(account?.avatar && typeof APPROVED_PORTRAITS!=='undefined' && APPROVED_PORTRAITS[account.avatar])src=APPROVED_PORTRAITS[account.avatar];
- if(src&&/^(data:image\/|https?:|\/)/.test(src)){avatarImageCache.set(key,src);try{sessionStorage.setItem('miniaturas-avatar-art:'+key,src)}catch{}}
- if(!src)src=avatarImageCache.get(key);
+ let src=readProfilePortrait()||avatarImageCache.get(key);
  if(!src){try{src=sessionStorage.getItem('miniaturas-avatar-art:'+key)}catch{}}
- if(!src){
-  // Procura o retrato original da mesma miniatura nas cartas já renderizadas.
-  const candidate=[...document.querySelectorAll('[data-type],[data-unit-type],[data-mini-type]')].find(el=>
-    (el.dataset.type||el.dataset.unitType||el.dataset.miniType)===account.avatar
-  );
-  src=candidate?.querySelector('img')?.getAttribute('src');
+ if(src&&/^(data:image\/|https?:|\/)/.test(src)){
+   avatarImageCache.set(key,src);
+   try{if(src.length<150000)sessionStorage.setItem('miniaturas-avatar-art:'+key,src)}catch{}
+   const old=holder.querySelector('img');
+   if(!old||old.getAttribute('src')!==src){
+     const image=document.createElement('img');image.src=src;image.alt='Avatar escolhido no perfil';holder.replaceChildren(image);
+   }
+   lastAvatarKey=key;
+ }else{
+   holder.textContent='…';lastAvatarKey='';
+   primeChosenAvatar();
  }
- if(src){
-  const current=holder.querySelector('img');
-  if(current?.getAttribute('src')!==src){
-   const portrait=document.createElement('img');portrait.src=src;portrait.alt='Avatar selecionado no perfil';holder.replaceChildren(portrait);
-  }
-  lastAvatarKey=key;
- }else if(lastAvatarKey!==key){holder.innerHTML=miniKnightIcon;lastAvatarKey=key}
+}
+function primeChosenAvatar(){
+ if(avatarPrimed||avatarPrimeInProgress||!account||home.dataset.activeTab!=='play'||!nav)return;
+ avatarPrimed=true;avatarPrimeInProgress=true;
+ // Materializa o retrato usando a própria tela de Perfil, sem desenhar um avatar genérico.
+ const lastTab=home.dataset.activeTab;
+ const previousVisibility=home.style.visibility;
+ home.style.visibility='hidden';
+ profileIntent=true;nav.click();profileIntent=false;
+ let tries=0;
+ function capture(){
+   const src=readProfilePortrait();
+   if(src){
+     const key=String(account.id||'')+':'+String(account.avatar||'');
+     avatarImageCache.set(key,src);
+   }
+   if(src||tries++>=12){
+     $('navPlay')?.click();
+     home.style.visibility=previousVisibility;
+     avatarPrimeInProgress=false;
+     if(src)renderChosenAvatar();
+     schedulePlayFit();
+   }else setTimeout(capture,70);
+ }
+ setTimeout(capture,40);
 }
 function compactBrand(){
  const rect=grid.getBoundingClientRect();let cursor=grid;
@@ -172,12 +196,20 @@ function compactBrand(){
 function sizePlayToViewport(){
  if(home.dataset.activeTab!=='play')return;
  compactBrand();
- const navRail=nav?.parentElement;
- const navTop=navRail?.getBoundingClientRect().top||window.innerHeight-70;
+ const rail=nav?.parentElement;
+ const navTop=rail?.getBoundingClientRect().top||window.innerHeight-70;
  const top=wrap.getBoundingClientRect().top;
- const base=navTop>top?navTop:window.innerHeight-70;
- const room=Math.max(315,Math.floor(base-top-5));
- wrap.style.setProperty('--mini-fit-height',room+'px');
+ const room=Math.max(260,Math.floor((navTop>top?navTop:window.innerHeight-70)-top-6));
+ const compact=room<415, gap=compact?3:5;
+ const wallet=compact?24:30, profile=compact?45:57, banner=compact?57:72;
+ const play=compact?42:53, modes=compact?47:60;
+ const base=wallet+profile+banner+play+modes+gap*5;
+ const castle=Math.max(compact?62:82,Math.min(185,room-base));
+ const rows=[wallet,profile,banner,castle,play,modes];
+ // A área do castelo nunca pode ocupar um espaço vazio gigantesco.
+ wrap.style.gridTemplateRows=rows.map(n=>n+'px').join(' ');
+ wrap.style.height=(rows.reduce((a,b)=>a+b,0)+gap*5)+'px';
+ wrap.style.setProperty('--mini-row-gap',gap+'px');
 }
 function schedulePlayFit(){
  requestAnimationFrame(()=>{sizePlayToViewport();requestAnimationFrame(sizePlayToViewport)});
