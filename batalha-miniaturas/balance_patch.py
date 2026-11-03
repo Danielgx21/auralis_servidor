@@ -154,7 +154,7 @@ def _adjust_forge_prices(html):
     end = html.index('const ITEM_DESCRIPTIONS={', start)
     section = html[start:end]
     for item_id, price in ITEM_FORGE_PRICES.items():
-        pat = re.compile(r'(?m)^([ \\t]*' + re.escape(item_id) + r':\\{[^\\n]*?\\bcost:)(\\d+)(?=,)')
+        pat = re.compile(r'(?m)^([ \t]*' + re.escape(item_id) + r':\{[^\n]*?\bcost:)(\d+)(?=,)')
         hits = list(pat.finditer(section))
         if len(hits) != 1:
             raise RuntimeError(f'Preço do item {item_id}: esperado 1 ocorrência, encontrado {len(hits)}')
