@@ -196,19 +196,22 @@ function compactBrand(){
 function sizePlayToViewport(){
  if(home.dataset.activeTab!=='play')return;
  compactBrand();
- const rail=nav?.parentElement;
- const navTop=rail?.getBoundingClientRect().top||window.innerHeight-70;
  const top=wrap.getBoundingClientRect().top;
- const room=Math.max(260,Math.floor((navTop>top?navTop:window.innerHeight-70)-top-6));
- const compact=room<415, gap=compact?3:5;
- const wallet=compact?24:30, profile=compact?45:57, banner=compact?57:72;
- const play=compact?42:53, modes=compact?47:60;
- const base=wallet+profile+banner+play+modes+gap*5;
- const castle=Math.max(compact?62:82,Math.min(185,room-base));
- const rows=[wallet,profile,banner,castle,play,modes];
- // A área do castelo nunca pode ocupar um espaço vazio gigantesco.
- wrap.style.gridTemplateRows=rows.map(n=>n+'px').join(' ');
- wrap.style.height=(rows.reduce((a,b)=>a+b,0)+gap*5)+'px';
+ const rail=nav?.parentElement;
+ const edge=rail?.getBoundingClientRect().top||window.innerHeight-70;
+ const space=Math.max(270,Math.floor(edge-top-5));
+ const tiny=space<370,small=space<450;
+ const gap=tiny?3:small?4:6;
+ const brand=tiny?55:small?71:Math.min(105,Math.floor(space*.17));
+ const profile=tiny?47:small?56:Math.min(72,Math.floor(space*.13));
+ const play=tiny?42:small?49:Math.min(65,Math.floor(space*.11));
+ const modes=tiny?43:small?49:Math.min(62,Math.floor(space*.11));
+ const castle=Math.max(80,space-brand-profile-play-modes-gap*4);
+ const rows=[brand,profile,castle,play,modes];
+ wrap.style.setProperty('grid-template-rows',rows.map(x=>x+'px').join(' '),'important');
+ const actual=rows.reduce((a,b)=>a+b,0)+gap*4;
+ wrap.style.setProperty('height',actual+'px','important');
+ wrap.style.setProperty('max-height',actual+'px','important');
  wrap.style.setProperty('--mini-row-gap',gap+'px');
 }
 function schedulePlayFit(){
@@ -230,5 +233,19 @@ if(tabHost)avatarObserver.observe(tabHost,{childList:true,subtree:true});
 
 document.addEventListener('submit',event=>{if(event.target.closest('#realmAccountPanel'))setTimeout(refresh,600)},true);
 window.addEventListener('focus',refresh);
+
+/* v2.23: Hub vertical simples, logo e dados reais no alto. */
+const approvedHubStyle=document.createElement('style');approvedHubStyle.textContent="\n#homeMenu[data-active-tab=\"play\"] .menu-logo,#homeMenu[data-active-tab=\"play\"] .menu-title,#homeMenu[data-active-tab=\"play\"] .menu-sub{display:none!important}\n#homeMenu[data-active-tab=\"play\"] #newPlay{display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:100%!important;max-width:710px!important;min-height:0!important;padding:0 7px!important;margin:0 auto!important;align-content:start!important;overflow:hidden!important;gap:var(--mini-row-gap,5px)!important}\n#homeMenu #miniCompactBrand{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;height:100%;min-height:0;overflow:hidden;color:#ffe6b7}\n#homeMenu #miniCompactBrand .mini-brand-clone{display:block!important;margin:0 auto -4px!important;width:clamp(38px,8vh,63px)!important;height:clamp(35px,7vh,56px)!important;max-height:56px!important;object-fit:contain!important;background-size:contain!important;flex:none;overflow:hidden}\n#homeMenu #miniCompactBrand .mini-brand-text{font:800 clamp(18px,4.7vw,30px)/1.02 Georgia,serif;text-shadow:0 2px 3px #051225;white-space:nowrap}\n#homeMenu #miniCompactBrand .mini-brand-sub{font:800 clamp(8px,2vw,12px)/1.1 Georgia,serif;color:#d9b476;letter-spacing:.18em;margin-top:3px}\n#homeMenu #newPlay .mini-profile-row{height:100%;min-width:0;display:flex;align-items:center;gap:5px;background:linear-gradient(110deg,#1c3255,#302950 75%,#1b3150);border:1.6px solid #d7aa6e;border-radius:13px;padding:4px 6px;box-shadow:inset 0 1px #ffffff2e;box-sizing:border-box}\n#homeMenu #newPlay .new-profile{flex:1 1 auto;min-width:0;width:auto!important;height:100%;min-height:0!important;background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;border-radius:0!important;gap:7px}\n#homeMenu #newPlay .new-profile-text{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;min-width:0;overflow:hidden}\n#homeMenu #newPlay .new-profile b{font-size:clamp(15px,4.8vw,24px);line-height:1.03;white-space:nowrap}\n#homeMenu #newPlay .new-profile small,#homeMenu #newPlay .new-profile-mark{display:none!important}\n#homeMenu #newPlay .new-avatar-holder{width:clamp(38px,10vw,54px);height:clamp(38px,10vw,54px);border-radius:9px;flex:none}\n#homeMenu #newPlay .new-elo{display:block!important;align-self:flex-start!important;margin:3px 0 0!important;padding:0!important;font:700 clamp(10px,2.8vw,14px)/1.05 Georgia,serif!important;color:#e4d1ba!important;background:none!important;border:none!important;border-radius:0!important;box-shadow:none!important;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\n#homeMenu #newPlay .new-wallet{flex:0 0 auto;width:auto!important;height:auto!important;min-height:0!important;display:flex!important;align-items:center!important;justify-content:flex-end!important;background:transparent!important;overflow:visible!important}\n#homeMenu #newPlay .new-wallet>strong{display:none!important}\n#homeMenu #newPlay .new-wallet-balances{display:flex;gap:3px}\n#homeMenu #newPlay .new-wallet-balances>span{min-height:25px!important;gap:2px!important;padding:2px 4px!important;font-size:clamp(10px,2.7vw,13px)!important}\n#homeMenu #newPlay .mini-wallet-icon{width:clamp(16px,4.4vw,23px)!important;height:clamp(16px,4.4vw,23px)!important}\n#homeMenu #newPlay #newSettings{display:grid;place-items:center;width:26px!important;height:28px!important;min-width:26px!important;min-height:28px!important;font-size:17px!important}\n#homeMenu #newPlay .new-banner{display:none!important}\n#homeMenu #newPlay .new-castle{width:100%;height:100%;min-height:0!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important;overflow:hidden!important;display:block!important}\n#homeMenu #newPlay #newCastleArt{display:block!important;position:relative;width:100%;height:100%!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;background-color:#081b34!important;background-image:url(\"/assets/realm-castle.webp\")!important;background-position:center center!important;background-size:contain!important;background-repeat:no-repeat!important;overflow:hidden!important}\n#homeMenu #newPlay #newCastleArt::before,#homeMenu #newPlay #newCastleArt>*{display:none!important;content:none!important}\n#homeMenu #newPlay .new-castle h2,#homeMenu #newPlay .new-castle>.new-elo{display:none!important}\n#homeMenu #newPlay .new-main{height:100%!important;min-height:0!important;border-radius:15px!important;border:2px solid #ffe2a3!important;background:linear-gradient(#ffe7a2,#f1ba4f 62%,#d89431)!important;font:900 clamp(20px,5.8vw,31px)/1 Georgia,serif!important;box-shadow:0 3px 0 #875324!important}\n#homeMenu #newPlay .new-modes{display:grid!important;grid-template-columns:1fr 1fr!important;gap:6px!important}\n#homeMenu #newPlay .new-modes button{width:100%;height:100%!important;min-height:0!important;min-width:0;padding:3px 4px!important;border-radius:12px!important;font:800 clamp(10px,2.85vw,16px)/1.14 Georgia,serif!important}\n#homeMenu #newPlay .new-modes img{height:27px!important;max-width:27px!important}\n@media(max-width:360px){#homeMenu #miniCompactBrand .mini-brand-text{font-size:16px!important}#homeMenu #newPlay .mini-profile-row{padding:3px 4px;gap:3px}#homeMenu #newPlay .new-avatar-holder{width:36px;height:36px}#homeMenu #newPlay .new-wallet-balances>span{font-size:10px!important;padding:1px 3px!important}#homeMenu #newPlay .new-profile b{font-size:15px!important}}\n";document.head.append(approvedHubStyle);
+const brand=document.createElement('header');brand.id='miniCompactBrand';
+const originalLogo=home.querySelector('.menu-logo');
+if(originalLogo){const logo=originalLogo.cloneNode(true);logo.removeAttribute('id');logo.classList.add('mini-brand-clone');brand.append(logo)}
+const title=document.createElement('div');title.className='mini-brand-text';title.textContent='Batalha de Miniaturas';brand.append(title);
+const sub=document.createElement('div');sub.className='mini-brand-sub';sub.textContent='LIGA DOS REINOS';brand.append(sub);
+const playerRow=document.createElement('div');playerRow.className='mini-profile-row';
+const playerButton=$('newProfile');const balances=wrap.querySelector('.new-wallet');playerRow.append(playerButton,balances);
+playerButton.querySelector('.new-profile-text')?.append($('newRank'));
+wrap.prepend(playerRow);wrap.prepend(brand);
+$('newBanner')?.remove();
+
 refresh();schedulePlayFit();setTimeout(schedulePlayFit,150);
 })();
