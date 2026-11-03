@@ -122,4 +122,41 @@ def apply_balance_html(html):
         if count != 1:
             raise RuntimeError(f'Balance patch {label}: esperado 1 trecho, encontrado {count}')
         html = html.replace(before, after, 1)
-    return html
+    return _adjust_forge_prices(html)
+
+
+# Preços da forja (todos os modos): aumenta o custo de escolha sem reduzir
+# rendimentos por rodada, recompensas gratuitas ou custos de campeões.
+# Itens raros são criados por combinação de dois itens básicos; não são vendidos.
+ITEM_FORGE_PRICES = {
+    'sword': 7,
+    'mail': 8,
+    'ward': 8,
+    'focus': 8,
+    'boots': 8,
+    'amulet': 8,
+    'ring': 10,
+    'orb': 8,
+    'staff': 8,
+    'charm': 7,
+    'shield': 7,
+    'lance': 8,
+    'hourglass': 10,
+    'trailboots': 8,
+    'plagueblade': 10,
+    'hexstaff': 10,
+    'thornmail': 10
+}
+
+def _adjust_forge_prices(html):
+    import re
+    start = html.index('const ITEMS={')
+    end = html.index('const ITEM_DESCRIPTIONS={', start)
+    section = html[start:end]
+    for item_id, price in ITEM_FORGE_PRICES.items():
+        pat = re.compile(r'(?m)^([ \\t]*' + re.escape(item_id) + r':\\{[^\\n]*?\\bcost:)(\\d+)(?=,)')
+        hits = list(pat.finditer(section))
+        if len(hits) != 1:
+            raise RuntimeError(f'Preço do item {item_id}: esperado 1 ocorrência, encontrado {len(hits)}')
+        section = pat.sub(lambda match: match.group(1) + str(price), section, count=1)
+    return html[:start] + section + html[end:]
