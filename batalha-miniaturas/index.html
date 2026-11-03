@@ -1159,9 +1159,43 @@ function campaignGoToStage(stage){
  if(pvp.active||game.phase!=='prep')return false;
  const camp=ensureCampaignState(),n=Number(stage);
  if(!Number.isInteger(n)||n<1||n>CAMPAIGN_FINAL_STAGE||n>camp.maxStage)return false;
+ const changed=game.round!==n;
  game.round=n;camp.region=campaignStageRegion(n).id;
  game.preview=[];game.selected=null;game.lastReport=null;
- makePreview();save();render();renderCampaign();return true;
+ if(changed)game.lives=3;
+ makePreview();if(changed)campaignRememberStart(true);
+ save();render();renderCampaign();return true;
+}
+
+// Cada missão mantém sua própria equipe e economia inicial para uma reinicialização justa.
+function campaignClone(value){return JSON.parse(JSON.stringify(value));}
+function campaignRememberStart(force=false){
+ if(pvp.active||!game)return;
+ const camp=ensureCampaignState();
+ if(!force&&camp.stageStart?.round===game.round)return;
+ camp.stageStart={round:game.round,gold:game.gold,roster:campaignClone(game.roster),
+  inventory:campaignClone(game.inventory),shop:campaignClone(game.shop),forge:campaignClone(game.forge),
+  globalBuffs:campaignClone(game.globalBuffs),deck:game.deck.slice()};
+ camp.stageWipes=0;
+}
+function campaignRestartMission(){
+ const camp=ensureCampaignState();
+ if(camp.stageStart?.round!==game.round)campaignRememberStart(true);
+ const start=camp.stageStart;
+ game.gold=Math.max(0,Number(start.gold)||0);
+ game.roster=campaignClone(start.roster);
+ game.inventory=campaignClone(start.inventory);
+ game.forge=campaignClone(start.forge);
+ game.globalBuffs=campaignClone(start.globalBuffs);
+ game.deck=start.deck.slice();game.deckConfirmed=true;
+ camp.stageWipes=(Number(camp.stageWipes)||0)+1;
+ const aid=Math.min(14,4+2*camp.stageWipes);
+ game.gold+=aid;game.lives=3;game.phase='prep';game.selected=null;game.lastReport=null;
+ battle=null;craftSelection=[];selectedInventoryIndex=null;pendingShopSlot=null;
+ const pool=game.deck.flatMap(id=>Array.from({length:Math.max(1,5-TYPES[id].cost)},()=>id));
+ game.shop=Array.from({length:4},()=>choice(pool));
+ makePreview();
+ return aid;
 }
 
 function unlockedRegionCount(){
@@ -1416,10 +1450,13 @@ function applyBlessing(i){
  closeBlessingModal(); render(); save();
  showToast(`✨ ${chosen.name}: ${summary}`);
 }
-function newRun(){pendingShopSlot=null;craftSelection=[];closeShopInspect();selectedInventoryIndex=null;nextId=1;const saved=readDeckPreset(),starters=saved.slice().sort((a,b)=>TYPES[a].cost-TYPES[b].cost).slice(0,2),starterGold=Math.max(2,8-Math.max(0,TYPES[starters[0]].cost-2)-Math.max(0,TYPES[starters[1]].cost-2));game={round:1,gold:starterGold,lives:3,wins:0,roster:[newUnit(starters[0],2,4),newUnit(starters[1],3,5)],shop:[],preview:[],forge:[],inventory:[],selected:null,phase:'prep',highScore:readHighScore(),lastReport:null,globalBuffs:{atk:0,armor:0,speed:0,hp:0},bossInfo:null,campaign:{region:'valley',bosses:[],challenge:false,challengeWins:0},deck:saved,deckConfirmed:true};rollShop(true);rollForge();makePreview();save();render();}
+function newRun(){pendingShopSlot=null;craftSelection=[];closeShopInspect();selectedInventoryIndex=null;nextId=1;const saved=readDeckPreset(),starters=saved.slice().sort((a,b)=>TYPES[a].cost-TYPES[b].cost).slice(0,2),starterGold=Math.max(2,8-Math.max(0,TYPES[starters[0]].cost-2)-Math.max(0,TYPES[starters[1]].cost-2));game={round:1,gold:starterGold,lives:3,wins:0,roster:[newUnit(starters[0],2,4),newUnit(starters[1],3,5)],shop:[],preview:[],forge:[],inventory:[],selected:null,phase:'prep',highScore:readHighScore(),lastReport:null,globalBuffs:{atk:0,armor:0,speed:0,hp:0},bossInfo:null,campaign:{region:'valley',bosses:[],challenge:false,challengeWins:0},deck:saved,deckConfirmed:true};rollShop(true);rollForge();makePreview();campaignRememberStart(true);save();render();}
 function readHighScore(){try{return Number(localStorage.getItem('miniaturas-recorde')||0)}catch{return 0}}
 function save(){if(pvp.active)return;if(game?.phase==='combat')return;try{localStorage.setItem(SAVE_KEY,JSON.stringify({game:{...game,phase:'prep',selected:null},nextId}))}catch{}}
-function load(){try{craftSelection=[];pendingShopSlot=null;selectedInventoryIndex=null;const blob=JSON.parse(localStorage.getItem(SAVE_KEY));if(!blob||!blob.game||!Array.isArray(blob.game.roster)||!Array.isArray(blob.game.shop)||!Array.isArray(blob.game.preview))return false;game=blob.game;nextId=blob.nextId||100;game.phase='prep';game.selected=null;game.inventory=Array.isArray(game.inventory)?game.inventory:[];game.forge=Array.isArray(game.forge)?game.forge:[];game.globalBuffs=game.globalBuffs||{atk:0,armor:0,speed:0,hp:0};game.bossInfo=game.bossInfo||null;game.campaign=game.campaign||{region:'valley',bosses:[],challenge:false,challengeWins:0};if(!Array.isArray(game.campaign.bosses))game.campaign.bosses=[];if(!Array.isArray(game.campaign.relics))game.campaign.relics=[];if(!game.forge.length)rollForge();game.roster.forEach(u=>{if(!Array.isArray(u.items))u.items=[]});const hadDeck=validDeck(game.deck);migrateDeck(game);if(!hadDeck&&Array.isArray(game.shop))game.shop=game.shop.map(type=>type&&!game.deck.includes(type)?choice(game.deck):type);syncCampaignDeckPreset();return true}catch{return false}}
+function load(){try{craftSelection=[];pendingShopSlot=null;selectedInventoryIndex=null;const blob=JSON.parse(localStorage.getItem(SAVE_KEY));if(!blob||!blob.game||!Array.isArray(blob.game.roster)||!Array.isArray(blob.game.shop)||!Array.isArray(blob.game.preview))return false;game=blob.game;nextId=blob.nextId||100;game.phase='prep';game.selected=null;game.inventory=Array.isArray(game.inventory)?game.inventory:[];game.forge=Array.isArray(game.forge)?game.forge:[];game.globalBuffs=game.globalBuffs||{atk:0,armor:0,speed:0,hp:0};game.bossInfo=game.bossInfo||null;game.campaign=game.campaign||{region:'valley',bosses:[],challenge:false,challengeWins:0};if(!Array.isArray(game.campaign.bosses))game.campaign.bosses=[];if(!Array.isArray(game.campaign.relics))game.campaign.relics=[];if(!game.forge.length)rollForge();game.roster.forEach(u=>{if(!Array.isArray(u.items))u.items=[]});const hadDeck=validDeck(game.deck);migrateDeck(game);if(!hadDeck&&Array.isArray(game.shop))game.shop=game.shop.map(type=>type&&!game.deck.includes(type)?choice(game.deck):type);syncCampaignDeckPreset();
+ if(game.lives<=0){campaignRestartMission();save();}
+ else campaignRememberStart();
+ return true}catch{return false}}
 function rollShop(free=false){if(!free){if(!game.deckConfirmed){openDeckModal();return}if(game.phase!=='prep'||game.gold<2)return;game.gold-=2;playSfx('click')}const pool=(validDeck(game.deck)?game.deck:Object.keys(TYPES)).flatMap(id=>Array.from({length:Math.max(1,5-TYPES[id].cost)},()=>id));game.shop=Array.from({length:4},()=>choice(pool));save();render();}
 function rollForge(){const pool=itemList();game.forge=Array.from({length:2},()=>pool.splice(rnd(pool.length),1)[0]);}
 function buyItem(slot){if(!game.deckConfirmed){openDeckModal();return}if(game.phase!=='prep'||!game.forge[slot])return;const id=game.forge[slot],it=ITEMS[id];if(game.gold<it.cost){showToast('Moedas insuficientes para o item');return}game.gold-=it.cost;game.inventory.push(id);game.forge[slot]=null;selectedInventoryIndex=null;craftSelection=[];playSfx('buy');showToast(`${it.name} comprado! Selecione uma miniatura.`);save();render();}
@@ -1549,6 +1586,7 @@ function startBattle(){
  if(!game.deckConfirmed){openDeckModal();return}
  if(game.phase!=='prep')return;
  if(!deployed().length){showToast('Coloque pelo menos uma miniatura');return}
+ if(!pvp.active)campaignRememberStart();
  game.phase='combat';game.selected=null;reportOpen=false;modalReportOpen=false;
  $('fxLayer').replaceChildren();let allies=deployed().map(u=>spawn(u,'player')),enemies=game.preview.map(u=>spawn(u,'enemy'));
  const traits=applyTraitBuffs(allies),enemyTraits=applyTraitBuffs(enemies);
@@ -1929,14 +1967,15 @@ function endBattle(win){
  game.lastReport=makeReport(battle,win);
  const resolvedRound=game.round,camp=ensureCampaignState();
  const firstClear=win&&!camp.completedStages.includes(resolvedRound);
+ const wiped=!win&&game.lives<=1;
  const interest=Math.min(3,Math.floor(game.gold/10));
- let gain=firstClear?6+Math.floor(resolvedRound/3)+interest:0;
+ const lossReward=!win&&!wiped&&!camp.completedStages.includes(resolvedRound)?4+Math.floor((resolvedRound-1)/5):0;
+ let gain=firstClear?6+Math.floor(resolvedRound/3)+interest:lossReward;
  if(firstClear&&campaignChallengeBonus())gain+=3;
  game.gold+=gain;
  if(firstClear)game.wins++;
- if(win){game.lives=Math.min(3,game.lives+1)}
- else if(game.lives>1){game.lives--}
- else{game.lives=3;game.gold=Math.max(0,game.gold-3)}
+ if(win)game.lives=3; // Cada missão conquistada libera três tentativas na próxima.
+ else game.lives=Math.max(0,game.lives-1);
  persistCampaignWin(resolvedRound,win);
  const relic=firstClear?regionalRelic(resolvedRound):null;
  let foundItem=null;
@@ -1951,27 +1990,33 @@ function endBattle(win){
  const report=game.lastReport,leader=report.allies.reduce((a,b)=>!a||b.stats.damage>a.stats.damage?b:a,null);
  const finished=win&&resolvedRound===CAMPAIGN_FINAL_STAGE;
  const conquered=win&&resolvedRound%5===0;
+ const restartGold=Math.min(14,6+2*(Number(camp.stageWipes)||0));
  const campText=finished?'Você recuperou os cinco selos e uniu os Reinos! A campanha foi concluída.':
   conquered?'Você conquistou '+campaignStageRegion(resolvedRound).name+'! O próximo Reino foi liberado.':
   win?'Fase '+resolvedRound+' concluída. A próxima missão foi liberada.':
-  'Você perdeu esta batalha, mas não pulou a missão. Reorganize seu time e tente novamente.';
- const costText=!win&&game.lives===3?' O acampamento recuperou suas três tentativas; custou até 3 moedas.':'';
- openModal(finished?'🏆':conquered?'👑':win?'⚔️':'🛡️',
-  finished?'Os Reinos estão unidos!':conquered?'Reino conquistado!':win?'Missão concluída!':'Tente novamente!',
-  campText+costText,
-  (firstClear?'+'+gain+' 🪙':win?'Repetição concluída · sem recompensas extras':'Sem recompensa por derrota')+
-     (foundItem?' · 🎁 '+ITEMS[foundItem].name:'')+(relic?' · ✨ Relíquia: '+ITEMS[relic].name:''),
-  finished?'🗺️ VER CAMPANHA':win?'➡️ PRÓXIMA MISSÃO':'🔄 TENTAR NOVAMENTE',
+  wiped?'Suas três tentativas acabaram. Você vai recomeçar esta missão com a equipe e os recursos do início, três vidas e uma ajuda do acampamento. Os Reinos já conquistados continuam salvos.':
+  'Você perdeu uma vida, mas recebeu moedas para melhorar sua equipe e tentar esta mesma missão novamente.';
+ const rewardText=firstClear?'+'+gain+' 🪙':win?'Repetição concluída · sem recompensas extras':
+  wiped?'Recomeço: +'+restartGold+' 🪙 de ajuda inicial':
+  lossReward?'+'+lossReward+' 🪙 para reforçar sua equipe':'Sem moedas extras em missão já concluída';
+ openModal(finished?'🏆':conquered?'👑':win?'⚔️':wiped?'💔':'🛡️',
+  finished?'Os Reinos estão unidos!':conquered?'Reino conquistado!':win?'Missão concluída!':wiped?'Tentativas esgotadas!':'Tente novamente!',
+  campText,
+  rewardText+(foundItem?' · 🎁 '+ITEMS[foundItem].name:'')+(relic?' · ✨ Relíquia: '+ITEMS[relic].name:''),
+  finished?'🗺️ VER CAMPANHA':win?'➡️ PRÓXIMA MISSÃO':wiped?'🔄 RECOMEÇAR MISSÃO':'🔄 TENTAR NOVAMENTE',
   (leader?'⚔️ Maior dano: '+TYPES[leader.type].name+' ('+leader.stats.damage+') · ':'')+
    game.lives+' ♥ · fase '+resolvedRound+' de 25',
   ()=>{
    closeModal();game.phase='prep';battle=null;game.selected=null;
    if(finished){save();render();openFeature('campaignModal');return}
+   if(wiped){campaignRestartMission();save();render();return}
    if(win){game.round=Math.min(CAMPAIGN_FINAL_STAGE,camp.maxStage,resolvedRound+1);
       game.campaign.region=campaignStageRegion(game.round).id;
       rollShop(true);rollForge();}
-   // Derrotas repetem exatamente a missão, preservando a equipe e sem rolar loja grátis.
-   makePreview();save();render();
+   else{rollShop(true)} // Loja grátis ao perder, para evitar travar sem boas ofertas.
+   makePreview();
+   if(win)campaignRememberStart(true);
+   save();render();
    if(win&&(resolvedRound%4===0||resolvedRound%5===0))openBlessingModal(resolvedRound);
   }
  );
