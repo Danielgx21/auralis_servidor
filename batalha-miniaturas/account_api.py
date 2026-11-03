@@ -130,6 +130,9 @@ class AccountStore:
                  user_id TEXT PRIMARY KEY REFERENCES mini_users(id) ON DELETE CASCADE,
                  data TEXT NOT NULL, revision BIGINT NOT NULL,
                  updated_at BIGINT NOT NULL)''',
+              '''CREATE TABLE IF NOT EXISTS mini_campaign_records (
+                 user_id TEXT PRIMARY KEY REFERENCES mini_users(id) ON DELETE CASCADE,
+                 best_wins BIGINT NOT NULL, best_wave BIGINT NOT NULL, updated_at BIGINT NOT NULL)''',
               '''CREATE INDEX IF NOT EXISTS mini_sessions_user ON mini_sessions (user_id)'''
             ]:self.query(con,statement)
 
@@ -212,6 +215,30 @@ class AccountStore:
             self.query(con,'UPDATE mini_users SET password_hash=?,updated_at=? WHERE id=?',(pw,int(time.time()),user_id))
             self.query(con,'DELETE FROM mini_sessions WHERE user_id=?',(user_id,))
         return self.make_session(user_id)
+
+
+    def get_campaign_record(self,user_id):
+        with self.connection() as con:
+            row=self.query(con,'SELECT best_wins,best_wave,updated_at FROM mini_campaign_records WHERE user_id=?',(user_id,)).fetchone()
+        return {'bestWins':int(row['best_wins']),'bestWave':int(row['best_wave']),'updatedAt':int(row['updated_at'])} if row else {'bestWins':0,'bestWave':1,'updatedAt':None}
+
+    def put_campaign_record(self,user_id,best_wins,best_wave):
+        if not isinstance(best_wins,int) or isinstance(best_wins,bool) or not 0<=best_wins<=1000000:
+            raise AuthError('Número de vitórias inválido.')
+        if not isinstance(best_wave,int) or isinstance(best_wave,bool) or not 1<=best_wave<=1000001 or best_wins>best_wave:
+            raise AuthError('Rodada alcançada inválida.')
+        now=int(time.time())
+        # O recorde é sempre o maior; tentativas posteriores nunca apagam a melhor marca.
+        with self.connection() as con:
+            self.query(con,'''INSERT INTO mini_campaign_records(user_id,best_wins,best_wave,updated_at)
+                VALUES (?,?,?,?)
+                ON CONFLICT (user_id) DO UPDATE SET
+                  best_wins=CASE WHEN excluded.best_wins>mini_campaign_records.best_wins
+                    THEN excluded.best_wins ELSE mini_campaign_records.best_wins END,
+                  best_wave=CASE WHEN excluded.best_wave>mini_campaign_records.best_wave
+                    THEN excluded.best_wave ELSE mini_campaign_records.best_wave END,
+                  updated_at=?''',(user_id,best_wins,best_wave,now,now))
+        return self.get_campaign_record(user_id)
 
     def get_progress(self,user_id):
         with self.connection() as con:
@@ -342,6 +369,14 @@ def install_account_api(app):
                 new_token=await asyncio.to_thread(store.change_password,user['id'],data.get('currentPassword'),data.get('newPassword'))
                 response=web.json_response({'ok':True});response.headers['Cache-Control']='no-store'
                 return set_session_cookie(response,request,new_token)
+
+            if route=='record' and request.method=='GET':
+                record=await asyncio.to_thread(store.get_campaign_record,user['id'])
+                return web.json_response(record,headers={'Cache-Control':'no-store'})
+            if route=='record' and request.method=='POST':
+                body=await json_body(request)
+                record=await asyncio.to_thread(store.put_campaign_record,user['id'],body.get('wins'),body.get('round'))
+                return web.json_response(record,headers={'Cache-Control':'no-store'})
             if route=='progress' and request.method=='GET':
                 data=await asyncio.to_thread(store.get_progress,user['id'])
                 return web.json_response(data,headers={'Cache-Control':'no-store'})

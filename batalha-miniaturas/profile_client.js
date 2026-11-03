@@ -84,3 +84,82 @@
   if (menu) new MutationObserver(enhance).observe(menu, {childList:true,subtree:true});
   enhance();
 })();
+
+// v3.0 — Recorde pessoal da campanha de sobrevivência.
+// Exibe a marca local, consulta o perfil conectado e sincroniza novas jornadas automaticamente.
+(() => {
+ 'use strict';
+ const KEY='miniaturas-sobrevivencia-recorde-v3',WAVE='miniaturas-sobrevivencia-onda-v3';
+ const menu=document.getElementById('homeTabContent');
+ if(!menu)return;
+ const style=document.createElement('style');
+ style.textContent='.mini-campaign-record-card{display:grid;gap:8px;margin:12px 0;padding:13px;border:1px solid #b99b68;border-radius:13px;background:linear-gradient(115deg,#243e55,#192c42);color:#e9f0f5}'+
+ '.mini-campaign-record-card strong{font-size:15px;color:#ffe4ab}'+
+ '.mini-campaign-record-score{font:800 26px Georgia,serif;color:#ffe4ab}'+
+ '.mini-campaign-record-caption{color:#cbdde8;font-size:12px;line-height:1.5}'+
+ '.mini-campaign-sync{background:#d8ad6c;border:1px solid #ffe3a9;border-radius:9px;padding:10px;color:#263449;font-weight:800;cursor:pointer}';
+ document.head.appendChild(style);
+ let lastUser=null,remote=null,loadingUser=null;
+ const local=()=>{try{return {wins:Math.max(0,Number(localStorage.getItem(KEY)||0)||0),
+   wave:Math.max(1,Number(localStorage.getItem(WAVE)||1)||1)}}catch{return {wins:0,wave:1}}};
+ const request=async(method='GET',body=null)=>{
+  if(!/^https?:$/.test(location.protocol))return null;
+  const opts={method,credentials:'same-origin',cache:'no-store',headers:{'X-Game-Request':'1'}};
+  if(body){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(body)}
+  const res=await fetch('/api/account/record',opts);
+  if(!res.ok)return null;
+  return res.json();
+ };
+ function enhance(){
+  const panel=document.getElementById('realmAccountPanel');
+  if(!panel)return;
+  const heading=panel.querySelector('.realm-account-heading');
+  if(!heading)return;
+  const signed=!!panel.querySelector('form[data-account-form="profile"]');
+  const user=signed?(heading.querySelector('p')?.textContent||'').trim():null;
+  if(user!==lastUser){lastUser=user;remote=null;loadingUser=null;}
+  let card=panel.querySelector('.mini-campaign-record-card');
+  if(!card){
+   card=document.createElement('section');card.className='mini-campaign-record-card';
+   card.innerHTML='<strong>🏆 Recorde da Campanha dos Reinos</strong>'+
+     '<div class="mini-campaign-record-score"></div><div class="mini-campaign-record-caption"></div>'+
+     '<button class="mini-campaign-sync" type="button" hidden>Sincronizar recorde com o perfil</button>';
+   heading.insertAdjacentElement('afterend',card);
+  }
+  const score=card.querySelector('.mini-campaign-record-score'),caption=card.querySelector('.mini-campaign-record-caption'),
+        sync=card.querySelector('.mini-campaign-sync'),loc=local(),best=Math.max(loc.wins,remote?.bestWins||0),
+        wave=Math.max(loc.wave,remote?.bestWave||1);
+  const line=best+' vitórias',help=signed?
+    (remote?'Recorde online: '+remote.bestWins+' vitórias · Maior batalha alcançada: '+wave+'. A marca é salva na conta.':
+      'Consultando seu recorde online…'):
+    'Recorde deste aparelho · Maior batalha alcançada: '+wave+'. Entre na conta para salvar online.';
+  if(score.textContent!==line)score.textContent=line;
+  if(caption.textContent!==help)caption.textContent=help;
+  sync.hidden=!signed||!remote||loc.wins<=remote.bestWins;
+  if(signed&&loadingUser!==user){
+   loadingUser=user;
+   request().then(value=>{if(lastUser===user){remote=value;enhance()}}).catch(()=>{});
+  }
+ }
+ menu.addEventListener('click',async ev=>{
+  const btn=ev.target.closest('.mini-campaign-sync');if(!btn)return;
+  btn.disabled=true;btn.textContent='Sincronizando…';
+  try{
+   const l=local(),result=await request('POST',{wins:l.wins,round:Math.max(l.wins,l.wave)});
+   if(result){remote=result;enhance();btn.textContent='Recorde sincronizado';}
+   else btn.textContent='Entre na conta e tente novamente';
+  }catch{btn.textContent='Não foi possível sincronizar';}
+  finally{btn.disabled=false}
+ });
+ document.addEventListener('mini-campaign-record',async ev=>{
+  const data=ev.detail||{},wins=Number(data.wins),round=Number(data.round);
+  if(!Number.isSafeInteger(wins)||!Number.isSafeInteger(round)||wins<0||round<1)return;
+  enhance();
+  try{
+   const result=await request('POST',{wins,round});
+   if(result){remote=result;enhance();}
+  }catch{}
+ });
+ new MutationObserver(enhance).observe(menu,{childList:true,subtree:true});
+ enhance();
+})();
