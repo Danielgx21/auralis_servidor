@@ -18,7 +18,7 @@ def smoke():
         store.setup()
         app=web.Application()
         install_storefront(app,store)
-        asyncio.run(app.on_startup[0](app))
+        store.store_setup()
         now=int(time.time())
         with store.connection() as con:
             for uid,username in [('u1','player'),('u2','daniel')]:
