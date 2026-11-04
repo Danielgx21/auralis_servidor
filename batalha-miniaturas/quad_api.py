@@ -10,6 +10,7 @@ import time
 from dataclasses import dataclass, field
 from aiohttp import web, WSMsgType
 from account_api import COOKIE_NAME
+from storefront import EMOTE_CATALOG
 from ranked_quad_matchmaking import WaitingPlayer, choose_group
 from ranked_api import tier
 
@@ -44,6 +45,7 @@ class QuadSeat:
     wins: int = 0
     last_win: bool = False
     placement: int = 0
+    last_emote_at: float = 0.0
 
 
 @dataclass
@@ -451,6 +453,19 @@ class QuadLeague:
             game.updated=time.monotonic()
             await self.send(seat,{'type':'quad_ready_confirmed'})
             await self.begin_battles(game)
+        elif kind=='quad_emote':
+            emote=event.get('emote')
+            if not isinstance(emote,str) or emote not in EMOTE_CATALOG:return
+            if game.phase not in ('prep','combat','result') or seat.bot or seat.eliminated:return
+            pair=self.pair_for(game,idx)
+            if not pair or pair[0] in game.finished_pairs and game.phase=='combat':return
+            now=time.monotonic()
+            if now-seat.last_emote_at<2.5:return
+            if not await asyncio.to_thread(self.store.social_emote_allowed,seat.user_id,emote):return
+            seat.last_emote_at=now
+            payload={'type':'quad_emote','emote':emote,'sender':idx,'name':seat.name}
+            for recipient in (pair[1],pair[2]):
+                if not game.seats[recipient].bot:await self.send(game.seats[recipient],payload)
         elif kind=='quad_frame':
             if game.phase!='combat':return
             pair=self.pair_for(game,idx)

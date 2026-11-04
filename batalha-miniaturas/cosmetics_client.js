@@ -144,6 +144,9 @@ document.addEventListener('mini-cosmetic-kills',eliminations);
 document.addEventListener('mini-cosmetic-victory',victory);
 document.addEventListener('mini-shop-state',event=>applyState(event.detail?.state));
 function artwork(product){
+ if((product.kind==='emote'||product.kind==='celebration')&&typeof window.__miniSocialProductArt==='function'){
+  return window.__miniSocialProductArt(product);
+ }
  const node=document.createElement('div');
  node.className='market-card-art mini-cosmetic-art';
  if(product.kind==='arena'){

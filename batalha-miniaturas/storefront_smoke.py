@@ -66,21 +66,55 @@ def smoke():
         assert 'spawn' not in off['equippedEffects']
         off=store.economy('u1','unequip','arena_floresta')
         assert off['selectedArena']=='padrao'
+        # Os seis emotes iniciais são selecionados; compra/equipamento são autoritativos.
+        initial=store.economy('u1')
+        assert len(initial['ownedEmotes'])==len(initial['emoteLoadout'])==6
+        assert store.social_emote_allowed('u1','emote_risada')
+        assert not store.social_emote_allowed(None,'emote_dragao')
+        try:
+            store.economy('u1','equip','celebrate_rogue')
+        except AuthError as exc:
+            assert exc.status==403
+        else:
+            raise AssertionError('Comemoração bloqueada foi equipada')
+        store.store_credit('u1',coins=700,crystals=100)
+        extra=store.economy('u1','buy','emote_dragao')
+        assert 'emote_dragao' in extra['ownedEmotes']
+        try:
+            store.economy('u1','equip','emote_dragao')
+        except AuthError as exc:
+            assert exc.status==409
+        else:
+            raise AssertionError('Aceitou mais de seis emotes equipados')
+        store.economy('u1','unequip','emote_risada')
+        extra=store.economy('u1','equip','emote_dragao')
+        assert len(extra['emoteLoadout'])==6 and 'emote_dragao' in extra['emoteLoadout']
+        assert not store.social_emote_allowed('u1','emote_risada')
+        assert store.social_emote_allowed('u1','emote_dragao')
+        extra=store.economy('u1','buy','celebrate_rogue')
+        extra=store.economy('u1','equip','celebrate_rogue')
+        assert extra['equippedCelebrations']['rogue']=='celebrate_rogue'
+        assert store.economy('u1')['equippedCelebrations']['rogue']=='celebrate_rogue'
         daniel=store.economy('u2')
         assert daniel['unlimited'] and daniel['coins']=='∞' and daniel['crystals']=='∞'
         assert len(daniel['ownedMinis'])==17
-        for key in ['mini_necro','campaign_inverno','skin_necro_spectral','ticket_royal','arena_cripta','fx_victory_gloria']:
+        for key in ['mini_necro','campaign_inverno','skin_necro_spectral','ticket_royal','arena_cripta','fx_victory_gloria','emote_coroa','celebrate_necro']:
             daniel=store.economy('u2','buy',key)
         daniel=store.economy('u2','equip','campaign_inverno')
         daniel=store.economy('u2','equip','skin_necro_spectral')
         daniel=store.economy('u2','equip','arena_cripta')
         daniel=store.economy('u2','equip','fx_victory_gloria')
+        daniel=store.economy('u2','equip','celebrate_necro')
+        daniel=store.economy('u2','unequip','emote_surpresa')
+        daniel=store.economy('u2','equip','emote_coroa')
         assert 'necro' in daniel['ownedMinis']
         assert 'inverno' in daniel['ownedCampaigns'] and daniel['selectedCampaign']=='inverno'
         assert daniel['equippedSkins']['necro']=='skin_necro_spectral'
         assert daniel['tickets']==1
+        assert daniel['equippedCelebrations']['necro']=='celebrate_necro'
+        assert 'emote_coroa' in daniel['emoteLoadout']
         assert daniel['selectedArena']=='arena_cripta' and daniel['equippedEffects']['victory']=='fx_victory_gloria'
         assert daniel['coins']=='∞' and daniel['crystals']=='∞'
         assert store.economy('u2')['equippedSkins']['necro']=='skin_necro_spectral'
         return {'regular_starter_minis':17,'purchases_persisted':True,
-                'admin_balances_unlimited':True,'campaign_skin_ticket_saved':True,'arenas_and_fx_saved':True}
+                'admin_balances_unlimited':True,'campaign_skin_ticket_saved':True,'arenas_and_fx_saved':True,'emotes_and_hero_victories_saved':True}

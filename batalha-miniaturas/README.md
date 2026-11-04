@@ -37,3 +37,11 @@ Auto-battler de fantasia para navegadores, com interface para computadores e cel
 - As arenas mudam apenas o visual local do tabuleiro, inclusive no PvP; não alteram o terreno lógico, obstáculos, dano ou velocidade.
 - Efeitos integram eventos locais do combate e os frames visuais no duelo online, sem modificar o resultado do servidor.
 - Aba Personalizações com filtros por tipo, pré-visualização e botões de comprar, equipar e remover.
+
+## Novembro de 2026 — Emotes PvP e comemorações dos campeões
+- PvP amistoso e ranqueado: emotes via WebSocket, com verificação de posse e seleção no servidor, cooldown de 2,5 segundos e botão para silenciar adversários.
+- Cada conta recebe seis emotes gratuitos; novos emotes são comprados com moedas/cristais e até seis ficam equipados para o painel.
+- Seis comemorações animadas com a arte dos próprios campeões: Guardião, Assassina, Necromante, Arqueira, Feiticeira e Serafina.
+- A comemoração é exibida quando um campeão sobrevivente da equipe vencedora tem a animação adquirida e equipada.
+- As compras e seleções ficam na tabela mini_social_inventory; nenhuma delas altera atributos, itens, dano ou pareamento.
+- No ranqueado de quatro participantes, emotes são transmitidos somente aos dois jogadores de um mesmo confronto.

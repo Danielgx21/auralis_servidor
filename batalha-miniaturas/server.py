@@ -17,6 +17,8 @@ from aiohttp import web, WSMsgType
 from balance_patch import apply_balance_html
 from movement_patch import apply_movement_html
 from cosmetics_patch import apply_cosmetics_html
+from social_patch import apply_social_html
+from storefront import EMOTE_CATALOG
 from progression_patch import apply_progression_html
 
 logging.basicConfig(level=logging.INFO)
@@ -64,6 +66,7 @@ class Room:
     blessing_buffs: list = field(default_factory=lambda: [pvp_buffs_zero(),pvp_buffs_zero()])
     series_wins: list = field(default_factory=lambda: [0, 0])
     history: list = field(default_factory=list)
+    last_emote_at: list = field(default_factory=lambda: [0.0, 0.0])
     prep_deadline: float = 0.0
     round: int = 1
     phase: str = 'prep'
@@ -242,6 +245,18 @@ async def ws_handler(request):
                     break
                 elif not room or seat is None or room.clients[seat] is not ws:
                     await error(ws,'Entre em uma sala primeiro.')
+                elif kind == 'emote':
+                    emote=event.get('emote')
+                    if not isinstance(emote,str) or emote not in EMOTE_CATALOG:continue
+                    now=time.monotonic()
+                    if now-room.last_emote_at[seat]<2.5:continue
+                    account_store=request.app['mini_account_store']
+                    current_user=(await asyncio.to_thread(account_store.from_session,
+                        request.cookies.get(COOKIE_NAME,''))) if account_store.enabled else None
+                    uid=current_user['id'] if current_user else None
+                    if not await asyncio.to_thread(account_store.social_emote_allowed,uid,emote):continue
+                    room.last_emote_at[seat]=now
+                    await broadcast(room,{'type':'emote','emote':emote,'sender':seat,'name':room.names[seat]})
                 elif kind == 'blessing':
                     if room.phase!='prep' or not pvp_blessing_round(room.round):
                         await error(ws,'Não há bênção disponível nesta rodada.');continue
@@ -428,7 +443,7 @@ RANKED_JOIN_FOOTER="render();pvpOpenPendingBlessing();\n }else if(msg.type==='co
 RANKED_JOIN_REPLACE="render();pvpOpenPendingBlessing();if(msg.ranked){pvp.ranked=true;$('pvpCode').hidden=true;$('pvpCopyBtn').hidden=true;pvpSetStatus('Adversário encontrado! Prepare sua equipe.');document.dispatchEvent(new CustomEvent('mini-ranked',{detail:msg}));}\n }else if(msg.type==='connection_lost'"
 async def index(_request):
     html=apply_progression_html(apply_movement_html(apply_balance_html((ROOT/'index.html').read_text(encoding='utf-8'))))
-    html=html.replace('</body>', '<script defer src="/friends_client.js"></script><script defer src="/profile_client.js"></script><script defer src="/ranked_client.js"></script><script defer src="/storefront_client.js"></script><script defer src="/cosmetics_client.js"></script><script defer src="/play_menu_client.js"></script><script defer src="/battle_result_client.js"></script><script defer src="/battle_music_client.js"></script></body>', 1)
+    html=html.replace('</body>', '<script defer src="/friends_client.js"></script><script defer src="/profile_client.js"></script><script defer src="/ranked_client.js"></script><script defer src="/storefront_client.js"></script><script defer src="/cosmetics_client.js"></script><script defer src="/social_client.js"></script><script defer src="/play_menu_client.js"></script><script defer src="/battle_result_client.js"></script><script defer src="/battle_music_client.js"></script></body>', 1)
 
     # Extensão pequena injetada em memória, sem substituir o HTML original aprovado.
     html=html.replace('window.__miniPvpDebug=', RANKED_BRIDGE+'window.__miniPvpDebug=', 1)
@@ -441,6 +456,7 @@ async def index(_request):
     html=apply_quad_html(html)
     html=apply_friend_fx_html(html)
     html=apply_cosmetics_html(html)
+    html=apply_social_html(html)
     # Não encerrar um ranqueado de 4 jogadores só por alguém chegar a zero
     # em um confronto individual; a classificação é decidida pelo servidor.
     old_finish='pvp.matchDone=pvp.hp.some(n=>n<=0);'
@@ -583,7 +599,10 @@ async def storefront_client(_request):
 async def cosmetics_client(_request):
     return web.FileResponse(ROOT/'cosmetics_client.js',headers={'Cache-Control':'no-store'})
 
-app.add_routes([web.get('/',index),web.get('/friends_client.js',friends_client),web.get('/profile_client.js',profile_client),web.get('/ranked_client.js',ranked_client),web.get('/storefront_client.js',storefront_client),web.get('/cosmetics_client.js',cosmetics_client),web.get('/play_menu_client.js',play_menu_client),web.get('/assets/hub-art-generated.webp',generated_hub_art),web.get('/assets/realm-castle.webp',realm_castle_art),web.get('/assets/approved-night-castle.webp',approved_night_castle_art),web.get('/assets/realm-banner.webp',realm_banner_art),web.get('/battle_result_client.js',battle_result_client),web.get('/battle_music_client.js',battle_music_client),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
+async def social_client(_request):
+    return web.FileResponse(ROOT/'social_client.js',headers={'Cache-Control':'no-store'})
+
+app.add_routes([web.get('/',index),web.get('/friends_client.js',friends_client),web.get('/profile_client.js',profile_client),web.get('/ranked_client.js',ranked_client),web.get('/storefront_client.js',storefront_client),web.get('/cosmetics_client.js',cosmetics_client),web.get('/social_client.js',social_client),web.get('/play_menu_client.js',play_menu_client),web.get('/assets/hub-art-generated.webp',generated_hub_art),web.get('/assets/realm-castle.webp',realm_castle_art),web.get('/assets/approved-night-castle.webp',approved_night_castle_art),web.get('/assets/realm-banner.webp',realm_banner_art),web.get('/battle_result_client.js',battle_result_client),web.get('/battle_music_client.js',battle_music_client),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
 account_store=install_account_api(app)
 ranked_service=install_ranked(app,account_store,ROOMS,Room,ALPHABET,MAX_ROOMS)
 install_quad(app,account_store,ranked_service,{'deck':validate_deck,'units':validate_units,'survivors':validate_survivors,'damage':calc_pvp_damage,'blessings':PVP_BLESSING_EFFECTS,'max_rooms':MAX_ROOMS})
@@ -600,7 +619,7 @@ app.on_startup.append(verify_storefront_rounds)
 async def verify_online_battle_fx(_app):
     html=(ROOT/'index.html').read_text(encoding='utf-8')
     verify_friend_fx_patch(html)
-    apply_cosmetics_html(apply_friend_fx_html(html))
+    apply_social_html(apply_cosmetics_html(apply_friend_fx_html(html)))
     logging.info('FX online: sincronização e espelhamento de eventos validados')
 app.on_startup.append(verify_online_battle_fx)
 app.on_startup.append(verify_preparation_track)

@@ -31,6 +31,8 @@ style.textContent=[
 '#newShop .market-card:not(.miniatures) .market-card-note{min-height:0}',
 '#newShop .market-card:not(.miniatures) .market-card-bottom{grid-column:2}',
 '#newShop .realm-market-helper{font-size:12px;color:#aebcd0;line-height:1.5}',
+'#newShop .mini-cosmetic-subtabs{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}',
+'@media(min-width:580px){#newShop .mini-cosmetic-subtabs{grid-template-columns:repeat(6,minmax(0,1fr))}}',
 '#newShop .market-card.cosmetics .market-card-bottom{display:flex;flex-wrap:wrap;justify-content:flex-end}',
 '#homeMenu .variant-inverno .realm-campaign-map img{filter:hue-rotate(155deg) saturate(.68) brightness(1.12)}',
 '#homeMenu .variant-sombras .realm-campaign-map img{filter:hue-rotate(70deg) saturate(1.12) brightness(.78)}',
@@ -76,20 +78,22 @@ function render(root,state,onUpdate){
   campaigns:'Campanhas especiais com regras e cenários diferentes. Escolha uma campanha adquirida para jogar.',
   tickets:'Ingressos guardados: '+(state.tickets||0)+'. Você poderá usá-los quando os eventos de torneio estiverem ativos.',
   skins:'Personalizações visuais; não alteram atributos ou habilidades.',
-  cosmetics:'Arenas e efeitos visuais locais. Não alteram o campo tático, a força ou as regras da partida.'
+  cosmetics:'Arenas, efeitos, seis emotes equipáveis e comemorações de campeões. Tudo cosmético, sem vantagem de combate.'
  };
  root.append(el('p','market-intro',intros[activeCategory]));
  if(activeCategory==='cosmetics'){
   const subtabs=el('div','mini-cosmetic-subtabs');
-  for(const [slot,name] of [['arena','Arenas'],['spawn','Entrada'],['kill','Eliminação'],['victory','Vitória']]){
+  for(const [slot,name] of [['arena','Arenas'],['spawn','Entrada'],['kill','Eliminação'],['victory','Vitória'],['emote','Emotes'],['celebration','Comemorações']]){
    const sub=el('button',cosmeticFilter===slot?'active':'',name);
    sub.type='button';sub.addEventListener('click',()=>{cosmeticFilter=slot;render(root,state,onUpdate)});
    subtabs.append(sub);
   }
   root.append(subtabs);
+  if(cosmeticFilter==='emote')root.append(el('p','market-intro',(state.emoteLoadout||[]).length+'/6 emotes selecionados. Para substituir um dos seis, remova um emote atual e escolha outro.'));
+  if(cosmeticFilter==='celebration')root.append(el('p','market-intro','Comemorações únicas por campeão. Aparecem quando esse campeão participa da vitória e está equipado.'));
  }
  const grid=el('div','market-grid');
- for(const product of (state.catalog||[]).filter(p=>p.category===activeCategory&&(activeCategory!=='cosmetics'||(cosmeticFilter==='arena'?p.kind==='arena':p.slot===cosmeticFilter)))){
+ for(const product of (state.catalog||[]).filter(p=>p.category===activeCategory&&(activeCategory!=='cosmetics'||(cosmeticFilter==='arena'?p.kind==='arena':cosmeticFilter==='emote'||cosmeticFilter==='celebration'?p.kind===cosmeticFilter:p.slot===cosmeticFilter)))){
   const card=el('article','market-card '+product.category+(product.owned?' owned':''));
   card.append(art(product),el('strong','market-card-title',product.name),el('div','market-card-note',product.description));
   const foot=el('div','market-card-bottom');
@@ -123,7 +127,10 @@ function render(root,state,onUpdate){
   });
   if(product.category==='cosmetics'){
    const preview=el('button','mini-preview-btn','Prévia');preview.type='button';
-   preview.addEventListener('click',()=>window.__miniCosmeticsPreview?.(product,card));
+   preview.addEventListener('click',()=>{
+    if(product.kind==='emote'||product.kind==='celebration')window.__miniSocialProductPreview?.(product,card);
+    else window.__miniCosmeticsPreview?.(product,card);
+   });
    foot.append(preview);
   }
   foot.append(button);card.append(foot);grid.append(card);

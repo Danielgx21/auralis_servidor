@@ -3,6 +3,10 @@
 Não substitui o HTML histórico: injeta pequenas funções no script da página em memória.
 """
 QUAD_HEAD = r"""
+ if(msg.type==='quad_emote'){
+  pvpMessage({type:'emote',emote:msg.emote,sender:msg.sender,name:msg.name});
+  return;
+ }
  if(msg.type==='quad_joined'){
   if(!Array.isArray(msg.participants)||msg.participants.length!==4||!msg.pair){pvpSetStatus('Falha ao formar quatro participantes.');return;}
   const original=msg.reconnected&&pvp.active;
@@ -128,7 +132,7 @@ QUAD_HEAD = r"""
 QUAD_SEND = r"""
  if(pvp.quad){
   const types={ready:'quad_ready',frame:'quad_frame',finish:'quad_finish',
-   next:'quad_next',blessing:'quad_blessing',leave:'quad_leave'};
+   next:'quad_next',emote:'quad_emote',blessing:'quad_blessing',leave:'quad_leave'};
   if(types[msg.type])msg={...msg,type:types[msg.type]};
  }
 """
