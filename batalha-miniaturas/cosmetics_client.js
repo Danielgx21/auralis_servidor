@@ -57,6 +57,11 @@ style.textContent=[
  '@keyframes mini-cos-ring{0%{opacity:1;transform:scale(.3)}100%{opacity:0;transform:scale(1.8)}}',
  '@keyframes mini-cos-pulse{0%{opacity:0;scale:.4}28%{opacity:1;scale:1.3}100%{opacity:0;scale:1.65}}',
  '@keyframes mini-cos-victory{0%{opacity:0;transform:translateY(24px) scale(.65)}28%{opacity:1;transform:translateY(0) scale(1.1)}75%{opacity:1}100%{opacity:0;transform:translateY(-25px) scale(1)}}',
+ '#fxLayer{display:block;visibility:visible;z-index:18;isolation:isolate}',
+ '#fxLayer .fx-number{font-size:clamp(15px,1.5vw,21px);font-weight:900;text-shadow:0 1px 7px #061329,0 0 9px #061329}',
+ '#fxLayer .fx-skill{font-size:clamp(10px,1.1vw,14px);padding:4px 8px;box-shadow:0 4px 18px #000b}',
+ '#fxLayer .fx-slash{border-top-width:6px;box-shadow:0 0 8px var(--fxcolor,#ffe1a6)}',
+ '@media(prefers-reduced-motion:reduce){#fxLayer .fx-number,#fxLayer .fx-skill,#fxLayer .fx-slash,#fxLayer .fx-streak,#fxLayer .fx-burst,#fxLayer .fx-aoe,#fxLayer .fx-barrier,#fxLayer .fx-death{animation:none!important;opacity:1!important;visibility:visible!important}#fxLayer .fx-streak{transform:translate(-50%,-50%) scale(1.1)}#fxLayer .fx-slash{transform:translate(-50%,-50%) rotate(-37deg)}}',
  '@media(prefers-reduced-motion:reduce){.mini-cosmetic-pulse,.mini-cosmetic-pulse:before,.mini-cosmetic-pulse:after,.mini-cosmetic-victory strong,.mini-cosmetic-victory .mini-cosmetic-star{animation-duration:.01ms!important}}'
 ].join('\n');
 document.head.appendChild(style);
