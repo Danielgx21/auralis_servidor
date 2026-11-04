@@ -12,7 +12,7 @@ style.textContent=[
 '#newShop .realm-market-balance{font-weight:800;color:#ffe0a4;background:#172b49;border:1px solid #b58d60;border-radius:20px;padding:6px 9px;font-size:13px}',
 '#newShop .realm-market-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}',
 '@media(max-width:580px){#newShop .realm-market-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}}',
-'#newShop .realm-market-tabs button{padding:9px 1px;border:1px solid #817392;border-radius:9px;background:#1e3355;color:#e5d8f9;font:800 clamp(10px,2.65vw,14px) Georgia,serif;cursor:pointer}',
+'#newShop .realm-market-tabs button{padding:9px 1px;border:1px solid #817392;border-radius:9px;background:#1e3355;color:#e5d8f9;font:800 clamp(10px,2.65vw,14px) Georgia,serif;cursor:pointer;min-width:0;overflow-wrap:anywhere}',
 '#newShop .realm-market-tabs button.active{background:linear-gradient(#593c7b,#332a57);border-color:#e1b66e;color:#ffdeab}',
 '#newShop .market-intro{margin:0;color:#b7cbe2;font-size:12px;line-height:1.4}',
 '#newShop .market-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}',
