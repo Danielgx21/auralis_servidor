@@ -59,6 +59,7 @@ def install_storefront(app,store):
                 updated_at BIGINT NOT NULL
             )''')
     app.on_startup.append(setup)
+    store.store_setup=ensure_schema
 
     def row_for(con,uid):
         now=int(time.time())
