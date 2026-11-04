@@ -1,7 +1,7 @@
 """Duas afinidades por campeão, mantendo o grupo principal e o elenco existente.
 
-As 27 miniaturas pertencem a dois clãs diferentes. Os seis clãs aparecem
-exatamente nove vezes no catálogo completo. Sinergias passam para 3/6.
+As 36 miniaturas pertencem a dois clãs diferentes. Os seis clãs aparecem
+exatamente doze vezes no catálogo completo. Sinergias passam para 3/6.
 """
 SECONDARY_CLANS={
  'guard':'sagrado','spear':'selva','axe':'sombra','bow':'sagrado',
@@ -22,10 +22,20 @@ PRIMARY_CLANS={
  'earth':'elemental','spark':'elemental','seraph':'sagrado',
  'monk':'sagrado','templar':'sagrado','oracle':'sagrado'
 }
+SECONDARY_CLANS.update({
+ 'ironhunter':'selva','runesmith':'arcano','standardbearer':'sagrado',
+ 'chameleon':'sombra','ashdruid':'elemental','voidweaver':'sombra',
+ 'chronomancer':'elemental','duskinq':'sagrado','phoenix':'sagrado'
+})
+PRIMARY_CLANS.update({
+ 'ironhunter':'ferro','runesmith':'ferro','standardbearer':'ferro',
+ 'chameleon':'selva','ashdruid':'selva','voidweaver':'arcano',
+ 'chronomancer':'arcano','duskinq':'sombra','phoenix':'elemental'
+})
 CLANS=('ferro','selva','arcano','sombra','elemental','sagrado')
 
 def validate_clans():
-    assert len(SECONDARY_CLANS)==len(PRIMARY_CLANS)==27
+    assert len(SECONDARY_CLANS)==len(PRIMARY_CLANS)==36
     assert set(SECONDARY_CLANS)==set(PRIMARY_CLANS)
     counts=dict.fromkeys(CLANS,0)
     for typ,primary in PRIMARY_CLANS.items():
@@ -33,7 +43,7 @@ def validate_clans():
         assert primary in counts and secondary in counts and primary!=secondary,typ
         counts[primary]+=1
         counts[secondary]+=1
-    assert set(counts.values())=={9},counts
+    assert set(counts.values())=={12},counts
     return counts
 
 def apply_dual_clans_html(html):

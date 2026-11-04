@@ -3,7 +3,7 @@
 Auto-battler de fantasia para navegadores, com interface para computadores e celulares.
 
 ## Recursos
-- 27 miniaturas, seis alianças, elenco de 14 personagens e tabuleiro 6×6.
+- 36 miniaturas, seis clãs duplos (12 participações por clã), elenco de 14 personagens e tabuleiro 6×6.
 - Campanha, Jogo Rápido com IA, Duelo entre Amigos e PvP Ranqueado de quatro participantes.
 - Contas online com nome, senha, avatar e progresso no Neon PostgreSQL.
 - Duelo entre amigos por convite e sala privada, sem alteração de ranking.
@@ -45,3 +45,17 @@ Auto-battler de fantasia para navegadores, com interface para computadores e cel
 - A comemoração é exibida quando um campeão sobrevivente da equipe vencedora tem a animação adquirida e equipada.
 - As compras e seleções ficam na tabela mini_social_inventory; nenhuma delas altera atributos, itens, dano ou pareamento.
 - No ranqueado de quatro participantes, emotes são transmitidos somente aos dois jogadores de um mesmo confronto.
+
+## Novembro de 2026 — 9 novas miniaturas
+- Caçador de Ferro (Ferro/Selva): armadilha que causa dano e imobiliza.
+- Engenheira Rúnica (Ferro/Arcano): torre temporária de três disparos.
+- Porta-Estandarte (Ferro/Sagrado): intercepta projéteis e protege aliados.
+- Camaleoa (Selva/Sombra): camuflagem e ataque furtivo.
+- Druida das Cinzas (Selva/Elemental): raízes incendiárias.
+- Tecelã do Vazio (Arcano/Sombra): bloqueia habilidades por duas ações.
+- Cronomante (Arcano/Elemental): acelera aliados e atrasa inimigos.
+- Inquisidora do Crepúsculo (Sombra/Sagrado): marca inimigos e cura aliados.
+- Fênix Ancestral (Elemental/Sagrado): queima em área e renasce uma vez.
+- Os seis clãs têm 12 ocorrências no elenco; níveis de sinergia seguem 3/6.
+- As três miniaturas iniciais são Caçador de Ferro, Druida das Cinzas e Inquisidora; as outras seis podem ser adquiridas na loja com moedas.
+- PvP, jogo rápido, campanhas e catálogo usam os mesmos identificadores; o servidor valida novos elencos.

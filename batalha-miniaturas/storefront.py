@@ -4,6 +4,7 @@ import time
 
 # O elenco inicial mantém as 14 escolhas do baralho padrão, além de 3 alternativas.
 STARTER_MINIS=('guard','spear','axe','bow','druid','hunter','mage','cleric','rogue','ghost','paladin','pyro','seraph','frost','earth','monk','tide')
+STARTER_MINIS += ('ironhunter','ashdruid','duskinq')
 LOCKED_MINIS={
     'golem':('Golem',180),
     'sentinel':('Sentinela',140),
@@ -15,6 +16,12 @@ LOCKED_MINIS={
     'spark':('Condutor',205),
     'templar':('Templário',235),
     'oracle':('Vidente',190),
+    'runesmith':('Engenheira Rúnica',255),
+    'standardbearer':('Porta-Estandarte',190),
+    'chameleon':('Camaleoa',210),
+    'voidweaver':('Tecelã do Vazio',280),
+    'chronomancer':('Cronomante',275),
+    'phoenix':('Fênix Ancestral',390),
 }
 # Propostas de campanha usam mecânicas do jogo, não anúncios de conteúdo inexistente.
 CAMPAIGNS={

@@ -63,8 +63,8 @@ function audit(){
       new Set(sample.filter(t=>TYPES[t].clans.includes(c))).size));
   }
  }catch(e){duplicatesCountCorrect=false}
- return {valid:units.length===27&&bad.length===0&&groups.length===6&&
-                Object.values(counts).every(n=>n===9)&&duplicatesCountCorrect,
+ return {valid:units.length===36&&bad.length===0&&groups.length===6&&
+                Object.values(counts).every(n=>n===12)&&duplicatesCountCorrect,
          champions:units.length,clans:groups.length,counts,duplicateSafe:duplicatesCountCorrect,bad};
 }
 window.__miniClanAudit=audit;

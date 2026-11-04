@@ -22,6 +22,7 @@ from startup_patch import apply_startup_html
 from storefront import EMOTE_CATALOG
 from progression_patch import apply_progression_html
 from clans_patch import apply_dual_clans_html,verify_dual_clans_html,validate_clans
+from characters_patch import apply_new_characters_html,verify_new_characters_html
 
 logging.basicConfig(level=logging.INFO)
 ROOT = Path(__file__).parent
@@ -30,6 +31,7 @@ ROOM_TTL = 2 * 60 * 60
 RECONNECT_GRACE = 150
 ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 ALLOWED_TYPES = set('guard spear axe bow druid hunter mage cleric golem rogue ghost paladin sentinel toxic shaman frost storm necro shade pyro tide earth spark seraph monk templar oracle'.split())
+ALLOWED_TYPES.update('ironhunter runesmith standardbearer chameleon ashdruid voidweaver chronomancer duskinq phoenix'.split())
 DECK_SIZE=14
 MAX_DECK_GROUP=5
 PVP_START_HP=70
@@ -43,6 +45,11 @@ def pvp_buffs_zero():
 def pvp_blessing_round(round_number):
  return round_number>1 and (round_number-1)%4==0
 TYPE_GROUPS={'ferro':set('guard spear axe paladin sentinel'.split()),'selva':set('bow druid hunter toxic shaman'.split()),'arcano':set('mage cleric golem frost storm'.split()),'sombra':set('rogue ghost necro shade'.split()),'elemental':set('pyro tide earth spark'.split()),'sagrado':set('seraph monk templar oracle'.split())}
+TYPE_GROUPS['ferro'].update('ironhunter runesmith standardbearer'.split())
+TYPE_GROUPS['selva'].update('chameleon ashdruid'.split())
+TYPE_GROUPS['arcano'].update('voidweaver chronomancer'.split())
+TYPE_GROUPS['sombra'].add('duskinq')
+TYPE_GROUPS['elemental'].add('phoenix')
 ALLOWED_ITEMS=set('sword mail ward focus boots amulet ring orb staff charm shield lance bloodblade bastion windfang divine piercer heart arcana wardsteps hourglass trailboots plagueblade hexstaff thornmail'.split())
 # This is an authoritative relay for lobby, score and turns; the room creator runs
 # the actual combat simulation. It is appropriate for friendly unranked games.
@@ -448,7 +455,7 @@ async def index(_request):
     global INDEX_HTML_CACHE
     if INDEX_HTML_CACHE is not None:
         return web.Response(text=INDEX_HTML_CACHE,content_type='text/html',headers={'Cache-Control':'no-store'})
-    html=apply_dual_clans_html(apply_progression_html(apply_movement_html(apply_balance_html((ROOT/'index.html').read_text(encoding='utf-8')))))
+    html=apply_new_characters_html(apply_dual_clans_html(apply_progression_html(apply_movement_html(apply_balance_html((ROOT/'index.html').read_text(encoding='utf-8'))))))
     html=html.replace('</body>', '<script defer src="/friends_client.js"></script><script defer src="/profile_client.js"></script><script defer src="/ranked_client.js"></script><script defer src="/storefront_client.js"></script><script defer src="/cosmetics_client.js"></script><script defer src="/clan_client.js"></script><script defer src="/combat_polish_client.js"></script><script defer src="/social_client.js"></script><script defer src="/play_menu_client.js"></script><script defer src="/battle_result_client.js"></script><script defer src="/battle_music_client.js"></script></body>', 1)
 
     # Extensão pequena injetada em memória, sem substituir o HTML original aprovado.
@@ -637,6 +644,7 @@ async def verify_online_battle_fx(_app):
     apply_startup_html(html)
     prepared=apply_progression_html(apply_movement_html(apply_balance_html(html)))
     verify_dual_clans_html(prepared)
+    verify_new_characters_html(apply_dual_clans_html(prepared))
     for name in ('clan_client.js','combat_polish_client.js'):
         if not (ROOT/name).is_file():raise RuntimeError('Cliente ausente: '+name)
     logging.info('Clãs duplos equilibrados e sinergias 3/6: %s',validate_clans())
