@@ -83,7 +83,7 @@ def install_storefront(app,store):
     def owned(user_id):
         with store.connection() as con:
             inv,_,infinite=row_for(con,user_id)
-            return set(json.loads(inv['minis'])) if not infinite else set(STARTER_MINIS)|set(LOCKED_MINIS)
+            return set(json.loads(inv['minis']))
 
     def economy(user_id,action=None,item=None):
         if action is not None and (not isinstance(item,str) or item not in PRODUCTS):
@@ -97,10 +97,6 @@ def install_storefront(app,store):
             equipped=dict(json.loads(inv['equipped_skins']))
             tickets=int(inv['tickets'])
             selected=inv['selected_campaign']
-            if unlimited:
-                minis.update(LOCKED_MINIS)
-                campaigns.update(CAMPAIGNS)
-                skins.update(SKINS)
             if action is not None:
                 product=PRODUCTS[item]
                 kind=product['category']
