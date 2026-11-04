@@ -18,6 +18,7 @@ from balance_patch import apply_balance_html
 from movement_patch import apply_movement_html
 from cosmetics_patch import apply_cosmetics_html
 from social_patch import apply_social_html
+from startup_patch import apply_startup_html
 from storefront import EMOTE_CATALOG
 from progression_patch import apply_progression_html
 
@@ -466,6 +467,7 @@ async def index(_request):
     html=html.replace('🔇 Sem áudio nesta versão','🔇 Efeitos desligados · música de combate no botão 🎵',1)
     html=html.replace('Somente efeitos sonoros; sem música de fundo. Os controles também ficam disponíveis durante as partidas.',
         'A música de combate tem controle independente. Os efeitos sonoros continuam desligados.',1)
+    html=apply_startup_html(html)
     return web.Response(text=html,content_type='text/html',headers={'Cache-Control':'no-store'})
 
 async def friends_client(_request):
@@ -620,6 +622,8 @@ async def verify_online_battle_fx(_app):
     html=(ROOT/'index.html').read_text(encoding='utf-8')
     verify_friend_fx_patch(html)
     apply_social_html(apply_cosmetics_html(apply_friend_fx_html(html)))
+    apply_startup_html(html)
+    logging.info('Tela inicial: menu antigo ocultado até a montagem do hub atual')
     logging.info('FX online: sincronização e espelhamento de eventos validados')
 app.on_startup.append(verify_online_battle_fx)
 app.on_startup.append(verify_preparation_track)

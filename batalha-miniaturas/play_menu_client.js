@@ -307,4 +307,6 @@ wrap.prepend(playerRow);wrap.prepend(brand);
 $('newBanner')?.remove();
 
 refresh();schedulePlayFit();setTimeout(schedulePlayFit,150);
+// A interface moderna está montada. Revele a página somente após os scripts defer.
+window.__miniBootReady?.();
 })();
