@@ -65,7 +65,20 @@ style.textContent=[
  '@keyframes mini-hero-mage{0%,100%{transform:translateY(0) rotate(0)}36%{transform:translateY(-10px) rotate(-9deg) scale(1.1)}64%{transform:translateY(-20px) rotate(10deg) scale(1.2)}}',
  '@keyframes mini-hero-seraph{0%,100%{transform:translateY(0) scale(1)}36%{transform:translateY(-18px) scale(1.12)}66%{transform:translateY(-24px) scale(1.22)}}',
  '@keyframes mini-hero-symbol{0%{opacity:0;transform:scale(.2) rotate(-25deg)}42%{opacity:1;transform:scale(1.35) rotate(5deg)}75%{transform:scale(1.1);opacity:1}100%{opacity:0;transform:scale(.8)}}',
- '@media(max-width:400px){#mini-emote-widget button{padding:6px 7px}#mini-emote-panel{left:-30px}}',
+ '#mini-victory-cinema{position:fixed;inset:0;z-index:10020;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:max(20px,env(safe-area-inset-top)) 20px max(20px,env(safe-area-inset-bottom));box-sizing:border-box;overflow:auto;background:radial-gradient(ellipse at 50% 45%,#263d6ef2,#0b1428f8 75%);color:#fff0ce;text-align:center;animation:mini-cinema-in .35s ease-out}',
+'#mini-victory-cinema .mini-cinema-title{font:900 clamp(29px,8vw,46px)/1.1 Georgia,serif;color:#ffe6af;letter-spacing:.13em;text-shadow:0 3px 12px #070d22,0 0 35px #d7ab70bb}',
+'#mini-victory-cinema .mini-cinema-sub{font:800 12px Georgia,serif;letter-spacing:.12em;color:#d2c7e8;text-transform:uppercase}',
+'#mini-victory-cinema .mini-hero-celebration{width:min(340px,88vw);max-width:unset;height:min(330px,50vh);min-height:230px;margin:0;border:2px solid #e8c17e;box-shadow:0 12px 60px #080c21,inset 0 0 48px #9763b870;background:radial-gradient(circle at 50% 45%,#665d91,#283c5f 68%,#12213a)}',
+'#mini-victory-cinema .mini-hero-celebration .mini-hero-art{width:min(220px,58vw);height:min(230px,37vh);min-height:155px}',
+'#mini-victory-cinema .mini-hero-celebration .mini-hero-art svg{width:100%;height:100%}',
+'#mini-victory-cinema .mini-hero-celebration .mini-hero-symbol{font-size:54px;right:9%;top:15%}',
+'#mini-victory-cinema .mini-hero-celebration .mini-hero-caption{font-size:clamp(13px,3vw,18px);bottom:13px}',
+'#mini-victory-cinema .mini-cinema-progress{width:min(315px,78vw);height:5px;overflow:hidden;border-radius:12px;background:#74879d55}',
+'#mini-victory-cinema .mini-cinema-progress span{display:block;width:100%;height:100%;background:linear-gradient(90deg,#ab88cd,#fbd58d);transform-origin:left;animation:mini-cinema-progress 3.6s linear forwards}',
+'#mini-victory-cinema .mini-cinema-skip{color:#e2e9f3;font:700 13px system-ui,sans-serif;background:#2a3f60;border:1px solid #9aacc5;border-radius:11px;padding:10px 16px;min-height:40px;cursor:pointer}',
+'@keyframes mini-cinema-in{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}',
+'@keyframes mini-cinema-progress{from{transform:scaleX(1)}to{transform:scaleX(0)}}',
+'@media(max-width:400px){#mini-emote-widget button{padding:6px 7px}#mini-emote-panel{left:-30px}}',
  '@media(prefers-reduced-motion:reduce){.mini-emote-bubble,.mini-hero-celebration .mini-hero-art,.mini-hero-celebration .mini-hero-symbol,#newShop .mini-social-hero-card[data-animate="yes"] svg{animation-duration:.01ms!important}}'
 ].join('\n');
 document.head.append(style);
@@ -171,15 +184,80 @@ function renderHero(mini,id){
  wrap.append(art,symbol,caption);
  title.insertAdjacentElement('afterend',wrap);
 }
+// O combate e as recompensas já estão definidos quando este evento chega.
+ // A sequência abaixo adia apenas a abertura visual do painel de resultados.
+let pendingVictory=null,activeVictory=null;
+const VICTORY_CINEMA_MS=3600;
 document.addEventListener('mini-hero-victory',event=>{
  const units=Array.isArray(event.detail?.units)?event.detail.units:[];
- // Campeões sobreviventes equipados têm prioridade por desempenho.
+ // Só comemora se o jogador comprou, equipou e manteve vivo o campeão vencedor.
  const picked=units.filter(u=>u&&typeof u.type==='string'&&HEROES[celebrations[u.type]]?.mini===u.type)
   .sort((a,b)=>(b.damage||0)-(a.damage||0))[0];
- if(!picked)return;
- const id=celebrations[picked.type];
- setTimeout(()=>renderHero(picked.type,id),185);
+ pendingVictory=picked?{mini:picked.type,id:celebrations[picked.type]}:null;
 });
+function createVictoryStage(champ){
+ const overlay=document.createElement('section');overlay.id='mini-victory-cinema';
+ overlay.setAttribute('role','dialog');overlay.setAttribute('aria-label','Comemoração de vitória');
+ overlay.setAttribute('aria-modal','true');
+ const heading=document.createElement('strong');heading.className='mini-cinema-title';heading.textContent='✦ VITÓRIA ✦';
+ const subtitle=document.createElement('div');subtitle.className='mini-cinema-sub';
+ subtitle.textContent='Comemoração do campeão';
+ const wrap=document.createElement('div');wrap.className='mini-hero-celebration';wrap.dataset.mini=champ.mini;
+ const art=document.createElement('div');art.className='mini-hero-art';
+ if(typeof window.__miniShopArt==='function')art.innerHTML=window.__miniShopArt(champ.mini);
+ else art.textContent=HEROES[champ.id].symbol;
+ const mark=document.createElement('span');mark.className='mini-hero-symbol';
+ mark.textContent=HEROES[champ.id].symbol;
+ const caption=document.createElement('span');caption.className='mini-hero-caption';
+ caption.textContent=HEROES[champ.id].label;
+ wrap.append(art,mark,caption);
+ const progress=document.createElement('div');progress.className='mini-cinema-progress';
+ const bar=document.createElement('span');progress.append(bar);
+ const skip=document.createElement('button');skip.type='button';skip.className='mini-cinema-skip';skip.textContent='Ver resultado agora';
+ overlay.append(heading,subtitle,wrap,progress,skip);
+ return {overlay,skip,bar};
+}
+function installVictoryResultTransition(){
+ if(window.__miniVictoryTransitionReady||typeof window.openModal!=='function')return;
+ // O cliente do relatório instala sua própria personalização durante os scripts defer.
+ // Executamos depois para preservar cabeçalho, estatísticas, botão e recompensas.
+ window.__miniVictoryTransitionReady=true;
+ const original=window.openModal;
+ window.openModal=function(...args){
+  const context=this;
+  if(activeVictory){
+   // No ranqueado o resultado geral pode chegar enquanto o vídeo de vitória roda.
+   // Mostramos apenas o último painel, sem interromper a comemoração.
+   activeVictory.args=args;
+   activeVictory.context=context;
+   return;
+  }
+  const champ=pendingVictory;pendingVictory=null;
+  if(!champ||!HEROES[champ.id])return original.apply(context,args);
+  const {overlay,skip,bar}=createVictoryStage(champ);
+  document.body.append(overlay);
+  const state={args,context,champ,overlay,done:false,timer:null};
+  activeVictory=state;
+  function finish(){
+   if(state.done)return;
+   state.done=true;
+   clearTimeout(state.timer);
+   overlay.remove();
+   activeVictory=null;
+   // Somente o painel é postergado; a partida já terminou normalmente.
+   const ret=original.apply(state.context,state.args);
+   renderHero(champ.mini,champ.id);
+   return ret;
+  }
+  skip.addEventListener('click',finish,{once:true});
+  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  if(reduced){bar.style.animationDuration='0.6s';state.timer=setTimeout(finish,600);}
+  else state.timer=setTimeout(finish,VICTORY_CINEMA_MS);
+ };
+}
+if(document.readyState==='loading'){
+ document.addEventListener('DOMContentLoaded',installVictoryResultTransition,{once:true});
+}else installVictoryResultTransition();
 window.__miniSocialProductArt=productArt;
 window.__miniSocialProductPreview=productPreview;
 ensureWidget();
