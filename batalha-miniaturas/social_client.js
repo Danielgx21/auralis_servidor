@@ -75,6 +75,7 @@ style.textContent=[
 '#mini-victory-cinema .mini-hero-celebration .mini-hero-caption{font-size:clamp(13px,3vw,18px);bottom:13px}',
 '#mini-victory-cinema .mini-cinema-progress{width:min(315px,78vw);height:5px;overflow:hidden;border-radius:12px;background:#74879d55}',
 '#mini-victory-cinema .mini-cinema-progress span{display:block;width:100%;height:100%;background:linear-gradient(90deg,#ab88cd,#fbd58d);transform-origin:left;animation:mini-cinema-progress 3.6s linear forwards}',
+'#mini-victory-cinema.mini-cinema-static .mini-hero-celebration .mini-hero-art,#mini-victory-cinema.mini-cinema-static .mini-hero-celebration .mini-hero-symbol{animation:none!important}',
 '#mini-victory-cinema .mini-cinema-skip{color:#e2e9f3;font:700 13px system-ui,sans-serif;background:#2a3f60;border:1px solid #9aacc5;border-radius:11px;padding:10px 16px;min-height:40px;cursor:pointer}',
 '@keyframes mini-cinema-in{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}',
 '@keyframes mini-cinema-progress{from{transform:scaleX(1)}to{transform:scaleX(0)}}',
@@ -195,21 +196,21 @@ document.addEventListener('mini-hero-victory',event=>{
   .sort((a,b)=>(b.damage||0)-(a.damage||0))[0];
  pendingVictory=picked?{mini:picked.type,id:celebrations[picked.type]}:{mini:units.find(u=>typeof u.type==='string'&&/^[a-z]+$/.test(u.type))?.type||null,id:null};
 });
-function createVictoryStage(champ){
+function createVictoryStage(champ,won){
  const overlay=document.createElement('section');overlay.id='mini-victory-cinema';
- overlay.setAttribute('role','dialog');overlay.setAttribute('aria-label','Comemoração de vitória');
+ overlay.setAttribute('role','dialog');overlay.setAttribute('aria-label',won?'Comemoração de vitória':'Fim do combate');
  overlay.setAttribute('aria-modal','true');
- const heading=document.createElement('strong');heading.className='mini-cinema-title';heading.textContent='✦ VITÓRIA ✦';
+ const heading=document.createElement('strong');heading.className='mini-cinema-title';heading.textContent=won?'✦ VITÓRIA ✦':'⚔️ FIM DA BATALHA';
  const subtitle=document.createElement('div');subtitle.className='mini-cinema-sub';
- subtitle.textContent=champ.id?'Comemoração do campeão':'Seu exército venceu';
+ subtitle.textContent=won?(champ.id?'Comemoração do campeão':'Seu exército venceu'):'O confronto terminou';
  const wrap=document.createElement('div');wrap.className='mini-hero-celebration';wrap.dataset.mini=champ.id?champ.mini:'generic';
  const art=document.createElement('div');art.className='mini-hero-art';
  if(champ.mini&&typeof window.__miniShopArt==='function')art.innerHTML=window.__miniShopArt(champ.mini);
- else art.textContent='🏆';
+ else art.textContent=won?'🏆':'🛡️';
  const mark=document.createElement('span');mark.className='mini-hero-symbol';
- mark.textContent=champ.id?HEROES[champ.id].symbol:'🏆';
+ mark.textContent=won?(champ.id?HEROES[champ.id].symbol:'🏆'):'🛡️';
  const caption=document.createElement('span');caption.className='mini-hero-caption';
- caption.textContent=champ.id?HEROES[champ.id].label:'Seu exército venceu!';
+ caption.textContent=won?(champ.id?HEROES[champ.id].label:'Seu exército venceu!'):'Confira como suas miniaturas lutaram';
  wrap.append(art,mark,caption);
  const progress=document.createElement('div');progress.className='mini-cinema-progress';
  const bar=document.createElement('span');progress.append(bar);
@@ -217,52 +218,44 @@ function createVictoryStage(champ){
  overlay.append(heading,subtitle,wrap,progress,skip);
  return {overlay,skip,bar};
 }
-function installVictoryResultTransition(){
- if(window.__miniVictoryTransitionReady||typeof window.openModal!=='function')return;
- // O cliente do relatório instala sua própria personalização durante os scripts defer.
- // Executamos depois para preservar cabeçalho, estatísticas, botão e recompensas.
- window.__miniVictoryTransitionReady=true;
- const original=window.openModal;
- window.openModal=function(...args){
-  const context=this;
-  if(activeVictory){
-   // No ranqueado o resultado geral pode chegar enquanto o vídeo de vitória roda.
-   // Mostramos apenas o último painel, sem interromper a comemoração.
-   activeVictory.args=args;
-   activeVictory.context=context;
-   return;
-  }
-  const confirmed=pendingVictory;pendingVictory=null;
-  // A pausa entre o último golpe e o resultado é sempre exibida nas vitórias.
-  // Ter uma comemoração comprada substitui o visual genérico, não o intervalo.
-  const heading=String(args[1]||'');
-  const resultPhase=window.__miniSocialBridge?.state?.().phase==='result';
-  const won=!!resultPhase&&/(vit[oó]ria|venceu|reino superado|1º lugar)/i.test(heading);
-  const champ=confirmed||(won?{mini:null,id:null}:null);
-  if(!champ||champ.id&&!HEROES[champ.id])return original.apply(context,args);
-  const {overlay,skip,bar}=createVictoryStage(champ);
-  document.body.append(overlay);
-  const state={args,context,champ,overlay,done:false,timer:null};
-  activeVictory=state;
-  function finish(){
-   if(state.done)return;
-   state.done=true;
-   clearTimeout(state.timer);
-   overlay.remove();
-   activeVictory=null;
-   // Somente o painel é postergado; a partida já terminou normalmente.
-   const ret=original.apply(state.context,state.args);
-   if(champ.id)renderHero(champ.mini,champ.id);
-   return ret;
-  }
-  skip.addEventListener('click',finish,{once:true});
-  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-  if(reduced){bar.style.animationDuration='0.6s';state.timer=setTimeout(finish,600);}
-  else state.timer=setTimeout(finish,VICTORY_CINEMA_MS);
- };
-}
-if(document.readyState==='complete')installVictoryResultTransition();
-else document.addEventListener('DOMContentLoaded',installVictoryResultTransition,{once:true});
+// A transição pertence explicitamente ao encerramento do combate: nenhum
+// outro modal nem configuração de acessibilidade pode reduzir o intervalo.
+window.__miniVictoryTransitionReady=true;
+window.__miniShowOutcome=function(won,reveal){
+ if(typeof reveal!=='function')return;
+ if(activeVictory){activeVictory.reveal=reveal;return;}
+ const champion=won?pendingVictory:null;
+ pendingVictory=null;
+ const champ=(won&&champion?.id&&HEROES[champion.id])?champion:{mini:null,id:null};
+ const {overlay,skip,bar}=createVictoryStage(champ,won);
+ let lastResult=reveal;
+ const state={overlay,done:false,timer:null,entryTimer:null,reveal:lastResult};
+ activeVictory=state;
+ function finish(){
+  if(state.done)return;
+  state.done=true;
+  clearTimeout(state.timer);
+  clearTimeout(state.entryTimer);
+  overlay.remove();
+  activeVictory=null;
+  state.reveal();
+  if(won&&champ.id)renderHero(champ.mini,champ.id);
+ }
+ skip.addEventListener('click',finish,{once:true});
+ // Após o golpe final, 450 ms para enxergar os últimos números/efeitos.
+ state.entryTimer=setTimeout(()=>{
+  if(state.done)return;
+  document.body.appendChild(overlay);
+  skip.focus({preventScroll:true});
+  state.timer=setTimeout(finish,VICTORY_CINEMA_MS);
+ },450);
+ // Movimento reduzido elimina os giros, mas não elimina o tempo de leitura.
+ if(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches){
+  overlay.classList.add('mini-cinema-static');
+  bar.style.animation='none';
+  bar.style.background='linear-gradient(90deg,#b49ac9,#fbd58d)';
+ }
+};
 window.__miniSocialProductArt=productArt;
 window.__miniSocialProductPreview=productPreview;
 ensureWidget();
