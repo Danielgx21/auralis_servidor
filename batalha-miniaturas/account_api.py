@@ -379,7 +379,10 @@ def install_account_api(app):
     app['mini_account_store']=store
     from storefront import install_storefront
     async def startup(_app):
-        await asyncio.to_thread(store.setup)
+        import logging
+        logging.info('Banco de contas: iniciando verificação de esquema')
+        await asyncio.wait_for(asyncio.to_thread(store.setup),timeout=35)
+        logging.info('Banco de contas: esquema pronto')
     app.on_startup.append(startup)
     install_storefront(app,store)
 
