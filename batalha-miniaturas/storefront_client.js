@@ -30,6 +30,9 @@ style.textContent=[
 '#newShop .market-card:not(.miniatures) .market-card-note{min-height:0}',
 '#newShop .market-card:not(.miniatures) .market-card-bottom{grid-column:2}',
 '#newShop .realm-market-helper{font-size:12px;color:#aebcd0;line-height:1.5}',
+'#homeMenu .variant-inverno .realm-campaign-map img{filter:hue-rotate(155deg) saturate(.68) brightness(1.12)}',
+'#homeMenu .variant-sombras .realm-campaign-map img{filter:hue-rotate(70deg) saturate(1.12) brightness(.78)}',
+'#homeMenu .variant-cerco .realm-campaign-map img{filter:saturate(.75) sepia(.22) contrast(1.05)}',
 '@media(max-width:370px){#newShop .market-card{padding:6px}#newShop .market-card button{padding:6px 7px}}'
 ].join('\n');
 document.head.append(style);
