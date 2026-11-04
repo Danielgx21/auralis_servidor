@@ -261,9 +261,8 @@ function installVictoryResultTransition(){
   else state.timer=setTimeout(finish,VICTORY_CINEMA_MS);
  };
 }
-if(document.readyState==='loading'){
- document.addEventListener('DOMContentLoaded',installVictoryResultTransition,{once:true});
-}else installVictoryResultTransition();
+if(document.readyState==='complete')installVictoryResultTransition();
+else document.addEventListener('DOMContentLoaded',installVictoryResultTransition,{once:true});
 window.__miniSocialProductArt=productArt;
 window.__miniSocialProductPreview=productPreview;
 ensureWidget();
