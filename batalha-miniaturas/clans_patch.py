@@ -105,10 +105,10 @@ def apply_dual_clans_html(html):
     replace('${g.icon} ${g.name} · ${role.icon} ${role.name}',
             '${clanBadges(game.shop[i])} · ${role.icon} ${role.name}',
             'dois clãs na ficha de compra')
-    # Dois ícones individuais, preservando a indicação de equipamentos dos adversários.
+    # Itens em elementos individuais, com nome disponível na inspeção.
     replace("piece.items.map(id=>ITEMS[id]?.icon||'◆').join('')",
-            "piece.items.map(id=>'<span class=\\"mini-equipped-item\\" title=\\"'+esc(ITEMS[id]?.name||id)+'\\">'+(ITEMS[id]?.icon||'◆')+'</span>').join('')",
-            'separação dos ícones de itens')
+            """piece.items.map(id=>'<span class="mini-equipped-item" title="'+esc(ITEMS[id]?.name||id)+'">'+(ITEMS[id]?.icon||'◆')+'</span>').join('')""",
+            'ícones de equipamentos independentes')
     replace('<div class="mini-name">${esc(t.name)}</div>',
             '<div class="mini-name">${esc(t.name)}</div><div class="mini-clan-pair" aria-label="${esc(clanNames(piece.type))}">${t.clans.map(clan=>\'<span class="mini-clan-mark" title="\'+esc(GROUPS[clan].name)+\'" style="--clan-color:\'+GROUPS[clan].color+\'">\'+GROUPS[clan].icon+\'</span>\').join("")}</div>',
             'ícones dos clãs no tabuleiro')
