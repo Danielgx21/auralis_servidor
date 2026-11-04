@@ -375,9 +375,11 @@ def set_session_cookie(response,request,token):
 def install_account_api(app):
     store=AccountStore()
     app['mini_account_store']=store
+    from storefront import install_storefront
     async def startup(_app):
         await asyncio.to_thread(store.setup)
     app.on_startup.append(startup)
+    install_storefront(app,store)
 
     async def api_handler(request):
         try:
@@ -424,7 +426,7 @@ def install_account_api(app):
                 return web.json_response(state,headers={'Cache-Control':'no-store'})
             if route=='economy' and request.method=='POST':
                 body=await json_body(request)
-                state=await asyncio.to_thread(store.economy,user['id'],body.get('action'),body.get('banner'))
+                state=await asyncio.to_thread(store.economy,user['id'],body.get('action'),body.get('item',body.get('banner')))
                 return web.json_response(state,headers={'Cache-Control':'no-store'})
             if route=='record' and request.method=='GET':
                 record=await asyncio.to_thread(store.get_campaign_record,user['id'])
