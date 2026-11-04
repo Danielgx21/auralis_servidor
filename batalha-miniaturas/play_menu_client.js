@@ -138,31 +138,17 @@ function showShop(){
  tabHost.classList.add('shop-mode');renderShop();
 }
 function updateWallet(){
- $('newCoins').textContent=wallet?wallet.coins:'—';
- $('newCrystals').textContent=wallet?wallet.crystals:'—';
- const id=wallet?.banner||'castelo',info=wallet?.catalog?.find(item=>item.id===id);
- $('newBannerName').textContent=(symbols[id]||'♜')+' '+(info?.name||'Estandarte do Castelo');
+ $('newCoins').textContent=wallet?String(wallet.coins):'—';
+ $('newCrystals').textContent=wallet?String(wallet.crystals):'—';
+ window.__miniStorefront?.applyState(wallet);
 }
 function renderShop(){
- const el=$('newShop');if(!el)return;el.replaceChildren();
- const title=document.createElement('h2');title.textContent='Loja do Reino';el.append(title);
- const note=document.createElement('p');note.textContent='Itens apenas cosméticos. Moedas e cristais são permanentes; recompensas serão adicionadas futuramente.';el.append(note);
- if(!wallet){const p=document.createElement('p');p.textContent='Entre na conta para acessar a personalização.';el.append(p);return}
- const saldo=document.createElement('b');saldo.textContent='◉ '+wallet.coins+' moedas · ✦ '+wallet.crystals+' cristais';el.append(saldo);
- for(const item of wallet.catalog){
-  const row=document.createElement('div');row.className='shop-row';
-  const info=document.createElement('span');info.textContent=(symbols[item.id]||'♜')+' '+item.name+' · '+(item.currency==='free'?'Grátis':item.price+' '+(item.currency==='coins'?'moedas':'cristais'));
-  const owned=wallet.ownedBanners.includes(item.id);
-  const btn=document.createElement('button');btn.type='button';btn.textContent=wallet.banner===item.id?'Selecionado':owned?'Usar':'Adquirir';btn.disabled=wallet.banner===item.id;
-  btn.addEventListener('click',async()=>{
-   btn.disabled=true;
-   try{
-    const res=await fetch('/api/account/economy',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Game-Request':'1'},body:JSON.stringify({action:owned?'equip':'buy',banner:item.id})});
-    const data=await res.json();if(!res.ok)throw Error(data.error||'Falha ao atualizar estandarte');
-    wallet=data;updateWallet();renderShop();
-   }catch(e){alert(e.message);btn.disabled=false}
-  });row.append(info,btn);el.append(row);
- }
+ const el=$('newShop');if(!el)return;
+ if(window.__miniStorefront){
+  window.__miniStorefront.render(el,wallet,(updated)=>{
+   wallet=updated;updateWallet();
+  });
+ }else el.textContent='A Loja está indisponível. Recarregue a página.';
 }
 async function refresh(){
  const seq=++serial;
