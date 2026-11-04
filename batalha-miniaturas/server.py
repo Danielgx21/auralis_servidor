@@ -495,6 +495,30 @@ async def ranked_client(_request):
 async def play_menu_client(_request):
     return web.FileResponse(ROOT/'play_menu_client.js',headers={'Cache-Control':'no-store'})
 
+PORTRAIT_ATLAS_PATH = ROOT / 'assets' / 'miniaturas-novos-retratos-20261104.avif'
+PORTRAIT_ATLAS_BYTES = 69015
+PORTRAIT_ATLAS_SHA256 = '4bd9297a261a1a07c98bb48ccaba8815703f3f199901be2c7cacde09a2e36601'
+
+async def new_champion_portraits(_request):
+    # Atlas dos nove personagens: uma imagem compacta, compartilhada entre
+    # Loja, Catálogo, Elenco, Campo e inspeção de adversários.
+    return web.FileResponse(
+        PORTRAIT_ATLAS_PATH,
+        headers={'Content-Type':'image/avif',
+                 'Cache-Control':'public, max-age=31536000, immutable'}
+    )
+
+async def verify_champion_portraits(_app):
+    if not PORTRAIT_ATLAS_PATH.is_file():
+        raise RuntimeError('Atlas dos nove campeões ausente.')
+    if PORTRAIT_ATLAS_PATH.stat().st_size != PORTRAIT_ATLAS_BYTES:
+        raise RuntimeError('Tamanho incorreto do atlas de campeões.')
+    with PORTRAIT_ATLAS_PATH.open('rb') as f:
+        actual=hashlib.file_digest(f, 'sha256').hexdigest()
+    if actual != PORTRAIT_ATLAS_SHA256:
+        raise RuntimeError('Atlas dos campeões inválido.')
+    logging.info('Retratos premium dos nove novos campeões: atlas AVIF OK.')
+
 async def generated_hub_art(_request):
     return web.FileResponse(ROOT/'assets'/'hub-art-generated.webp',headers={'Cache-Control':'public, max-age=3600'})
 
@@ -623,7 +647,7 @@ async def clan_client(_request):
 async def combat_polish_client(_request):
     return web.FileResponse(ROOT/'combat_polish_client.js',headers={'Cache-Control':'no-store'})
 
-app.add_routes([web.get('/',index),web.get('/friends_client.js',friends_client),web.get('/profile_client.js',profile_client),web.get('/ranked_client.js',ranked_client),web.get('/storefront_client.js',storefront_client),web.get('/cosmetics_client.js',cosmetics_client),web.get('/clan_client.js',clan_client),web.get('/combat_polish_client.js',combat_polish_client),web.get('/social_client.js',social_client),web.get('/play_menu_client.js',play_menu_client),web.get('/assets/hub-art-generated.webp',generated_hub_art),web.get('/assets/realm-castle.webp',realm_castle_art),web.get('/assets/approved-night-castle.webp',approved_night_castle_art),web.get('/assets/realm-banner.webp',realm_banner_art),web.get('/battle_result_client.js',battle_result_client),web.get('/battle_music_client.js',battle_music_client),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
+app.add_routes([web.get('/',index),web.get('/friends_client.js',friends_client),web.get('/profile_client.js',profile_client),web.get('/ranked_client.js',ranked_client),web.get('/storefront_client.js',storefront_client),web.get('/cosmetics_client.js',cosmetics_client),web.get('/clan_client.js',clan_client),web.get('/combat_polish_client.js',combat_polish_client),web.get('/social_client.js',social_client),web.get('/play_menu_client.js',play_menu_client),web.get('/assets/miniaturas-novos-retratos-20261104.avif',new_champion_portraits),web.get('/assets/hub-art-generated.webp',generated_hub_art),web.get('/assets/realm-castle.webp',realm_castle_art),web.get('/assets/approved-night-castle.webp',approved_night_castle_art),web.get('/assets/realm-banner.webp',realm_banner_art),web.get('/battle_result_client.js',battle_result_client),web.get('/battle_music_client.js',battle_music_client),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
 account_store=install_account_api(app)
 ranked_service=install_ranked(app,account_store,ROOMS,Room,ALPHABET,MAX_ROOMS)
 install_quad(app,account_store,ranked_service,{'deck':validate_deck,'units':validate_units,'survivors':validate_survivors,'damage':calc_pvp_damage,'blessings':PVP_BLESSING_EFFECTS,'max_rooms':MAX_ROOMS})
@@ -650,6 +674,7 @@ async def verify_online_battle_fx(_app):
     logging.info('Clãs duplos equilibrados e sinergias 3/6: %s',validate_clans())
     logging.info('Tela inicial: menu antigo ocultado até a montagem do hub atual')
     logging.info('FX online: sincronização e espelhamento de eventos validados')
+app.on_startup.append(verify_champion_portraits)
 app.on_startup.append(verify_online_battle_fx)
 app.on_startup.append(verify_preparation_track)
 app.cleanup_ctx.append(background)

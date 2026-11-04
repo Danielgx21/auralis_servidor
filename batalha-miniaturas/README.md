@@ -59,3 +59,6 @@ Auto-battler de fantasia para navegadores, com interface para computadores e cel
 - Os seis clãs têm 12 ocorrências no elenco; níveis de sinergia seguem 3/6.
 - As três miniaturas iniciais são Caçador de Ferro, Druida das Cinzas e Inquisidora; as outras seis podem ser adquiridas na loja com moedas.
 - PvP, jogo rápido, campanhas e catálogo usam os mesmos identificadores; o servidor valida novos elencos.
+
+## Retratos premium dos novos personagens (04/11/2026)
+Os nove campeões lançados nesta atualização usam ilustrações individuais em um atlas AVIF de 576 × 576 px (grade 3 × 3, cada célula 192 × 192 px). A imagem fica em `assets/miniaturas-novos-retratos-20261104.avif` e é servida por `/assets/miniaturas-novos-retratos-20261104.avif`. O cliente usa o mesmo `miniArt(type)` nas telas de Catálogo, Loja, Elenco, tabuleiro e inspeções. Os dois clãs, itens e o tamanho anterior dos personagens permanecem intactos. O servidor valida o arquivo por tamanho e SHA-256 na inicialização.
