@@ -7,14 +7,14 @@ STARTER_MINIS=('guard','spear','axe','bow','druid','hunter','mage','cleric','rog
 LOCKED_MINIS={
     'golem':('Golem',180),
     'sentinel':('Sentinela',140),
-    'toxic':('Arqueira Venenosa',175),
+    'toxic':('Arqueira Tóxica',175),
     'shaman':('Xamã',185),
-    'storm':('Tempestade',220),
+    'storm':('Tempestária',220),
     'necro':('Necromante',280),
     'shade':('Sombra Errante',215),
-    'spark':('Mago do Raio',205),
+    'spark':('Condutor',205),
     'templar':('Templário',235),
-    'oracle':('Oráculo Sagrado',190),
+    'oracle':('Vidente',190),
 }
 # Propostas de campanha usam mecânicas do jogo, não anúncios de conteúdo inexistente.
 CAMPAIGNS={
