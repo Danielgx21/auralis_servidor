@@ -265,6 +265,15 @@ async def ws_handler(request):
                     try:
                         units = validate_units(event.get('units'),room.round)
                         proposed_deck=validate_deck(event.get('deck'))
+                        # O servidor verifica o inventário da conta, inclusive no ranqueado.
+                        from storefront import STARTER_MINIS
+                        identity=await asyncio.to_thread(ranked.db.from_session,request.cookies.get(COOKIE_NAME,''))
+                        if getattr(room,'ranked',False) and not identity:
+                            raise ValueError('Entre na sua conta para usar o elenco ranqueado.')
+                        owned_types=(await asyncio.to_thread(ranked.db.store_owned,identity['id'])) if identity else set(STARTER_MINIS)
+                        if any(typ not in owned_types for typ in proposed_deck):
+                            raise ValueError('Elenco contém miniaturas bloqueadas. Adquira-as na Loja.')
+
                         if room.decks[seat] is not None and proposed_deck!=room.decks[seat]:
                             raise ValueError('O elenco fica fixo até acabar a partida.')
                         if any(u['type'] not in proposed_deck for u in units):
