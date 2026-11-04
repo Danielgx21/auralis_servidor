@@ -436,6 +436,9 @@ class QuadLeague:
             try:
                 units=self.validate_units(event.get('units'),game.round)
                 deck=self.validate_deck(event.get('deck'))
+                if seat.user_id and hasattr(self.store,'store_owned'):
+                    owned=await asyncio.to_thread(self.store.store_owned,seat.user_id)
+                    if any(t not in owned for t in deck):raise ValueError('Miniatura bloqueada: desbloqueie na Loja.')
                 if any(u['type'] not in deck for u in units) or (seat.deck is not None and deck!=seat.deck):
                     raise ValueError('Elenco não permitido.')
             except ValueError as e:
