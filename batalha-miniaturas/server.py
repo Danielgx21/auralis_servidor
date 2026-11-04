@@ -587,6 +587,11 @@ async def verify_quad_rounds(_app):
     result=await smoke()
     logging.info('Quad smoke verificado: %s',result)
 app.on_startup.append(verify_quad_rounds)
+async def verify_storefront_rounds(_app):
+    from storefront_smoke import smoke
+    result=await asyncio.to_thread(smoke)
+    logging.info('Loja de miniaturas verificada: %s',result)
+app.on_startup.append(verify_storefront_rounds)
 async def verify_online_battle_fx(_app):
     html=(ROOT/'index.html').read_text(encoding='utf-8')
     verify_friend_fx_patch(html)
