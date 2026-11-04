@@ -106,7 +106,7 @@ def apply_dual_clans_html(html):
             '${clanBadges(game.shop[i])} · ${role.icon} ${role.name}',
             'dois clãs na ficha de compra')
     replace('<div class="mini-name">${esc(t.name)}</div>',
-            '<div class="mini-name">${esc(t.name)}</div><div class="mini-clan-pair" title="${esc(clanNames(piece.type))}">${t.clans.map(clan=>GROUPS[clan].icon).join("")}</div>',
+            '<div class="mini-name">${esc(t.name)}</div><div class="mini-clan-pair" aria-label="${esc(clanNames(piece.type))}">${t.clans.map(clan=>\'<span class="mini-clan-mark" title="\'+esc(GROUPS[clan].name)+\'" style="--clan-color:\'+GROUPS[clan].color+\'">\'+GROUPS[clan].icon+\'</span>\').join("")}</div>',
             'ícones dos clãs no tabuleiro')
     replace('${t.cost} 🪙 · ${esc(t.skill)}</small>',
             '${t.cost} 🪙 · ${esc(clanTags(k))} · ${esc(t.skill)}</small>',
