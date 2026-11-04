@@ -8,7 +8,7 @@ def apply_cosmetics_html(html: str) -> str:
  const cosmeticDeaths=events.filter(ev=>ev.kind==='death').map(ev=>({x:ev.x,y:ev.y}));
  if(cosmeticDeaths.length)document.dispatchEvent(new CustomEvent('mini-cosmetic-kills',{detail:cosmeticDeaths}));"""),
         ("const oldTick=battle?.tick||0;\n const f=JSON.parse(JSON.stringify(frame));",
-         "const oldTick=battle?.tick||0;\n const cosmeticFirstFrame=game.phase!=='combat';\n const f=JSON.parse(JSON.stringify(frame));"),
+         "const oldTick=battle?.tick||0;\n const cosmeticFirstFrame=!(battle?.allies?.length||battle?.enemies?.length);\n const f=JSON.parse(JSON.stringify(frame));"),
         ("game.phase='combat';render();drawBattleFx();",
          "game.phase='combat';render();if(cosmeticFirstFrame)document.dispatchEvent(new Event('mini-cosmetic-entry'));drawBattleFx();"),
         ("clearTimeout(clock);game.phase='result';$('fxLayer').replaceChildren();",
