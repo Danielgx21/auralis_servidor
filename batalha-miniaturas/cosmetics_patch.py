@@ -12,7 +12,11 @@ def apply_cosmetics_html(html: str) -> str:
         ("game.phase='combat';render();drawBattleFx();",
          "game.phase='combat';render();if(cosmeticFirstFrame)document.dispatchEvent(new Event('mini-cosmetic-entry'));drawBattleFx();"),
         ("clearTimeout(clock);game.phase='result';$('fxLayer').replaceChildren();",
-         "clearTimeout(clock);game.phase='result';$('fxLayer').replaceChildren();if(win)document.dispatchEvent(new Event('mini-cosmetic-victory'));"),
+         "clearTimeout(clock);game.phase='result';if(win)document.dispatchEvent(new Event('mini-cosmetic-victory'));"),
+        ("endBattle(win);return}render();drawBattleFx();",
+         "render();drawBattleFx();endBattle(win);return}render();drawBattleFx();"),
+        ("$('fxLayer').replaceChildren();\n if(pvp.local){",
+         "/* Preserve final hit effects until their own timers expire. */\n if(pvp.local){"),
         ("game.phase='result';game.lastReport=battle?makeReport(battle,iWon):null;",
          "game.phase='result';game.lastReport=battle?makeReport(battle,iWon):null;if(iWon)document.dispatchEvent(new Event('mini-cosmetic-victory'));")
     ]
