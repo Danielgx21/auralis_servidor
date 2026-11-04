@@ -100,7 +100,7 @@ function render(root,state,onUpdate){
     const response=await fetch('/api/account/economy',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','X-Game-Request':'1'},body:JSON.stringify({action,item:product.id})});
     const data=await response.json();
     if(!response.ok)throw Error(data.error||'Compra não concluída.');
-    applyState(data);onUpdate?.(data);render(root,data,onUpdate);
+    pending=false;applyState(data);onUpdate?.(data);render(root,data,onUpdate);
    }catch(error){window.alert(error.message||'Erro de conexão.');render(root,state,onUpdate)}
    finally{pending=false}
   });
