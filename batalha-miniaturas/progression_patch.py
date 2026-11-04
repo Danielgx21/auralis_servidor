@@ -65,6 +65,26 @@ def apply_progression_html(html):
     "'<header><h2>Campanha dos Reinos</h2><p class=\"campaign-caption\">Uma jornada sem limite de rodadas · 3 vidas · um recorde para superar</p></header>'+",
     "'<header><h2>'+esc(({reinos:'Campanha dos Reinos',inverno:'Inverno Eterno',sombras:'Noite dos Mortos',cerco:'Guerra dos Bastiões'})[camp.variant]||'Campanha dos Reinos')+'</h2><p class=\"campaign-caption\">Campanha '+esc(camp.variant==='reinos'?'clássica':'especial')+' · 3 vidas · inimigos e arenas adaptados</p></header>'+",
     "selected campaign title"
+  ],
+  [
+    "const bossInfo=bossInfoForRound(round);game.bossInfo=bossInfo;",
+    "const bossInfo=bossInfoForRound(round);\n if(!pvp.active&&bossInfo){\n  const variant=game?.campaign?.variant||'reinos';\n  const n=Math.floor(((round-1)%25)/5);\n  const bosses={\n   inverno:['Criomante do Abismo','Soberana da Nevasca','Fúria Glacial','Senhora da Tempestade','Arauto do Inverno'],\n   sombras:['Espectro da Cripta','Necromante Sombria','Sombra do Véu','Lich Desperto','Rei Fantasma'],\n   cerco:['Muralha de Ferro','Titã do Cerco','Paladina da Fortaleza','Guardião da Ponte','Sentinela Imperial']\n  };\n  const leaders={inverno:['frost','storm','frost','storm','frost'],\n                 sombras:['ghost','necro','shade','necro','ghost'],\n                 cerco:['sentinel','golem','paladin','golem','sentinel']};\n  if(bosses[variant]){\n   bossInfo.name=bosses[variant][n];\n   bossInfo.lead=leaders[variant][n];\n   bossInfo.supports=variant==='inverno'?['frost','storm','mage','cleric']:variant==='sombras'?['shade','ghost','rogue','necro']:['guard','spear','paladin','sentinel'];\n   bossInfo.effect=variant==='inverno'?'storm':variant==='sombras'?'shadow':'stone';\n  }\n }\n game.bossInfo=bossInfo;",
+    "campaign bosses differ by chosen story"
+  ],
+  [
+    "const preferred=CAMPAIGN_ENEMY_GROUPS[realmIndex];",
+    "let preferred=CAMPAIGN_ENEMY_GROUPS[realmIndex];\n if(!pvp.active){\n  const variant=game?.campaign?.variant;\n  if(variant==='inverno')preferred=['arcano','elemental','selva'];\n  if(variant==='sombras')preferred=['sombra','arcano','selva'];\n  if(variant==='cerco')preferred=['ferro','sagrado'];\n }",
+    "campaign roster alliances differ across purchased stories"
+  ],
+  [
+    "const selected=REALM_STORIES[preview.id]||REALM_STORIES.valley;",
+    "const normalStory=REALM_STORIES[preview.id]||REALM_STORIES.valley;\n  const altStories={\n   inverno:{title:'A Noite de Gelo',text:'A nevasca tomou os caminhos dos reinos. Enfrente feiticeiros do frio, raios e chefes glaciais antes de atravessar as cinco regiões.',chapter:'As fortalezas estão isoladas. A cada cinco batalhas, uma nova ameaça surge sob o inverno sem fim.'},\n   sombras:{title:'O Chamado da Necrópole',text:'Fantasmas e necromantes avançam dos túmulos. O exército precisa sobreviver a emboscadas e ao poder das sombras.',chapter:'Cada região guarda uma manifestação mais forte. A jornada termina apenas quando suas três vidas se esgotam.'},\n   cerco:{title:'A Guerra das Muralhas',text:'Exércitos de ferro cercam os bastiões. Armaduras, escudos e posições defensivas tornam cada batalha uma guerra de resistência.',chapter:'Os generais do cerco comandam os chefes das cinco etapas e protegem suas tropas atrás de muralhas.'}\n  };\n  const selected=altStories[camp.variant]||normalStory;",
+    "individual campaign lore"
+  ],
+  [
+    "'<div class=\"realm-campaign realm-endurance\">'+",
+    "'<div class=\"realm-campaign realm-endurance variant-'+esc(camp.variant)+'\">'+",
+    "color theme class for each campaign"
   ]
 ]
     for before,after,name in updates:
