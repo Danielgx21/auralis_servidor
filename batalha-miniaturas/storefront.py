@@ -153,6 +153,16 @@ def install_storefront(app,store):
             # Saldo inicial concedido uma única vez por conta, inclusive contas existentes.
             store.query(con,'UPDATE mini_wallets SET coins=coins+240, crystals=crystals+25, updated_at=? WHERE user_id=?',(now,uid))
         inv=store.query(con,'SELECT * FROM mini_store_inventory WHERE user_id=?'+(' FOR UPDATE' if store.postgres else ''),(uid,)).fetchone()
+        # Novas miniaturas gratuitas também precisam chegar às contas já existentes.
+        # Só altera o inventário: não reaplica o bônus de moedas de criação.
+        owned_set=set(json.loads(inv['minis']))
+        starter_grants=set(STARTER_MINIS)-owned_set
+        if starter_grants:
+            owned_set.update(starter_grants)
+            store.query(con,'UPDATE mini_store_inventory SET minis=?, updated_at=? WHERE user_id=?',
+                        (json.dumps(sorted(owned_set)),now,uid))
+            inv=store.query(con,'SELECT * FROM mini_store_inventory WHERE user_id=?'+
+                            (' FOR UPDATE' if store.postgres else ''),(uid,)).fetchone()
         wallet=store.query(con,'SELECT coins,crystals FROM mini_wallets WHERE user_id=?'+(' FOR UPDATE' if store.postgres else ''),(uid,)).fetchone()
         user=store.query(con,'SELECT username,created_at FROM mini_users WHERE id=?',(uid,)).fetchone()
         return inv,wallet,bool(user and user['username'].lower()=='daniel' and int(user['created_at'])<1793750400)
