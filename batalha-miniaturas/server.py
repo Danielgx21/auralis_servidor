@@ -426,7 +426,7 @@ RANKED_JOIN_FOOTER="render();pvpOpenPendingBlessing();\n }else if(msg.type==='co
 RANKED_JOIN_REPLACE="render();pvpOpenPendingBlessing();if(msg.ranked){pvp.ranked=true;$('pvpCode').hidden=true;$('pvpCopyBtn').hidden=true;pvpSetStatus('Adversário encontrado! Prepare sua equipe.');document.dispatchEvent(new CustomEvent('mini-ranked',{detail:msg}));}\n }else if(msg.type==='connection_lost'"
 async def index(_request):
     html=apply_movement_html(apply_balance_html((ROOT/'index.html').read_text(encoding='utf-8')))
-    html=html.replace('</body>', '<script defer src="/friends_client.js"></script><script defer src="/profile_client.js"></script><script defer src="/ranked_client.js"></script><script defer src="/play_menu_client.js"></script><script defer src="/battle_result_client.js"></script><script defer src="/battle_music_client.js"></script></body>', 1)
+    html=html.replace('</body>', '<script defer src="/friends_client.js"></script><script defer src="/profile_client.js"></script><script defer src="/ranked_client.js"></script><script defer src="/storefront_client.js"></script><script defer src="/play_menu_client.js"></script><script defer src="/battle_result_client.js"></script><script defer src="/battle_music_client.js"></script></body>', 1)
 
     # Extensão pequena injetada em memória, sem substituir o HTML original aprovado.
     html=html.replace('window.__miniPvpDebug=', RANKED_BRIDGE+'window.__miniPvpDebug=', 1)
@@ -574,7 +574,10 @@ from quad_client_injection import apply_quad_html
 from friend_fx_patch import apply_friend_fx_html, verify_friend_fx_patch
 app=web.Application(client_max_size=350_000)
 app['mini_rooms']=ROOMS
-app.add_routes([web.get('/',index),web.get('/friends_client.js',friends_client),web.get('/profile_client.js',profile_client),web.get('/ranked_client.js',ranked_client),web.get('/play_menu_client.js',play_menu_client),web.get('/assets/hub-art-generated.webp',generated_hub_art),web.get('/assets/realm-castle.webp',realm_castle_art),web.get('/assets/approved-night-castle.webp',approved_night_castle_art),web.get('/assets/realm-banner.webp',realm_banner_art),web.get('/battle_result_client.js',battle_result_client),web.get('/battle_music_client.js',battle_music_client),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
+async def storefront_client(_request):
+    return web.FileResponse(ROOT/'storefront_client.js',headers={'Cache-Control':'no-store'})
+
+app.add_routes([web.get('/',index),web.get('/friends_client.js',friends_client),web.get('/profile_client.js',profile_client),web.get('/ranked_client.js',ranked_client),web.get('/storefront_client.js',storefront_client),web.get('/play_menu_client.js',play_menu_client),web.get('/assets/hub-art-generated.webp',generated_hub_art),web.get('/assets/realm-castle.webp',realm_castle_art),web.get('/assets/approved-night-castle.webp',approved_night_castle_art),web.get('/assets/realm-banner.webp',realm_banner_art),web.get('/battle_result_client.js',battle_result_client),web.get('/battle_music_client.js',battle_music_client),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
 account_store=install_account_api(app)
 ranked_service=install_ranked(app,account_store,ROOMS,Room,ALPHABET,MAX_ROOMS)
 install_quad(app,account_store,ranked_service,{'deck':validate_deck,'units':validate_units,'survivors':validate_survivors,'damage':calc_pvp_damage,'blessings':PVP_BLESSING_EFFECTS,'max_rooms':MAX_ROOMS})
