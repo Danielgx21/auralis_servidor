@@ -29,3 +29,11 @@ Auto-battler de fantasia para navegadores, com interface para computadores e cel
 - Executar partidas completas no navegador em dispositivos reais para verificar transições.
 - Verificar a sincronização dos efeitos visuais entre dois dispositivos.
 - A trilha aprovada `Batalha_de_Miniaturas_Trilha_Batalha_PREVIA.mp3` não está presente na branch e ainda precisa ser integrada como mídia original; `battle_music_client.js` contém uma síntese, não o arquivo aprovado.
+
+## Novembro de 2026 — Arenas e efeitos cosméticos
+- Loja > Personalizações: Castelo Abandonado, Floresta Encantada, Cripta Amaldiçoada e Arena Glacial.
+- Efeitos equipáveis: quatro de entrada, quatro de eliminação e quatro de vitória.
+- Compras, posse e equipamentos persistidos em mini_cosmetic_inventory (PostgreSQL), com testes em SQLite isolado.
+- As arenas mudam apenas o visual local do tabuleiro, inclusive no PvP; não alteram o terreno lógico, obstáculos, dano ou velocidade.
+- Efeitos integram eventos locais do combate e os frames visuais no duelo online, sem modificar o resultado do servidor.
+- Aba Personalizações com filtros por tipo, pré-visualização e botões de comprar, equipar e remover.

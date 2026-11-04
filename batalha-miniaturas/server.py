@@ -16,6 +16,7 @@ from pathlib import Path
 from aiohttp import web, WSMsgType
 from balance_patch import apply_balance_html
 from movement_patch import apply_movement_html
+from cosmetics_patch import apply_cosmetics_html
 from progression_patch import apply_progression_html
 
 logging.basicConfig(level=logging.INFO)
@@ -427,7 +428,7 @@ RANKED_JOIN_FOOTER="render();pvpOpenPendingBlessing();\n }else if(msg.type==='co
 RANKED_JOIN_REPLACE="render();pvpOpenPendingBlessing();if(msg.ranked){pvp.ranked=true;$('pvpCode').hidden=true;$('pvpCopyBtn').hidden=true;pvpSetStatus('Adversário encontrado! Prepare sua equipe.');document.dispatchEvent(new CustomEvent('mini-ranked',{detail:msg}));}\n }else if(msg.type==='connection_lost'"
 async def index(_request):
     html=apply_progression_html(apply_movement_html(apply_balance_html((ROOT/'index.html').read_text(encoding='utf-8'))))
-    html=html.replace('</body>', '<script defer src="/friends_client.js"></script><script defer src="/profile_client.js"></script><script defer src="/ranked_client.js"></script><script defer src="/storefront_client.js"></script><script defer src="/play_menu_client.js"></script><script defer src="/battle_result_client.js"></script><script defer src="/battle_music_client.js"></script></body>', 1)
+    html=html.replace('</body>', '<script defer src="/friends_client.js"></script><script defer src="/profile_client.js"></script><script defer src="/ranked_client.js"></script><script defer src="/storefront_client.js"></script><script defer src="/cosmetics_client.js"></script><script defer src="/play_menu_client.js"></script><script defer src="/battle_result_client.js"></script><script defer src="/battle_music_client.js"></script></body>', 1)
 
     # Extensão pequena injetada em memória, sem substituir o HTML original aprovado.
     html=html.replace('window.__miniPvpDebug=', RANKED_BRIDGE+'window.__miniPvpDebug=', 1)
@@ -439,6 +440,7 @@ async def index(_request):
     html=html.replace("pvp.active=false;pvp.local=false;pvp.quick=false;pvp.soloGame=null;", "pvp.active=false;pvp.ranked=false;pvp.local=false;pvp.quick=false;pvp.soloGame=null;", 1)
     html=apply_quad_html(html)
     html=apply_friend_fx_html(html)
+    html=apply_cosmetics_html(html)
     # Não encerrar um ranqueado de 4 jogadores só por alguém chegar a zero
     # em um confronto individual; a classificação é decidida pelo servidor.
     old_finish='pvp.matchDone=pvp.hp.some(n=>n<=0);'
@@ -578,7 +580,10 @@ app['mini_rooms']=ROOMS
 async def storefront_client(_request):
     return web.FileResponse(ROOT/'storefront_client.js',headers={'Cache-Control':'no-store'})
 
-app.add_routes([web.get('/',index),web.get('/friends_client.js',friends_client),web.get('/profile_client.js',profile_client),web.get('/ranked_client.js',ranked_client),web.get('/storefront_client.js',storefront_client),web.get('/play_menu_client.js',play_menu_client),web.get('/assets/hub-art-generated.webp',generated_hub_art),web.get('/assets/realm-castle.webp',realm_castle_art),web.get('/assets/approved-night-castle.webp',approved_night_castle_art),web.get('/assets/realm-banner.webp',realm_banner_art),web.get('/battle_result_client.js',battle_result_client),web.get('/battle_music_client.js',battle_music_client),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
+async def cosmetics_client(_request):
+    return web.FileResponse(ROOT/'cosmetics_client.js',headers={'Cache-Control':'no-store'})
+
+app.add_routes([web.get('/',index),web.get('/friends_client.js',friends_client),web.get('/profile_client.js',profile_client),web.get('/ranked_client.js',ranked_client),web.get('/storefront_client.js',storefront_client),web.get('/cosmetics_client.js',cosmetics_client),web.get('/play_menu_client.js',play_menu_client),web.get('/assets/hub-art-generated.webp',generated_hub_art),web.get('/assets/realm-castle.webp',realm_castle_art),web.get('/assets/approved-night-castle.webp',approved_night_castle_art),web.get('/assets/realm-banner.webp',realm_banner_art),web.get('/battle_result_client.js',battle_result_client),web.get('/battle_music_client.js',battle_music_client),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
 account_store=install_account_api(app)
 ranked_service=install_ranked(app,account_store,ROOMS,Room,ALPHABET,MAX_ROOMS)
 install_quad(app,account_store,ranked_service,{'deck':validate_deck,'units':validate_units,'survivors':validate_survivors,'damage':calc_pvp_damage,'blessings':PVP_BLESSING_EFFECTS,'max_rooms':MAX_ROOMS})
@@ -595,6 +600,7 @@ app.on_startup.append(verify_storefront_rounds)
 async def verify_online_battle_fx(_app):
     html=(ROOT/'index.html').read_text(encoding='utf-8')
     verify_friend_fx_patch(html)
+    apply_cosmetics_html(apply_friend_fx_html(html))
     logging.info('FX online: sincronização e espelhamento de eventos validados')
 app.on_startup.append(verify_online_battle_fx)
 app.on_startup.append(verify_preparation_track)

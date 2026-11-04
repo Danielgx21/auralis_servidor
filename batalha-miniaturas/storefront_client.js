@@ -1,16 +1,17 @@
 /* Loja de progressão — itens persistentes servidos pela API de conta. */
 (()=>{
 'use strict';
-let activeCategory='miniatures',pending=false;
-const labels={miniatures:'Miniaturas',campaigns:'Campanhas',tickets:'Torneios',skins:'Skins'};
-const icons={miniatures:'⚔️',campaigns:'🗺️',tickets:'🎟️',skins:'✨'};
+let activeCategory='miniatures',cosmeticFilter='arena',pending=false;
+const labels={miniatures:'Miniaturas',campaigns:'Campanhas',tickets:'Torneios',skins:'Skins',cosmetics:'Personalizações'};
+const icons={miniatures:'⚔️',campaigns:'🗺️',tickets:'🎟️',skins:'✨',cosmetics:'🏟️'};
 const style=document.createElement('style');
 style.textContent=[
 '#homeMenu #newShop{display:flex;flex-direction:column;gap:13px;padding:12px 10px 24px;color:#e8efff;font-family:inherit}',
 '#newShop .realm-market-header{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}',
 '#newShop .realm-market-header h2{margin:0;color:#ffe1ac;font:800 clamp(24px,5.3vw,31px) Georgia,serif}',
 '#newShop .realm-market-balance{font-weight:800;color:#ffe0a4;background:#172b49;border:1px solid #b58d60;border-radius:20px;padding:6px 9px;font-size:13px}',
-'#newShop .realm-market-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}',
+'#newShop .realm-market-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}',
+'@media(max-width:580px){#newShop .realm-market-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}}',
 '#newShop .realm-market-tabs button{padding:9px 1px;border:1px solid #817392;border-radius:9px;background:#1e3355;color:#e5d8f9;font:800 clamp(10px,2.65vw,14px) Georgia,serif;cursor:pointer}',
 '#newShop .realm-market-tabs button.active{background:linear-gradient(#593c7b,#332a57);border-color:#e1b66e;color:#ffdeab}',
 '#newShop .market-intro{margin:0;color:#b7cbe2;font-size:12px;line-height:1.4}',
@@ -30,6 +31,7 @@ style.textContent=[
 '#newShop .market-card:not(.miniatures) .market-card-note{min-height:0}',
 '#newShop .market-card:not(.miniatures) .market-card-bottom{grid-column:2}',
 '#newShop .realm-market-helper{font-size:12px;color:#aebcd0;line-height:1.5}',
+'#newShop .market-card.cosmetics .market-card-bottom{display:flex;flex-wrap:wrap;justify-content:flex-end}',
 '#homeMenu .variant-inverno .realm-campaign-map img{filter:hue-rotate(155deg) saturate(.68) brightness(1.12)}',
 '#homeMenu .variant-sombras .realm-campaign-map img{filter:hue-rotate(70deg) saturate(1.12) brightness(.78)}',
 '#homeMenu .variant-cerco .realm-campaign-map img{filter:saturate(.75) sepia(.22) contrast(1.05)}',
@@ -38,6 +40,7 @@ style.textContent=[
 document.head.append(style);
 const el=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt!=null)n.textContent=String(txt);return n};
 function art(product){
+ if(product.category==='cosmetics'&&typeof window.__miniCosmeticsArt==='function')return window.__miniCosmeticsArt(product);
  const node=el('div','market-card-art');
  if(product.mini&&typeof window.__miniShopArt==='function'&&(product.category==='miniatures'||product.category==='skins')){
    node.innerHTML=window.__miniShopArt(product.mini);
@@ -51,6 +54,7 @@ function art(product){
 function applyState(state){
  window.__miniShopState=state||null;
  window.__miniShopSkins=state?.equippedSkins||{};
+ window.__miniCosmeticsApplyState?.(state);
  if(state&&typeof window.__miniProgressSync==='function')window.__miniProgressSync(state);
  document.dispatchEvent(new CustomEvent('mini-shop-state',{detail:{state}}));
 }
@@ -71,11 +75,21 @@ function render(root,state,onUpdate){
   miniatures:count+'/27 miniaturas desbloqueadas. As primeiras 17 já são suas; novas compras ampliam as opções do elenco, sem alterar os atributos.',
   campaigns:'Campanhas especiais com regras e cenários diferentes. Escolha uma campanha adquirida para jogar.',
   tickets:'Ingressos guardados: '+(state.tickets||0)+'. Você poderá usá-los quando os eventos de torneio estiverem ativos.',
-  skins:'Personalizações visuais; não alteram atributos ou habilidades.'
+  skins:'Personalizações visuais; não alteram atributos ou habilidades.',
+  cosmetics:'Arenas e efeitos visuais locais. Não alteram o campo tático, a força ou as regras da partida.'
  };
  root.append(el('p','market-intro',intros[activeCategory]));
+ if(activeCategory==='cosmetics'){
+  const subtabs=el('div','mini-cosmetic-subtabs');
+  for(const [slot,name] of [['arena','Arenas'],['spawn','Entrada'],['kill','Eliminação'],['victory','Vitória']]){
+   const sub=el('button',cosmeticFilter===slot?'active':'',name);
+   sub.type='button';sub.addEventListener('click',()=>{cosmeticFilter=slot;render(root,state,onUpdate)});
+   subtabs.append(sub);
+  }
+  root.append(subtabs);
+ }
  const grid=el('div','market-grid');
- for(const product of (state.catalog||[]).filter(p=>p.category===activeCategory)){
+ for(const product of (state.catalog||[]).filter(p=>p.category===activeCategory&&(activeCategory!=='cosmetics'||(cosmeticFilter==='arena'?p.kind==='arena':p.slot===cosmeticFilter)))){
   const card=el('article','market-card '+product.category+(product.owned?' owned':''));
   card.append(art(product),el('strong','market-card-title',product.name),el('div','market-card-note',product.description));
   const foot=el('div','market-card-bottom');
@@ -107,6 +121,11 @@ function render(root,state,onUpdate){
    }catch(error){window.alert(error.message||'Erro de conexão.');render(root,state,onUpdate)}
    finally{pending=false}
   });
+  if(product.category==='cosmetics'){
+   const preview=el('button','mini-preview-btn','Prévia');preview.type='button';
+   preview.addEventListener('click',()=>window.__miniCosmeticsPreview?.(product,card));
+   foot.append(preview);
+  }
   foot.append(button);card.append(foot);grid.append(card);
  }
  root.append(grid);
