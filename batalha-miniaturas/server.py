@@ -21,6 +21,7 @@ from social_patch import apply_social_html
 from startup_patch import apply_startup_html
 from storefront import EMOTE_CATALOG
 from progression_patch import apply_progression_html
+from clans_patch import apply_dual_clans_html,verify_dual_clans_html,validate_clans
 
 logging.basicConfig(level=logging.INFO)
 ROOT = Path(__file__).parent
@@ -442,9 +443,13 @@ RANKED_BRIDGE="window.__miniRankedBridge={\n showRanked(){modeShell(false);showG
 RANKED_MESSAGE_HEAD="if(msg.type==='ranked_wait'){document.dispatchEvent(new CustomEvent('mini-ranked',{detail:msg}));return;}\n  if(msg.type==='ranked_rating'){document.dispatchEvent(new CustomEvent('mini-ranked',{detail:msg}));showToast(msg.won?'🏆 Vitória ranqueada! +10 pontos':'⚔️ Derrota ranqueada. −10 pontos');return;}\n  if(msg.type==='ranked_forfeit'){document.dispatchEvent(new CustomEvent('mini-ranked',{detail:msg}));if(pvp.active){pvp.hp=msg.hp||pvp.hp;pvp.matchDone=true;pvpShowResult(msg.winner===0);}return;}\n  if(msg.type==='error'&&pvp.ranked&&!pvp.active){document.dispatchEvent(new CustomEvent('mini-ranked',{detail:{type:'ranked_error',message:msg.message}}));}\n  if(msg.type==='joined'&&msg.ranked)pvp.ranked=true;"
 RANKED_JOIN_FOOTER="render();pvpOpenPendingBlessing();\n }else if(msg.type==='connection_lost'"
 RANKED_JOIN_REPLACE="render();pvpOpenPendingBlessing();if(msg.ranked){pvp.ranked=true;$('pvpCode').hidden=true;$('pvpCopyBtn').hidden=true;pvpSetStatus('Adversário encontrado! Prepare sua equipe.');document.dispatchEvent(new CustomEvent('mini-ranked',{detail:msg}));}\n }else if(msg.type==='connection_lost'"
+INDEX_HTML_CACHE=None
 async def index(_request):
-    html=apply_progression_html(apply_movement_html(apply_balance_html((ROOT/'index.html').read_text(encoding='utf-8'))))
-    html=html.replace('</body>', '<script defer src="/friends_client.js"></script><script defer src="/profile_client.js"></script><script defer src="/ranked_client.js"></script><script defer src="/storefront_client.js"></script><script defer src="/cosmetics_client.js"></script><script defer src="/social_client.js"></script><script defer src="/play_menu_client.js"></script><script defer src="/battle_result_client.js"></script><script defer src="/battle_music_client.js"></script></body>', 1)
+    global INDEX_HTML_CACHE
+    if INDEX_HTML_CACHE is not None:
+        return web.Response(text=INDEX_HTML_CACHE,content_type='text/html',headers={'Cache-Control':'no-store'})
+    html=apply_dual_clans_html(apply_progression_html(apply_movement_html(apply_balance_html((ROOT/'index.html').read_text(encoding='utf-8')))))
+    html=html.replace('</body>', '<script defer src="/friends_client.js"></script><script defer src="/profile_client.js"></script><script defer src="/ranked_client.js"></script><script defer src="/storefront_client.js"></script><script defer src="/cosmetics_client.js"></script><script defer src="/clan_client.js"></script><script defer src="/combat_polish_client.js"></script><script defer src="/social_client.js"></script><script defer src="/play_menu_client.js"></script><script defer src="/battle_result_client.js"></script><script defer src="/battle_music_client.js"></script></body>', 1)
 
     # Extensão pequena injetada em memória, sem substituir o HTML original aprovado.
     html=html.replace('window.__miniPvpDebug=', RANKED_BRIDGE+'window.__miniPvpDebug=', 1)
@@ -468,6 +473,7 @@ async def index(_request):
     html=html.replace('Somente efeitos sonoros; sem música de fundo. Os controles também ficam disponíveis durante as partidas.',
         'A música de combate tem controle independente. Os efeitos sonoros continuam desligados.',1)
     html=apply_startup_html(html)
+    INDEX_HTML_CACHE=html
     return web.Response(text=html,content_type='text/html',headers={'Cache-Control':'no-store'})
 
 async def friends_client(_request):
@@ -604,7 +610,13 @@ async def cosmetics_client(_request):
 async def social_client(_request):
     return web.FileResponse(ROOT/'social_client.js',headers={'Cache-Control':'no-store'})
 
-app.add_routes([web.get('/',index),web.get('/friends_client.js',friends_client),web.get('/profile_client.js',profile_client),web.get('/ranked_client.js',ranked_client),web.get('/storefront_client.js',storefront_client),web.get('/cosmetics_client.js',cosmetics_client),web.get('/social_client.js',social_client),web.get('/play_menu_client.js',play_menu_client),web.get('/assets/hub-art-generated.webp',generated_hub_art),web.get('/assets/realm-castle.webp',realm_castle_art),web.get('/assets/approved-night-castle.webp',approved_night_castle_art),web.get('/assets/realm-banner.webp',realm_banner_art),web.get('/battle_result_client.js',battle_result_client),web.get('/battle_music_client.js',battle_music_client),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
+async def clan_client(_request):
+    return web.FileResponse(ROOT/'clan_client.js',headers={'Cache-Control':'no-store'})
+
+async def combat_polish_client(_request):
+    return web.FileResponse(ROOT/'combat_polish_client.js',headers={'Cache-Control':'no-store'})
+
+app.add_routes([web.get('/',index),web.get('/friends_client.js',friends_client),web.get('/profile_client.js',profile_client),web.get('/ranked_client.js',ranked_client),web.get('/storefront_client.js',storefront_client),web.get('/cosmetics_client.js',cosmetics_client),web.get('/clan_client.js',clan_client),web.get('/combat_polish_client.js',combat_polish_client),web.get('/social_client.js',social_client),web.get('/play_menu_client.js',play_menu_client),web.get('/assets/hub-art-generated.webp',generated_hub_art),web.get('/assets/realm-castle.webp',realm_castle_art),web.get('/assets/approved-night-castle.webp',approved_night_castle_art),web.get('/assets/realm-banner.webp',realm_banner_art),web.get('/battle_result_client.js',battle_result_client),web.get('/battle_music_client.js',battle_music_client),web.get('/ws',ws_handler),web.get('/health',health),web.get('/assets/Seven_Measured_Steps.mp3',preparation_music)])
 account_store=install_account_api(app)
 ranked_service=install_ranked(app,account_store,ROOMS,Room,ALPHABET,MAX_ROOMS)
 install_quad(app,account_store,ranked_service,{'deck':validate_deck,'units':validate_units,'survivors':validate_survivors,'damage':calc_pvp_damage,'blessings':PVP_BLESSING_EFFECTS,'max_rooms':MAX_ROOMS})
@@ -623,6 +635,11 @@ async def verify_online_battle_fx(_app):
     verify_friend_fx_patch(html)
     apply_social_html(apply_cosmetics_html(apply_friend_fx_html(html)))
     apply_startup_html(html)
+    prepared=apply_progression_html(apply_movement_html(apply_balance_html(html)))
+    verify_dual_clans_html(prepared)
+    for name in ('clan_client.js','combat_polish_client.js'):
+        if not (ROOT/name).is_file():raise RuntimeError('Cliente ausente: '+name)
+    logging.info('Clãs duplos equilibrados e sinergias 3/6: %s',validate_clans())
     logging.info('Tela inicial: menu antigo ocultado até a montagem do hub atual')
     logging.info('FX online: sincronização e espelhamento de eventos validados')
 app.on_startup.append(verify_online_battle_fx)
