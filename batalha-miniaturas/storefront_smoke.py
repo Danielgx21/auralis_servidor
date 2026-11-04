@@ -26,7 +26,7 @@ def smoke():
                     VALUES (?,?,?,?,?,?,?)''',(uid,username,username,'guard','test-hash',1793700000 if username=='daniel' else now,now))
         state=store.economy('u1')
         assert state['coins']==240 and state['crystals']==25
-        assert len(state['ownedMinis'])==len(STARTER_MINIS)==17
+        assert len(state['ownedMinis'])==len(STARTER_MINIS)==20
         assert 'necro' not in state['ownedMinis']
         bought=store.economy('u1','buy','mini_sentinel')
         assert bought['coins']==100 and 'sentinel' in bought['ownedMinis']
@@ -97,7 +97,7 @@ def smoke():
         assert store.economy('u1')['equippedCelebrations']['rogue']=='celebrate_rogue'
         daniel=store.economy('u2')
         assert daniel['unlimited'] and daniel['coins']=='∞' and daniel['crystals']=='∞'
-        assert len(daniel['ownedMinis'])==17
+        assert len(daniel['ownedMinis'])==len(STARTER_MINIS)
         for key in ['mini_necro','campaign_inverno','skin_necro_spectral','ticket_royal','arena_cripta','fx_victory_gloria','emote_coroa','celebrate_necro']:
             daniel=store.economy('u2','buy',key)
         daniel=store.economy('u2','equip','campaign_inverno')
@@ -116,5 +116,5 @@ def smoke():
         assert daniel['selectedArena']=='arena_cripta' and daniel['equippedEffects']['victory']=='fx_victory_gloria'
         assert daniel['coins']=='∞' and daniel['crystals']=='∞'
         assert store.economy('u2')['equippedSkins']['necro']=='skin_necro_spectral'
-        return {'regular_starter_minis':17,'purchases_persisted':True,
+        return {'regular_starter_minis':len(STARTER_MINIS),'purchases_persisted':True,
                 'admin_balances_unlimited':True,'campaign_skin_ticket_saved':True,'arenas_and_fx_saved':True,'emotes_and_hero_victories_saved':True}
