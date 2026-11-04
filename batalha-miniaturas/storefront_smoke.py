@@ -23,7 +23,7 @@ def smoke():
         with store.connection() as con:
             for uid,username in [('u1','player'),('u2','daniel')]:
                 store.query(con,'''INSERT INTO mini_users(id,username,display_name,avatar,password_hash,created_at,updated_at)
-                    VALUES (?,?,?,?,?,?,?)''',(uid,username,username,'guard','test-hash',now,now))
+                    VALUES (?,?,?,?,?,?,?)''',(uid,username,username,'guard','test-hash',1793700000 if username=='daniel' else now,now))
         state=store.economy('u1')
         assert state['coins']==240 and state['crystals']==25
         assert len(state['ownedMinis'])==len(STARTER_MINIS)==17
