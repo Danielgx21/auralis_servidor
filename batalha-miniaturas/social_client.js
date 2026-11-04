@@ -193,7 +193,7 @@ document.addEventListener('mini-hero-victory',event=>{
  // Só comemora se o jogador comprou, equipou e manteve vivo o campeão vencedor.
  const picked=units.filter(u=>u&&typeof u.type==='string'&&HEROES[celebrations[u.type]]?.mini===u.type)
   .sort((a,b)=>(b.damage||0)-(a.damage||0))[0];
- pendingVictory=picked?{mini:picked.type,id:celebrations[picked.type]}:null;
+ pendingVictory=picked?{mini:picked.type,id:celebrations[picked.type]}:{mini:units.find(u=>typeof u.type==='string'&&/^[a-z]+$/.test(u.type))?.type||null,id:null};
 });
 function createVictoryStage(champ){
  const overlay=document.createElement('section');overlay.id='mini-victory-cinema';
@@ -201,15 +201,15 @@ function createVictoryStage(champ){
  overlay.setAttribute('aria-modal','true');
  const heading=document.createElement('strong');heading.className='mini-cinema-title';heading.textContent='✦ VITÓRIA ✦';
  const subtitle=document.createElement('div');subtitle.className='mini-cinema-sub';
- subtitle.textContent='Comemoração do campeão';
- const wrap=document.createElement('div');wrap.className='mini-hero-celebration';wrap.dataset.mini=champ.mini;
+ subtitle.textContent=champ.id?'Comemoração do campeão':'Seu exército venceu';
+ const wrap=document.createElement('div');wrap.className='mini-hero-celebration';wrap.dataset.mini=champ.id?champ.mini:'generic';
  const art=document.createElement('div');art.className='mini-hero-art';
- if(typeof window.__miniShopArt==='function')art.innerHTML=window.__miniShopArt(champ.mini);
- else art.textContent=HEROES[champ.id].symbol;
+ if(champ.mini&&typeof window.__miniShopArt==='function')art.innerHTML=window.__miniShopArt(champ.mini);
+ else art.textContent='🏆';
  const mark=document.createElement('span');mark.className='mini-hero-symbol';
- mark.textContent=HEROES[champ.id].symbol;
+ mark.textContent=champ.id?HEROES[champ.id].symbol:'🏆';
  const caption=document.createElement('span');caption.className='mini-hero-caption';
- caption.textContent=HEROES[champ.id].label;
+ caption.textContent=champ.id?HEROES[champ.id].label:'Seu exército venceu!';
  wrap.append(art,mark,caption);
  const progress=document.createElement('div');progress.className='mini-cinema-progress';
  const bar=document.createElement('span');progress.append(bar);
@@ -232,8 +232,14 @@ function installVictoryResultTransition(){
    activeVictory.context=context;
    return;
   }
-  const champ=pendingVictory;pendingVictory=null;
-  if(!champ||!HEROES[champ.id])return original.apply(context,args);
+  const confirmed=pendingVictory;pendingVictory=null;
+  // A pausa entre o último golpe e o resultado é sempre exibida nas vitórias.
+  // Ter uma comemoração comprada substitui o visual genérico, não o intervalo.
+  const heading=String(args[1]||'');
+  const resultPhase=window.__miniSocialBridge?.state?.().phase==='result';
+  const won=!!resultPhase&&/(vit[oó]ria|venceu|reino superado|1º lugar)/i.test(heading);
+  const champ=confirmed||(won?{mini:null,id:null}:null);
+  if(!champ||champ.id&&!HEROES[champ.id])return original.apply(context,args);
   const {overlay,skip,bar}=createVictoryStage(champ);
   document.body.append(overlay);
   const state={args,context,champ,overlay,done:false,timer:null};
@@ -246,7 +252,7 @@ function installVictoryResultTransition(){
    activeVictory=null;
    // Somente o painel é postergado; a partida já terminou normalmente.
    const ret=original.apply(state.context,state.args);
-   renderHero(champ.mini,champ.id);
+   if(champ.id)renderHero(champ.mini,champ.id);
    return ret;
   }
   skip.addEventListener('click',finish,{once:true});
