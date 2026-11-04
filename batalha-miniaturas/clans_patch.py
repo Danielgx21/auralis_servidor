@@ -105,6 +105,10 @@ def apply_dual_clans_html(html):
     replace('${g.icon} ${g.name} · ${role.icon} ${role.name}',
             '${clanBadges(game.shop[i])} · ${role.icon} ${role.name}',
             'dois clãs na ficha de compra')
+    # Dois ícones individuais, preservando a indicação de equipamentos dos adversários.
+    replace("piece.items.map(id=>ITEMS[id]?.icon||'◆').join('')",
+            "piece.items.map(id=>'<span class=\\"mini-equipped-item\\" title=\\"'+esc(ITEMS[id]?.name||id)+'\\">'+(ITEMS[id]?.icon||'◆')+'</span>').join('')",
+            'separação dos ícones de itens')
     replace('<div class="mini-name">${esc(t.name)}</div>',
             '<div class="mini-name">${esc(t.name)}</div><div class="mini-clan-pair" aria-label="${esc(clanNames(piece.type))}">${t.clans.map(clan=>\'<span class="mini-clan-mark" title="\'+esc(GROUPS[clan].name)+\'" style="--clan-color:\'+GROUPS[clan].color+\'">\'+GROUPS[clan].icon+\'</span>\').join("")}</div>',
             'ícones dos clãs no tabuleiro')
@@ -119,6 +123,7 @@ def apply_dual_clans_html(html):
 def verify_dual_clans_html(html):
     validate_clans()
     patched=apply_dual_clans_html(html)
+    assert 'mini-equipped-item' in patched
     for marker in ('traits.ferro>=6','traits.selva>=3',
                    'const SECONDARY_CLANS=','clanBadges(game.shop[i])',
                    'clanBadges(id)','mini-clan-pair','tier=c>=6?2:c>=3?1:0'):
