@@ -289,6 +289,8 @@ class QuadLeague:
                         ON CONFLICT(match_id,user_id) DO NOTHING""",
                         (game.code,seat.user_id,place,points_delta,now))
                     if inserted.rowcount!=1:continue
+                    if hasattr(self.store,'store_credit'):
+                        self.store.store_credit(seat.user_id,coins={1:40,2:30,3:22,4:15}[place],crystals={1:3,2:2,3:1,4:1}[place],con=con)
                     self.store.query(con,"""UPDATE mini_ranked_rating SET
                         points=CASE WHEN points+? < 0 THEN 0 ELSE points+? END,
                         wins=wins+?, losses=losses+?,matches=matches+1,updated_at=?
