@@ -53,4 +53,27 @@ function pvpSend(msg){"""
         if matches!=1:
             raise RuntimeError(f"Ponte social incompatível: {old[:70]} aparece {matches}x")
         html=html.replace(old,new,1)
+    # Abertura do resultado pela rota explícita do combate: não depende da
+    # ordem em que scripts defer registram wrappers de openModal.
+    bridge="""function showResultWithPause(won,...args){
+ const reveal=()=>{
+  openModal(...args);
+  if(game?.lastReport&&$('modalReportBtn'))$('modalReportBtn').hidden=false;
+ };
+ if(typeof window.__miniShowOutcome==='function')return window.__miniShowOutcome(!!won,reveal);
+ setTimeout(reveal,3600);
+}
+function closeModal()"""
+    anchor="function closeModal()"
+    if html.count(anchor)!=1:
+        raise RuntimeError("Ponte de resultado: closeModal não encontrado de maneira única")
+    html=html.replace(anchor,bridge,1)
+    anchors=[
+        ("openModal(wiped?'💔'","showResultWithPause(!!win,wiped?'💔'"),
+        ("openModal(pvp.matchDone?'🏆'","showResultWithPause(!!iWon,pvp.matchDone?'🏆'")
+    ]
+    for old,new in anchors:
+        if html.count(old)!=1:
+            raise RuntimeError(f"Ponte de resultado: {old} apareceu {html.count(old)} vezes")
+        html=html.replace(old,new,1)
     return html
