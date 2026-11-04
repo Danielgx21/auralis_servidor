@@ -84,6 +84,9 @@ class Ranked:
                     SET points=CASE WHEN points+? < 0 THEN 0 ELSE points+? END,
                         wins=wins+?, losses=losses+?, matches=matches+1, updated_at=?
                     WHERE user_id=?""",(delta,delta,w,loss,now,uid))
+                # Recompensa real por partida ranqueada, emitida uma só vez junto ao resultado validado.
+                if hasattr(self.db,'store_credit'):
+                    self.db.store_credit(uid,coins=35 if w else 18,crystals=2 if w else 1,con=con)
             ratings=[]
             for uid in ids:
                 row=self.db.query(con,"SELECT points,wins,losses,matches FROM mini_ranked_rating WHERE user_id=?",(uid,)).fetchone()
