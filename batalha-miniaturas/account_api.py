@@ -264,6 +264,8 @@ class AccountStore:
             counts[group]=counts.get(group,0)+1
             if counts[group]>5:raise AuthError('Elenco excede cinco unidades de uma aliança.')
         if len(counts)<3:raise AuthError('Elenco precisa ter ao menos três alianças.')
+        if hasattr(self,'store_owned') and any(t not in self.store_owned(user_id) for t in deck):
+            raise AuthError('Elenco contém miniaturas bloqueadas. Desbloqueie-as na Loja.',403)
         campaign=data.get('campaign')
         if campaign is not None and (not isinstance(campaign,dict) or not isinstance(campaign.get('game'),dict) or not isinstance(campaign.get('nextId'),int)):
             raise AuthError('Salvamento da Campanha inválido.')
