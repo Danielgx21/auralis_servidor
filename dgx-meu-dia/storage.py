@@ -36,6 +36,7 @@ ALLOWED_KEYS = {
     "dgx_payments_v1",
     "dgx_push_prefs_v1",
     "dgx_podcasts_v1",
+    "dgx_briefing_prefs_v1",
 }
 SESSION_DAYS = 60
 
