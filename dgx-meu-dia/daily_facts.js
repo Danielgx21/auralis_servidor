@@ -56,7 +56,16 @@ const FACTS=[
 ["Geografia","Os fusos horários também são convenções","A rotação terrestre explica a diferença entre dia e noite, mas os limites dos fusos horários legais também dependem de decisões de cada país."],
 ["Ciências","O efeito estufa é natural e essencial","Gases de efeito estufa absorvem e emitem radiação infravermelha, mantendo a Terra mais aquecida do que seria sem esse efeito. Seu aumento intensifica o aquecimento."],
 ["Política","A Carta Magna foi assinada em 1215","Na Inglaterra medieval, a Magna Carta de 1215 estabeleceu limites a determinadas práticas do poder real. Seu significado político mudou ao longo dos séculos."],
-["Arte","A arquitetura também é uma linguagem artística","Luz, espaço, materiais e proporções são elementos expressivos da arquitetura; uma construção pode comunicar ideias além de atender funções práticas."]
+["Arte","A arquitetura também é uma linguagem artística","Luz, espaço, materiais e proporções são elementos expressivos da arquitetura; uma construção pode comunicar ideias além de atender funções práticas."],
+
+["Biologia","O xilema transporta água pelas plantas","Nas plantas vasculares, o xilema conduz principalmente água e sais minerais das raízes em direção a outras partes da planta. A transpiração contribui para esse fluxo."],
+["Química","A água nem sempre ferve a 100 graus","A temperatura de ebulição da água depende da pressão. Em locais de grande altitude, onde a pressão atmosférica é menor, ela pode ferver abaixo de 100 graus Celsius."],
+["Física","O GPS precisa levar a relatividade em conta","Os relógios dos satélites de navegação sofrem efeitos previstos pelas teorias da relatividade. Sem correções, os erros de posicionamento cresceriam rapidamente."],
+["História","A escrita cuneiforme surgiu na Mesopotâmia","A escrita cuneiforme desenvolveu-se na Mesopotâmia no quarto milênio antes da era comum, inicialmente em contextos administrativos e econômicos."],
+["Geografia","Nem todo rio desemboca num delta","Alguns rios chegam ao mar por deltas, onde sedimentos formam canais e ilhas. Outros desembocam em estuários, influenciados por marés e outros processos."],
+["Ciências","Uma descoberta depende de muita gente","O modelo de dupla hélice do DNA, publicado em 1953, resultou de um contexto de pesquisas que incluiu dados experimentais fundamentais produzidos por Rosalind Franklin e colaboradores."],
+["Política","A ONU tem diferentes órgãos","A Assembleia Geral reúne os Estados-membros da ONU para deliberação. Já o Conselho de Segurança possui atribuições específicas relacionadas à paz e à segurança internacionais."],
+["Arte","Filmes existiam antes do cinema sonoro","O cinema se desenvolveu por décadas antes da difusão de filmes com som sincronizado. A expressão visual, a montagem e os intertítulos comunicavam histórias sem diálogos gravados."]
 ];
 const $=id=>document.getElementById(id);
 const dateSP=()=>new Intl.DateTimeFormat("sv-SE",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
