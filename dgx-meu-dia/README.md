@@ -71,3 +71,9 @@ Runtime Python com comando \`python dgx-meu-dia/app.py\`.
 - Cada cartão oferece seta grande com rótulo acessível e `aria-expanded`; controles gerais “Recolher tudo” e “Expandir tudo” no topo.
 - O fechamento preserva dados, conteúdos e botões das seções. Preferência visual salva em `dgx_home_panels_v1` na conta Neon (com preferência local para inicialização mais rápida).
 - Service worker atualizado para pré-carregar o novo módulo.
+
+## v0.9 — Cabeçalho e visão Acontece hoje (05/11/2026)
+- Cabeçalho mobile em grid com logotipo em uma linha, indicador de nuvem, data e botões Modo Carro/Sair alinhados; sem quebra desconexa.
+- Os dez painéis recolhíveis agora usam chevrons vetoriais SVG 19px em alvos de toque 42px. Ações secundárias permanecem no corpo; menu discreto Organizar permite expandir/recolher todos.
+- Nova seção fixa **Acontece hoje** no topo do Início, sempre visível: jogos do Corinthians identificados para o dia, tarefas pessoais/SME e lembretes de hoje, vencimentos de contas hoje, atrasos e previsão de vencimentos nos 3 dias seguintes. Cada bloco abre a seção correspondente. Cuidado: agenda esportiva não oficial e horários passíveis de alteração.
+- Resumo sincroniza com dados do Neon no login, alterações de tarefa, lembrete, baixa/edição de pagamentos e novos resultados da agenda do Corinthians; verifica mudança de dia.
