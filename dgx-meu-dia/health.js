@@ -239,11 +239,15 @@ $("healthCsvImport").onclick=()=>{
  if(dateCol===valueCol){notify("Selecione colunas diferentes para data e valor.");return}
  const groups=new Map();let skipped=0;
  for(const row of importedRows){
-  const date=parseDate(row[dateCol]),value=safeValue(key,row[valueCol]);
-  if(!date||date>today()||value==null){skipped++;continue}
-  let converted=value;
-  if(key==="sleepHours"&&unit==="minutes")converted=value/60;
-  // Aceita sessões de sono de até 24 h sem permitir quantidades fisicamente impossíveis
+  const date=parseDate(row[dateCol]);
+  const raw=String(row[valueCol]??"").trim();
+  const number=raw.includes(",")?Number(raw.replace(/\./g,"").replace(",",".")):Number(raw);
+  let converted=number;
+  if(key==="sleepHours"&&unit==="minutes")converted=number/60;
+  if(!date||date>today()||!Number.isFinite(converted)||safeValue(key,converted)==null){
+   skipped++;continue;
+  }
+  // Intervalos de sono de vários registros podem ser somados posteriormente.
   const group=groups.get(date)||[];group.push(converted);groups.set(date,group);
  }
  const records=[];
@@ -266,6 +270,7 @@ $("healthExampleCsv").onclick=()=>{
  a.href=url;a.download="dgx-modelo-saude.csv";a.click();
  setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
+$("healthCsvMetric").dispatchEvent(new Event("change"));
 window.DGXhealthRefresh=draw;
 fillForm();
 draw();
