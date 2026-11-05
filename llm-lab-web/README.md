@@ -1,4 +1,4 @@
-# DGX LLM — versão 0.3
+# DGX LLM — versão 0.4
 
 Aplicação didática para investigar como redes neurais aprendem e construir uma assistente independente. A branch lab-llm-web-v1 está isolada dos jogos.
 
@@ -14,6 +14,10 @@ Site: https://laboratorio-llm-web.onrender.com/
   - Peso inicial aleatório, atualização em blocos de 400 passos e persistência em localStorage.
   - Dados e pesos não são enviados a um serviço de inteligência artificial.
   - É uma mini-rede preditora de caracteres, **não** um Transformer e **não** uma LLM conversacional. Os caracteres de avaliação vêm do mesmo texto, com janelas sobrepostas: este teste mede aprendizagem local, não prova generalização.
+- **Transformer (v0.4):** modelo próprio de 1 bloco com uma cabeça de atenção causal, embeddings de tokens/caracteres e posições, conexões residuais, rede feed-forward, softmax e retropropagação analítica. O treinamento ocorre no navegador.
+  - Mostra as probabilidades do próximo caractere, os pesos de atenção entre as quatro posições de contexto e as curvas de perda.
+  - Os últimos 20% dos dados ficam reservados para avaliação, mas padrões repetidos podem aparecer nos dois conjuntos.
+  - Salva pesos no armazenamento local e oferece **exportação JSON de checkpoints**. Não é uma LLM de conversação, nem possui treinamento em massa.
 - **Intercambialidade:** conexão opcional a endpoints de modelos compatíveis com /v1/chat/completions.
 
 ## Conversar localmente no Windows (16 GB de RAM, GPU integrada)
@@ -41,7 +45,7 @@ Para conectar um serviço de inferência, configure as variáveis do servidor:
 Nunca coloque segredos no repositório. Quando houver chave de provedor, mensagens enviadas ao chat podem ser processadas pelo provedor. Esse PIN é provisório; não use em produção com vários usuários sem autenticação e limites de taxa/custo.
 
 ## Próximos passos
-- Treinar um mini-Transformer de verdade na CPU do seu PC, com pesos próprios.
+- Expandir o mini-Transformer atual com maior contexto, múltiplas cabeças e avaliação em textos inéditos.
 - Criar avaliações com textos e problemas inéditos.
 - Salvar checkpoints exportáveis e comparar versões.
 - Evoluir gradualmente para um modelo capaz de seguir instruções.
