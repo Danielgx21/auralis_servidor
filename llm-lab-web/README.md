@@ -1,44 +1,50 @@
-# DGX LLM — versão web 0.2
+# DGX LLM — versão 0.3
 
-Aplicação experimental para estudar modelos de linguagem, em uma branch separada dos jogos. Site: https://laboratorio-llm-web.onrender.com
+Aplicação didática para investigar como redes neurais aprendem e construir uma assistente independente. A branch lab-llm-web-v1 está isolada dos jogos.
 
-## Funcionalidades
-- Identidade DGX LLM, chat com histórico local no navegador (até 36 mensagens).
-- Conversa didática baseada em regras sobre IA com contexto; **não é uma rede neural**.
-- Calculadora restrita e tarefas salvas neste navegador.
-- Laboratório de probabilidades de caracteres.
-- Adaptador para endpoint compatível com OpenAI (substituível por um modelo e servidor próprios).
-- Proteção por código de acesso quando um modelo externo está configurado.
+Site: https://laboratorio-llm-web.onrender.com/
 
-## Habilitar conversa real em uma LLM temporária
-Na configuração Environment do serviço Render, insira as variáveis abaixo. Nunca cole credenciais no GitHub ou na conversa do chat.
+## O que funciona sem pagar por GPU
+- **Conversa didática:** regras transparentes sobre IA, com contexto de mensagens anteriores. Não é uma LLM.
+- **Ferramentas:** calculadora restrita, tarefas salvas no navegador.
+- **Previsões:** modelo estatístico de caracteres como referência.
+- **Treinar IA:** rede neural real, implementada em JavaScript puro, treinada no dispositivo do visitante.
+  - Contexto de 3 caracteres, embeddings de dimensão 8, camada oculta tanh de 32 unidades e saída softmax.
+  - Retropropagação e descida de gradiente nos pesos; curva de perda de treino e avaliação, amostragem de texto.
+  - Peso inicial aleatório, atualização em blocos de 400 passos e persistência em localStorage.
+  - Dados e pesos não são enviados a um serviço de inteligência artificial.
+  - É uma mini-rede preditora de caracteres, **não** um Transformer e **não** uma LLM conversacional. Os caracteres de avaliação vêm do mesmo texto, com janelas sobrepostas: este teste mede aprendizagem local, não prova generalização.
+- **Intercambialidade:** conexão opcional a endpoints de modelos compatíveis com /v1/chat/completions.
 
-| Variável | Exemplo |
-|---|---|
-| LLM_BASE_URL | https://api.groq.com/openai/v1 |
-| LLM_MODEL | openai/gpt-oss-20b |
-| LLM_API_KEY | chave privada do fornecedor |
-| DGX_ACCESS_PIN | código privado longo e único para acessar o modelo |
+## Conversar localmente no Windows (16 GB de RAM, GPU integrada)
+Isso não exige API paga nem servidor na nuvem para inferência. Quando o PC estiver desligado, a conversa local não funcionará.
 
-Uma chamada de LLM só é ativada quando BASE, MODEL e ACCESS_PIN estão preenchidos. Para um endpoint local sem autenticação, a variável LLM_API_KEY é opcional. Em serviços públicos, habilite autenticação e limites de custo. PIN compartilhado é provisório; implementar autenticação por usuário para produção.
+1. Instale **Python 3** a partir de https://www.python.org/downloads/ e marque a opção para adicionar ao PATH.
+2. Instale **Ollama** a partir de https://ollama.com/download . Deixe o aplicativo rodando.
+3. Abra um terminal do Windows e execute: ollama pull qwen3:4b
+   - O download do modelo tem cerca de 2,5 GB. O uso de memória será maior.
+   - O modelo possui pesos de terceiros. A operação e as mensagens ficam locais, mas os pesos **não são** treinados por nós.
+4. Baixe a branch lab-llm-web-v1 do GitHub e entre na pasta llm-lab-web.
+5. Clique duas vezes em iniciar-local-windows.bat.
+6. Abra http://127.0.0.1:8765 e informe o código de acesso exibido na janela: dgx-local.
+7. Mantenha a janela do servidor aberta. O processamento por CPU pode ser lento.
 
-Após configurar, recarregue o site, preencha o código privado no campo mostrado e converse. O histórico fica no armazenamento local do navegador; é enviado ao back-end para gerar cada resposta. Quando um provedor externo estiver ligado, esse provedor também processará as mensagens.
+O launcher vincula o servidor HTTP apenas a 127.0.0.1 por segurança; ele **não** compartilha a IA pela rede local ou internet.
 
-## Roteiro da independência
-1. Agora: site, ferramentas e conversa didática local.
-2. Temporário: API hospedando pesos abertos, para diálogo geral.
-3. Infraestrutura própria: executar pesos abertos em GPU controlada por nós, sem API proprietária.
-4. Pesquisa: treinar e avaliar nossa própria rede desde pesos aleatórios e tentar substituí-la gradualmente.
+## LLM na nuvem (opcional)
+Para conectar um serviço de inferência, configure as variáveis do servidor:
+- LLM_BASE_URL: endpoint base compatível com OpenAI, terminando em /v1.
+- LLM_MODEL: nome exato do modelo.
+- LLM_API_KEY: chave privada, se necessária.
+- DGX_ACCESS_PIN: código privado longo para proteger acesso ao modelo.
 
-Render Free não é uma plataforma para inferência de LLM grande: possui pouco processamento, arquivo temporário e suspende o processo por inatividade.
+Nunca coloque segredos no repositório. Quando houver chave de provedor, mensagens enviadas ao chat podem ser processadas pelo provedor. Esse PIN é provisório; não use em produção com vários usuários sem autenticação e limites de taxa/custo.
 
-## Testes sugeridos
-- Oi
-- Meu nome é Ana
-- Qual meu nome?
-- Como uma LLM aprende?
-- Explique melhor
-- calcule (15+7)*3
-- Crie tarefa estudar Transformers
-- Liste minhas tarefas
-- Recarregar a página, testar histórico e iniciar nova conversa.
+## Próximos passos
+- Treinar um mini-Transformer de verdade na CPU do seu PC, com pesos próprios.
+- Criar avaliações com textos e problemas inéditos.
+- Salvar checkpoints exportáveis e comparar versões.
+- Evoluir gradualmente para um modelo capaz de seguir instruções.
+- Adicionar autenticação antes de expor conversas remotamente.
+
+Tudo está separado das branches dos jogos. A aba de treinamento funciona sem serviços de IA na nuvem.
