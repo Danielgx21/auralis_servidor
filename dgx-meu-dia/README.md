@@ -104,3 +104,10 @@ Runtime Python com comando \`python dgx-meu-dia/app.py\`.
 - Foram revisadas todas as 56 curiosidades para remover linguagem excessivamente técnica, mantendo o rodízio diário entre ciências, história, geografia, política e arte.
 - O resumo falado apresenta a curiosidade como uma frase natural, sem excesso de rótulos.
 - Cache da PWA atualizado para v0.12.
+
+## v0.13 — Revisão das curiosidades e feedback do desafio (05/11/2026)
+- Corrigida resposta de 05/11/2026 para **B — Bia** diretamente no banco Neon, sem afetar as demais respostas.
+- Respostas dos desafios agora exibem explicitamente a alternativa correta com letra e texto, destacando-a em verde. Se houver erro, a opção escolhida é indicada separadamente.
+- Ao abrir a aba Desafio, a escolha é sincronizada do banco para refletir correções realizadas em outros dispositivos.
+- As 56 curiosidades foram individualmente revisadas: cada uma agora traz uma pergunta específica e uma resposta que explica diretamente o mecanismo, o motivo ou a relevância. Curiosidade do dia 05/11: como as oscilações regulares de um pêndulo permitem contar intervalos iguais e marcar segundos.
+- Texto do resumo falado alterado para uma pausa natural entre a pergunta diária e a resposta; PWA atualizada.
