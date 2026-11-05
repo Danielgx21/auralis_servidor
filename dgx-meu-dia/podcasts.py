@@ -163,41 +163,65 @@ def _txt(node, tag):
 def _read_feed(podcast_id):
     show = _directory(podcast_id)
     rss_url = show["feed"]
-    # Apple ocasionalmente retorna feeds HTTP de hospedeiros antigos; usar HTTPS apenas.
+    # Alguns catálogos antigos publicam o feed com HTTP.
     if rss_url.startswith("http://"):
         rss_url = "https://" + rss_url[len("http://"):]
-    raw = _fetch(rss_url, 1_000_000)
-    root = ET.fromstring(raw)
-    items = root.findall(".//item")
-    if not items:
-        items = root.findall(".//"+ATOM+"entry")
-    episodes = []
-    for item in items[:35]:
-        title = _txt(item, "title") or _txt(item, ATOM+"title")
-        guid = _txt(item, "guid") or _txt(item, "id") or _txt(item, ATOM+"id")
-        link = _txt(item, "link")
-        if not link:
-            for child in item.findall(ATOM+"link"):
-                if child.attrib.get("rel", "alternate") == "alternate":
-                    link = child.attrib.get("href", "")
-                    break
-        date = _when(_txt(item, "pubDate") or _txt(item, ATOM+"published")
-                     or _txt(item, ATOM+"updated") or
-                     _txt(item, "{http://purl.org/dc/elements/1.1/}date"))
-        if not title:
-            continue
-        uid = hashlib.sha256((guid or link or title).encode()).hexdigest()[:32]
-        if not link.startswith("https://"):
-            link = show["itunes"]
-        episodes.append({
-            "id": uid, "title": title[:180],
-            "released": date.isoformat() if date else None,
-            "url": link[:850], "podcast_id":show["id"]
-        })
-    episodes.sort(key=lambda x: x.get("released") or "", reverse=True)
-    return {"id":show["id"], "name":show["name"],"publisher":show["publisher"],
-            "episodes":episodes[:20], "itunes":show["itunes"]}
 
+    # Feeds extensos, como O Assunto e Foro de Teresina, podem conter
+    # milhares de episódios. Carregar todo o XML cortava o download em
+    # 1 MB e impedia exibir justamente os episódios mais recentes.
+    # Ler incrementalmente e encerrar após 30 episódios completos.
+    _check_url(rss_url)
+    req = urllib.request.Request(rss_url, headers={
+        "User-Agent": "DGXMeuDiaPodcast/1.0 (+https://dgx-meu-dia.onrender.com/)",
+        "Accept": "application/rss+xml,application/atom+xml,text/xml,application/xml,*/*",
+    })
+    parser = ET.XMLPullParser(events=("end",))
+    episodes = []
+    max_bytes = 10_000_000
+    bytes_read = 0
+    with _opener.open(req, timeout=12) as response:
+        while len(episodes) < 30:
+            chunk = response.read(min(65536, max_bytes - bytes_read + 1))
+            if not chunk:
+                break
+            bytes_read += len(chunk)
+            if bytes_read > max_bytes:
+                if episodes:
+                    break
+                raise ValueError("Os primeiros episódios ultrapassaram o limite seguro do feed.")
+            parser.feed(chunk)
+            for _, item in parser.read_events():
+                if item.tag not in ("item", ATOM+"entry"):
+                    continue
+                title = _txt(item, "title") or _txt(item, ATOM+"title")
+                guid = _txt(item, "guid") or _txt(item, "id") or _txt(item, ATOM+"id")
+                link = _txt(item, "link")
+                if not link:
+                    for child in item.findall(ATOM+"link"):
+                        if child.attrib.get("rel", "alternate") == "alternate":
+                            link = child.attrib.get("href", "")
+                            break
+                date = _when(_txt(item, "pubDate") or _txt(item, ATOM+"published")
+                             or _txt(item, ATOM+"updated")
+                             or _txt(item, "{http://purl.org/dc/elements/1.1/}date"))
+                if title:
+                    uid = hashlib.sha256((guid or link or title).encode()).hexdigest()[:32]
+                    if not link.startswith("https://"):
+                        link = show["itunes"]
+                    episodes.append({
+                        "id": uid, "title": title[:180],
+                        "released": date.isoformat() if date else None,
+                        "url": link[:850], "podcast_id": show["id"],
+                    })
+                item.clear()
+                if len(episodes) >= 30:
+                    break
+    episodes.sort(key=lambda x: x.get("released") or "", reverse=True)
+    return {
+        "id": show["id"], "name": show["name"], "publisher": show["publisher"],
+        "episodes": episodes[:20], "itunes": show["itunes"],
+    }
 
 def latest(podcast_id):
     return _cached("feed:" + str(int(podcast_id)), 600, lambda: _read_feed(podcast_id))
