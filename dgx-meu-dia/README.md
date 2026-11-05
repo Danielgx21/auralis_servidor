@@ -96,3 +96,11 @@ Runtime Python com comando \`python dgx-meu-dia/app.py\`.
 - Um novo desafio especial de química sobre pH foi preparado para 05/11/2026, com chave diferente do desafio anterior do mesmo dia para não apagar o histórico.
 - A narração do resumo abre com o conhecimento do dia; não enumera episódios de podcasts. Os podcasts continuam disponíveis como recurso independente no DGX.
 - Seletor de vozes em português e velocidade na seção Voz. A voz escolhida é aplicada ao resumo, comandos, respostas do Spotify, resumo de podcasts avulso e Modo Carro. As vozes dependem das instaladas no Android/browser; não há garantia de seleção além das opções que o dispositivo oferece.
+
+## v0.12 — Desafios de lógica e curiosidade clara (05/11/2026)
+- Os desafios são **exclusivamente** enigmas de lógica, dedução, padrões, atenção e raciocínio. Banco ampliado para 28 problemas. Não exigem conhecimentos específicos de química, física ou qualquer disciplina escolar.
+- O desafio de 05/11/2026 foi substituído por um novo enigma de dedução (Ana, Bia e Caio). As respostas antigas permanecem no banco, e o novo enigma usa chave de resposta distinta `-logica-v2`.
+- A seção que substitui a saudação fixa passou a chamar-se **Você sabia?**, com título curto, explicação simples e categoria discreta.
+- Foram revisadas todas as 56 curiosidades para remover linguagem excessivamente técnica, mantendo o rodízio diário entre ciências, história, geografia, política e arte.
+- O resumo falado apresenta a curiosidade como uma frase natural, sem excesso de rótulos.
+- Cache da PWA atualizado para v0.12.
