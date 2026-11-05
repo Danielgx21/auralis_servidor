@@ -21,12 +21,20 @@ const dateBR=s=>s?s.slice(8,10)+"/"+s.slice(5,7)+"/"+s.slice(0,4):"—";
 const formatMetric=(k,n)=>n==null?"—":formatNum(n,k==="sleepHours"?1:(k==="heartAvg"||k==="heartRest"?0:0))+" "+units[k];
 const normalizeHeader=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9]+/g,"").toLowerCase();
 let importedRows=[],importColumns=[],fileName="";
+function parseNumeric(key,raw){
+ if(typeof raw==="number")return raw;
+ let text=String(raw??"").trim().replace(/\s/g,"");
+ if(!text)return NaN;
+ if(key==="sleepHours"&&/^\d{1,2}:\d{2}(:\d{2})?$/.test(text)){
+  const parts=text.split(":").map(Number);
+  return parts[0]+parts[1]/60+(parts[2]||0)/3600;
+ }
+ if(text.includes(","))text=text.replace(/\./g,"").replace(",",".");
+ else if(key==="steps"&&/^\d{1,3}(\.\d{3})+$/.test(text))text=text.replace(/\./g,"");
+ return Number(text);
+}
 function safeValue(key,raw){
- if(raw==null||raw==="")return null;
- const number=typeof raw==="number"?raw:Number(String(raw).trim().replace(/\./g,"").replace(",","."));
- // JS decimal dot without commas needs preserving; e.g. 7.5, 74.2
- const parsed=typeof raw==="number"?raw: String(raw).includes(",")?Number(String(raw).trim().replace(/\./g,"").replace(",",".")):Number(String(raw).trim());
- const value=Number.isFinite(parsed)?parsed:number;
+ const value=parseNumeric(key,raw);
  if(!Number.isFinite(value))return null;
  const [low,high]=validRange[key]||[-Infinity,Infinity];
  return value>=low&&value<=high?Math.round(value*100)/100:null;
@@ -253,7 +261,7 @@ $("healthCsvImport").onclick=()=>{
  for(const row of importedRows){
   const date=parseDate(row[dateCol]);
   const raw=String(row[valueCol]??"").trim();
-  const number=raw.includes(",")?Number(raw.replace(/\./g,"").replace(",",".")):Number(raw);
+  const number=parseNumeric(key,raw);
   let converted=number;
   if(key==="sleepHours"&&unit==="minutes")converted=number/60;
   if(!date||date>today()||!Number.isFinite(converted)||safeValue(key,converted)==null){
