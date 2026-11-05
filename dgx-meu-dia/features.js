@@ -12,7 +12,7 @@ const notify=s=>window.DGXtoast&&window.DGXtoast(s);
 const allowed=["dgx_moods_v1","dgx_challenges_v1","dgx_reminders_v1","dgx_notified_v1","dgx_plants_v1","dgx_tasks_v1","dgx_payments_v1","dgx_push_prefs_v1","dgx_podcasts_v1","dgx_briefing_prefs_v1","dgx_home_panels_v1"];
 let state={},authenticated=false,writeSerial={},unsaved=0,bootstrapped=false;
 function dataRead(key,fallback){return Object.prototype.hasOwnProperty.call(state,key)?state[key]:fallback}
-function updateStatus(status){$("appVersion").textContent="v0.8 · "+status}
+function updateStatus(status){$("appVersion").textContent="v0.9 · "+status}
 async function api(url,opts){
  const res=await fetch(url,{credentials:"same-origin",cache:"no-store",...opts});
  let data;try{data=await res.json()}catch(e){data={error:"Resposta inválida do servidor"}}
@@ -74,7 +74,7 @@ async function setLoggedIn(){
  updateStatus("nuvem ✓");
  const hash=location.hash.slice(1);if(hash&&window.DGXgoto&&document.getElementById("page-"+hash))window.DGXgoto(hash);
  if(window.DGXrefresh)window.DGXrefresh();
- drawTasks();drawPlants();if(window.DGXpaymentsRefresh)window.DGXpaymentsRefresh();if(window.DGXpushInit)window.DGXpushInit();if(window.DGXpodcastsInit)window.DGXpodcastsInit();if(window.DGXbriefingRefresh)window.DGXbriefingRefresh();if(window.DGXhomeInit)window.DGXhomeInit();
+ drawTasks();drawPlants();if(window.DGXpaymentsRefresh)window.DGXpaymentsRefresh();if(window.DGXpushInit)window.DGXpushInit();if(window.DGXpodcastsInit)window.DGXpodcastsInit();if(window.DGXbriefingRefresh)window.DGXbriefingRefresh();if(window.DGXhomeInit)window.DGXhomeInit();if(window.DGXtodayRefresh)window.DGXtodayRefresh();
  // Importação opcional para não perder registros da primeira versão local.
  const toImport=allowed.filter(k=>!Object.prototype.hasOwnProperty.call(state,k)&&localStorage.getItem(k));
  if(toImport.length&&confirm("Encontrei registros feitos em uma versão anterior neste aparelho. Quer importá-los para seu banco de dados?")){
@@ -186,6 +186,7 @@ function drawTasks(){
  const home=sortedTasks(taskList.filter(t=>t.date===day()));
  $("homeTasks").innerHTML=home.length?home.slice(0,5).map(t=>
   '<div class="event"><div class="hori"><div>'+taskBadge(t)+' <strong style="'+(t.done?"text-decoration:line-through":"")+'">'+esc(t.title)+'</strong></div>'+(t.done?"✓":"")+'</div></div>').join(""):'Nenhuma tarefa para hoje.';
+ window.DGXtodayRefresh?.();
 }
 function resetTaskForm(){
  $("taskForm").reset();$("taskEditId").value="";$("taskDate").value=activeDate;
