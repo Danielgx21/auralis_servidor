@@ -16,13 +16,41 @@ h1{font-size:clamp(29px,5vw,42px);letter-spacing:-1.5px;line-height:1.1;margin:0
 .authgate{position:fixed;inset:0;background:radial-gradient(ellipse at top,#163246,#08101a 70%);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}.authbox{width:min(440px,100%);border:1px solid #315269;background:#122335;padding:28px;border-radius:24px;box-shadow:0 20px 80px #0006}body.locked .shell,body.locked .bottomnav{display:none}.updateprompt{position:fixed;top:15px;right:15px;z-index:80;background:#213c49;border:1px solid #7ed9c3;padding:13px;border-radius:12px;display:flex;gap:12px;align-items:center;font-size:13px;box-shadow:0 7px 36px #0007}.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}.weekhead{text-align:center;color:#a5b9c9;font-size:11px;font-weight:700;padding:8px 0}.cal-day{min-height:64px;padding:7px 5px;border:1px solid #355166;border-radius:11px;background:#142738;color:#ebf7fb;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;font-size:13px}.cal-day.out{opacity:.2;pointer-events:none}.cal-day.has-personal{background:linear-gradient(130deg,#204469,#142738);border-color:#4c85ac}.cal-day.has-sme{background:linear-gradient(130deg,#5b422d,#142738);border-color:#bc8650}.cal-day.both{background:linear-gradient(130deg,#204469 0%,#244167 45%,#64472c 55%,#533923 100%);border-color:#80a2a6}.cal-day.selected{outline:2px solid #7cf1cc;outline-offset:1px}.cal-day .dots{font-size:11px;line-height:1;letter-spacing:1px}.badge-personal{color:#91c8ff}.badge-sme{color:#f6b76a}.task-item{border-bottom:1px solid #2a455b;padding:12px 0;display:flex;align-items:flex-start;gap:10px}.task-item:last-child{border-bottom:0}.task-item input[type=checkbox]{width:18px;height:18px;accent-color:#66ddbd;flex-shrink:0;margin-top:2px}.task-item.done .task-main{text-decoration:line-through;opacity:.55}.task-main{font-size:13px;font-weight:700}.task-type{display:inline-block;font-size:10px;padding:3px 7px;border-radius:8px;font-weight:700;margin-top:5px}.task-type.personal{background:#234d70;color:#a8d8ff}.task-type.sme{background:#513a29;color:#f4c690}.twofields{display:grid;grid-template-columns:1fr 1fr;gap:10px}.plantcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:13px}.plantcard{border:1px solid #35536a;border-radius:17px;background:#142838;padding:16px}.plantcard .plantname{font-weight:800;font-size:16px}.plantcard .small{line-height:1.6}.empty{padding:18px;background:#172a3a;border:1px dashed #426073;border-radius:12px;color:#9db8c8;font-size:13px}@media(max-width:720px){.bottomnav{overflow-x:auto;justify-content:space-between;gap:1px}.tab{min-width:47px;font-size:10px;padding:7px 2px}.tab span{font-size:18px}.calendar-grid{gap:4px}.cal-day{min-height:55px;padding:5px 3px}.twofields{grid-template-columns:1fr}.authbox{padding:22px}}\n
 .pay-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.pay-stat{min-width:0;padding:14px;border-radius:14px;background:#192f40;border:1px solid #31516a;display:flex;flex-direction:column;gap:10px}.pay-stat strong{font-size:clamp(16px,2vw,24px);font-weight:800;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.pay-legend{display:flex;gap:7px;flex-wrap:wrap}.pay-item{display:flex;align-items:flex-start;gap:12px;border:1px solid #31516a;border-radius:16px;padding:14px;background:#152a39}.pay-item.paid{border-color:#376455;background:#173434}.pay-item.overdue{border-color:#895e4a;background:#312a2d}.pay-check{width:23px;height:23px;accent-color:#69dfc6;flex-shrink:0;margin-top:4px}.pay-main{flex:1;min-width:0}.pay-title{font-size:15px;font-weight:750;line-height:1.3}.pay-meta{color:#9fb7c7;font-size:12px;margin-top:5px;line-height:1.6}.pay-money{font-size:17px;font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums}.pay-badge{font-size:10px;font-weight:750;border-radius:7px;padding:4px 7px;display:inline-block;margin-top:7px;background:#20374a;color:#c3deea}.pay-badge.green{background:#1c5546;color:#a1efd2}.pay-badge.warn{background:#704336;color:#ffe0b5}.pay-tools{display:flex;flex-direction:column;align-items:end;gap:7px}.pay-inline-actions{display:flex;gap:5px}.pay-inline-actions .roundbtn{padding:5px 8px;font-size:12px}.pay-date-field{display:flex;align-items:center;gap:7px;color:#9eb8c6;font-size:11px;margin-top:8px;flex-wrap:wrap}.pay-date-field input{background:#101f2d;border:1px solid #406077;border-radius:8px;color:#d8f0f2;padding:4px 5px;font-size:12px;max-width:155px}.pay-history-row{padding:10px 0;border-bottom:1px solid #2a4256;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px}.pay-history-row:last-child{border-bottom:0}
 @media(max-width:720px){.pay-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.pay-money{font-size:15px}.pay-item{padding:12px;gap:8px}.bottomnav{overflow-x:auto;justify-content:flex-start;scrollbar-width:none}.bottomnav::-webkit-scrollbar{display:none}.bottomnav .tab{flex:0 0 62px;min-width:62px;max-width:none}.pay-inline-actions .roundbtn{padding:4px 6px}}
+
+/* Alvos de toque ampliados para Android e modo carro */
+.btn,.roundbtn{min-height:49px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.shortcut{min-height:62px;font-size:14px;line-height:1.4}
+.tab{min-height:68px;font-size:12px}
+.tab span{font-size:27px;line-height:1.15;margin-bottom:5px}
+.mood{min-height:72px;font-size:28px}
+.pod-result,.pod-show{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #284356}
+.pod-result strong,.pod-show strong{font-size:14px;display:block;line-height:1.35}
+.pod-result .btn,.pod-show .btn{flex-shrink:0}
+.pod-episode{padding:15px 0;border-bottom:1px solid #2a4154}
+.pod-episode:last-child,.pod-result:last-child,.pod-show:last-child{border-bottom:none}
+.car-screen{position:fixed;inset:0;z-index:95;display:flex;flex-direction:column;gap:14px;overflow-y:auto;padding:18px max(15px,env(safe-area-inset-left)) calc(18px + env(safe-area-inset-bottom));background:#07121e;color:#e9f4f7}
+.car-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.car-head h1{margin:5px 0 0;font-size:clamp(25px,6vw,38px)}
+.car-exit,.car-bottom{border:1px solid #5d8395;border-radius:15px;padding:14px 20px;background:#1b3545;color:#f2fbff;font-size:17px;font-weight:750;min-height:60px}
+.car-info{font-size:13px;line-height:1.5;color:#a8c4d2;margin:0}
+.car-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;flex:1}
+.car-tile{min-height:120px;background:#163044;border:2px solid #37566b;border-radius:20px;color:#e9f5fa;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:12px}
+.car-tile.primary{background:#24544f;border-color:#5bd9ba}
+.car-tile strong{font-size:clamp(17px,4vw,22px)}
+.car-tile span:not(.car-icon){font-size:12px;color:#aec9d2}
+.car-icon{font-size:clamp(34px,8vw,48px)}
+.car-status{background:#19394a;border-radius:15px;padding:16px;color:#dbf6ef;font-size:15px;line-height:1.5;min-height:60px}
+.car-bottom{background:#204d4a;border-color:#5bd9ba}
+body.car-active{overflow:hidden}
+@media(max-width:720px){.bottomnav .tab{min-width:78px;flex:0 0 78px;min-height:76px;font-size:12px}.bottomnav .tab span{font-size:29px}.topright{gap:5px;flex-wrap:wrap;justify-content:flex-end}.topright .pill{font-size:10px}#enterCar{font-size:13px;padding:9px 11px}.car-tile{min-height:124px}.car-grid{gap:11px}.car-screen{gap:12px}}
+@media(max-width:355px){.car-grid{grid-template-columns:1fr}.car-tile{min-height:84px;flex-direction:row;justify-content:flex-start;padding:12px 20px}.car-icon{font-size:30px}.car-tile strong{font-size:17px}.car-tile span:not(.car-icon){display:none}}
 </style>
 </head>
 <body class="locked">
 <div id="authGate" class="authgate" role="dialog" aria-label="Acesso ao DGX Meu Dia" aria-modal="true"><div class="authbox"><div class="logo" style="justify-content:center;margin-bottom:18px"><div class="mark">D</div>DGX Meu Dia</div><h1 id="authTitle" style="font-size:28px;text-align:center">Seu espaço pessoal</h1><p id="authMessage" class="sub" style="text-align:center">Conectando ao banco de dados...</p><form id="authForm" class="stack hide" style="margin-top:22px"><div class="field hide" id="setupCodeField"><label>Código de ativação inicial</label><input id="setupCode" type="text" autocomplete="off" placeholder="Cole o código recebido"></div><div class="field"><label id="authPasswordLabel">Sua senha</label><input id="authPassword" type="password" minlength="10" autocomplete="current-password" placeholder="Digite sua senha" required></div><button class="btn main full" id="authSubmit" type="submit">Entrar</button><div class="small" id="authError" style="text-align:center;color:#ffb2aa"></div></form><button class="btn ghost full hide" id="authRetry" style="margin-top:14px">Tentar novamente</button><p class="small" style="text-align:center;margin-top:22px">Seus dados ficam em um banco privado. Não compartilhe sua senha.</p></div></div>
 <div id="updatePrompt" class="updateprompt hide" role="status"><span>Nova versão disponível.</span><button class="btn main" id="updateNow" style="padding:8px 12px">Atualizar</button></div>
 <main class="shell">
-<header class="top"><div class="logo"><div class="mark">D</div><div>DGX <span style="color:#8ae2cc">Meu Dia</span></div></div><div class="topright"><span class="today" id="todayDate"></span><span class="pill aqua" id="appVersion">v0.4</span><button class="roundbtn hide" id="logoutBtn" style="padding:7px 9px;font-size:11px" title="Sair da conta">Sair</button></div></header>
+<header class="top"><div class="logo"><div class="mark">D</div><div>DGX <span style="color:#8ae2cc">Meu Dia</span></div></div><div class="topright"><span class="today" id="todayDate"></span><button class="btn main" id="enterCar" style="min-height:48px">🚘 Modo Carro</button><span class="pill aqua" id="appVersion">v0.5</span><button class="roundbtn hide" id="logoutBtn" style="padding:7px 9px;font-size:11px" title="Sair da conta">Sair</button></div></header>
 <section class="section active" id="page-home">
 <div class="intro"><p class="kicker">Seu espaço pessoal</p><h1>Um bom dia começa aqui.</h1><div class="sub">As coisas importantes para você, em um só lugar.</div></div>
 <div class="grid">
@@ -34,6 +62,7 @@ h1{font-size:clamp(29px,5vw,42px);letter-spacing:-1.5px;line-height:1.1;margin:0
 <div class="weatherfoot">Dados: Open-Meteo · Atualizados ao abrir</div>
 </article>
 <article class="panel"><div class="panelhead"><h2>⚽ Próximos jogos do Corinthians</h2><span class="pill">Timão</span></div><div id="fixtureList" class="sub">Carregando partidas...</div><div class="weatherfoot" id="fixtureSource"></div></article>
+<article class="panel"><div class="panelhead"><h2>🎧 Podcasts favoritos</h2><button class="roundbtn" data-goto="podcasts">Ver episódios →</button></div><div class="small" id="homePodcastCount">Nenhum cadastrado</div><div id="homePodcasts" class="sub" style="margin-top:8px">Acompanhe seus programas para ver os novos episódios.</div></article>
 <article class="panel"><div class="panelhead"><h2>📅 Agenda de hoje</h2><button class="roundbtn" data-goto="calendar">Calendário →</button></div><div class="sub" id="homeTasks">Nenhuma tarefa para hoje.</div></article><article class="panel"><div class="panelhead"><h2>💳 Contas deste mês</h2><button class="roundbtn" data-goto="payments">Pagamentos →</button></div><div id="homePayments" class="sub">Cadastre suas despesas recorrentes para acompanhar os vencimentos.</div></article><article class="panel"><div class="panelhead"><h2>🌱 Minhas plantas</h2><button class="roundbtn" data-goto="plants">Abrir →</button></div><div id="homePlants" class="sub">Cadastre uma planta para começar.</div></article><article class="panel"><div class="panelhead"><h2>🔔 Seus avisos</h2><button class="roundbtn" data-goto="alerts">Adicionar +</button></div><div id="homeAlerts" class="sub">Nenhum aviso cadastrado.</div></article>
 </div>
 <div class="col">
@@ -70,6 +99,29 @@ h1{font-size:clamp(29px,5vw,42px);letter-spacing:-1.5px;line-height:1.1;margin:0
 <article class="panel"><div class="panelhead"><h2>Seu jardim</h2><span class="pill" id="plantsCount">0 plantas</span></div><div id="plantCards" class="plantcards"></div></article>
 </section>
 
+<section class="section" id="page-podcasts">
+<div class="section-title"><p class="kicker">Novos episódios para você</p><h1>Seus podcasts</h1><p class="sub">Acompanhe programas que você gosta. O DGX consulta feeds públicos para descobrir lançamentos e pode mandar notificações.</p></div>
+<div class="grid">
+<div class="col">
+<article class="panel">
+<div class="panelhead"><h2>🔎 Encontrar podcast</h2><span class="pill">Catálogo público</span></div>
+<form id="podcastSearchForm" class="stack">
+<div class="field"><label>Nome do programa</label><input id="podcastSearch" placeholder="Ex.: jornal, política, ciência..." maxlength="100" required></div>
+<div class="actions"><button class="btn main" type="submit">Pesquisar</button><button class="btn ghost" type="button" id="podcastImportSpotify">Importar da biblioteca Spotify</button></div>
+</form>
+<p class="small" style="margin-top:11px">Para importar os podcasts salvos na sua conta, conecte o Spotify na aba Voz. Se ainda não estiver autorizado, você pode pesquisar pelo nome normalmente.</p>
+<div id="podcastSearchResults" class="stack" style="gap:9px;margin-top:16px"></div>
+</article>
+<article class="panel">
+<div class="panelhead"><h2>❤️ Programas acompanhados</h2><span class="pill aqua" id="podcastCount">0 acompanhados</span></div>
+<div id="podcastSubscriptions"><div class="empty">Você ainda não acompanha nenhum podcast.</div></div>
+</article></div>
+<div class="col"><article class="panel">
+<div class="panelhead"><h2>🎙️ Episódios recentes</h2><button class="roundbtn" id="podcastReload">Atualizar</button></div>
+<div id="podcastLatest" class="stack" style="gap:14px"><div class="empty">Os lançamentos aparecerão aqui.</div></div>
+</article>
+<article class="panel"><h2>Como funcionam os avisos</h2><p class="sub">Quando um programa cadastrado publicar um episódio novo no feed, o DGX poderá enviar uma notificação mesmo que o aplicativo esteja fechado, após você ativar Web Push em Avisos.</p><div class="note">Nem todo podcast publicado no Spotify disponibiliza um RSS público. Nesses casos, podemos acompanhar os programas disponíveis na API do Spotify após autorização, mas a verificação automática pelo servidor depende de outra fonte ou autorização persistente.</div></article></div></div>
+</section>
 <section class="section" id="page-challenge"><div class="section-title"><p class="kicker">Um pouco de diversão</p><h1>Desafio do dia</h1><p class="sub">Um problema por dia. Pense, escolha e descubra a explicação.</p></div>
 <div class="panel" style="max-width:700px"><div class="hori"><span class="pill aqua" id="challengeTag">Ciência</span><div class="small" id="challengeProgress">0 respostas</div></div><h2 style="font-size:23px;line-height:1.4;margin:20px 0" id="challengeQuestion"></h2><div id="challengeOptions"></div><div id="challengeResult"></div></div>
 </section>
@@ -91,11 +143,25 @@ h1{font-size:clamp(29px,5vw,42px);letter-spacing:-1.5px;line-height:1.1;margin:0
 </main>
 <nav class="bottomnav" aria-label="Navegação principal">
 <button class="tab active" data-page="home"><span>🏠</span>Início</button>
-<button class="tab" data-page="calendar"><span>📅</span>Agenda</button><button class="tab" data-page="payments"><span>💳</span>Contas</button><button class="tab" data-page="plants"><span>🌱</span>Plantas</button><button class="tab" data-page="challenge"><span>🧠</span>Desafios</button>
+<button class="tab" data-page="calendar"><span>📅</span>Agenda</button><button class="tab" data-page="payments"><span>💳</span>Contas</button><button class="tab" data-page="plants"><span>🌱</span>Plantas</button><button class="tab" data-page="podcasts"><span>🎧</span>Podcasts</button><button class="tab" data-page="challenge"><span>🧠</span>Desafios</button>
 <button class="tab" data-page="mood"><span>☺</span>Humor</button>
 <button class="tab" data-page="alerts"><span>🔔</span>Avisos</button>
 <button class="tab" data-page="voice"><span>🎙️</span>Voz</button>
 </nav>
+<div class="car-screen hide" id="carScreen" role="dialog" aria-modal="true" aria-label="Modo Carro">
+<div class="car-head"><div><div class="label">DGX Meu Dia</div><h1>🚘 Modo Carro</h1></div><button class="car-exit" id="carExit">✕ Sair</button></div>
+<p class="car-info">Configure antes de sair. Não use a tela enquanto dirige; os comandos de voz exigem ativação manual e podem não funcionar com a tela bloqueada.</p>
+<div class="car-grid">
+<button class="car-tile primary" id="carMic"><span class="car-icon">🎙️</span><strong>Falar</strong><span>Comando de voz</span></button>
+<button class="car-tile" id="carBriefing"><span class="car-icon">🔊</span><strong>Meu resumo</strong><span>Tempo e Corinthians</span></button>
+<button class="car-tile" id="carSpotify"><span class="car-icon">🎵</span><strong>Spotify</strong><span>Como pedir músicas</span></button>
+<button class="car-tile" id="carPodcasts"><span class="car-icon">🎧</span><strong>Podcast novo</strong><span>Ouvir os títulos</span></button>
+<button class="car-tile" id="carAlerts"><span class="car-icon">🔔</span><strong>Lembretes</strong><span>Ouvir o próximo</span></button>
+<button class="car-tile" id="carViewPodcasts"><span class="car-icon">📻</span><strong>Programas</strong><span>Abrir lista</span></button>
+</div>
+<div class="car-status" id="carStatus" role="status">Seu assistente está pronto.</div>
+<button class="car-bottom" id="carHome">🏠 Voltar ao início</button>
+</div>
 <script>
 (function(){
 "use strict";
@@ -176,6 +242,7 @@ function execute(text){if(window.DGXSpotify&&window.DGXSpotify.parse(text)){wind
 if(/tempo|previsao|clima|temperatura|chuva/.test(cmd)){reply=weatherSentence();go("home")}
 else if(/corinthians|proximo jogo|futebol/.test(cmd)){reply=fixtureSentence();go("home")}
 else if(/desafio|pergunta|quiz/.test(cmd)){reply="Abrindo o desafio de hoje.";go("challenge")}
+else if(/podcast|episodio|programa de radio/.test(cmd)){reply="Abrindo seus podcasts favoritos.";go("podcasts")}
 else if(/humor|estou me sentindo/.test(cmd)){reply="Abrindo seu registro de humor.";go("mood")}
 else if(/conta|pagamento|pagar|boleto|vencimento|despesa/.test(cmd)){reply="Abrindo suas contas mensais.";go("payments")}
 else if(/agenda|calendario|tarefa|compromisso/.test(cmd)){reply="Abrindo seu calendário.";go("calendar")}
@@ -196,4 +263,6 @@ window.DGXgoto=go;window.DGXtoast=toast;window.DGXrefresh=function(){restoreMood
 <script src="/payments.js" defer></script>
 <script src="/push_client.js" defer></script>
 <script src="/spotify.js" defer></script>
+<script src="/podcasts.js" defer></script>
+<script src="/car_mode.js" defer></script>
 </body></html>
