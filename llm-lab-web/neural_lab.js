@@ -20,7 +20,7 @@ const DEFAULT_TEXT = [
   "Os parametros mudam quando a rede recebe exemplos novos."
 ].join("\n").repeat(5);
 let model = null, train = [], valid = [], trained = 0, busy = false;
-let curves = [], rng = Math.random;
+let curves = [];
 
 function randn(){
   const a = Math.max(1e-9, Math.random()), b = Math.random();
@@ -194,11 +194,12 @@ function plot(){
   if(!curves.length){ctx.fillStyle="#8eaaa1";ctx.font="14px system-ui";ctx.fillText("Treine o modelo para ver a curva de perda",18,height/2);return;}
   const low=Math.max(0,Math.min(...curves.map(p=>Math.min(p.tr,p.val)))-0.2);
   const high=Math.max(low+0.5,...curves.map(p=>Math.max(p.tr,p.val)))+0.2;
-  const xmax=Math.max(1,curves.at(-1).t);
+  // The graph should fill its width even after old checkpoints are truncated.
+  const xmin=curves[0].t, xmax=Math.max(xmin+1,curves.at(-1).t);
   for(const [field,color] of [["tr","#73e6c1"],["val","#ffcd84"]]){
     ctx.strokeStyle=color;ctx.lineWidth=2.3;ctx.beginPath();
     curves.forEach((p,i)=>{
-      const x=14+(width-30)*p.t/xmax;
+      const x=14+(width-30)*(p.t-xmin)/(xmax-xmin);
       const y=height-18-(height-38)*(p[field]-low)/(high-low);
       if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
     });ctx.stroke();
@@ -212,8 +213,79 @@ function updateUI(){
   $("nnSteps").textContent=trained.toLocaleString("pt-BR");
   $("nnLoss").textContent=num(evalLoss(train));
   $("nnValLoss").textContent=num(evalLoss(valid));
-  updatePredictions();plot();
+  updatePredictions();plot();updateInsight();
 }
+
+/* In this experiment, "validation" consists of interleaved windows from
+   the SAME repeated corpus. The windows overlap with training windows.
+   It is not evidence of generalization. This separate user-written test
+   is neither trained on nor stored in the model. */
+function evaluateOutside(){
+ if(!model)return;
+ const original=String($("nnNovelText").value||"").slice(0,2500);
+ const chars=Array.from(original), map=new Map(model.chars.map((ch,i)=>[ch,i]));
+ let usable=0,missing=0,loss=0,uniqueMissing=new Set();
+ for(let i=C;i<chars.length;i++){
+   const window=chars.slice(i-C,i+1);
+   if(window.some(ch=>!map.has(ch))){
+     missing++;
+     window.forEach(ch=>{if(!map.has(ch))uniqueMissing.add(ch)});
+     continue;
+   }
+   const ids=window.slice(0,C).map(ch=>map.get(ch));
+   const target=map.get(window[C]);
+   loss-=Math.log(Math.max(1e-12,forward(ids).probs[target]));
+   usable++;
+ }
+ const el=$("nnNovelResult");
+ if(!usable){
+   el.textContent="Não há trechos avaliáveis. Experimente um texto mais longo que use caracteres presentes no treinamento.";
+   return;
+ }
+ const avg=loss/usable;
+ const perplexity=Math.exp(Math.min(avg,30));
+ const coverage=100*usable/(usable+missing);
+ const note=coverage<75?" Atenção: muitos trechos foram ignorados porque contêm caracteres que a rede não conhece.":"";
+ el.textContent="Perda no texto novo: "+avg.toFixed(3)+
+   " · Perplexidade: "+perplexity.toFixed(1)+
+   " · Trechos avaliados: "+usable+"/"+(usable+missing)+
+   " ("+coverage.toFixed(0)+"%)."+
+   (uniqueMissing.size?" Caracteres ausentes: "+[...uniqueMissing].slice(0,14).map(c=>JSON.stringify(c)).join(", ")+".":"")+
+   note+"\nEsse resultado mede previsão de caracteres nesse texto, não capacidade de conversar.";
+}
+function updateInsight(){
+ if(!model)return;
+ const a=evalLoss(train),b=evalLoss(valid),diff=b-a;
+ let label=trained===0?
+ "A rede ainda tem pesos aleatórios. Treine e compare o resultado.":
+ (a<1?"A rede aprendeu bem os padrões do próprio material. ":
+ "A rede ainda comete muitos erros de previsão. ");
+ if(trained>0){
+   label+=diff>.5?"A perda de avaliação está bem maior: isso pode indicar sobreajuste. ":"As duas perdas estão próximas, mas isso não prova que o modelo se sai bem com textos novos. ";
+ }
+ $("nnInsight").textContent=label+
+ "IMPORTANTE: a avaliação amarela retira exemplos intercalados do mesmo texto, com contextos sobrepostos. Como o conjunto padrão é repetido, o resultado tende a ser otimista. Teste um trecho realmente novo abaixo.";
+ const input=$("nnPrompt").value||"";
+ const used=Array.from(input).slice(-C).join("");
+ $("nnContext").textContent="Ao prever após "+JSON.stringify(input)+
+ ", a rede lê somente os últimos "+C+" caracteres: "+JSON.stringify(used)+
+ ". Ela não interpreta a frase inteira.";
+}
+function downloadCheckpoint(){
+ if(!model)return;
+ const snapshot={
+   format:"DGX-character-network-v03",architecture:{context:C,emb:D,hidden:H},
+   trained,corpus:getCurrentText(),chars:model.chars,
+   emb:Array.from(model.emb),w1:Array.from(model.w1),b1:Array.from(model.b1),
+   w2:Array.from(model.w2),b2:Array.from(model.b2),curves:curves.slice(-70)
+ };
+ const blob=new Blob([JSON.stringify(snapshot)],{type:"application/json"});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+ a.href=url;a.download="dgx-rede-neural-pesos.json";document.body.append(a);
+ a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+
 function generate(){
   if(!model)return;
   const map=new Map(model.chars.map((ch,i)=>[ch,i]));
@@ -255,13 +327,14 @@ async function runTraining(){
       // Allow UI to redraw and remain usable on mobile.
       await new Promise(r=>requestAnimationFrame(r));
     }
-    saveModel();generate();
+    saveModel();generate();evaluateOutside();
   }catch(e){$("nnSave").textContent="Erro no treino: "+e.message;}
   finally{busy=false;$("nnTrain").disabled=false;$("nnReset").disabled=false;}
 }
 function init(){
   const n=$("nnText");if(!n)return;
   n.value=DEFAULT_TEXT;
+  $("nnNovelText").value="A ciencia aprende com ideias e exemplos. O modelo tenta prever caracteres.";
   // Save custom text only in this browser.
   const stored=localStorage.getItem("dgx_nn_text_v03");
   if(stored && stored.length<=12000)n.value=stored;
@@ -272,7 +345,9 @@ function init(){
     localStorage.removeItem(KEY);reset();
   };
   $("nnGenerate").onclick=generate;
-  $("nnPrompt").oninput=updatePredictions;
+  $("nnPrompt").oninput=()=>{updatePredictions();updateInsight()};
+  $("nnNovelCheck").onclick=evaluateOutside;
+  $("nnDownload").onclick=downloadCheckpoint;
   $("nnText").onchange=()=>{
     try{localStorage.setItem("dgx_nn_text_v03",getCurrentText())}catch{}
     model=null; $("nnSave").textContent="Texto alterado. Clique em Reiniciar para treinar com este texto.";
@@ -280,7 +355,7 @@ function init(){
   $("nnTemp").oninput=()=>{$("nnTempValue").textContent=Number($("nnTemp").value).toFixed(1)};
   if(restoreModel())$("nnSave").textContent="Pesos anteriores restaurados deste navegador";
   else reset();
-  generate();
+  generate();updateInsight();
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
 })();
