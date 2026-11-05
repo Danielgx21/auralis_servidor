@@ -113,7 +113,7 @@ function drawHome(){
  (due.length?due.slice(0,3).map(b=>'<div class="event"><div class="hori"><span>'+esc(b.title)+'</span><strong>'+moneyCents(monthAmount(b,monthNow()))+'</strong></div><div class="small">'+esc(statusFor(b,monthNow()).text)+'</div></div>').join(""):'<div class="small">✓ Todas as contas do mês foram marcadas como pagas.</div>')+
  (due.length>3?'<div class="small" style="margin-top:8px">E mais '+(due.length-3)+' conta(s) em aberto.</div>':"");
 }
-function render(){drawList();drawHistory();drawHome()}
+function render(){drawList();drawHistory();drawHome();window.DGXtodayRefresh?.()}
 function reset(){
  $("paymentForm").reset();$("paymentEditId").value="";$("paymentDueDay").value="10";
  $("paymentStartMonth").value=monthNow();
