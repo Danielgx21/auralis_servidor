@@ -42,6 +42,13 @@ cards.forEach(card=>{
  body.id="home-content-"+key;
  while(head.nextSibling)body.appendChild(head.nextSibling);
  card.appendChild(body);
+ // Ações secundárias pertencem ao corpo, não ao cabeçalho retrátil.
+ // O DOM move o elemento, preservando os listeners já registrados.
+ const action=head.querySelector(":scope > button[data-goto], :scope > button#locateBtn");
+ if(action){
+  action.classList.add("home-panel-secondary-action");
+  body.insertBefore(action,body.firstChild);
+ }
  head.classList.add("home-panel-head");
  const button=document.createElement("button");
  button.type="button";
