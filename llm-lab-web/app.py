@@ -6,6 +6,7 @@ import ast, json, os, re, hmac
 from dgx_conversation import reply as demo_reply
 
 PORT = int(os.environ.get("PORT", "8000"))
+HOST = os.environ.get("DGX_HOST", "0.0.0.0")
 BASE = os.environ.get("LLM_BASE_URL", "").rstrip("/")
 MODEL = os.environ.get("LLM_MODEL", "")
 KEY = os.environ.get("LLM_API_KEY", "")
@@ -321,4 +322,4 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__=="__main__":
     print("DGX LLM v0.3 online, PORT",PORT,flush=True)
-    ThreadingHTTPServer(("0.0.0.0",PORT),Handler).serve_forever()
+    ThreadingHTTPServer((HOST,PORT),Handler).serve_forever()
