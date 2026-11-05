@@ -55,3 +55,8 @@ Runtime Python com comando \`python dgx-meu-dia/app.py\`.
 - Configurações por tópico salvas no Neon sob `dgx_briefing_prefs_v1`, controles reproduzir/parar e botão grande para parar a fala no Modo Carro. Usa Web Speech / síntese do navegador, sem serviço contínuo nem garantia de tocar com tela bloqueada.
 - Podcast **Dragões de Garagem** confirmado no catálogo Apple Podcasts (`id655285497`), incluído diretamente em `dgx_podcasts_v1` no perfil existente. Spotify: `https://open.spotify.com/show/2lfu1zVduPXau4LMF8gEu2`. Feed público: `https://dragoesdegaragem.com/feed/podcast/`.
 - Primeiro ciclo de monitoramento de um podcast funciona como linha de base, sem alertar sobre toda a coleção antiga. Para avisar novas publicações, notificações Web Push e permissão Android continuam necessárias.
+
+## Seleção de podcasts de política (05/11/2026)
+- Adicionados diretamente ao perfil privado no Neon: **A Hora** (UOL; Apple Podcasts id 1753993865), **O Assunto** (g1/Globo Podcasts; id 1477406521), **Café da Manhã** (Folha/Spotify; id interno spotify:cafe-da-manha, URL oficial Spotify https://open.spotify.com/show/6WRTzGhq3uFxMrxHrHh1lo) e **Foro de Teresina** (piauí; id 1384660882).
+- **Dragões de Garagem** preservado. Total de cinco programas.
+- O Café da Manhã é exclusivo do Spotify; sem RSS público verificado, fica disponível na lista com link para Spotify, mas não recebe monitoramento automático de episódios no módulo RSS. Outros três podcasts continuam no fluxo normal de Apple Podcasts/RSS, conforme disponibilidade dos feeds.
