@@ -65,3 +65,9 @@ Runtime Python com comando \`python dgx-meu-dia/app.py\`.
 - Corrigido o monitoramento de feeds RSS extensos (O Assunto e Foro de Teresina): leitura incremental dos 30 primeiros episódios completos; não faz download/parsing de todo o XML nem falha só porque o feed completo excede 1 MB.
 - Lista de podcasts é sincronizada novamente com o Neon ao abrir o app, retomar a janela ou entrar na aba Podcasts, com botão manual **Sincronizar com o banco** e mensagem sobre erros de feed.
 - Service worker e arquivos estáticos atualizados para 0.7.
+
+## v0.8 — Painéis retráteis na tela Início (05/11/2026)
+- Todos os dez cartões da tela Início podem ser abertos e fechados individualmente: previsão, Corinthians, podcasts, agenda, contas, plantas, avisos, humor, desafio e voz.
+- Cada cartão oferece seta grande com rótulo acessível e `aria-expanded`; controles gerais “Recolher tudo” e “Expandir tudo” no topo.
+- O fechamento preserva dados, conteúdos e botões das seções. Preferência visual salva em `dgx_home_panels_v1` na conta Neon (com preferência local para inicialização mais rápida).
+- Service worker atualizado para pré-carregar o novo módulo.
