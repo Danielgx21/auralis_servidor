@@ -187,7 +187,7 @@ class Handler(BaseHTTPRequestHandler):
                     return self.reply({"error": "Entre com sua senha."}, 401)
                 return self.reply({"data": storage.read_data(user_id)})
             if path == "/health":
-                return self.reply({"ok": True, "app": "dgx-meu-dia", "version": "0.11"})
+                return self.reply({"ok": True, "app": "dgx-meu-dia", "version": "0.12"})
         except Exception as e:
             print("Erro de GET", path, type(e).__name__, flush=True)
             return self.reply({"error": "Serviço de dados temporariamente indisponível."}, 503)
@@ -270,5 +270,5 @@ if __name__ == "__main__":
     storage.initialize()
     push_service.setup()
     podcasts.setup()
-    print(f"DGX Meu Dia v0.11 com PostgreSQL ouvindo em {host}:{port}", flush=True)
+    print(f"DGX Meu Dia v0.12 com PostgreSQL ouvindo em {host}:{port}", flush=True)
     ThreadingHTTPServer((host, port), Handler).serve_forever()
