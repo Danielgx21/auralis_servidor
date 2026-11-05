@@ -121,10 +121,10 @@ def chat(body, supplied_pin=""):
 PAGE = r'''<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DGX LLM — IA em construção</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#edf4f2;background:#0b1417;--line:#263c40;--muted:#92aaa9;--green:#6ee6bb}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top right,#143f35,transparent 46%),#0b1417}.app{display:grid;grid-template-columns:245px 1fr;min-height:100dvh}.side{background:#0c181cd9;border-right:1px solid var(--line);padding:25px 16px;display:flex;flex-direction:column;gap:28px}.brand{font-size:21px;font-weight:800;letter-spacing:-1px}.brand em{font-style:normal;color:var(--green)}.hint{font-size:12px;color:var(--muted);line-height:1.6}.nav{display:grid;gap:8px}button{cursor:pointer;font:inherit}.nav button{text-align:left;color:#a5bbb7;border:1px solid transparent;border-radius:11px;padding:12px;background:transparent}.nav .active{background:#173b32;color:#8ff7d0;border-color:#295e4c;font-weight:700}.sidefoot{margin-top:auto;border:1px solid var(--line);border-radius:13px;padding:12px;font-size:12px;color:#c8d7d3;background:#101f22}.light{display:inline-block;width:8px;height:8px;background:#eeb968;border-radius:50%;margin-right:6px}main{display:flex;flex-direction:column;max-height:100dvh;min-width:0}.head{padding:20px 5%;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}.kicker{font-size:10px;color:var(--green);letter-spacing:2px;font-weight:700}.head b{font-size:16px}.status{font-size:11px;background:#203b31;border:1px solid #385d4c;border-radius:30px;padding:8px 11px;color:#b6ebd3}.content{padding:28px 5%;display:flex;flex-direction:column;flex:1;min-height:0;overflow:auto}.view{display:none;flex:1;flex-direction:column;min-height:0}.view.on{display:flex}h1{font-size:clamp(28px,4vw,45px);letter-spacing:-1.5px;line-height:1.13;margin:3px 0 12px}h1 span{color:var(--green)}p{color:var(--muted);font-size:14px;line-height:1.65}.intro{max-width:730px}.messages{flex:1;min-height:220px;overflow:auto;display:flex;flex-direction:column;gap:15px;padding:16px 0}.msg{max-width:85%;border:1px solid var(--line);border-radius:15px;padding:13px 16px;font-size:14px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}.msg.bot{align-self:flex-start;background:#18282d;border-top-left-radius:3px}.msg.me{align-self:flex-end;background:#20463a;border-top-right-radius:3px}.who{font-size:10px;color:#86b7a7;margin-bottom:8px}.composer{border-top:1px solid var(--line);padding-top:14px}.shortcuts{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:13px}.shortcuts button{padding:8px 12px;color:#c0e4d5;background:#172c29;border:1px solid #335b4c;border-radius:30px;font-size:12px}.input{display:flex;gap:9px;background:#1b3030;border:1px solid #35564c;border-radius:16px;padding:9px}textarea{background:transparent;border:0;outline:none;resize:none;flex:1;color:white;padding:12px;min-height:43px;font:inherit}textarea::placeholder{color:#93aaa4}.send{border:0;border-radius:11px;background:#77eac1;color:#07271b;font-weight:800;padding:0 18px}.tiny{font-size:11px;color:#829c99}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin:12px 0 22px}.card{background:#142328;border:1px solid #2c4547;border-radius:16px;padding:17px}.card small{font-size:11px;color:var(--muted)}.value{font-size:25px;font-weight:800;margin:9px 0}.labcard{background:#15252a;border:1px solid #2c4547;border-radius:18px;padding:22px;margin:8px 0}.labcard h2{font-size:18px;margin:0}.labcard input{width:100%;padding:14px;border-radius:11px;background:#0b191c;border:1px solid #3b5e56;color:#fff;font:inherit}.barline{display:flex;align-items:center;gap:12px;margin:12px 0;font-size:12px}.token{width:72px}.track{flex:1;background:#2b3b42;height:12px;border-radius:15px;overflow:hidden}.fill{height:100%;background:linear-gradient(90deg,#39a49b,#87edba);border-radius:12px}.pct{width:48px;text-align:right}.steps{display:grid;grid-template-columns:1fr 1fr;gap:14px}.step{border:1px solid #2d4c42;border-radius:15px;padding:17px;background:#142527}.step b{color:var(--green)}.tag{color:#83dbb2;font-size:11px;border:1px solid #3b6852;padding:5px 9px;border-radius:20px;display:inline-block}@media(max-width:780px){.app{display:block}.side{height:63px;padding:9px;flex-direction:row;align-items:center;justify-content:space-between;gap:4px;border-right:0;border-bottom:1px solid var(--line)}.brand{font-size:15px}.side .hint,.sidefoot{display:none}.nav{display:flex;gap:2px}.nav button{font-size:11px;padding:9px}.head{padding:11px 17px}.head b{font-size:14px}.content{padding:21px 16px}main{height:calc(100dvh - 63px)}.msg{max-width:96%}.grid{grid-template-columns:1fr 1fr}.grid .card:last-child{grid-column:span 2}.steps{grid-template-columns:1fr}}
-.neural-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:13px}.neural-actions button{padding:11px 14px;color:#e3faf0;background:#203e36;border:1px solid #436958;border-radius:10px;font-size:13px;font-weight:650}.neural-actions button:first-child{background:#80ebc3;color:#07291d;border-color:#80ebc3}.neural-actions button:disabled{opacity:.45;cursor:default}.rowtiny{display:flex;justify-content:space-between;gap:12px;font-size:11px;color:#91aaa6;padding:9px 1px;flex-wrap:wrap}.neural-losses{display:flex;gap:22px;flex-wrap:wrap;font-size:13px;color:#a8c5ba;padding:0 0 10px}.neural-losses b{color:#fff}@media(max-width:780px){.nav button{font-size:10px;padding:8px 6px}.brand{font-size:14px}.neural-actions button{font-size:12px}}@media(max-width:780px){.side{height:105px;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:8px;padding:9px 12px}.side .brand{font-size:15px}.nav{display:flex;gap:6px;overflow-x:auto;min-width:0;padding-bottom:2px}.nav button{flex:0 0 auto;padding:9px 10px;font-size:11px;white-space:nowrap}.nav{scrollbar-width:thin;scrollbar-color:#537d71 transparent}.app main{height:calc(100dvh - 105px)}}.chat-mode{display:flex;align-items:center;flex-wrap:wrap;gap:10px;border:1px solid #34574b;background:#132722;padding:10px 13px;border-radius:12px;margin-top:12px}.chat-mode label{font-size:12px;font-weight:700;color:#9ddbc2}.chat-mode select{background:#1b3932;border:1px solid #406d5a;border-radius:8px;padding:8px;color:#ecfff6;font:inherit;font-size:12px;max-width:100%}.chat-mode span{font-size:11px;color:#aac9bc;line-height:1.5}@media(max-width:780px){.chat-mode{align-items:stretch;flex-direction:column;gap:6px}.chat-mode select{width:100%}}</style></head><body><div class="app"><aside class="side"><div><div class="brand">✦ DGX <em>LLM</em></div><div class="hint">Nossa inteligência em construção · v0.6</div></div><nav class="nav"><button class="active" data-v="chat">◉ Conversar</button><button data-v="lab">◇ Previsões</button><button data-v="neural">△ Treinar IA</button><button data-v="transformer">Ξ Transformer</button><button data-v="dialogue">♧ Ensinar conversa</button><button data-v="plan">▤ Evolução</button></nav><div class="sidefoot"><span class="light" id="light"></span><span id="smallStatus">Verificando...</span><div class="hint">Tarefas e cálculos são ferramentas locais. Conversa livre precisa de um modelo.</div></div></aside><main><header class="head"><div><div class="kicker">DGX · LABORATÓRIO DE IA</div><b id="ptitle">Assistente experimental</b></div><span class="status" id="status">Verificando</span></header><div class="content"><section class="view on" id="chat"><div class="intro"><h1>Converse com a <span>DGX LLM.</span></h1><p>Uma assistente experimental que evolui com o projeto. No modo didático, ela usa regras e contexto. Ao conectarmos uma LLM, poderá manter conversas abertas. A origem de cada resposta é identificada.</p></div><div class="chat-mode"><label for="chatMode">Motor de conversa</label>
+.neural-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:13px}.neural-actions button{padding:11px 14px;color:#e3faf0;background:#203e36;border:1px solid #436958;border-radius:10px;font-size:13px;font-weight:650}.neural-actions button:first-child{background:#80ebc3;color:#07291d;border-color:#80ebc3}.neural-actions button:disabled{opacity:.45;cursor:default}.rowtiny{display:flex;justify-content:space-between;gap:12px;font-size:11px;color:#91aaa6;padding:9px 1px;flex-wrap:wrap}.neural-losses{display:flex;gap:22px;flex-wrap:wrap;font-size:13px;color:#a8c5ba;padding:0 0 10px}.neural-losses b{color:#fff}@media(max-width:780px){.nav button{font-size:10px;padding:8px 6px}.brand{font-size:14px}.neural-actions button{font-size:12px}}@media(max-width:780px){.side{height:105px;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:8px;padding:9px 12px}.side .brand{font-size:15px}.nav{display:flex;gap:6px;overflow-x:auto;min-width:0;padding-bottom:2px}.nav button{flex:0 0 auto;padding:9px 10px;font-size:11px;white-space:nowrap}.nav{scrollbar-width:thin;scrollbar-color:#537d71 transparent}.app main{height:calc(100dvh - 105px)}}.chat-mode{display:flex;align-items:center;flex-wrap:wrap;gap:10px;border:1px solid #34574b;background:#132722;padding:10px 13px;border-radius:12px;margin-top:12px}.chat-mode label{font-size:12px;font-weight:700;color:#9ddbc2}.chat-mode select{background:#1b3932;border:1px solid #406d5a;border-radius:8px;padding:8px;color:#ecfff6;font:inherit;font-size:12px;max-width:100%}.chat-mode span{font-size:11px;color:#aac9bc;line-height:1.5}@media(max-width:780px){.chat-mode{align-items:stretch;flex-direction:column;gap:6px}.chat-mode select{width:100%}}</style></head><body><div class="app"><aside class="side"><div><div class="brand">✦ DGX <em>LLM</em></div><div class="hint">Nossa inteligência em construção · v0.7</div></div><nav class="nav"><button class="active" data-v="chat">◉ Conversar</button><button data-v="lab">◇ Previsões</button><button data-v="neural">△ Treinar IA</button><button data-v="transformer">Ξ Transformer</button><button data-v="dialogue">♧ Ensinar conversa</button><button data-v="generator">✧ Gerar respostas</button><button data-v="plan">▤ Evolução</button></nav><div class="sidefoot"><span class="light" id="light"></span><span id="smallStatus">Verificando...</span><div class="hint">Tarefas e cálculos são ferramentas locais. Conversa livre precisa de um modelo.</div></div></aside><main><header class="head"><div><div class="kicker">DGX · LABORATÓRIO DE IA</div><b id="ptitle">Assistente experimental</b></div><span class="status" id="status">Verificando</span></header><div class="content"><section class="view on" id="chat"><div class="intro"><h1>Converse com a <span>DGX LLM.</span></h1><p>Uma assistente experimental que evolui com o projeto. No modo didático, ela usa regras e contexto. Ao conectarmos uma LLM, poderá manter conversas abertas. A origem de cada resposta é identificada.</p></div><div class="chat-mode"><label for="chatMode">Motor de conversa</label>
 <select id="chatMode" aria-label="Selecionar mecanismo de resposta">
 <option value="didatic">Didático · regras</option>
-<option value="neural">Neural · pesos próprios neste navegador</option>
+<option value="neural">Neural · reconhecer perguntas</option><option value="generator">Gerador neural · montar respostas</option>
 </select>
 <span id="chatModeHint">A conversa didática usa regras programadas.</span></div>
 <div class="messages" id="messages"></div><div class="composer"><div class="shortcuts"><button data-example="Como uma LLM aprende?">◇ Conversar sobre IA</button><button data-example="calcule (15+7)*3">✳ Cálculo</button><button data-example="Crie tarefa estudar Transformers">＋ Tarefas</button><button id="newchat" type="button">↺ Nova conversa</button></div><div class="input"><textarea id="msg" rows="1" maxlength="2000" placeholder="Digite sua mensagem..."></textarea><button class="send" id="send">Enviar ↗</button></div><div id="accessbox" style="display:none;margin-top:10px"><label for="pin" class="tiny">Código privado de acesso ao modelo:</label> <input id="pin" type="password" autocomplete="off" placeholder="Código de acesso" style="background:#162928;border:1px solid #3c5c50;color:#fff;border-radius:9px;padding:9px;margin-left:8px;max-width:180px"></div><p class="tiny" id="privacy">Histórico e tarefas são armazenados somente neste navegador. Não compartilhe dados sensíveis nesta versão experimental.</p></div></section><section class="view" id="lab"><div class="intro"><h1>Entenda a <span>previsão.</span></h1><p>Aqui vemos um preditor de caracteres por frequência. <b>Ele não é nossa mini-LLM Transformer.</b> Serve para comparar um método simples com o aprendizado de redes neurais.</p></div><div class="grid"><div class="card"><small>Texto do experimento</small><div class="value" id="chars">—</div><small>caracteres</small></div><div class="card"><small>Contexto usado</small><div class="value">2</div><small>caracteres anteriores</small></div><div class="card"><small>Transformer independente</small><div class="value">~243 mil</div><small>parâmetros no pacote de treinamento</small></div></div><div class="labcard"><h2>Qual o próximo caractere?</h2><p>Digite um texto para ver probabilidades aprendidas com o pequeno corpus de demonstração.</p><input id="prompt" value="A inteligência"><div id="bars"></div><p class="tiny">As probabilidades são empíricas e não demonstram raciocínio.</p></div><div class="labcard"><h2>Treinando nossa própria rede</h2><p>O código da mini-LLM Transformer está no pacote do projeto. Treinar pesos aleatórios de uma rede neural é diferente deste preditor estatístico. Para treinar e hospedar um modelo maior, precisaremos de uma GPU separada da hospedagem da página.</p></div></section><section class="view" id="neural">
@@ -274,10 +274,46 @@ PAGE = r'''<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta n
 <div class="neural-actions"><button id="dialogAdd" type="button">＋ Adicionar ao treinamento</button></div>
 </div>
 <div class="labcard"><h2>5 · Converse com a rede</h2>
-<p>Depois de treinar, abra <b>Conversar</b> e, em "Motor de conversa", escolha <b>Neural · pesos próprios neste navegador</b>. Nesse modo, perguntas são classificadas diretamente no seu dispositivo, sem API de outra IA.</p>
+<p>Depois de treinar, abra <b>Conversar</b> e, em "Motor de conversa", escolha <b>Neural · reconhecer perguntas</b>. Nesse modo, perguntas são classificadas diretamente no seu dispositivo, sem API de outra IA.</p>
 <div class="neural-actions"><button type="button" id="dialogOpenChat">Ir para Conversar</button></div>
 <p class="tiny">Limitações: ordem das palavras pouco explorada, respostas recuperadas dos exemplos e memória limitada. O Transformer da outra aba é um experimento independente.</p></div>
-</section><section class="view" id="plan"><div class="intro"><h1>Rumo à <span>independência.</span></h1><p>O motor de IA é desacoplado do site: podemos substituir um provedor temporário por infraestrutura e pesos nossos, sem reconstruir a interface.</p></div><div class="steps"><div class="step"><b>01 · Página e ferramentas</b><p>Chat, calculadora e tarefas no navegador; laboratório de probabilidades.</p><span class="tag">Implementado</span></div><div class="step"><b>02 · Conversa com modelo aberto</b><p>Configurar endpoint privado de modelo hospedado em GPU.</p><span class="tag">A configurar</span></div><div class="step"><b>03 · Nosso Transformer</b><p>Treinar do zero, acompanhar perda e avaliar a generalização.</p><span class="tag">Rede neural treinável no navegador</span></div><div class="step"><b>04 · Modelo e infraestrutura próprios</b><p>Ampliar dados e parâmetros, testar qualidade e gradualmente substituir o motor externo.</p><span class="tag">Meta de longo prazo</span></div></div><div class="labcard"><h2>Diferença importante</h2><p>Hospedar pesos abertos por conta própria elimina a dependência de uma API. Ter uma LLM com pesos realmente nossos exige treinamento desde o zero e muito mais recursos. São metas diferentes.</p></div></section></div></main></div>
+</section><section class="view" id="generator"><div class="intro"><h1>Aprenda a <span>gerar respostas.</span></h1>
+<p>Este modelo usa <b>pesos próprios inicializados aleatoriamente</b> e aprende a produzir palavras uma após a outra, condicionado pela pergunta. É uma rede recorrente pequena, não uma LLM completa. As respostas podem ser desconexas ou incorretas.</p></div>
+<div class="grid">
+<div class="card"><small>Parâmetros treináveis</small><div id="genParams" class="value">—</div><small>Pesos de nossa rede</small></div>
+<div class="card"><small>Vocabulário</small><div id="genTokens" class="value">—</div><small>Tokens de palavras e sinais</small></div>
+<div class="card"><small>Passos de treino</small><div id="genSteps" class="value">0</div><small id="genModelLabel">Pesos aleatórios</small></div>
+</div>
+<div class="labcard"><h2>1 · Exemplos para aprender</h2>
+<p>Uma linha por exemplo, com <b>pergunta =&gt; resposta</b>. O gerador tenta aprender a sequência da resposta, em vez de selecionar uma frase cadastrada. Modificar esses dados inicia um novo treinamento do gerador.</p>
+<textarea id="genExamples" maxlength="30000" spellcheck="false" style="width:100%;min-height:190px;background:#0b191c;border:1px solid #3b5e56;color:#e8f4f0;border-radius:12px;padding:12px;font:12px/1.5 ui-monospace,monospace;resize:vertical"></textarea>
+<div class="neural-actions">
+<button id="genTrain" type="button">▶ Treinar +400 passos</button>
+<button id="genReset" type="button">↻ Reiniciar pesos</button>
+<button id="genExport" type="button">↓ Exportar modelo</button>
+<button id="genImport" type="button">↑ Importar modelo</button>
+<input id="genImportFile" type="file" accept=".json,application/json" style="display:none">
+</div>
+<progress id="genProgress" value="0" max="400" style="width:100%;margin-top:12px;accent-color:#72e8be"></progress>
+<div class="rowtiny"><span id="genProgressText">Pronto para treinar</span><span id="genNote">Pesos aleatórios</span></div></div>
+<div class="labcard"><h2>2 · Avalie o treinamento</h2>
+<p>Perda por palavra prevista. Verde: exemplos usados para treinar; amarelo: perguntas reservadas. Se a perda de treino cair enquanto a de avaliação sobe, há sinais de memorização excessiva.</p>
+<div class="neural-losses"><span>Perda de treino <b id="genTrainLoss">—</b></span><span>Perda de avaliação <b id="genValLoss">—</b></span></div>
+<canvas id="genPlot" width="820" height="240" style="width:100%;max-height:240px;background:#0b191c;border:1px solid #2e4a47;border-radius:12px"></canvas>
+<div class="rowtiny"><span style="color:#6ee6bb">● Treino</span><span style="color:#ffc88b">● Avaliação</span></div></div>
+<div class="labcard"><h2>3 · Produza texto</h2>
+<p>A rede recebe a pergunta e calcula os tokens seguintes um por um. Ela pode montar combinações novas de palavras, mas não é capaz de responder de forma confiável.</p>
+<label for="genQuestion" class="tiny">Pergunta</label>
+<input id="genQuestion" autocomplete="off" placeholder="Como uma IA aprende?">
+<label for="genTemp" class="tiny" style="display:block;margin-top:13px">Aleatoriedade: <b id="genTempValue">0.7</b></label>
+<input id="genTemp" type="range" min="0.4" max="1.4" step="0.1" value="0.7" style="width:100%;margin:9px 0;accent-color:#79e8bd">
+<div class="neural-actions"><button id="genGenerate" type="button">✧ Gerar resposta</button></div>
+<p id="genResult" role="status" style="white-space:pre-wrap;overflow-wrap:anywhere;background:#0b191c;border:1px solid #35554b;border-radius:13px;padding:15px;min-height:65px;color:#eff9f3"></p>
+<p id="genCoverage" class="tiny"></p></div>
+<div class="labcard"><h2>4 · Converse com este gerador</h2>
+<p>Depois de treinar, entre na aba <b>Conversar</b> e selecione <b>Gerador neural · montar respostas</b>. Nesse modo a rede funciona no dispositivo e não envia a pergunta a outra IA.</p>
+<div class="neural-actions"><button id="genOpenChat" type="button">Ir para Conversar</button></div>
+<p class="tiny">Arquitetura: embeddings de palavras, rede neural recorrente e retropropagação através do tempo. A rede possui poucos exemplos e pode gerar frases sem sentido. Nosso pequeno Transformer e o classificador continuam preservados em outras abas.</p></div></section><section class="view" id="plan"><div class="intro"><h1>Rumo à <span>independência.</span></h1><p>O motor de IA é desacoplado do site: podemos substituir um provedor temporário por infraestrutura e pesos nossos, sem reconstruir a interface.</p></div><div class="steps"><div class="step"><b>01 · Página e ferramentas</b><p>Chat, calculadora e tarefas no navegador; laboratório de probabilidades.</p><span class="tag">Implementado</span></div><div class="step"><b>02 · Conversa com modelo aberto</b><p>Configurar endpoint privado de modelo hospedado em GPU.</p><span class="tag">A configurar</span></div><div class="step"><b>03 · Nosso Transformer</b><p>Treinar do zero, acompanhar perda e avaliar a generalização.</p><span class="tag">Rede neural treinável no navegador</span></div><div class="step"><b>04 · Modelo e infraestrutura próprios</b><p>Ampliar dados e parâmetros, testar qualidade e gradualmente substituir o motor externo.</p><span class="tag">Meta de longo prazo</span></div></div><div class="labcard"><h2>Diferença importante</h2><p>Hospedar pesos abertos por conta própria elimina a dependência de uma API. Ter uma LLM com pesos realmente nossos exige treinamento desde o zero e muito mais recursos. São metas diferentes.</p></div></section></div></main></div>
 <script>
 const by=id=>document.getElementById(id);
 const HISTORY_KEY='dgxllm_chat_v02';
@@ -313,22 +349,25 @@ if(history.length){history.forEach(x=>bubble(x.content,x.role==='user',x.engine)
 by('newchat').onclick=freshChat;
 try{
  const cm=localStorage.getItem('dgx_chat_mode_v06');
- if(cm==='neural')by('chatMode').value='neural';
+ if(cm==='neural'||cm==='generator')by('chatMode').value=cm;
 }catch{}
 by('chatMode').onchange=()=>{
- const active=by('chatMode').value==='neural';
- by('chatModeHint').textContent=active?
-  'Respostas escolhidas por rede neural treinada no dispositivo. Nenhuma pergunta é enviada ao servidor de IA.':
-  'Respostas programadas ou produzidas por um modelo externo configurado no servidor.';
- by('status').textContent=active?'Conversa neural · local':'Conversa didática';
+ const mode=by('chatMode').value;
+ by('chatModeHint').textContent=mode==='generator'?
+ 'Gerador neural próprio: gera palavras em sequência, mas pode errar. Treine na aba Gerar respostas.':
+ mode==='neural'?
+ 'Classificador neural: escolhe respostas dos exemplos. Nenhuma pergunta vai para uma API.':
+ 'Modo didático programado. Pode usar modelo externo somente se configurado no servidor.';
+ by('status').textContent=mode==='generator'?'Gerador · local':mode==='neural'?'Classificador · local':'Conversa didática';
  try{localStorage.setItem('dgx_chat_mode_v06',by('chatMode').value)}catch{}
 };
 by('chatMode').onchange();
 by('dialogOpenChat').onclick=()=>document.querySelector('[data-v="chat"]').click();
+by('genOpenChat').onclick=()=>document.querySelector('[data-v="chat"]').click();
 document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('[data-v]').forEach(n=>n.classList.toggle('active',n===b));
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id===b.dataset.v));
-  by('ptitle').textContent=({chat:'Conversa DGX LLM',lab:'Laboratório de previsão',neural:'Treinamento de rede neural',transformer:'Nosso mini-Transformer',dialogue:'Ensinar a conversar',plan:'Evolução do projeto'})[b.dataset.v];
+  by('ptitle').textContent=({chat:'Conversa DGX LLM',lab:'Laboratório de previsão',neural:'Treinamento de rede neural',transformer:'Nosso mini-Transformer',dialogue:'Ensinar a conversar',generator:'Geração neural de respostas',plan:'Evolução do projeto'})[b.dataset.v];
   if(b.dataset.v==='lab')predict()
 });
 function tasks(){
@@ -359,6 +398,16 @@ async function send(){
   if(handled!==null){
     addMessage('assistant',handled,'Ferramenta local · sem LLM');
     busy=false;by('send').disabled=false;by('send').textContent='Enviar ↗';return
+  }
+  if(by('chatMode').value==='generator'){
+    try{
+      const generator=window.DGXGenerator;
+      const result=generator?generator.respond(msg):{reply:'Gerador não carregado. Recarregue a página.',mode:'unavailable'};
+      addMessage('assistant',result.reply,
+        result.mode==='generated'?'DGX · Rede geradora local (pode errar)':'DGX · Gerador indisponível');
+    }catch{addMessage('assistant','Falha na geração neural.','DGX · Erro local')}
+    finally{busy=false;by('send').disabled=false;by('send').textContent='Enviar ↗'}
+    return;
   }
   if(by('chatMode').value==='neural'){
     try{
@@ -407,7 +456,7 @@ fetch('/api/status').then(r=>r.json()).then(v=>{
   by('chars').textContent=v.corpus_chars.toLocaleString('pt-BR');
   by('accessbox').style.display=v.pin_required?'block':'none';
 }).catch(()=>{by('status').textContent='Servidor indisponível'});
-</script><script src="/neural_lab.js"></script><script src="/transformer_lab.js"></script><script src="/dialogue_lab.js"></script></body></html>'''
+</script><script src="/neural_lab.js"></script><script src="/transformer_lab.js"></script><script src="/dialogue_lab.js"></script><script src="/generator_lab.js"></script></body></html>'''
 
 class Handler(BaseHTTPRequestHandler):
     def send(self,obj,status=200):
@@ -419,7 +468,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers(); self.wfile.write(dat)
     def do_GET(self):
         path = parse.urlsplit(self.path).path
-        if path in ("/neural_lab.js", "/transformer_lab.js", "/dialogue_lab.js"):
+        if path in ("/neural_lab.js", "/transformer_lab.js", "/dialogue_lab.js", "/generator_lab.js"):
             asset = Path(__file__).with_name(path[1:])
             try:
                 data = asset.read_bytes()
@@ -464,5 +513,5 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self,*args):pass
 
 if __name__=="__main__":
-    print("DGX LLM v0.6 online, PORT",PORT,flush=True)
+    print("DGX LLM v0.7 online, PORT",PORT,flush=True)
     ThreadingHTTPServer((HOST,PORT),Handler).serve_forever()
