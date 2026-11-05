@@ -1,8 +1,10 @@
 """DGX Meu Dia — servidor mínimo para a PWA pessoal."""
 import json
 import os
-import re
 import urllib.request
+from http.cookies import SimpleCookie
+from urllib.parse import urlsplit
+import storage
 from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -75,21 +77,84 @@ def fixtures():
 
 
 class Handler(BaseHTTPRequestHandler):
-    def send(self, data, content_type, status=200):
+    def send(self, data, content_type, status=200, cookie=None):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
-        self.send_header("Cache-Control", "no-store" if content_type.startswith("application/json") else "public, max-age=900")
+        self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
+        self.send_header("Permissions-Policy", "camera=(), microphone=(self), geolocation=(self)")
+        self.send_header("Content-Length", str(len(data)))
+        if cookie is not None:
+            self.send_header("Set-Cookie", cookie)
         self.end_headers()
-        self.wfile.write(data)
+        if self.command != "HEAD":
+            self.wfile.write(data)
+
+    def reply(self, value, status=200, cookie=None):
+        self.send(json.dumps(value, ensure_ascii=False).encode("utf-8"),
+                  "application/json; charset=utf-8", status, cookie)
+
+    def token(self):
+        try:
+            cookie = SimpleCookie()
+            cookie.load(self.headers.get("Cookie", ""))
+            part = cookie.get("dgx_session")
+            return part.value if part else ""
+        except Exception:
+            return ""
+
+    def auth(self):
+        return storage.current_user(self.token())
+
+    def session_cookie(self, token, expire=False):
+        host = self.headers.get("Host", "")
+        secure = "" if host.startswith(("localhost:", "127.0.0.1:")) else "; Secure"
+        if expire:
+            return "dgx_session=; Path=/; HttpOnly; SameSite=Lax" + secure + "; Max-Age=0"
+        return "dgx_session=" + token + "; Path=/; HttpOnly; SameSite=Lax" + secure + "; Max-Age=5184000"
+
+    def get_json(self):
+        if self.headers.get("Content-Type", "").split(";")[0].strip() != "application/json":
+            raise ValueError("Envie JSON.")
+        size = int(self.headers.get("Content-Length", "0"))
+        if size <= 0 or size > 220_000:
+            raise ValueError("Tamanho de requisição inválido.")
+        obj = json.loads(self.rfile.read(size))
+        if not isinstance(obj, dict):
+            raise ValueError("JSON inválido.")
+        return obj
+
+    def check_origin(self):
+        origin = self.headers.get("Origin")
+        if not origin:
+            return True
+        try:
+            parsed = urlsplit(origin)
+            return parsed.netloc == self.headers.get("Host") and parsed.scheme in ("https", "http")
+        except Exception:
+            return False
 
     def do_GET(self):
         path = self.path.split("?")[0]
-        if path == "/api/fixtures":
-            return self.send(json.dumps(fixtures(), ensure_ascii=False).encode(), "application/json; charset=utf-8")
-        if path == "/health":
-            return self.send(b'{"ok":true,"app":"dgx-meu-dia"}', "application/json")
+        try:
+            if path == "/api/fixtures":
+                return self.reply(fixtures())
+            if path == "/api/bootstrap":
+                return self.reply({"configured": storage.has_account()})
+            if path == "/api/me":
+                return self.reply({"logged_in": bool(self.auth())})
+            if path == "/api/data":
+                user_id = self.auth()
+                if user_id is None:
+                    return self.reply({"error": "Entre com sua senha."}, 401)
+                return self.reply({"data": storage.read_data(user_id)})
+            if path == "/health":
+                return self.reply({"ok": True, "app": "dgx-meu-dia", "version": "0.2"})
+        except Exception as e:
+            print("Erro de GET", path, type(e).__name__, flush=True)
+            return self.reply({"error": "Serviço de dados temporariamente indisponível."}, 503)
         allow = {"/": ("index.html", "text/html; charset=utf-8"),
                  "/index.html": ("index.html", "text/html; charset=utf-8"),
                  "/manifest.webmanifest": ("manifest.webmanifest", "application/manifest+json"),
@@ -100,9 +165,44 @@ class Handler(BaseHTTPRequestHandler):
         filename, mime = allow[path]
         return self.send((ROOT / filename).read_bytes(), mime)
 
+    def do_HEAD(self):
+        return self.do_GET()
+
+    def do_POST(self):
+        path = self.path.split("?")[0]
+        if not self.check_origin():
+            return self.reply({"error": "Origem não autorizada."}, 403)
+        if path not in ("/api/auth/setup", "/api/auth/login", "/api/auth/logout", "/api/data"):
+            return self.reply({"error": "Rota inexistente."}, 404)
+        try:
+            body = self.get_json()
+            if path == "/api/auth/setup":
+                token = storage.create_account(
+                    str(body.get("password", "")), str(body.get("setup_code", "")))
+                return self.reply({"ok": True}, cookie=self.session_cookie(token))
+            if path == "/api/auth/login":
+                token = storage.login(str(body.get("password", "")))
+                return self.reply({"ok": True}, cookie=self.session_cookie(token))
+            if path == "/api/auth/logout":
+                storage.logout(self.token())
+                return self.reply({"ok": True}, cookie=self.session_cookie("", expire=True))
+            if path == "/api/data":
+                user_id = self.auth()
+                if user_id is None:
+                    return self.reply({"error": "Sessão encerrada. Entre novamente."}, 401)
+                key = body.get("key")
+                storage.write_data(user_id, key, body.get("value"))
+                return self.reply({"ok": True})
+        except ValueError as e:
+            return self.reply({"error": str(e)}, 400)
+        except Exception as e:
+            print("Erro de POST", path, type(e).__name__, flush=True)
+            return self.reply({"error": "Não foi possível concluir a operação."}, 503)
+
 
 if __name__ == "__main__":
     host = os.environ.get("HOST", "0.0.0.0")
     port = int(os.environ.get("PORT", 8766))
-    print(f"DGX Meu Dia v0.1 ouvindo em {host}:{port}", flush=True)
+    storage.initialize()
+    print(f"DGX Meu Dia v0.2 com PostgreSQL ouvindo em {host}:{port}", flush=True)
     ThreadingHTTPServer((host, port), Handler).serve_forever()
