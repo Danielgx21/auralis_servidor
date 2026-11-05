@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0d1623"><meta name="description" content="Seu painel pessoal: tempo, Corinthians, humor, desafios e comandos de voz.">
+<meta name="theme-color" content="#0d1623"><meta name="description" content="Seu painel pessoal: tempo, Corinthians, humor, calendário, plantas, despesas mensais e comandos de voz.">
 <link rel="manifest" href="/manifest.webmanifest"><title>DGX · Meu Dia</title>
 <style>
 :root{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#edf3fa;background:#08101a;color-scheme:dark}
@@ -22,7 +22,7 @@ h1{font-size:clamp(29px,5vw,42px);letter-spacing:-1.5px;line-height:1.1;margin:0
 <div id="authGate" class="authgate" role="dialog" aria-label="Acesso ao DGX Meu Dia" aria-modal="true"><div class="authbox"><div class="logo" style="justify-content:center;margin-bottom:18px"><div class="mark">D</div>DGX Meu Dia</div><h1 id="authTitle" style="font-size:28px;text-align:center">Seu espaço pessoal</h1><p id="authMessage" class="sub" style="text-align:center">Conectando ao banco de dados...</p><form id="authForm" class="stack hide" style="margin-top:22px"><div class="field hide" id="setupCodeField"><label>Código de ativação inicial</label><input id="setupCode" type="text" autocomplete="off" placeholder="Cole o código recebido"></div><div class="field"><label id="authPasswordLabel">Sua senha</label><input id="authPassword" type="password" minlength="10" autocomplete="current-password" placeholder="Digite sua senha" required></div><button class="btn main full" id="authSubmit" type="submit">Entrar</button><div class="small" id="authError" style="text-align:center;color:#ffb2aa"></div></form><button class="btn ghost full hide" id="authRetry" style="margin-top:14px">Tentar novamente</button><p class="small" style="text-align:center;margin-top:22px">Seus dados ficam em um banco privado. Não compartilhe sua senha.</p></div></div>
 <div id="updatePrompt" class="updateprompt hide" role="status"><span>Nova versão disponível.</span><button class="btn main" id="updateNow" style="padding:8px 12px">Atualizar</button></div>
 <main class="shell">
-<header class="top"><div class="logo"><div class="mark">D</div><div>DGX <span style="color:#8ae2cc">Meu Dia</span></div></div><div class="topright"><span class="today" id="todayDate"></span><span class="pill aqua" id="appVersion">v0.2</span><button class="roundbtn hide" id="logoutBtn" style="padding:7px 9px;font-size:11px" title="Sair da conta">Sair</button></div></header>
+<header class="top"><div class="logo"><div class="mark">D</div><div>DGX <span style="color:#8ae2cc">Meu Dia</span></div></div><div class="topright"><span class="today" id="todayDate"></span><span class="pill aqua" id="appVersion">v0.3</span><button class="roundbtn hide" id="logoutBtn" style="padding:7px 9px;font-size:11px" title="Sair da conta">Sair</button></div></header>
 <section class="section active" id="page-home">
 <div class="intro"><p class="kicker">Seu espaço pessoal</p><h1>Um bom dia começa aqui.</h1><div class="sub">As coisas importantes para você, em um só lugar.</div></div>
 <div class="grid">
@@ -181,4 +181,5 @@ window.DGXgoto=go;window.DGXtoast=toast;window.DGXrefresh=function(){restoreMood
 })();
 </script>
 <script src="/features.js" defer></script>
+<script src="/payments.js" defer></script>
 </body></html>
