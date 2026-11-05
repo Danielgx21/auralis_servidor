@@ -2,8 +2,8 @@
 (function(){
 "use strict";
 const $=id=>document.getElementById(id);
-const defaults={payments:true,tasks:true,reminders:true,plants:true,corinthians:true,mood:false};
-const labels={payments:"Contas mensais",tasks:"Tarefas pessoais e SME",reminders:"Lembretes",plants:"Adubação",corinthians:"Jogos do Corinthians",mood:"Registrar humor"};
+const defaults={payments:true,tasks:true,reminders:true,plants:true,corinthians:true,podcasts:true,mood:false};
+const labels={payments:"Contas mensais",tasks:"Tarefas pessoais e SME",reminders:"Lembretes",plants:"Adubação",corinthians:"Jogos do Corinthians",podcasts:"Novos episódios de podcasts",mood:"Registrar humor"};
 const notify=msg=>window.DGXtoast&&window.DGXtoast(msg);
 const api=async (path,opts={})=>{
  const res=await fetch(path,{credentials:"same-origin",cache:"no-store",...opts});
