@@ -33,6 +33,7 @@ ALLOWED_KEYS = {
     "dgx_notified_v1",
     "dgx_plants_v1",
     "dgx_tasks_v1",
+    "dgx_payments_v1",
 }
 SESSION_DAYS = 60
 
