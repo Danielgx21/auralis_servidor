@@ -212,7 +212,16 @@ def allowed_show(user_id, podcast_id):
 def episode_list(user_id, podcast_id):
     if not allowed_show(user_id, podcast_id):
         raise ValueError("Primeiro acompanhe esse podcast.")
-    return latest(podcast_id)
+    if podcast_id == "spotify:cafe-da-manha":
+        return {
+            "id": podcast_id,
+            "name": "Café da Manhã",
+            "publisher": "Folha de S.Paulo / Spotify",
+            "episodes": [],
+            "source": "spotify_only",
+            "message": "Programa exclusivo do Spotify: sem RSS público para monitorar novos episódios automaticamente.",
+        }
+    return latest(int(podcast_id))
 
 
 def monitor(user_id, podcasts, now):
@@ -222,6 +231,10 @@ def monitor(user_id, podcasts, now):
     events = []
     for p in podcasts[:MAX_SHOWS]:
         try:
+            # Programas exclusivos do Spotify podem ser acompanhados na lista,
+            # mas não possuem RSS público para verificação automática.
+            if str(p.get("id", "")).startswith("spotify:"):
+                continue
             podcast_id = int(p.get("id"))
             data = latest(podcast_id)
             episodes = data["episodes"]
