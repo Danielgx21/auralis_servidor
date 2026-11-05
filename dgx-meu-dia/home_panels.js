@@ -7,7 +7,7 @@ const names={
  weather:"Previsão do tempo",corinthians:"Jogos do Corinthians",
  podcasts:"Podcasts favoritos",calendar:"Agenda de hoje",
  payments:"Contas deste mês",plants:"Minhas plantas",
- alerts:"Seus avisos",health:"Saúde e bem-estar",mood:"Humor de hoje",
+ alerts:"Seus avisos",mood:"Humor de hoje",
  challenge:"Desafio do dia",voice:"Comandos de voz"
 };
 function getLocal(){
