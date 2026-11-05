@@ -44,13 +44,14 @@ h1{font-size:clamp(29px,5vw,42px);letter-spacing:-1.5px;line-height:1.1;margin:0
 body.car-active{overflow:hidden}
 @media(max-width:720px){.bottomnav .tab{min-width:78px;flex:0 0 78px;min-height:76px;font-size:12px}.bottomnav .tab span{font-size:29px}.topright{gap:5px;flex-wrap:wrap;justify-content:flex-end}.topright .pill{font-size:10px}#enterCar{font-size:13px;padding:9px 11px}.car-tile{min-height:124px}.car-grid{gap:11px}.car-screen{gap:12px}}
 @media(max-width:355px){.car-grid{grid-template-columns:1fr}.car-tile{min-height:84px;flex-direction:row;justify-content:flex-start;padding:12px 20px}.car-icon{font-size:30px}.car-tile strong{font-size:17px}.car-tile span:not(.car-icon){display:none}}
+.brief-choice{display:flex;align-items:center;gap:10px;min-height:44px;padding:8px 10px;background:#1a3243;border:1px solid #35546a;border-radius:12px;font-size:13px}.brief-choice input{width:20px;height:20px;accent-color:#74d9c6}.car-bottom:disabled{opacity:.45}
 </style>
 </head>
 <body class="locked">
 <div id="authGate" class="authgate" role="dialog" aria-label="Acesso ao DGX Meu Dia" aria-modal="true"><div class="authbox"><div class="logo" style="justify-content:center;margin-bottom:18px"><div class="mark">D</div>DGX Meu Dia</div><h1 id="authTitle" style="font-size:28px;text-align:center">Seu espaço pessoal</h1><p id="authMessage" class="sub" style="text-align:center">Conectando ao banco de dados...</p><form id="authForm" class="stack hide" style="margin-top:22px"><div class="field hide" id="setupCodeField"><label>Código de ativação inicial</label><input id="setupCode" type="text" autocomplete="off" placeholder="Cole o código recebido"></div><div class="field"><label id="authPasswordLabel">Sua senha</label><input id="authPassword" type="password" minlength="10" autocomplete="current-password" placeholder="Digite sua senha" required></div><button class="btn main full" id="authSubmit" type="submit">Entrar</button><div class="small" id="authError" style="text-align:center;color:#ffb2aa"></div></form><button class="btn ghost full hide" id="authRetry" style="margin-top:14px">Tentar novamente</button><p class="small" style="text-align:center;margin-top:22px">Seus dados ficam em um banco privado. Não compartilhe sua senha.</p></div></div>
 <div id="updatePrompt" class="updateprompt hide" role="status"><span>Nova versão disponível.</span><button class="btn main" id="updateNow" style="padding:8px 12px">Atualizar</button></div>
 <main class="shell">
-<header class="top"><div class="logo"><div class="mark">D</div><div>DGX <span style="color:#8ae2cc">Meu Dia</span></div></div><div class="topright"><span class="today" id="todayDate"></span><button class="btn main" id="enterCar" style="min-height:48px">🚘 Modo Carro</button><span class="pill aqua" id="appVersion">v0.5</span><button class="roundbtn hide" id="logoutBtn" style="padding:7px 9px;font-size:11px" title="Sair da conta">Sair</button></div></header>
+<header class="top"><div class="logo"><div class="mark">D</div><div>DGX <span style="color:#8ae2cc">Meu Dia</span></div></div><div class="topright"><span class="today" id="todayDate"></span><button class="btn main" id="enterCar" style="min-height:48px">🚘 Modo Carro</button><span class="pill aqua" id="appVersion">v0.6</span><button class="roundbtn hide" id="logoutBtn" style="padding:7px 9px;font-size:11px" title="Sair da conta">Sair</button></div></header>
 <section class="section active" id="page-home">
 <div class="intro"><p class="kicker">Seu espaço pessoal</p><h1>Um bom dia começa aqui.</h1><div class="sub">As coisas importantes para você, em um só lugar.</div></div>
 <div class="grid">
@@ -132,7 +133,15 @@ body.car-active{overflow:hidden}
 <div class="note" style="margin-bottom:14px">Para receber também na Huawei Band 10, libere as notificações do DGX (ou do Chrome) no aplicativo Huawei Saúde. A entrega depende do Android e da conexão.</div>
 <h3 style="margin:12px 0">Quero ser avisado sobre</h3><div id="pushPreferences"></div></article>
 <article class="panel"><div class="panelhead"><h2>Permissão do navegador</h2></div><p class="sub" id="notificationState">O Android pode pedir autorização para mostrar avisos.</p><button class="btn ghost" id="notifyBtn">Permitir notificações</button></article></div><div class="col"><article class="panel"><div class="panelhead"><h2>Seus lembretes</h2><span class="pill" id="reminderCount">0</span></div><div id="reminderList" class="small"></div></article><article class="panel"><h2>Assuntos de interesse</h2><p class="sub">Já começamos com Corinthians e previsão do tempo. Você poderá adicionar outros temas e fontes em próximas versões.</p><div class="actions"><span class="pill aqua">⚽ Corinthians</span><span class="pill aqua">🌤️ Tempo</span><span class="pill">+ Novos assuntos em breve</span></div></article></div></div></section>
-<section class="section" id="page-voice"><div class="section-title"><p class="kicker">Assistente pessoal</p><h1>É só falar</h1><p class="sub">Toque no microfone e experimente comandos em português. O reconhecimento depende do navegador e da conexão.</p></div><div class="grid"><div class="col"><article class="panel voicebox"><div class="label">Assistente DGX</div><button class="mic" id="micBtn" aria-label="Iniciar comando por voz">🎙️</button><div class="speak" id="voiceStatus">Toque para falar</div><p class="sub" id="voiceTranscript">O microfone só é ativado quando você tocar no botão.</p><div class="field" style="margin:20px 0 10px"><label>Ou escreva um comando</label><input id="voiceInput" placeholder="Ex.: tocar Legião Urbana no Spotify"></div><button class="btn main full" id="voiceSend">Executar comando</button></article></div><div class="col"><article class="panel"><h2>Algumas coisas que entendo</h2><div class="stack" style="margin-top:16px"><button class="shortcut" data-command="Qual é a previsão do tempo?">🌤️ “Qual é a previsão do tempo?”</button><button class="shortcut" data-command="Quando é o próximo jogo do Corinthians?">⚽ “Quando é o próximo jogo do Corinthians?”</button><button class="shortcut" data-command="Abrir desafio do dia">🧠 “Abrir desafio do dia”</button><button class="shortcut" data-command="Tocar Titãs no Spotify">🎵 “Tocar Titãs no Spotify”</button><button class="shortcut" data-command="Registrar meu humor">🙂 “Registrar meu humor”</button></div></article><article class="panel"><div class="panelhead"><h2>🎵 Spotify</h2><span class="pill aqua">Por voz</span></div>
+<section class="section" id="page-voice"><div class="section-title"><p class="kicker">Assistente pessoal</p><h1>É só falar</h1><p class="sub">Toque no microfone e experimente comandos em português. O reconhecimento depende do navegador e da conexão.</p></div><div class="grid"><div class="col"><article class="panel" id="briefingPanel">
+<div class="panelhead"><h2>🔊 Resumo falado do trajeto</h2><span class="pill aqua">Personalizado</span></div>
+<p class="sub">Uma sequência de áudio com as informações que você escolher. Configure e inicie enquanto estiver parado.</p>
+<div class="actions" style="margin:12px 0"><button class="btn main" id="briefingPlay">▶ Ouvir meu resumo</button><button class="btn ghost" id="briefingStop" disabled>⏹ Parar</button></div>
+<p class="small" id="briefingStatus" role="status">Pronto para iniciar.</p>
+<details style="margin-top:15px"><summary style="cursor:pointer;min-height:40px;font-weight:700">Personalizar o que será lido</summary>
+<div id="briefingPrefs" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:6px;margin-top:12px"></div>
+</details><p class="small" style="margin-top:12px">A leitura usa a voz do navegador. Pode ser interrompida com a tela bloqueada ou se o Android suspender a página. Não há gravação de áudio.</p>
+</article><article class="panel voicebox"><div class="label">Assistente DGX</div><button class="mic" id="micBtn" aria-label="Iniciar comando por voz">🎙️</button><div class="speak" id="voiceStatus">Toque para falar</div><p class="sub" id="voiceTranscript">O microfone só é ativado quando você tocar no botão.</p><div class="field" style="margin:20px 0 10px"><label>Ou escreva um comando</label><input id="voiceInput" placeholder="Ex.: tocar Legião Urbana no Spotify"></div><button class="btn main full" id="voiceSend">Executar comando</button></article></div><div class="col"><article class="panel"><h2>Algumas coisas que entendo</h2><div class="stack" style="margin-top:16px"><button class="shortcut" data-command="Qual é a previsão do tempo?">🌤️ “Qual é a previsão do tempo?”</button><button class="shortcut" data-command="Quando é o próximo jogo do Corinthians?">⚽ “Quando é o próximo jogo do Corinthians?”</button><button class="shortcut" data-command="Abrir desafio do dia">🧠 “Abrir desafio do dia”</button><button class="shortcut" data-command="Tocar Titãs no Spotify">🎵 “Tocar Titãs no Spotify”</button><button class="shortcut" data-command="Registrar meu humor">🙂 “Registrar meu humor”</button></div></article><article class="panel"><div class="panelhead"><h2>🎵 Spotify</h2><span class="pill aqua">Por voz</span></div>
 <p class="sub" id="spotifyState">Verificando conexão...</p>
 <p class="sub">Entendo pedidos como “toque Evidências”, “músicas de Skank”, “playlist de rock”, “próxima” e “pause”. Se sua conta Spotify Premium estiver autorizada, tento tocar na reprodução ativa do celular. Sem conexão, abro a busca no Spotify.</p>
 <div class="field" style="margin:12px 0"><label>Spotify Client ID (do seu app no Spotify for Developers)</label><input id="spotifyClientId" placeholder="Cole aqui o Client ID público" autocomplete="off"></div>
@@ -153,13 +162,14 @@ body.car-active{overflow:hidden}
 <p class="car-info">Configure antes de sair. Não use a tela enquanto dirige; os comandos de voz exigem ativação manual e podem não funcionar com a tela bloqueada.</p>
 <div class="car-grid">
 <button class="car-tile primary" id="carMic"><span class="car-icon">🎙️</span><strong>Falar</strong><span>Comando de voz</span></button>
-<button class="car-tile" id="carBriefing"><span class="car-icon">🔊</span><strong>Meu resumo</strong><span>Tempo e Corinthians</span></button>
+<button class="car-tile" id="carBriefing"><span class="car-icon">🔊</span><strong>Resumo completo</strong><span>Agenda, contas, futebol e podcasts</span></button>
 <button class="car-tile" id="carSpotify"><span class="car-icon">🎵</span><strong>Spotify</strong><span>Como pedir músicas</span></button>
 <button class="car-tile" id="carPodcasts"><span class="car-icon">🎧</span><strong>Podcast novo</strong><span>Ouvir os títulos</span></button>
 <button class="car-tile" id="carAlerts"><span class="car-icon">🔔</span><strong>Lembretes</strong><span>Ouvir o próximo</span></button>
 <button class="car-tile" id="carViewPodcasts"><span class="car-icon">📻</span><strong>Programas</strong><span>Abrir lista</span></button>
 </div>
 <div class="car-status" id="carStatus" role="status">Seu assistente está pronto.</div>
+<button class="car-bottom" id="carBriefingStop" disabled>⏹ Interromper leitura</button>
 <button class="car-bottom" id="carHome">🏠 Voltar ao início</button>
 </div>
 <script>
@@ -248,7 +258,7 @@ else if(/conta|pagamento|pagar|boleto|vencimento|despesa/.test(cmd)){reply="Abri
 else if(/agenda|calendario|tarefa|compromisso/.test(cmd)){reply="Abrindo seu calendário.";go("calendar")}
 else if(/planta|aduba|jardim/.test(cmd)){reply="Abrindo o controle de suas plantas.";go("plants")}
 else if(/avisos|lembretes/.test(cmd)){reply="Abrindo seus lembretes.";go("alerts")}
-else if(/resumo|meu dia/.test(cmd)){reply=weatherSentence()+" "+fixtureSentence()}
+else if(/resumo|meu dia/.test(cmd)){if(window.DGXbriefingStart){window.DGXbriefingStart();return}reply=weatherSentence()+" "+fixtureSentence()}
 el("voiceStatus").textContent=reply;el("voiceTranscript").textContent="Pedido: "+text;say(reply)}
 el("voiceSend").onclick=function(){var txt=el("voiceInput").value.trim();if(txt)execute(txt)};
 el("voiceInput").onkeydown=function(e){if(e.key==="Enter")el("voiceSend").click()};
@@ -256,7 +266,7 @@ document.querySelectorAll("[data-command]").forEach(function(b){b.onclick=functi
 var Recognizer=window.SpeechRecognition||window.webkitSpeechRecognition;
 if(Recognizer){var recognition=new Recognizer();recognition.lang="pt-BR";recognition.interimResults=false;recognition.maxAlternatives=1;recognition.onresult=function(evt){var said=evt.results[0][0].transcript;el("voiceInput").value=said;el("voiceTranscript").textContent="Você disse: "+said;execute(said)};recognition.onerror=function(evt){el("voiceStatus").textContent="Microfone indisponível: "+evt.error};recognition.onend=function(){el("micBtn").classList.remove("listening")};el("micBtn").onclick=function(){try{recognition.start();el("voiceStatus").textContent="Estou ouvindo...";el("micBtn").classList.add("listening")}catch(e){toast("Tente novamente.")}}}
 else{el("micBtn").onclick=function(){toast("Reconhecimento de voz não disponível neste navegador.")}}
-window.DGXgoto=go;window.DGXtoast=toast;window.DGXrefresh=function(){restoreMoodForm();renderHistory();renderChallenge();renderReminders();renderHomeReminders()};
+window.DGXsummaryData=function(){return {weather:weather,fixtures:fixtures}};window.DGXgoto=go;window.DGXtoast=toast;window.DGXrefresh=function(){restoreMoodForm();renderHistory();renderChallenge();renderReminders();renderHomeReminders()};
 })();
 </script>
 <script src="/features.js" defer></script>
@@ -265,4 +275,5 @@ window.DGXgoto=go;window.DGXtoast=toast;window.DGXrefresh=function(){restoreMood
 <script src="/spotify.js" defer></script>
 <script src="/podcasts.js" defer></script>
 <script src="/car_mode.js" defer></script>
+<script src="/briefing.js" defer></script>
 </body></html>
