@@ -12,7 +12,7 @@ const redirect=location.origin+"/";
 let statusTimer=null;
 function clean(text){return String(text||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();}
 function notify(text){if(window.DGXtoast)window.DGXtoast(text);}
-function voice(text){$("voiceStatus").textContent=text;$("voiceTranscript").textContent=text; if(window.speechSynthesis){window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="pt-BR";u.rate=1;window.speechSynthesis.speak(u);}}
+function voice(text){$("voiceStatus").textContent=text;$("voiceTranscript").textContent=text; if(window.DGXsay){window.DGXsay(text);return}if(window.speechSynthesis){window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="pt-BR";window.speechSynthesis.speak(u);}}
 function tokens(){try{return JSON.parse(localStorage.getItem(K_TOKEN))||null}catch(e){return null}}
 function clientId(){return localStorage.getItem(K_ID)||""}
 function status(){
