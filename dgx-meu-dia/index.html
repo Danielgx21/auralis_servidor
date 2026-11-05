@@ -172,6 +172,26 @@ body.car-active{overflow:hidden}
  .app-header-car svg{width:16px;height:16px}
 }
 @media(prefers-reduced-motion:reduce){#page-home .home-toggle-icon{transition:none}}
+
+/* Painel Saúde e Humor: gráficos, tabelas e cartões compactos */
+.health-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.health-kpi{background:#172e3e;border:1px solid #33546a;padding:14px;border-radius:14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.health-kpi-label{color:#a0becd;font-size:11px;font-weight:750}
+.health-kpi strong{font-size:clamp(15px,2.5vw,24px);font-variant-numeric:tabular-nums;line-height:1.3}
+.health-kpi small{color:#87a9b8;font-size:10px;line-height:1.3}
+.health-chart{padding:10px 4px;border-radius:14px;background:#112638;border:1px solid #284457}
+.health-analysis-row,.health-joined{display:flex;justify-content:space-between;align-items:center;gap:9px;padding:13px 0;border-bottom:1px solid #2b4353;font-size:13px}
+.health-analysis-row strong{font-size:13px}
+.health-analysis-row .small{font-size:11px;margin-top:4px}
+.health-joined{padding:12px;border-radius:12px;background:#173b40;border:1px solid #346867;margin-bottom:7px}
+.health-joined strong{font-size:17px;color:#8bdfcb;white-space:nowrap}
+.health-history-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid #304654;padding:12px 0;font-size:13px}
+.health-history-row .small{font-size:11px;line-height:1.5;margin-top:5px}
+#page-health .panel{min-width:0}
+#page-health .field input[type=file]{width:100%;color:#bfd8de;font-size:12px}
+#page-health .stack .hide{display:none}
+@media(max-width:900px){.health-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:390px){.health-kpi strong{font-size:16px}.health-kpi{padding:11px}}
 </style>
 </head>
 <body class="locked">
@@ -181,7 +201,7 @@ body.car-active{overflow:hidden}
 <header class="top app-header" aria-label="Cabeçalho do DGX">
   <div class="app-header-brand" aria-label="DGX Meu Dia"><span class="app-header-mark">D</span><div class="app-header-wordmark"><strong>DGX <span>Meu Dia</span></strong><small>Seu assistente pessoal</small></div></div>
   <span class="app-header-date today" id="todayDate"></span>
-  <span class="app-header-version" id="appVersion">v0.9.1</span>
+  <span class="app-header-version" id="appVersion">v0.10</span>
   <div class="app-header-controls">
     <button class="app-header-car" id="enterCar" type="button"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 11 1.7-5.1A2 2 0 0 1 8.6 4.5h6.8a2 2 0 0 1 1.9 1.4L19 11"/><rect x="3" y="11" width="18" height="7" rx="2"/><path d="M6 18v2M18 18v2M6.5 14.5h.01M17.5 14.5h.01"/></svg><span>Modo Carro</span></button>
     <button class="app-header-logout hide" id="logoutBtn" type="button" title="Sair da conta" aria-label="Sair da conta"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg><span>Sair</span></button>
@@ -218,6 +238,7 @@ body.car-active{overflow:hidden}
 <article class="panel" data-home-panel="calendar"><div class="panelhead"><h2>📅 Agenda de hoje</h2><button class="roundbtn" data-goto="calendar">Calendário →</button></div><div class="sub" id="homeTasks">Nenhuma tarefa para hoje.</div></article><article class="panel" data-home-panel="payments"><div class="panelhead"><h2>💳 Contas deste mês</h2><button class="roundbtn" data-goto="payments">Pagamentos →</button></div><div id="homePayments" class="sub">Cadastre suas despesas recorrentes para acompanhar os vencimentos.</div></article><article class="panel" data-home-panel="plants"><div class="panelhead"><h2>🌱 Minhas plantas</h2><button class="roundbtn" data-goto="plants">Abrir →</button></div><div id="homePlants" class="sub">Cadastre uma planta para começar.</div></article><article class="panel" data-home-panel="alerts"><div class="panelhead"><h2>🔔 Seus avisos</h2><button class="roundbtn" data-goto="alerts">Adicionar +</button></div><div id="homeAlerts" class="sub">Nenhum aviso cadastrado.</div></article>
 </div>
 <div class="col">
+<article class="panel" data-home-panel="health"><div class="panelhead"><h2>❤️ Saúde e bem-estar</h2><span class="pill aqua">Huawei · dados importados</span></div><div id="homeHealth" class="sub">Acompanhe seus batimentos, sono, passos e humor.</div><button class="btn ghost full" data-goto="health" style="margin-top:13px">Abrir meu painel de saúde →</button></article>
 <article class="panel soft" data-home-panel="mood"><div class="panelhead"><h2>Como você está hoje?</h2><span class="pill aqua" id="moodTimeTitle">Agora</span></div><p class="sub" style="margin:0 0 12px">Um registro rápido para acompanhar seus dias.</p><div class="moods" id="homeMoods"></div><div class="small" style="margin-top:12px" id="homeMoodStatus">Escolha como você se sente.</div><button class="btn ghost full" data-goto="mood" style="margin-top:13px">Ver meu diário →</button></article>
 <article class="panel" data-home-panel="challenge"><div class="panelhead"><h2>🧠 Desafio do dia</h2><span class="pill aqua">Novo a cada dia</span></div><div class="label" id="homeChallengeCategory">Lógica</div><p style="font-weight:700;line-height:1.5;margin:9px 0 18px" id="homeChallengeText">Preparando desafio...</p><button class="btn main full" data-goto="challenge">Resolver desafio →</button></article>
 <article class="panel" data-home-panel="voice"><div class="panelhead"><h2>🎙️ Comandos de voz</h2><span class="pill">Experimental</span></div><p class="sub">Peça a previsão do tempo, consulte os jogos ou abra uma música no Spotify.</p><div class="actions"><button class="btn" data-goto="voice">Abrir assistente</button><button class="btn ghost" id="readBriefing">Ouvir resumo</button></div></article>
@@ -279,6 +300,58 @@ body.car-active{overflow:hidden}
 <section class="section" id="page-challenge"><div class="section-title"><p class="kicker">Um pouco de diversão</p><h1>Desafio do dia</h1><p class="sub">Um problema por dia. Pense, escolha e descubra a explicação.</p></div>
 <div class="panel" style="max-width:700px"><div class="hori"><span class="pill aqua" id="challengeTag">Ciência</span><div class="small" id="challengeProgress">0 respostas</div></div><h2 style="font-size:23px;line-height:1.4;margin:20px 0" id="challengeQuestion"></h2><div id="challengeOptions"></div><div id="challengeResult"></div></div>
 </section>
+<section class="section" id="page-health">
+<div class="section-title"><p class="kicker">Bem-estar e dados pessoais</p><h1>Saúde & humor</h1>
+<p class="sub">Compare sua frequência cardíaca, sono e atividade com os registros de humor da manhã e da noite. Seus dados ficam na conta privada do DGX.</p></div>
+<div class="panel" style="margin-bottom:15px"><div class="panelhead"><h2>Minha visão de saúde</h2><span class="pill aqua" id="healthCount">0 dias</span></div>
+<div class="health-kpis" id="healthCards"></div><p class="small" id="healthSyncState" style="margin-top:13px"></p></div>
+<div class="grid"><div class="col">
+<article class="panel">
+<div class="panelhead"><h2>📈 Evolução diária</h2><span class="pill">Até 21 dias</span></div>
+<div class="field" style="margin:12px 0"><label for="healthChartMetric">Escolha o indicador</label>
+<select id="healthChartMetric"><option value="heartAvg">Frequência cardíaca média</option><option value="heartRest">Batimentos em repouso</option><option value="sleepHours">Horas de sono</option><option value="steps">Passos</option><option value="spo2">Saturação de oxigênio</option><option value="stress">Estresse</option></select></div>
+<div id="healthChart" class="health-chart"></div></article>
+<article class="panel"><div class="panelhead"><h2>🔎 Relação com seu humor</h2><span class="pill" id="healthJoinedCount">0 dias</span></div>
+<div id="healthAnalysis"></div>
+<p class="small" style="margin-top:15px">Os registros do relógio são medidas de consumo, não exames médicos. Não use as correlações para tirar conclusões clínicas ou substituir orientações profissionais.</p></article>
+<article class="panel"><div class="panelhead"><h2>Histórico de medições</h2></div><div id="healthHistory"></div></article>
+</div><div class="col">
+<article class="panel"><div class="panelhead"><h2>Registrar medições</h2><span class="pill aqua">Neon</span></div>
+<form id="healthForm" class="stack" autocomplete="off">
+<div class="field"><label>Data</label><input id="healthDay" type="date" required></div>
+<div class="twofields">
+<div class="field"><label>FC média (bpm)</label><input id="health-heartAvg" inputmode="decimal" placeholder="Ex.: 76"></div>
+<div class="field"><label>FC em repouso (bpm)</label><input id="health-heartRest" inputmode="decimal" placeholder="Ex.: 61"></div>
+<div class="field"><label>Sono (horas)</label><input id="health-sleepHours" inputmode="decimal" placeholder="Ex.: 7,5"></div>
+<div class="field"><label>Passos</label><input id="health-steps" inputmode="numeric" placeholder="Ex.: 6500"></div>
+<div class="field"><label>SpO₂ média (%)</label><input id="health-spo2" inputmode="decimal" placeholder="Ex.: 97"></div>
+<div class="field"><label>Estresse (0 a 100)</label><input id="health-stress" inputmode="numeric" placeholder="Ex.: 35"></div></div>
+<div class="actions"><button class="btn main" type="submit">Salvar medições</button><button class="btn ghost" type="button" id="healthClearForm">Limpar</button></div>
+</form>
+<p class="small" style="margin-top:12px">Preencha apenas os dados que tiver. Sono deve corresponder ao dia em que você acordou.</p>
+</article>
+<article class="panel"><div class="panelhead"><h2>📁 Importar CSV</h2><span class="pill">Sem senha da Huawei</span></div>
+<p class="sub">Você pode importar arquivos CSV exportados de uma fonte de saúde. O arquivo é lido no celular; só os valores diários selecionados são enviados ao seu banco DGX.</p>
+<div class="stack" style="margin-top:12px">
+<div class="field"><label>Arquivo CSV</label><input id="healthCsvFile" type="file" accept=".csv,text/csv"></div>
+<div class="hide stack" id="healthCsvMapping">
+<div class="twofields">
+<div class="field"><label>Coluna com a data</label><select id="healthCsvDate"></select></div>
+<div class="field"><label>Coluna com o valor</label><select id="healthCsvValue"></select></div>
+<div class="field"><label>Indicador</label><select id="healthCsvMetric"><option value="heartAvg">FC média</option><option value="heartRest">FC repouso</option><option value="sleepHours">Sono</option><option value="steps">Passos</option><option value="spo2">SpO₂</option><option value="stress">Estresse</option></select></div>
+<div class="field"><label>Unidade do arquivo</label><select id="healthCsvUnit"><option value="raw">Valor informado</option><option value="hours">Horas</option><option value="minutes">Minutos de sono</option></select></div>
+<div class="field"><label>Se houver mais de um registro no dia</label><select id="healthCsvAggregate"><option value="average">Calcular média</option><option value="sum">Somar os valores</option><option value="last">Usar o último</option></select></div>
+</div><button id="healthCsvImport" type="button" class="btn main">Importar os dias selecionados</button></div>
+<p id="healthCsvStatus" class="small">Selecione o arquivo para mapear as colunas.</p>
+<button id="healthExampleCsv" type="button" class="btn ghost">Baixar exemplo CSV</button>
+</div>
+<p class="small" style="margin-top:14px">Se o CSV tiver vários indicadores, importe uma coluna por vez. Confirme se os dados de passos são totais diários ou incrementos antes de escolher “Somar”.</p>
+</article>
+<article class="panel"><h2>Como conectar a Huawei Band 10?</h2>
+<p class="sub">A integração automática direta com o Huawei Saúde ainda <strong>não está ativa</strong>. O Health Kit exige aprovação da Huawei e autorização da sua conta; um site PWA não consegue ler o aplicativo instalado no Android por conta própria.</p>
+<p class="sub" style="margin-top:12px">Uma possibilidade intermediária é usar <a href="https://healthsync.app/" target="_blank" rel="noopener noreferrer">Health Sync</a> para exportar dados Huawei para Health Connect ou CSV. A sincronização automática com o DGX exigirá um aplicativo auxiliar Android com permissões específicas.</p>
+</article>
+</div></div></section>
 <section class="section" id="page-mood"><div class="section-title"><p class="kicker">Seu diário pessoal</p><h1>Humor, manhã e noite</h1><p class="sub">Não é uma avaliação clínica: é um espaço privado para perceber como seus dias estão sendo.</p></div><div class="grid"><div class="col"><article class="panel"><div class="hori"><h2>Registrar meu humor</h2><span class="pill" id="moodToday"></span></div><div class="field" style="margin:17px 0"><label>Período</label><select id="moodPeriod"><option value="manha">Manhã</option><option value="noite">Noite</option></select></div><div class="moods" id="moodChooser"></div><div class="field" style="margin-top:16px"><label>Quer anotar alguma coisa? (opcional)</label><textarea id="moodNote" rows="3" placeholder="O que contribuiu para você se sentir assim?"></textarea></div><button id="saveMood" class="btn main full" style="margin-top:15px">Salvar registro</button><p class="small" id="moodSaved"></p></article></div><div class="col"><article class="panel"><div class="panelhead"><h2>Seu histórico</h2><span class="pill">Neste aparelho</span></div><div id="moodHistory" class="small">Ainda sem registros.</div></article></div></div></section>
 <section class="section" id="page-alerts"><div class="section-title"><p class="kicker">Do seu jeito</p><h1>Coisas que importam</h1><p class="sub">Cadastre algo que quer lembrar. Com o tempo, vamos acrescentar novos assuntos e acompanhamentos.</p></div><div class="grid"><div class="col"><article class="panel"><h2>Adicionar lembrete</h2><div class="stack" style="margin-top:18px"><div class="field"><label>O que deseja lembrar?</label><input id="reminderTitle" maxlength="120" placeholder="Ex.: reunião, compromisso, algo importante"></div><div class="field"><label>Quando?</label><input id="reminderAt" type="datetime-local"></div><button class="btn main" id="addReminder">Salvar lembrete</button></div><div class="note" style="margin-top:16px">Os avisos em segundo plano dependem da ativação do Web Push neste celular e do agendador. O relógio Huawei pode espelhar as notificações do Android, se permitido no Huawei Saúde.</div></article><article class="panel"><div class="panelhead"><h2>📲 Notificações com o site fechado</h2><span class="pill aqua">Web Push</span></div>
 <p class="sub" id="pushStatus">Verificando disponibilidade...</p>
@@ -306,7 +379,7 @@ body.car-active{overflow:hidden}
 <nav class="bottomnav" aria-label="Navegação principal">
 <button class="tab active" data-page="home"><span>🏠</span>Início</button>
 <button class="tab" data-page="calendar"><span>📅</span>Agenda</button><button class="tab" data-page="payments"><span>💳</span>Contas</button><button class="tab" data-page="plants"><span>🌱</span>Plantas</button><button class="tab" data-page="podcasts"><span>🎧</span>Podcasts</button><button class="tab" data-page="challenge"><span>🧠</span>Desafios</button>
-<button class="tab" data-page="mood"><span>☺</span>Humor</button>
+<button class="tab" data-page="health"><span>❤️</span>Saúde</button><button class="tab" data-page="mood"><span>☺</span>Humor</button>
 <button class="tab" data-page="alerts"><span>🔔</span>Avisos</button>
 <button class="tab" data-page="voice"><span>🎙️</span>Voz</button>
 </nav>
@@ -337,7 +410,7 @@ function day(){return new Intl.DateTimeFormat("sv-SE",{timeZone:TZ,year:"numeric
 function dt(value){return new Date(value).toLocaleString("pt-BR",{timeZone:TZ,weekday:"short",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}
 function hour(){return Number(new Intl.DateTimeFormat("en-GB",{timeZone:TZ,hour:"2-digit",hour12:false}).format(new Date()))}
 function toast(t){var old=el("miniToast");if(old)old.remove();var x=document.createElement("div");x.id="miniToast";x.textContent=t;x.style.cssText="position:fixed;left:50%;transform:translateX(-50%);bottom:100px;background:#a1efd6;color:#102b30;padding:13px 17px;border-radius:14px;max-width:90%;z-index:25;font-weight:700;box-shadow:0 6px 30px #0008;font-size:13px";document.body.appendChild(x);setTimeout(function(){x.remove()},4500)}
-function go(page){document.querySelectorAll(".section").forEach(function(s){s.classList.toggle("active",s.id==="page-"+page)});document.querySelectorAll(".tab").forEach(function(t){t.classList.toggle("active",t.dataset.page===page)});window.scrollTo(0,0);if(page==="mood")renderHistory();if(page==="alerts")renderReminders();if(page==="podcasts"&&window.DGXpodcastsSync)window.DGXpodcastsSync(false)}
+function go(page){document.querySelectorAll(".section").forEach(function(s){s.classList.toggle("active",s.id==="page-"+page)});document.querySelectorAll(".tab").forEach(function(t){t.classList.toggle("active",t.dataset.page===page)});window.scrollTo(0,0);if(page==="mood")renderHistory();if(page==="health")window.DGXhealthRefresh?.();if(page==="alerts")renderReminders();if(page==="podcasts"&&window.DGXpodcastsSync)window.DGXpodcastsSync(false)}
 document.querySelectorAll("[data-page]").forEach(function(b){b.addEventListener("click",function(){go(b.dataset.page)})});document.querySelectorAll("[data-goto]").forEach(function(b){b.addEventListener("click",function(){go(b.dataset.goto)})});
 el("todayDate").textContent=new Intl.DateTimeFormat("pt-BR",{timeZone:TZ,weekday:"long",day:"numeric",month:"short"}).format(new Date());
 
@@ -359,7 +432,7 @@ function syncMood(){el("moodChooser").innerHTML=moodsHTML();el("homeMoods").inne
 el("moodPeriod").value=currentPeriod();el("moodPeriod").onchange=function(){restoreMoodForm()};
 function restoreMoodForm(){var existing=entry(day(),el("moodPeriod").value);if(existing){selectedMood=existing.mood;el("moodNote").value=existing.note||""}else{selectedMood=3;el("moodNote").value=""}syncMood()}
 function renderHistory(){var data=read("dgx_moods_v1",[]).slice().sort(function(a,b){return b.time.localeCompare(a.time)});el("moodHistory").innerHTML=data.length?data.slice(0,20).map(function(e){return '<div class="historyitem"><div class="hori"><strong>'+esc(e.day.slice(8)+"/"+e.day.slice(5,7))+' · '+(e.period==="manha"?"Manhã":"Noite")+'</strong><strong>'+emojis[e.mood]+" "+labels[e.mood]+'</strong></div>'+(e.note?'<div class="small" style="margin-top:5px">'+esc(e.note)+'</div>':"")+'</div>'}).join(""):"Ainda sem registros."}
-el("saveMood").onclick=function(){var data=read("dgx_moods_v1",[]);var d=day(),p=el("moodPeriod").value;data=data.filter(function(e){return !(e.day===d&&e.period===p)});data.push({day:d,period:p,mood:selectedMood,note:el("moodNote").value.trim().slice(0,1000),time:new Date().toISOString()});write("dgx_moods_v1",data);el("moodSaved").textContent="Salvo: "+(p==="manha"?"manhã":"noite")+", "+labels[selectedMood].toLowerCase()+".";el("homeMoodStatus").textContent="Registro de "+(p==="manha"?"manhã":"noite")+" salvo hoje.";renderHistory();toast("Humor registrado neste aparelho.")};
+el("saveMood").onclick=function(){var data=read("dgx_moods_v1",[]);var d=day(),p=el("moodPeriod").value;data=data.filter(function(e){return !(e.day===d&&e.period===p)});data.push({day:d,period:p,mood:selectedMood,note:el("moodNote").value.trim().slice(0,1000),time:new Date().toISOString()});write("dgx_moods_v1",data);el("moodSaved").textContent="Salvo: "+(p==="manha"?"manhã":"noite")+", "+labels[selectedMood].toLowerCase()+".";el("homeMoodStatus").textContent="Registro de "+(p==="manha"?"manhã":"noite")+" salvo hoje.";renderHistory();window.DGXhealthRefresh?.();toast("Humor registrado na sua conta.")};
 el("moodToday").textContent=day().split("-").reverse().join("/");
 el("moodTimeTitle").textContent=currentPeriod()==="manha"?"Manhã":"Noite";
 restoreMoodForm();
@@ -431,4 +504,5 @@ window.DGXsummaryData=function(){return {weather:weather,fixtures:fixtures,fixtu
 <script src="/briefing.js" defer></script>
 <script src="/home_panels.js" defer></script>
 <script src="/today.js" defer></script>
+<script src="/health.js" defer></script>
 </body></html>
