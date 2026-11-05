@@ -38,6 +38,7 @@ function write(key,value){
   notify("Falha ao salvar no banco: "+err.message+". Não feche sem tentar novamente.");
   console.error("Erro ao salvar",key,err);
  });
+ return next;
 }
 window.DGXStore={read:dataRead,write};
 function showAuth(title,message,setup){
