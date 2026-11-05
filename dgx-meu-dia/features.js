@@ -12,7 +12,7 @@ const notify=s=>window.DGXtoast&&window.DGXtoast(s);
 const allowed=["dgx_moods_v1","dgx_challenges_v1","dgx_reminders_v1","dgx_notified_v1","dgx_plants_v1","dgx_tasks_v1","dgx_payments_v1","dgx_push_prefs_v1","dgx_podcasts_v1","dgx_briefing_prefs_v1"];
 let state={},authenticated=false,writeSerial={},unsaved=0,bootstrapped=false;
 function dataRead(key,fallback){return Object.prototype.hasOwnProperty.call(state,key)?state[key]:fallback}
-function updateStatus(status){$("appVersion").textContent="v0.6 · "+status}
+function updateStatus(status){$("appVersion").textContent="v0.7 · "+status}
 async function api(url,opts){
  const res=await fetch(url,{credentials:"same-origin",cache:"no-store",...opts});
  let data;try{data=await res.json()}catch(e){data={error:"Resposta inválida do servidor"}}
@@ -40,7 +40,18 @@ function write(key,value){
  });
  return next;
 }
-window.DGXStore={read:dataRead,write};
+async function syncDataKey(key){
+ if(!authenticated)throw Error("Faça login para sincronizar.");
+ if(!allowed.includes(key))throw Error("Categoria de dados inválida.");
+ // Evita substituir uma alteração local antes do envio ao banco.
+ if(writeSerial[key])await writeSerial[key];
+ const result=await api("/api/data");
+ const remote=result.data||{};
+ if(Object.prototype.hasOwnProperty.call(remote,key))state[key]=remote[key];
+ else delete state[key];
+ return dataRead(key,[]);
+}
+window.DGXStore={read:dataRead,write,sync:syncDataKey};
 function showAuth(title,message,setup){
  document.body.classList.add("locked");
  $("authGate").classList.remove("hide");
