@@ -1,4 +1,4 @@
-/* DGX Meu Dia v0.9 — visão diária consolidada no Início.
+/* DGX Meu Dia v0.9.1 — visão de hoje e próximos 3 dias.
    Tudo é derivado dos dados já existentes (Neon + agenda esportiva). */
 (function(){
 "use strict";
@@ -33,31 +33,64 @@ function billAmount(b,month){
  const change=b.monthly?.[month];
  return Number.isSafeInteger(change)?change:(Number.isSafeInteger(b.amountCents)?b.amountCents:0);
 }
+function whenAhead(offset){
+ return offset===1?"amanhã":"em "+offset+" dias";
+}
 function gameSummary(day){
  const info=window.DGXsummaryData?.()||{};
- const list=(info.fixtures||[]).filter(g=>{
-  try{return localDate(g.date)===day}catch(e){return false}
+ const games=(Array.isArray(info.fixtures)?info.fixtures:[]).filter(g=>{
+  try{
+   const days=addDays(day,3);
+   const date=localDate(g.date);
+   return date>=day&&date<=days;
+  }catch(e){return false}
  }).sort((a,b)=>a.date.localeCompare(b.date));
- if(!list.length)return {heading:"Sem jogo identificado hoje",detail:"Confira a agenda do Timão para próximas partidas.",tone:"neutral",count:0};
- const g=list[0],hour=fmtHour(g.date),isReference=(info.fixtureLabel||"").includes("referência");
- return {
-  heading:list.length===1?g.home+" × "+g.away:list.length+" jogos identificados hoje",
-  detail:"Hoje às "+hour+(isReference?" · horário de referência, confirme antes":" · horários sujeitos a alterações"),
-  tone:"highlight",count:list.length
- };
+ const gamesToday=games.filter(g=>localDate(g.date)===day);
+ const upcoming=games.filter(g=>localDate(g.date)!==day);
+ const uncertain=(info.fixtureLabel||"").includes("referência");
+ const caveat=uncertain?" · Agenda de referência; confirme o horário.":" · Sujeito a alteração.";
+ if(gamesToday.length){
+  const first=gamesToday[0];
+  const next=upcoming[0];
+  const extra=next?" Próximos 3 dias: "+next.home+" × "+next.away+" ("+
+    whenAhead(Math.round((Date.parse(localDate(next.date)+"T12:00:00Z")-Date.parse(day+"T12:00:00Z"))/86400000))+").":" Nenhum outro jogo identificado nos próximos 3 dias.";
+  return {heading:gamesToday.length===1?first.home+" × "+first.away:gamesToday.length+" jogos identificados hoje",
+   detail:"Hoje às "+fmtHour(first.date)+caveat+extra,tone:"highlight",count:games.length};
+ }
+ if(upcoming.length){
+  const first=upcoming[0],diff=Math.round((Date.parse(localDate(first.date)+"T12:00:00Z")-Date.parse(day+"T12:00:00Z"))/86400000);
+  return {heading:upcoming.length===1?"Próximo jogo: "+whenAhead(diff):upcoming.length+" jogos nos próximos 3 dias",
+   detail:first.home+" × "+first.away+" · "+whenAhead(diff)+" às "+fmtHour(first.date)+
+     (upcoming.length>1?" · +"+(upcoming.length-1)+" outro(s) jogo(s).":"")+caveat,
+   tone:"upcoming",count:upcoming.length};
+ }
+ return {heading:"Sem jogo identificado hoje",detail:"Nenhum jogo identificado para os próximos 3 dias. Confira a agenda oficial do Corinthians.",tone:"neutral",count:0};
 }
 function agendaSummary(day){
- const tasks=get("dgx_tasks_v1").filter(t=>t?.date===day);
- const rems=get("dgx_reminders_v1").filter(r=>typeof r?.at==="string"&&r.at.slice(0,10)===day);
- const sorted=[
-  ...tasks.map(t=>({title:String(t.title||"Tarefa"),type:t.type==="sme"?"SME":"Pessoal",time:t.time||"99:99",done:!!t.done})),
-  ...rems.map(r=>({title:String(r.title||"Lembrete"),type:"Lembrete",time:r.at.slice(11,16)||"99:99",done:false}))
- ].sort((a,b)=>a.time.localeCompare(b.time));
- if(!sorted.length)return {heading:"Nenhum compromisso hoje",detail:"Sua agenda está livre até o momento.",tone:"neutral",count:0};
- const completed=sorted.filter(x=>x.done).length;
- const detail=sorted.slice(0,3).map(x=>x.type+": "+x.title+(x.time!=="99:99"?" · "+x.time:"")+(x.done?" ✓":"")).join("  •  ");
- return {heading:sorted.length===1?"1 item na agenda":"Hoje: "+sorted.length+" itens na agenda",
-  detail:detail+(sorted.length>3?"  •  +"+(sorted.length-3)+" outros":"")+(completed===sorted.length?" · Todos concluídos":""),tone:"highlight",count:sorted.length};
+ const tomorrow=addDays(day,1),windowEnd=addDays(day,3);
+ const tasks=get("dgx_tasks_v1").filter(t=>t&&typeof t.date==="string"&&t.date>=day&&t.date<=windowEnd);
+ const reminders=get("dgx_reminders_v1").filter(r=>r&&typeof r.at==="string"&&r.at.slice(0,10)>=day&&r.at.slice(0,10)<=windowEnd);
+ const events=[
+  ...tasks.map(t=>({date:t.date,title:String(t.title||"Tarefa"),type:t.type==="sme"?"SME":"Pessoal",time:t.time||"",done:!!t.done})),
+  ...reminders.map(r=>({date:r.at.slice(0,10),title:String(r.title||"Lembrete"),type:"Lembrete",time:r.at.slice(11,16)||"",done:false}))
+ ].sort((a,b)=>(a.date+" "+(a.time||"99:99")).localeCompare(b.date+" "+(b.time||"99:99")));
+ const current=events.filter(e=>e.date===day),next=events.filter(e=>e.date>=tomorrow);
+ const describe=e=>e.type+": "+e.title+(e.time?" · "+e.time:"")+(e.done?" ✓":"");
+ if(current.length){
+  const details=current.slice(0,2).map(describe).join(" • ")+(current.length>2?" • +"+(current.length-2)+" outro(s)":"");
+  const suffix=next.length?" Próximos 3 dias: "+next.length+" compromisso(s). "+
+    next.slice(0,1).map(e=>whenAhead(Math.round((Date.parse(e.date+"T12:00:00Z")-Date.parse(day+"T12:00:00Z"))/86400000))+": "+describe(e)).join(""):
+    " Nenhum outro compromisso cadastrado nos próximos 3 dias.";
+  return {heading:current.length===1?"1 compromisso hoje":current.length+" compromissos hoje",
+    detail:details+"."+suffix,tone:"highlight",count:events.length};
+ }
+ if(next.length){
+  const first=next[0],diff=Math.round((Date.parse(first.date+"T12:00:00Z")-Date.parse(day+"T12:00:00Z"))/86400000);
+  return {heading:next.length===1?"1 compromisso nos próximos 3 dias":next.length+" compromissos nos próximos 3 dias",
+    detail:whenAhead(diff)+": "+describe(first)+(next.length>1?" • +"+(next.length-1)+" outro(s)":""),
+    tone:"upcoming",count:next.length};
+ }
+ return {heading:"Nenhum compromisso hoje",detail:"Sem tarefas ou lembretes cadastrados para os próximos 3 dias.",tone:"neutral",count:0};
 }
 function paymentSummary(day){
  const month=day.slice(0,7);
