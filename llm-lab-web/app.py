@@ -1,6 +1,6 @@
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from collections import defaultdict, Counter
-from urllib import request
+from urllib import request, parse
 import ast, json, os, re
 
 PORT = int(os.environ.get("PORT", "8000"))
@@ -105,24 +105,31 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length",str(len(dat)))
         self.end_headers(); self.wfile.write(dat)
     def do_GET(self):
-        if self.path=="/":
+        path = parse.urlsplit(self.path).path
+        if path == "/favicon.ico":
+            self.send_response(204)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+        if path not in ("/api/status", "/health") and not path.startswith("/api/"):
             b=PAGE.encode()
             self.send_response(200)
             self.send_header("Content-Type","text/html; charset=utf-8")
             self.send_header("Content-Length",str(len(b)))
             self.end_headers();self.wfile.write(b)
-        elif self.path=="/api/status":
+        elif path=="/api/status":
             self.send({"model_connected":bool(BASE and MODEL),"corpus_chars":len(CORPUS)})
-        elif self.path=="/health":self.send({"ok":True})
+        elif path=="/health":self.send({"ok":True})
         else:self.send({"error":"not found"},404)
     def do_POST(self):
+        path = parse.urlsplit(self.path).path
         try:
             n=int(self.headers.get("Content-Length","0"))
             if n<1 or n>25000:return self.send({"error":"invalid size"},400)
             p=json.loads(self.rfile.read(n))
             if not isinstance(p,dict):return self.send({"error":"invalid payload"},400)
-            if self.path=="/api/chat":return self.send(chat(p))
-            if self.path=="/api/predict":return self.send({"predictions":get_prediction(p.get("text",""))})
+            if path=="/api/chat":return self.send(chat(p))
+            if path=="/api/predict":return self.send({"predictions":get_prediction(p.get("text",""))})
             self.send({"error":"not found"},404)
         except Exception:self.send({"error":"invalid request"},400)
     def log_message(self,*args):pass
