@@ -27,7 +27,7 @@ $("carMic").onclick=()=>{
 };
 $("carBriefing").onclick=()=>{
  $("carStatus").textContent="Lendo seu resumo do dia.";
- $("readBriefing").click();
+ if(window.DGXbriefingStart)window.DGXbriefingStart();else $("readBriefing").click();
 };
 $("carPodcasts").onclick=()=>{
  const msg=window.DGXpodcastsSpeakLatest?.()||"Seus podcasts estão no menu Podcasts.";
