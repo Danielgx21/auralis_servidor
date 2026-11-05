@@ -36,7 +36,7 @@ async function authorize(){
  url.search=new URLSearchParams({
   client_id:client,response_type:"code",redirect_uri:redirect,
   code_challenge_method:"S256",code_challenge:challenge,state,
-  scope:"user-read-playback-state user-modify-playback-state",
+  scope:"user-read-playback-state user-modify-playback-state user-library-read",
   show_dialog:"false"
  }).toString();
  location.assign(url.href);
@@ -178,7 +178,17 @@ async function handle(raw){
  }
  return true;
 }
-window.DGXSpotify={handle,parse,status};
+async function savedShows(){
+ const all=[];
+ for(let offset=0;offset<100;offset+=50){
+  const page=await request("/me/shows?limit=50&offset="+offset);
+  const items=(page?.items||[]).map(x=>x.show).filter(x=>x&&x.name);
+  items.forEach(show=>all.push({name:show.name,spotifyUrl:show.external_urls?.spotify||""}));
+  if(!page?.next||!items.length)break;
+ }
+ return all;
+}
+window.DGXSpotify={handle,parse,status,savedShows};
 $("spotifySaveId").onclick=()=>{
  const input=$("spotifyClientId").value.trim();
  if(input&&!/^[a-zA-Z0-9]{20,80}$/.test(input)){notify("Client ID inválido.");return}
