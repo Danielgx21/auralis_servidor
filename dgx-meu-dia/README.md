@@ -1,4 +1,4 @@
-# DGX Meu Dia — v0.5 (2026-11-05)
+# DGX Meu Dia — v0.6 (2026-11-05)
 
 **Projeto pessoal exclusivo**, branch \`dgx-meu-dia-v1\` em \`Danielgx21/auralis_servidor\`, pasta \`dgx-meu-dia/\`. Não modificar o Manual das Criaturas, Batalha de Miniaturas ou Auralis.
 
@@ -49,3 +49,9 @@ Runtime Python com comando \`python dgx-meu-dia/app.py\`.
 - A seção Podcasts mostra episódios recentes. “Abrir no Spotify” abre o programa ou busca correspondente, não garante abrir o episódio exato.
 - Importação opcional de podcasts salvos na biblioteca Spotify usando `GET /me/shows` com escopo `user-library-read`; pode ser necessário reconectar para conceder o escopo. A associação com o RSS sempre é confirmada pelo usuário.
 - Alguns programas exclusivos do Spotify não têm RSS público, por isso não há promessa de monitoramento automático desses conteúdos.
+
+## v0.6 — briefing do trajeto e primeiro podcast
+- Resumo falado acionado manualmente no Início, aba Voz e Modo Carro, combinando temperatura/previsão, agenda de hoje e amanhã, contas próximas do vencimento (incluindo atrasadas), próximo jogo do Corinthians, últimos episódios dos podcasts e lembretes próximos. Humor é opcional, desligado por padrão.
+- Configurações por tópico salvas no Neon sob `dgx_briefing_prefs_v1`, controles reproduzir/parar e botão grande para parar a fala no Modo Carro. Usa Web Speech / síntese do navegador, sem serviço contínuo nem garantia de tocar com tela bloqueada.
+- Podcast **Dragões de Garagem** confirmado no catálogo Apple Podcasts (`id655285497`), incluído diretamente em `dgx_podcasts_v1` no perfil existente. Spotify: `https://open.spotify.com/show/2lfu1zVduPXau4LMF8gEu2`. Feed público: `https://dragoesdegaragem.com/feed/podcast/`.
+- Primeiro ciclo de monitoramento de um podcast funciona como linha de base, sem alertar sobre toda a coleção antiga. Para avisar novas publicações, notificações Web Push e permissão Android continuam necessárias.
