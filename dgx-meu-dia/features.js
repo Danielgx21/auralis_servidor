@@ -12,7 +12,7 @@ const notify=s=>window.DGXtoast&&window.DGXtoast(s);
 const allowed=["dgx_moods_v1","dgx_challenges_v1","dgx_reminders_v1","dgx_notified_v1","dgx_plants_v1","dgx_tasks_v1","dgx_payments_v1","dgx_push_prefs_v1","dgx_podcasts_v1","dgx_briefing_prefs_v1","dgx_home_panels_v1"];
 let state={},authenticated=false,writeSerial={},unsaved=0,bootstrapped=false;
 function dataRead(key,fallback){return Object.prototype.hasOwnProperty.call(state,key)?state[key]:fallback}
-function updateStatus(status){$("appVersion").textContent="v0.11 · "+status}
+function updateStatus(status){$("appVersion").textContent="v0.12 · "+status}
 async function api(url,opts){
  const res=await fetch(url,{credentials:"same-origin",cache:"no-store",...opts});
  let data;try{data=await res.json()}catch(e){data={error:"Resposta inválida do servidor"}}
