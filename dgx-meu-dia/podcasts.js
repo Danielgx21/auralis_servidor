@@ -29,7 +29,8 @@ function renderWatched(){
  $("podcastCount").textContent=list.length+" acompanhados";
  $("homePodcastCount").textContent=list.length?list.length+" programas":"Nenhum cadastrado";
  $("podcastSubscriptions").innerHTML=list.length?list.map(p=>'<div class="pod-show"><div style="flex:1;min-width:0"><strong>'+esc(p.name)+'</strong><div class="small">'+esc(p.publisher||"Podcast")+'</div>'+
- '<a href="'+esc(spotifyUrl(p))+'" target="_blank" rel="noopener noreferrer" class="small" style="display:inline-block;margin-top:8px">Abrir no Spotify ↗</a></div>'+
+ '<a href="'+esc(spotifyUrl(p))+'" target="_blank" rel="noopener noreferrer" class="small" style="display:inline-block;margin-top:8px">Abrir no Spotify ↗</a>'+
+ (String(p.id).startsWith("spotify:")?'<div class="small" style="margin-top:5px;color:#f2c48f">Exclusivo Spotify · sem avisos automáticos de episódios</div>':"")+'</div>'+
  '<button type="button" class="btn ghost" data-unfollow="'+esc(p.id)+'" aria-label="Deixar de acompanhar '+esc(p.name)+'">Remover</button></div>').join("")
  :'<div class="empty">Escolha seus podcasts favoritos. O DGX verificará novos episódios automaticamente.</div>';
  $("podcastSubscriptions").querySelectorAll("[data-unfollow]").forEach(b=>b.onclick=async()=>{
@@ -39,9 +40,9 @@ function renderWatched(){
 }
 async function add(p,spotify=""){
  const list=watched();
- if(list.some(x=>Number(x.id)===Number(p.id))){notify("Você já acompanha "+p.name);return}
+ if(list.some(x=>String(x.id)===String(p.id))){notify("Você já acompanha "+p.name);return}
  if(list.length>=15){notify("Limite inicial de 15 podcasts. Remova um para adicionar.");return}
- const item={id:Number(p.id),name:String(p.name||"Podcast").slice(0,150),
+ const item={id:p.id,name:String(p.name||"Podcast").slice(0,150),
   publisher:String(p.publisher||"").slice(0,100),spotify:spotify||""};
  try{await save(list.concat(item));notify("Agora você acompanha "+item.name+".") }
  catch(e){notify("Falha ao salvar: "+e.message)}
