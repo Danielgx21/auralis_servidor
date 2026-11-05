@@ -238,6 +238,8 @@ PAGE = r'''<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta n
 <button id="dialogTrain" type="button">▶ Treinar +2.000 ajustes</button>
 <button id="dialogReset" type="button">↻ Reiniciar pesos</button>
 <button id="dialogDownload" type="button">↓ Exportar modelo</button>
+<button id="dialogImportBtn" type="button">↑ Importar modelo</button>
+<input id="dialogImportFile" type="file" accept=".json,application/json" style="display:none" aria-label="Selecionar checkpoint DGX">
 </div>
 <progress id="dialogProgress" max="2000" value="0" style="width:100%;margin-top:12px;accent-color:#72e8be"></progress>
 <div class="rowtiny"><span id="dialogProgressLabel">Pronto para treinar</span><span id="dialogNote">Pesos iniciais</span></div>
@@ -251,6 +253,8 @@ PAGE = r'''<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta n
 <div class="card"><small>Acerto em perguntas reservadas</small><div id="dialogTestAcc" class="value">—</div></div>
 </div>
 <p class="tiny">Exemplos para treinar: <strong id="dialogTrainCount">—</strong>. Reservados para avaliar: <strong id="dialogTestCount">—</strong>. Acertos nesses poucos exemplos não comprovam compreensão profunda ou capacidade de responder temas desconhecidos.</p>
+<h3 style="font-size:14px;margin:18px 0 8px">Perguntas reservadas que a rede errou</h3>
+<pre id="dialogMistakes" style="white-space:pre-wrap;overflow-wrap:anywhere;color:#bedbd2;background:#0b191c;border:1px solid #294b42;border-radius:11px;padding:13px;font-size:12px;line-height:1.5">Treine para verificar os erros.</pre>
 </div>
 <div class="labcard">
 <h2>3 · Pergunte algo diferente</h2>
