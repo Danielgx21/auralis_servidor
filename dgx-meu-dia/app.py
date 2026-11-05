@@ -93,6 +93,7 @@ class Handler(BaseHTTPRequestHandler):
         allow = {"/": ("index.html", "text/html; charset=utf-8"),
                  "/index.html": ("index.html", "text/html; charset=utf-8"),
                  "/manifest.webmanifest": ("manifest.webmanifest", "application/manifest+json"),
+                 "/icon.svg": ("icon.svg", "image/svg+xml"),
                  "/sw.js": ("sw.js", "application/javascript; charset=utf-8")}
         if path not in allow:
             return self.send(b"Not found", "text/plain; charset=utf-8", 404)
