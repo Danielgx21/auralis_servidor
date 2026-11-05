@@ -1,0 +1,18 @@
+{
+  "name": "DGX Meu Dia",
+  "short_name": "Meu Dia",
+  "description": "Seu painel pessoal de previsão, Corinthians, desafios, humor e voz",
+  "lang": "pt-BR",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#08101a",
+  "theme_color": "#0d1623",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
