@@ -4,68 +4,288 @@
 (function(){
 "use strict";
 const FACTS=[
-["Biologia","Corais são animais","Apesar de parecerem plantas ou rochas, corais são animais cnidários. Muitos vivem associados a microalgas que produzem parte de seus nutrientes."],
-["Química","Por que o pH muda tanto?","A escala de pH é logarítmica: uma solução com pH 3 tem cerca de cem vezes mais íons hidrogênio livres do que outra com pH 5, nas mesmas condições."],
-["Física","A luz do Sol leva tempo para chegar","A luz solar leva aproximadamente oito minutos e vinte segundos para chegar à Terra. Ao olhar o Sol, vemos a luz emitida há alguns minutos."],
-["História","A pedra que ajudou a ler hieróglifos","Descoberta em 1799, a Pedra de Roseta trouxe um mesmo texto em diferentes escritas e foi decisiva para decifrar os hieróglifos egípcios."],
-["Geografia","A Antártida também é um deserto","Desertos são definidos pela escassez de precipitação, não pelo calor. Por isso, grande parte da Antártida é considerada um deserto polar."],
-["Ciências","Vacinas e memória imunológica","Muitas vacinas apresentam ao organismo um antígeno ou instruções para produzi-lo, ajudando o sistema imune a reconhecer um agente infeccioso no futuro."],
-["Política","Um marco dos direitos humanos","Em 10 de dezembro de 1948, a Assembleia Geral da ONU proclamou a Declaração Universal dos Direitos Humanos, em Paris.","https://www.un.org/en/about-us/universal-declaration-of-human-rights"],
-["Arte","A imagem de um protesto contra a guerra","Pablo Picasso pintou Guernica em 1937, em resposta ao bombardeio da cidade espanhola. A obra se tornou um símbolo artístico contra a violência da guerra."],
-
-["Biologia","Mitocôndrias têm DNA próprio","Além de participar da produção de energia nas células eucarióticas, as mitocôndrias possuem DNA próprio, uma pista importante de sua origem evolutiva."],
-["Química","Diamante e grafite são parentes","Diamante e grafite são formados por carbono. A diferença na organização dos átomos explica propriedades tão distintas, como dureza e condução elétrica."],
-["Física","Som não viaja no vácuo","O som precisa de um meio material para se propagar. No espaço praticamente vazio, uma explosão distante não produziria o ruído ouvido em filmes."],
-["História","A prensa transformou a circulação de ideias","Na Europa do século XV, a impressão com tipos móveis associada a Gutenberg ampliou a produção e a circulação de livros e outros textos."],
-["Geografia","As placas tectônicas não param","As placas da litosfera se movem, em geral, alguns centímetros por ano. Seus limites estão associados a muitos terremotos e vulcões."],
-["Ciências","Um eclipse solar não acontece em toda Lua nova","Um eclipse solar exige um alinhamento específico entre Sol, Lua e Terra. A órbita lunar é inclinada, então nem toda Lua nova produz um eclipse."],
-["Política","Uma conquista histórica do sufrágio","Em 1893, a Nova Zelândia tornou-se o primeiro país autogovernado a reconhecer o voto das mulheres nas eleições parlamentares.","https://www.women.govt.nz/about-us/history-womens-suffrage-aotearoa-new-zealand"],
-["Arte","O nome do impressionismo","O quadro Impressão, nascer do sol, de Claude Monet, exposto em 1874, ajudou a dar nome ao movimento impressionista."],
-
-["Biologia","Fungos não são plantas","Os fungos não fazem fotossíntese. Eles obtêm matéria orgânica do ambiente e têm um papel fundamental na decomposição de restos de seres vivos."],
-["Química","Dissolver não é necessariamente reagir","Quando açúcar se dissolve em água, suas moléculas se dispersam no líquido. Isso não significa que tenham sido transformadas em outra substância."],
-["Física","Dobrar a velocidade quadruplica uma energia","Para um objeto de massa constante, a energia cinética é proporcional ao quadrado da velocidade. Dobrar a velocidade multiplica essa energia por quatro."],
-["História","A Revolução Industrial começou na Grã-Bretanha","A industrialização moderna ganhou força na Grã-Bretanha durante a segunda metade do século XVIII, com profundas mudanças na produção e no trabalho."],
-["Geografia","O Amazonas é gigante em vazão","O rio Amazonas tem a maior vazão de água do mundo. O volume que transporta reflete sua enorme bacia hidrográfica e as chuvas da região."],
-["Ciências","Correlação não é prova de causa","Duas variáveis podem variar juntas por coincidência, influência de uma terceira variável ou uma relação causal. É preciso investigar antes de concluir."],
-["Política","O que a separação dos poderes tenta fazer","A ideia de distribuir funções de governo entre instituições busca reduzir a concentração de poder. Montesquieu a discutiu em O espírito das leis, de 1748."],
-["Arte","A Grande Onda é uma xilogravura","A Grande Onda de Kanagawa, de Hokusai, foi criada como gravura em madeira no Japão do século XIX, e não como uma pintura a óleo."],
-
-["Biologia","Polvos têm três corações","Os polvos possuem dois corações que impulsionam sangue para as brânquias e outro que o bombeia para o restante do corpo."],
-["Química","O sal de cozinha é um cristal iônico","No cloreto de sódio sólido, íons de sódio e de cloreto se organizam em uma rede cristalina, em vez de formarem moléculas isoladas de NaCl."],
-["Física","Por que o céu parece azul?","A atmosfera espalha a luz solar de comprimentos de onda menores com maior eficiência. Esse fenômeno ajuda a explicar o céu azul e os tons vermelhos do pôr do sol."],
-["História","A peste negra mudou sociedades","A epidemia de peste do século XIV causou enorme mortalidade na Europa, afetando relações sociais, economia e trabalho."],
-["Geografia","A escala do mapa tem consequências práticas","Em um mapa de escala 1 para 100 mil, um centímetro equivale a um quilômetro no terreno, desconsiderando as deformações da projeção."],
-["Ciências","PCR permite copiar trechos de DNA","A reação em cadeia da polimerase, ou PCR, amplifica regiões específicas de DNA e tornou-se essencial em pesquisa, diagnósticos e investigações."],
-["Política","Atenas não incluía toda a população","Na democracia da Atenas antiga, a participação política era restrita a uma parcela dos habitantes. Mulheres, escravizados e muitos estrangeiros estavam excluídos."],
-["Arte","Abaporu foi pintado em 1928","Tarsila do Amaral pintou Abaporu em 1928. A obra teve papel central no movimento antropofágico do modernismo brasileiro."],
-
-["Biologia","Bactérias podem trocar genes","Além de se reproduzirem por divisão, bactérias podem transferir material genético entre si, por mecanismos como a conjugação."],
-["Química","Ferrugem é transformação química","A corrosão do ferro envolve reações de oxidação na presença de água e oxigênio. Ela produz compostos diferentes do metal original."],
-["Física","A Lua não emite luz própria","A Lua é visível porque reflete a luz do Sol. Suas fases correspondem à porção iluminada que conseguimos observar da Terra."],
-["História","A era Meiji começou em 1868","A Restauração Meiji marcou uma grande reorganização política e social no Japão e abriu caminho para mudanças rápidas na economia e na educação."],
-["Geografia","O Equador cruza três continentes","A linha do Equador atravessa áreas da América do Sul, da África e da Ásia, além dos oceanos que separam essas regiões."],
-["Ciências","Meteoros e meteoritos não são a mesma coisa","O rastro luminoso na atmosfera é chamado de meteoro. Quando parte do material resiste e chega ao solo, recebe o nome de meteorito."],
-["Política","A Carta da ONU entrou em vigor em 1945","A Organização das Nações Unidas foi criada após a Segunda Guerra Mundial. Sua Carta entrou em vigor em 24 de outubro de 1945."],
-["Arte","Uma noite estrelada virou ícone","Vincent van Gogh pintou A Noite Estrelada em 1889. A obra mistura um céu intensamente movimentado com a paisagem de uma vila."],
-
-["Biologia","Estômatos são pequenas portas das folhas","Estômatos regulam trocas gasosas e parte da perda de água das plantas. Sua abertura depende de fatores como luz e disponibilidade de água."],
-["Química","Vinagre com bicarbonato libera um gás","A reação entre ácido acético e bicarbonato de sódio pode liberar dióxido de carbono, responsável por muitas bolhas observadas na mistura."],
-["Física","Pêndulos ajudam a medir o tempo","Para pequenas oscilações, o período de um pêndulo simples depende principalmente de seu comprimento e da gravidade local, não da massa do peso."],
-["História","Hatshepsut governou o Egito antigo","Hatshepsut foi uma mulher que exerceu o poder de faraó durante a XVIII dinastia egípcia, milhares de anos antes da era comum."],
-["Geografia","Os fusos horários também são convenções","A rotação terrestre explica a diferença entre dia e noite, mas os limites dos fusos horários legais também dependem de decisões de cada país."],
-["Ciências","O efeito estufa é natural e essencial","Gases de efeito estufa absorvem e emitem radiação infravermelha, mantendo a Terra mais aquecida do que seria sem esse efeito. Seu aumento intensifica o aquecimento."],
-["Política","A Carta Magna foi assinada em 1215","Na Inglaterra medieval, a Magna Carta de 1215 estabeleceu limites a determinadas práticas do poder real. Seu significado político mudou ao longo dos séculos."],
-["Arte","A arquitetura também é uma linguagem artística","Luz, espaço, materiais e proporções são elementos expressivos da arquitetura; uma construção pode comunicar ideias além de atender funções práticas."],
-
-["Biologia","O xilema transporta água pelas plantas","Nas plantas vasculares, o xilema conduz principalmente água e sais minerais das raízes em direção a outras partes da planta. A transpiração contribui para esse fluxo."],
-["Química","A água nem sempre ferve a 100 graus","A temperatura de ebulição da água depende da pressão. Em locais de grande altitude, onde a pressão atmosférica é menor, ela pode ferver abaixo de 100 graus Celsius."],
-["Física","O GPS precisa levar a relatividade em conta","Os relógios dos satélites de navegação sofrem efeitos previstos pelas teorias da relatividade. Sem correções, os erros de posicionamento cresceriam rapidamente."],
-["História","A escrita cuneiforme surgiu na Mesopotâmia","A escrita cuneiforme desenvolveu-se na Mesopotâmia no quarto milênio antes da era comum, inicialmente em contextos administrativos e econômicos."],
-["Geografia","Nem todo rio desemboca num delta","Alguns rios chegam ao mar por deltas, onde sedimentos formam canais e ilhas. Outros desembocam em estuários, influenciados por marés e outros processos."],
-["Ciências","Uma descoberta depende de muita gente","O modelo de dupla hélice do DNA, publicado em 1953, resultou de um contexto de pesquisas que incluiu dados experimentais fundamentais produzidos por Rosalind Franklin e colaboradores."],
-["Política","A ONU tem diferentes órgãos","A Assembleia Geral reúne os Estados-membros da ONU para deliberação. Já o Conselho de Segurança possui atribuições específicas relacionadas à paz e à segurança internacionais."],
-["Arte","Filmes existiam antes do cinema sonoro","O cinema se desenvolveu por décadas antes da difusão de filmes com som sincronizado. A expressão visual, a montagem e os intertítulos comunicavam histórias sem diálogos gravados."]
+ [
+  "Biologia",
+  "Corais são animais, não plantas",
+  "Cada coral é formado por pequenos animais. Muitos deles vivem em parceria com algas microscópicas."
+ ],
+ [
+  "Química",
+  "Por que uma diferença de pH importa tanto?",
+  "A escala de pH não cresce de um em um como uma régua. Uma solução de pH 3 tem cerca de 100 vezes mais íons de hidrogênio do que outra de pH 5."
+ ],
+ [
+  "Física",
+  "A luz do Sol demora para chegar aqui",
+  "A luz solar leva cerca de oito minutos para chegar à Terra. O Sol que vemos no céu é, na verdade, a imagem de alguns minutos atrás."
+ ],
+ [
+  "História",
+  "Uma pedra ajudou a traduzir o Egito antigo",
+  "A Pedra de Roseta tinha o mesmo texto escrito de formas diferentes. Isso ajudou pesquisadores a entender os hieróglifos egípcios."
+ ],
+ [
+  "Geografia",
+  "O maior deserto do mundo é gelado",
+  "A Antártida é considerada um deserto porque quase não recebe precipitação. Um deserto não precisa ser quente."
+ ],
+ [
+  "Ciências",
+  "Como as vacinas ajudam o corpo?",
+  "As vacinas preparam nossas defesas para reconhecer determinados microrganismos. Assim, o organismo pode reagir melhor se encontrá-los depois."
+ ],
+ [
+  "Política",
+  "Um documento sobre direitos humanos",
+  "Em 1948, a ONU proclamou a Declaração Universal dos Direitos Humanos. O texto reúne direitos que devem valer para todas as pessoas.",
+  "https://www.un.org/en/about-us/universal-declaration-of-human-rights"
+ ],
+ [
+  "Arte",
+  "Uma pintura nasceu de um bombardeio",
+  "Picasso pintou Guernica em 1937 após o bombardeio de uma cidade espanhola. A obra se tornou um símbolo da violência da guerra."
+ ],
+ [
+  "Biologia",
+  "Partes das nossas células têm DNA próprio",
+  "As mitocôndrias ajudam as células a produzir energia e possuem um pouco de DNA próprio. Isso é uma pista de sua origem evolutiva."
+ ],
+ [
+  "Química",
+  "Diamante e grafite são feitos da mesma coisa",
+  "Os dois são feitos de carbono. A diferença é como os átomos estão organizados: por isso um é muito duro e o outro se desgasta facilmente."
+ ],
+ [
+  "Física",
+  "No espaço não há som como nos filmes",
+  "O som precisa de matéria para se espalhar, como ar ou água. No vácuo do espaço, não ouviríamos o barulho de uma explosão distante."
+ ],
+ [
+  "História",
+  "Uma máquina ajudou a espalhar livros",
+  "No século XV, a impressão com tipos móveis ganhou força na Europa. Ela facilitou a produção de livros e a circulação de ideias."
+ ],
+ [
+  "Geografia",
+  "Os continentes ainda estão se movendo",
+  "As enormes placas que formam a parte externa da Terra se movem alguns centímetros por ano. Esse movimento está ligado a terremotos e vulcões."
+ ],
+ [
+  "Ciências",
+  "Por que não há eclipse em toda Lua nova?",
+  "A órbita da Lua é inclinada. Por isso, ela quase sempre passa um pouco acima ou abaixo da linha entre a Terra e o Sol."
+ ],
+ [
+  "Política",
+  "Quando as mulheres passaram a votar na Nova Zelândia?",
+  "Em 1893, a Nova Zelândia reconheceu o voto das mulheres nas eleições parlamentares, um marco na história do sufrágio.",
+  "https://www.women.govt.nz/about-us/history-womens-suffrage-aotearoa-new-zealand"
+ ],
+ [
+  "Arte",
+  "Uma pintura deu nome a um movimento",
+  "O quadro Impressão, nascer do sol, de Claude Monet, ajudou a dar nome ao impressionismo, no século XIX."
+ ],
+ [
+  "Biologia",
+  "Fungos não são plantas",
+  "Cogumelos e outros fungos não fazem fotossíntese. Muitos deles ajudam a decompor folhas, madeira e outros restos de seres vivos."
+ ],
+ [
+  "Química",
+  "Dissolver açúcar não cria outra substância",
+  "Quando colocamos açúcar na água, suas moléculas se espalham pelo líquido. O açúcar continua sendo açúcar, mesmo sem aparecer."
+ ],
+ [
+  "Física",
+  "O dobro da velocidade não é só o dobro de energia",
+  "Se a massa de um objeto não muda, dobrar sua velocidade faz sua energia de movimento ficar quatro vezes maior."
+ ],
+ [
+  "História",
+  "Uma transformação começou nas fábricas",
+  "A Revolução Industrial ganhou força na Grã-Bretanha no século XVIII, mudando a maneira de produzir mercadorias e organizar o trabalho."
+ ],
+ [
+  "Geografia",
+  "O rio Amazonas transporta muita água",
+  "O Amazonas é o rio com maior vazão do planeta. A água vem de uma bacia enorme, alimentada por chuvas e muitos afluentes."
+ ],
+ [
+  "Ciências",
+  "Duas coisas juntas nem sempre têm causa e efeito",
+  "Sorvetes e afogamentos podem aumentar no verão. Isso não quer dizer que sorvete provoque afogamento: o calor influencia os dois."
+ ],
+ [
+  "Política",
+  "Por que dividir o poder do Estado?",
+  "A separação entre poderes busca evitar que todas as decisões de governo fiquem concentradas numa única instituição."
+ ],
+ [
+  "Arte",
+  "Uma famosa onda nasceu de uma gravura",
+  "A Grande Onda de Kanagawa, de Hokusai, foi feita usando matrizes de madeira para impressão, e não tinta a óleo sobre tela."
+ ],
+ [
+  "Biologia",
+  "Polvos têm três corações",
+  "Dois corações ajudam a levar sangue às brânquias. O terceiro bombeia sangue para o restante do corpo."
+ ],
+ [
+  "Química",
+  "O sal de cozinha não é formado por moléculas isoladas",
+  "No sal sólido, partículas com cargas elétricas opostas ficam organizadas em uma estrutura que se repete, formando cristais."
+ ],
+ [
+  "Física",
+  "Por que o céu é azul?",
+  "A luz do Sol tem várias cores. Ao atravessar o ar, a luz azul se espalha mais do que muitas outras cores, fazendo o céu parecer azul."
+ ],
+ [
+  "História",
+  "Uma epidemia mudou a Europa medieval",
+  "No século XIV, a peste negra matou milhões de pessoas e provocou grandes mudanças na economia e nas relações de trabalho."
+ ],
+ [
+  "Geografia",
+  "Um centímetro no mapa pode representar um quilômetro",
+  "Em um mapa com escala de 1 para 100 mil, cada centímetro equivale a um quilômetro na realidade."
+ ],
+ [
+  "Ciências",
+  "Como cientistas conseguem copiar DNA?",
+  "Uma técnica chamada PCR permite produzir muitas cópias de um trecho de DNA. Ela é usada em pesquisas e em diferentes exames."
+ ],
+ [
+  "Política",
+  "Na Atenas antiga, nem todos podiam votar",
+  "A participação política era limitada a parte da população. Mulheres, pessoas escravizadas e muitos estrangeiros não tinham esse direito."
+ ],
+ [
+  "Arte",
+  "Abaporu é uma obra brasileira de 1928",
+  "Tarsila do Amaral pintou Abaporu em 1928. A obra se tornou um marco do modernismo brasileiro."
+ ],
+ [
+  "Biologia",
+  "Bactérias podem compartilhar genes",
+  "Além de se multiplicarem, algumas bactérias conseguem passar pedaços de material genético umas para as outras."
+ ],
+ [
+  "Química",
+  "A ferrugem é uma mudança química",
+  "Quando o ferro reage com o oxigênio e a água, podem surgir novos compostos. É assim que se forma a ferrugem."
+ ],
+ [
+  "Física",
+  "A Lua não brilha com luz própria",
+  "A luz que vemos na Lua vem do Sol. As fases mudam conforme a parte iluminada que conseguimos enxergar daqui."
+ ],
+ [
+  "História",
+  "O Japão passou por grandes mudanças em 1868",
+  "A Restauração Meiji marcou uma reorganização do governo japonês e abriu caminho para transformações sociais e econômicas."
+ ],
+ [
+  "Geografia",
+  "A linha do Equador atravessa três continentes",
+  "Ela passa por regiões da América do Sul, da África e da Ásia. Também cruza oceanos."
+ ],
+ [
+  "Ciências",
+  "Qual é a diferença entre meteoro e meteorito?",
+  "O brilho que vemos quando uma rocha espacial atravessa a atmosfera é um meteoro. Se um pedaço chega ao chão, é um meteorito."
+ ],
+ [
+  "Política",
+  "A ONU foi criada em 1945",
+  "A Carta das Nações Unidas entrou em vigor em 24 de outubro de 1945, pouco depois do fim da Segunda Guerra Mundial."
+ ],
+ [
+  "Arte",
+  "Van Gogh pintou um céu inesquecível",
+  "A Noite Estrelada foi pintada em 1889. O céu cheio de curvas é uma das marcas mais conhecidas dessa obra."
+ ],
+ [
+  "Biologia",
+  "As folhas têm pequenas aberturas",
+  "Os estômatos permitem trocas de gases e ajudam a controlar a perda de água pelas plantas. São como pequenas portas nas folhas."
+ ],
+ [
+  "Química",
+  "Por que vinagre e bicarbonato fazem espuma?",
+  "Ao misturar os dois, ocorre uma reação que libera gás carbônico. Esse gás forma as bolhas que vemos."
+ ],
+ [
+  "Física",
+  "Por que o pêndulo pode marcar o tempo?",
+  "Um pêndulo mais curto balança mais rápido que um mais comprido. Seu ritmo previsível ajudou a criar relógios que medem o tempo."
+ ],
+ [
+  "História",
+  "Uma mulher governou como faraó no Egito",
+  "Hatshepsut governou o Egito antigo durante a XVIII dinastia. Ela foi uma das mulheres que ocuparam o cargo de faraó."
+ ],
+ [
+  "Geografia",
+  "Por que países têm horários diferentes?",
+  "A Terra gira, então o Sol não aparece no mesmo horário em todos os lugares. Além disso, cada país define seus fusos horários oficiais."
+ ],
+ [
+  "Ciências",
+  "O efeito estufa é importante para a vida",
+  "Gases da atmosfera ajudam a manter a Terra aquecida. O problema é que o aumento desses gases intensifica o aquecimento global."
+ ],
+ [
+  "Política",
+  "Uma carta tentou limitar o poder do rei",
+  "A Magna Carta foi acordada na Inglaterra em 1215 e impôs limites a algumas ações do rei. Ela ganhou novos significados ao longo do tempo."
+ ],
+ [
+  "Arte",
+  "Uma construção também pode ser arte",
+  "Na arquitetura, o uso de luz, espaço e materiais pode criar beleza e transmitir ideias, além de servir para morar ou trabalhar."
+ ],
+ [
+  "Biologia",
+  "Como a água sobe pelas plantas?",
+  "As plantas têm vasos internos que transportam água das raízes para outras partes. Esse sistema é chamado xilema."
+ ],
+ [
+  "Química",
+  "A água pode ferver abaixo de cem graus",
+  "Em lugares de grande altitude, a pressão do ar é menor. Por isso, a água pode ferver a menos de 100 graus Celsius."
+ ],
+ [
+  "Física",
+  "O GPS precisa da teoria da relatividade",
+  "Os relógios dos satélites funcionam em condições diferentes das da Terra. Correções previstas pela relatividade ajudam a manter a localização precisa."
+ ],
+ [
+  "História",
+  "A escrita ajudou a organizar cidades antigas",
+  "Na Mesopotâmia, um dos primeiros usos da escrita foi registrar quantidades, produtos e outras informações do comércio e da administração."
+ ],
+ [
+  "Geografia",
+  "Nem todo rio chega ao mar do mesmo jeito",
+  "Alguns formam deltas, com vários canais e acúmulo de sedimentos. Outros chegam por estuários, onde a influência das marés pode ser grande."
+ ],
+ [
+  "Ciências",
+  "A descoberta do DNA envolveu várias pessoas",
+  "O modelo de dupla hélice publicado em 1953 contou com dados de diferentes pesquisadores, incluindo imagens produzidas por Rosalind Franklin e colaboradores."
+ ],
+ [
+  "Política",
+  "A ONU não tem apenas uma assembleia",
+  "A Assembleia Geral reúne todos os países membros. O Conselho de Segurança tem responsabilidades específicas sobre paz e segurança internacionais."
+ ],
+ [
+  "Arte",
+  "O cinema contou histórias antes de ter som gravado",
+  "Durante décadas, filmes usaram imagens, gestos e textos na tela para contar histórias, antes de o som sincronizado se popularizar."
+ ]
 ];
 const $=id=>document.getElementById(id);
 const dateSP=()=>new Intl.DateTimeFormat("sv-SE",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
