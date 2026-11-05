@@ -9,10 +9,10 @@ const stamp=()=>new Date().toISOString();
 const uuid=()=>typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(36).slice(2);
 const displayDate=(s)=>{if(!s)return"—";const p=s.slice(0,10).split("-");return p[2]+"/"+p[1]+"/"+p[0]};
 const notify=s=>window.DGXtoast&&window.DGXtoast(s);
-const allowed=["dgx_moods_v1","dgx_challenges_v1","dgx_reminders_v1","dgx_notified_v1","dgx_plants_v1","dgx_tasks_v1","dgx_payments_v1"];
+const allowed=["dgx_moods_v1","dgx_challenges_v1","dgx_reminders_v1","dgx_notified_v1","dgx_plants_v1","dgx_tasks_v1","dgx_payments_v1","dgx_push_prefs_v1"];
 let state={},authenticated=false,writeSerial={},unsaved=0,bootstrapped=false;
 function dataRead(key,fallback){return Object.prototype.hasOwnProperty.call(state,key)?state[key]:fallback}
-function updateStatus(status){$("appVersion").textContent="v0.3 · "+status}
+function updateStatus(status){$("appVersion").textContent="v0.4 · "+status}
 async function api(url,opts){
  const res=await fetch(url,{credentials:"same-origin",cache:"no-store",...opts});
  let data;try{data=await res.json()}catch(e){data={error:"Resposta inválida do servidor"}}
@@ -60,8 +60,9 @@ async function setLoggedIn(){
  $("authGate").classList.add("hide");document.body.classList.remove("locked");
  $("logoutBtn").classList.remove("hide");
  updateStatus("nuvem ✓");
+ const hash=location.hash.slice(1);if(hash&&window.DGXgoto&&document.getElementById("page-"+hash))window.DGXgoto(hash);
  if(window.DGXrefresh)window.DGXrefresh();
- drawTasks();drawPlants();if(window.DGXpaymentsRefresh)window.DGXpaymentsRefresh();
+ drawTasks();drawPlants();if(window.DGXpaymentsRefresh)window.DGXpaymentsRefresh();if(window.DGXpushInit)window.DGXpushInit();
  // Importação opcional para não perder registros da primeira versão local.
  const toImport=allowed.filter(k=>!Object.prototype.hasOwnProperty.call(state,k)&&localStorage.getItem(k));
  if(toImport.length&&confirm("Encontrei registros feitos em uma versão anterior neste aparelho. Quer importá-los para seu banco de dados?")){
@@ -283,5 +284,6 @@ if("serviceWorker" in navigator){
  });
  document.addEventListener("visibilitychange",()=>{if(!document.hidden&&reg)reg.update().catch(()=>{})});
 }
+window.addEventListener("hashchange",()=>{const page=location.hash.slice(1);if(page&&document.getElementById("page-"+page)&&window.DGXgoto)window.DGXgoto(page)});
 bootstrap();
 })();
