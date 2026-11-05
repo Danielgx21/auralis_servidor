@@ -82,3 +82,10 @@ Runtime Python com comando \`python dgx-meu-dia/app.py\`.
 - Em **Acontece hoje**, os cartões Corinthians e Compromissos mostram explicitamente o que há hoje e o que está cadastrado para os três dias seguintes; exibem frase clara se não houver nenhum evento no período.
 - Hoje continua em destaque; quando há itens futuros, o aplicativo exibe o próximo item com prazo, nome e hora disponível. Sem dados confirmados do futebol, não afirma que não existirá jogo: diz 'não identificado'.
 - Contas mantidas como estavam, com vencimentos hoje, atrasados e próximos três dias.
+
+## v0.10 — Saúde e Humor (05/11/2026)
+- Nova aba **Saúde** com batimentos médios e em repouso, sono (horas), passos, saturação média e estresse, histórico e gráfico de 21 dias.
+- Comparação exploratória da média diária do humor (notas 1 a 5 derivadas dos registros da manhã e noite) com FC, sono e passos; correlação de Pearson exibida somente com ao menos sete dias pareados e variabilidade suficiente; não informa causalidade nem diagnóstico.
+- Registros manuais e importação de dados diários CSV por seleção explícita de colunas, unidade e agregação. O CSV é lido no dispositivo; apenas as medições diárias são enviadas ao banco privado no Neon (`dgx_health_daily_v1`).
+- **Não implementado**: sincronização automática com Huawei Saúde/Health Kit/Health Connect. Huawei requer aprovação e autorização explícita. Alternativa futura: Health Sync -> Health Connect -> aplicativo auxiliar Android com permissão de leitura e envio autenticado ao DGX.
+- Controle do usuário: editar e excluir dias medidos. Recomenda-se evitar compartilhar dados sensíveis ou CSVs contendo informações pessoais de terceiros.
