@@ -1,90 +1,82 @@
-/* DGX Meu Dia v0.8 — cartões retráteis na tela Início.
-   Estado de exibição persistente no Neon, com preferência local de apoio. */
+/* DGX Meu Dia v0.9 — cartões retráteis com ícones vetoriais compactos. */
 (function(){
 "use strict";
 const HOME_KEY="dgx_home_panels_v1";
-const panels=[...document.querySelectorAll("#page-home article[data-home-panel]")];
+const cards=[...document.querySelectorAll("#page-home article[data-home-panel]")];
 const names={
- weather:"Previsão do tempo",
- corinthians:"Jogos do Corinthians",
- podcasts:"Podcasts favoritos",
- calendar:"Agenda de hoje",
- payments:"Contas deste mês",
- plants:"Minhas plantas",
- alerts:"Seus avisos",
- mood:"Humor de hoje",
- challenge:"Desafio do dia",
- voice:"Comandos de voz"
+ weather:"Previsão do tempo",corinthians:"Jogos do Corinthians",
+ podcasts:"Podcasts favoritos",calendar:"Agenda de hoje",
+ payments:"Contas deste mês",plants:"Minhas plantas",
+ alerts:"Seus avisos",mood:"Humor de hoje",
+ challenge:"Desafio do dia",voice:"Comandos de voz"
 };
-function localState(){
+function getLocal(){
  try{
-  const data=JSON.parse(localStorage.getItem(HOME_KEY)||"{}");
-  return data&&typeof data==="object"&&!Array.isArray(data)?data:{};
+  const item=JSON.parse(localStorage.getItem(HOME_KEY)||"{}");
+  return item&&typeof item==="object"&&!Array.isArray(item)?item:{};
  }catch(e){return {}}
 }
-let state=localState();
-function persist(){
- try{localStorage.setItem(HOME_KEY,JSON.stringify(state))}catch(e){/* preferências de layout apenas */}
- if(window.DGXStore?.write){
-  window.DGXStore.write(HOME_KEY,{...state});
- }
+let state=getLocal();
+function save(){
+ try{localStorage.setItem(HOME_KEY,JSON.stringify(state))}catch(e){}
+ window.DGXStore?.write(HOME_KEY,{...state});
 }
-function apply(card){
- const key=card.dataset.homePanel;
- const closed=state[key]===true;
- const content=card.querySelector(":scope > .home-panel-content");
+function paint(card){
+ const key=card.dataset.homePanel,closed=state[key]===true;
+ const body=card.querySelector(":scope > .home-panel-content");
  const button=card.querySelector(":scope > .home-panel-head > .home-panel-toggle");
- if(!content||!button)return;
+ if(!body||!button)return;
  card.classList.toggle("home-is-collapsed",closed);
- content.hidden=closed;
+ body.hidden=closed;
  button.setAttribute("aria-expanded",String(!closed));
  button.setAttribute("aria-label",(closed?"Expandir ":"Recolher ")+(names[key]||key));
- button.title=closed?"Expandir painel":"Recolher painel";
- button.querySelector(".home-toggle-glyph").textContent=closed?"⌄":"⌃";
+ button.title=closed?"Expandir":"Recolher";
 }
-panels.forEach((card,index)=>{
- const key=card.dataset.homePanel;
+const svg='<svg class="home-toggle-icon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+cards.forEach(card=>{
  const head=card.firstElementChild;
- if(!head) return;
- const content=document.createElement("div");
- content.className="home-panel-content";
- content.id="home-content-"+key;
- // Preserve o conteúdo original, eventos e IDs; nenhuma informação é apagada.
- while(head.nextSibling)content.appendChild(head.nextSibling);
- card.appendChild(content);
+ if(!head)return;
+ const key=card.dataset.homePanel;
+ const body=document.createElement("div");
+ body.className="home-panel-content";
+ body.id="home-content-"+key;
+ while(head.nextSibling)body.appendChild(head.nextSibling);
+ card.appendChild(body);
  head.classList.add("home-panel-head");
  const button=document.createElement("button");
  button.type="button";
- button.className="roundbtn home-panel-toggle";
- button.innerHTML='<span class="home-toggle-glyph" aria-hidden="true">⌃</span>';
- button.setAttribute("aria-controls",content.id);
+ button.className="home-panel-toggle";
+ button.innerHTML=svg;
+ button.setAttribute("aria-controls",body.id);
  button.addEventListener("click",()=>{
-  state[key]=!Boolean(state[key]);
-  apply(card);
-  persist();
+  state[key]=!(state[key]===true);
+  paint(card);save();
  });
  head.appendChild(button);
- apply(card);
+ paint(card);
 });
-function setAll(closed){
- for(const card of panels){
-  state[card.dataset.homePanel]=closed;
-  apply(card);
- }
- persist();
+function all(closed){
+ cards.forEach(card=>{state[card.dataset.homePanel]=closed;paint(card)});
+ save();
+ const menu=document.querySelector(".home-panel-menu");
+ if(menu)menu.open=false;
 }
-const shrink=document.getElementById("homeCollapseAll");
-const expand=document.getElementById("homeExpandAll");
-if(shrink)shrink.addEventListener("click",()=>setAll(true));
-if(expand)expand.addEventListener("click",()=>setAll(false));
+document.getElementById("homeCollapseAll")?.addEventListener("click",()=>all(true));
+document.getElementById("homeExpandAll")?.addEventListener("click",()=>all(false));
+window.DGXhomeOpen=key=>{
+ const card=cards.find(c=>c.dataset.homePanel===key);
+ if(!card)return;
+ state[key]=false;paint(card);save();
+ document.getElementById("page-home")?.classList.add("active");
+ window.DGXgoto?.("home");
+ requestAnimationFrame(()=>card.scrollIntoView({behavior:"smooth",block:"start"}));
+};
 window.DGXhomeInit=()=>{
- const remote=window.DGXStore?.read(HOME_KEY,null);
- if(remote&&typeof remote==="object"&&!Array.isArray(remote)){
-  state={...remote};
+ const cloud=window.DGXStore?.read(HOME_KEY,null);
+ if(cloud&&typeof cloud==="object"&&!Array.isArray(cloud)){
+  state={...cloud};
   try{localStorage.setItem(HOME_KEY,JSON.stringify(state))}catch(e){}
- }else{
-  state=localState();
- }
- panels.forEach(apply);
+ }else state=getLocal();
+ cards.forEach(paint);
 };
 })();
