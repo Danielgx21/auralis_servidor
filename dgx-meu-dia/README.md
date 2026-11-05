@@ -1,4 +1,4 @@
-# DGX Meu Dia — v0.4 (2026-11-05)
+# DGX Meu Dia — v0.5 (2026-11-05)
 
 **Projeto pessoal exclusivo**, branch \`dgx-meu-dia-v1\` em \`Danielgx21/auralis_servidor\`, pasta \`dgx-meu-dia/\`. Não modificar o Manual das Criaturas, Batalha de Miniaturas ou Auralis.
 
@@ -40,3 +40,12 @@ Runtime Python com comando \`python dgx-meu-dia/app.py\`.
 - Calendário pessoal/SME não sincroniza com o calendário oficial da SME. É um organizador particular.
 - O intervalo entre adubações serve apenas de referência escolhida pelo usuário, não de recomendação agronômica.
 - O app é um site PWA, não um app Android nativo.
+
+
+## v0.5 — Carro e podcasts
+- Menu inferior ampliado (botões >=76px no mobile), botões gerais >=49px e **Modo Carro** com seis grandes áreas (comando de voz, resumo, Spotify, últimos podcasts, lembretes e lista de programas).
+- Aviso de segurança: sem escuta contínua ou garantia de funcionamento com celular bloqueado; ativar funcionalidades parado.
+- Podcasts por pesquisa no catálogo público Apple Podcasts/iTunes e consulta dos feeds RSS públicos. Ao cadastrar, o app salva a lista no Neon. Primeira verificação estabelece referência sem avisos antigos; novas publicações detectadas são incluídas em Web Push no agendador a cada 15 minutos (se houver assinatura push do celular).
+- A seção Podcasts mostra episódios recentes. “Abrir no Spotify” abre o programa ou busca correspondente, não garante abrir o episódio exato.
+- Importação opcional de podcasts salvos na biblioteca Spotify usando `GET /me/shows` com escopo `user-library-read`; pode ser necessário reconectar para conceder o escopo. A associação com o RSS sempre é confirmada pelo usuário.
+- Alguns programas exclusivos do Spotify não têm RSS público, por isso não há promessa de monitoramento automático desses conteúdos.
