@@ -420,6 +420,7 @@ var Recognizer=window.SpeechRecognition||window.webkitSpeechRecognition;
 if(Recognizer){var recognition=new Recognizer();recognition.lang="pt-BR";recognition.interimResults=false;recognition.maxAlternatives=1;recognition.onresult=function(evt){var said=evt.results[0][0].transcript;el("voiceInput").value=said;el("voiceTranscript").textContent="Você disse: "+said;execute(said)};recognition.onerror=function(evt){el("voiceStatus").textContent="Microfone indisponível: "+evt.error};recognition.onend=function(){el("micBtn").classList.remove("listening")};el("micBtn").onclick=function(){try{recognition.start();el("voiceStatus").textContent="Estou ouvindo...";el("micBtn").classList.add("listening")}catch(e){toast("Tente novamente.")}}}
 else{el("micBtn").onclick=function(){toast("Reconhecimento de voz não disponível neste navegador.")}}
 window.DGXsummaryData=function(){return {weather:weather,fixtures:fixtures,fixtureLabel:fixtureLabel}};window.DGXgoto=go;window.DGXtoast=toast;window.DGXrefresh=function(){restoreMoodForm();renderHistory();renderChallenge();renderReminders();renderHomeReminders()};
+window.DGXtodayRefresh?.();
 })();
 </script>
 <script src="/features.js" defer></script>
