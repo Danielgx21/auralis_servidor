@@ -121,17 +121,16 @@ function playNext(){
  u.onerror=()=>{if(playing)playNext()};
  speechSynthesis.speak(u);
 }
-async function start(){
+function start(){
  if(!("speechSynthesis" in window)){notify("Seu navegador não disponibiliza voz sintetizada.");return}
  stop();
- renderState("Preparando os dados do seu resumo...");
- if(prefs().podcasts&&window.DGXpodcastsRefresh){
-  try{await Promise.race([window.DGXpodcastsRefresh(),new Promise(resolve=>setTimeout(resolve,5500))])}catch(err){console.warn("Podcasts não atualizados",err)}
- }
+ // Iniciar imediatamente no mesmo gesto de toque é mais compatível com Android.
  chunks=sections();index=0;playing=true;speechSynthesis.cancel();
- // Alguns aparelhos exigem que a voz seja liberada por um gesto de toque;
- // o botão de iniciar é sempre uma interação explícita do usuário.
  playNext();
+ // Recarrega podcasts para o próximo resumo sem atrasar o início da fala.
+ if(prefs().podcasts&&window.DGXpodcastsRefresh){
+   Promise.resolve(window.DGXpodcastsRefresh()).catch(err=>console.warn("Podcasts não atualizados",err));
+ }
 }
 function renderPrefs(){
  const p=prefs();
