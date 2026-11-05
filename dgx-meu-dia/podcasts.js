@@ -7,7 +7,7 @@ const notify=t=>window.DGXtoast?.(t);
 const rfmt=s=>{if(!s)return "Data não informada";const d=new Date(s);return Number.isNaN(+d)?"Sem data":d.toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric",timeZone:"America/Sao_Paulo"})};
 const prefsKey="dgx_podcasts_v1";
 const normalize=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9 ]/g,"").replace(/\s+/g," ").trim();
-let latestEpisodes=[],reloadSeq=0;
+let latestEpisodes=[],reloadSeq=0,syncInFlight=null,lastSync=0;
 const watched=()=>window.DGXStore?.read(prefsKey,[])||[];
 async function api(url){const r=await fetch(url,{credentials:"same-origin",cache:"no-store"});const j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.error||"Serviço indisponível");return j}
 async function save(list){
@@ -62,23 +62,28 @@ async function search(term){
 async function refreshLatest(){
  const seq=++reloadSeq;
  const list=watched();
- if(!list.length){latestEpisodes=[];drawLatest();return}
+ if(!list.length){latestEpisodes=[];drawLatest();$("podcastEpisodeStatus").textContent="Nenhum podcast acompanhado. Sincronize ou adicione seus programas.";return}
  $("podcastLatest").innerHTML='<div class="sub">Buscando episódios mais recentes...</div>';
  const results=await Promise.allSettled(list.map(p=>api("/api/podcasts/episodes?id="+encodeURIComponent(p.id))));
  if(seq!==reloadSeq)return;
  latestEpisodes=[];
- const problems=[];
+ const problems=[],exclusive=[];
  results.forEach((r,i)=>{
   if(r.status==="fulfilled"){
+   if(r.value.source==="spotify_only")exclusive.push(list[i].name);
    (r.value.episodes||[]).slice(0,5).forEach(ep=>latestEpisodes.push({
     ...ep,show:list[i].name,spotify:spotifyUrl(list[i]),showId:list[i].id
    }));
-  }else problems.push(list[i].name);
+  }else problems.push({name:list[i].name,reason:r.reason?.message||"Feed indisponível"});
  });
  latestEpisodes.sort((a,b)=>(b.released||"").localeCompare(a.released||""));
  latestEpisodes=latestEpisodes.slice(0,25);
  drawLatest();
- if(problems.length)notify("Não foi possível consultar: "+problems.slice(0,2).join(", ")+".");
+ const parts=[latestEpisodes.length+" episódios carregados de "+(list.length-exclusive.length-problems.length)+" programa(s)."];
+ if(exclusive.length)parts.push("Sem RSS automático: "+exclusive.join(", ")+".");
+ if(problems.length)parts.push("Não foi possível consultar: "+problems.map(x=>x.name).join(", ")+".");
+ $("podcastEpisodeStatus").textContent=parts.join(" ");
+ if(problems.length)notify("Erro nos episódios de "+problems.slice(0,2).map(x=>x.name).join(" e ")+".");
 }
 function drawLatest(){
  const list=latestEpisodes;
@@ -136,10 +141,38 @@ $("podcastImportSpotify").onclick=async()=>{
 };
 window.DGXpodcastsGetLatest=()=>latestEpisodes.map(e=>({...e}));
 window.DGXpodcastsRefresh=refreshLatest;
+async function syncCloud(force=false){
+ if(syncInFlight)return syncInFlight;
+ if(!force&&Date.now()-lastSync<30000)return;
+ if(!window.DGXStore?.sync)return;
+ const button=$("podcastSync");
+ button.disabled=true;
+ $("podcastSyncStatus").textContent="Sincronizando lista com a nuvem...";
+ syncInFlight=(async()=>{
+  try{
+   await window.DGXStore.sync(prefsKey);
+   lastSync=Date.now();
+   renderWatched();
+   $("podcastSyncStatus").textContent="Lista sincronizada: "+watched().length+" podcasts.";
+   await refreshLatest();
+  }catch(error){
+   $("podcastSyncStatus").textContent="Não foi possível sincronizar: "+error.message;
+  }finally{
+   button.disabled=false;syncInFlight=null;
+  }
+ })();
+ return syncInFlight;
+}
+$("podcastSync").onclick=()=>syncCloud(true);
+window.DGXpodcastsSync=syncCloud;
 window.DGXpodcastsInit=()=>{
  renderWatched();
- refreshLatest();
+ syncCloud(true);
 };
+document.addEventListener("visibilitychange",()=>{
+ if(!document.hidden)syncCloud(false);
+});
+window.addEventListener("focus",()=>syncCloud(false));
 window.DGXpodcastsSpeakLatest=()=>{
  const e=latestEpisodes[0];
  const message=e?"Episódio recente: "+e.title+", do podcast "+e.show+". Para ouvir, abra o Spotify quando estiver parado.":
