@@ -6,6 +6,8 @@ from http.cookies import SimpleCookie
 from urllib.parse import urlsplit
 import storage
 import push_service
+import podcasts
+from urllib.parse import parse_qs
 from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -154,6 +156,24 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply({"configured": storage.has_account()})
             if path == "/api/me":
                 return self.reply({"logged_in": bool(self.auth())})
+            if path == "/api/podcasts/search":
+                user_id = self.auth()
+                if user_id is None:
+                    return self.reply({"error": "Entre na sua conta."}, 401)
+                term = parse_qs(urlsplit(self.path).query).get("q", [""])[0]
+                try:
+                    return self.reply({"results": podcasts.search(term)})
+                except ValueError as error:
+                    return self.reply({"error": str(error)}, 400)
+            if path == "/api/podcasts/episodes":
+                user_id = self.auth()
+                if user_id is None:
+                    return self.reply({"error": "Entre na sua conta."}, 401)
+                id_param = parse_qs(urlsplit(self.path).query).get("id", [""])[0]
+                try:
+                    return self.reply(podcasts.episode_list(user_id, int(id_param)))
+                except (ValueError, TypeError) as error:
+                    return self.reply({"error": str(error)}, 400)
             if path == "/api/push/config":
                 user_id = self.auth()
                 if user_id is None:
@@ -167,7 +187,7 @@ class Handler(BaseHTTPRequestHandler):
                     return self.reply({"error": "Entre com sua senha."}, 401)
                 return self.reply({"data": storage.read_data(user_id)})
             if path == "/health":
-                return self.reply({"ok": True, "app": "dgx-meu-dia", "version": "0.4"})
+                return self.reply({"ok": True, "app": "dgx-meu-dia", "version": "0.5"})
         except Exception as e:
             print("Erro de GET", path, type(e).__name__, flush=True)
             return self.reply({"error": "Serviço de dados temporariamente indisponível."}, 503)
@@ -179,7 +199,9 @@ class Handler(BaseHTTPRequestHandler):
                  "/features.js": ("features.js", "application/javascript; charset=utf-8"),
                  "/payments.js": ("payments.js", "application/javascript; charset=utf-8"),
                  "/push_client.js": ("push_client.js", "application/javascript; charset=utf-8"),
-                 "/spotify.js": ("spotify.js", "application/javascript; charset=utf-8")}
+                 "/spotify.js": ("spotify.js", "application/javascript; charset=utf-8"),
+                 "/podcasts.js": ("podcasts.js", "application/javascript; charset=utf-8"),
+                 "/car_mode.js": ("car_mode.js", "application/javascript; charset=utf-8")}
         if path not in allow:
             return self.send(b"Not found", "text/plain; charset=utf-8", 404)
         filename, mime = allow[path]
@@ -243,5 +265,6 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8766))
     storage.initialize()
     push_service.setup()
-    print(f"DGX Meu Dia v0.4 com PostgreSQL ouvindo em {host}:{port}", flush=True)
+    podcasts.setup()
+    print(f"DGX Meu Dia v0.5 com PostgreSQL ouvindo em {host}:{port}", flush=True)
     ThreadingHTTPServer((host, port), Handler).serve_forever()
