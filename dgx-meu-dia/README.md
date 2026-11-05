@@ -60,3 +60,8 @@ Runtime Python com comando \`python dgx-meu-dia/app.py\`.
 - Adicionados diretamente ao perfil privado no Neon: **A Hora** (UOL; Apple Podcasts id 1753993865), **O Assunto** (g1/Globo Podcasts; id 1477406521), **Café da Manhã** (Folha/Spotify; id interno spotify:cafe-da-manha, URL oficial Spotify https://open.spotify.com/show/6WRTzGhq3uFxMrxHrHh1lo) e **Foro de Teresina** (piauí; id 1384660882).
 - **Dragões de Garagem** preservado. Total de cinco programas.
 - O Café da Manhã é exclusivo do Spotify; sem RSS público verificado, fica disponível na lista com link para Spotify, mas não recebe monitoramento automático de episódios no módulo RSS. Outros três podcasts continuam no fluxo normal de Apple Podcasts/RSS, conforme disponibilidade dos feeds.
+
+## Correção 0.7 — Sincronização e episódios (05/11/2026)
+- Corrigido o monitoramento de feeds RSS extensos (O Assunto e Foro de Teresina): leitura incremental dos 30 primeiros episódios completos; não faz download/parsing de todo o XML nem falha só porque o feed completo excede 1 MB.
+- Lista de podcasts é sincronizada novamente com o Neon ao abrir o app, retomar a janela ou entrar na aba Podcasts, com botão manual **Sincronizar com o banco** e mensagem sobre erros de feed.
+- Service worker e arquivos estáticos atualizados para 0.7.
