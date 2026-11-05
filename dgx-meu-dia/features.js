@@ -9,10 +9,10 @@ const stamp=()=>new Date().toISOString();
 const uuid=()=>typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(36).slice(2);
 const displayDate=(s)=>{if(!s)return"—";const p=s.slice(0,10).split("-");return p[2]+"/"+p[1]+"/"+p[0]};
 const notify=s=>window.DGXtoast&&window.DGXtoast(s);
-const allowed=["dgx_moods_v1","dgx_challenges_v1","dgx_reminders_v1","dgx_notified_v1","dgx_plants_v1","dgx_tasks_v1"];
+const allowed=["dgx_moods_v1","dgx_challenges_v1","dgx_reminders_v1","dgx_notified_v1","dgx_plants_v1","dgx_tasks_v1","dgx_payments_v1"];
 let state={},authenticated=false,writeSerial={},unsaved=0,bootstrapped=false;
 function dataRead(key,fallback){return Object.prototype.hasOwnProperty.call(state,key)?state[key]:fallback}
-function updateStatus(status){$("appVersion").textContent="v0.2 · "+status}
+function updateStatus(status){$("appVersion").textContent="v0.3 · "+status}
 async function api(url,opts){
  const res=await fetch(url,{credentials:"same-origin",cache:"no-store",...opts});
  let data;try{data=await res.json()}catch(e){data={error:"Resposta inválida do servidor"}}
@@ -61,14 +61,14 @@ async function setLoggedIn(){
  $("logoutBtn").classList.remove("hide");
  updateStatus("nuvem ✓");
  if(window.DGXrefresh)window.DGXrefresh();
- drawTasks();drawPlants();
+ drawTasks();drawPlants();if(window.DGXpaymentsRefresh)window.DGXpaymentsRefresh();
  // Importação opcional para não perder registros da primeira versão local.
  const toImport=allowed.filter(k=>!Object.prototype.hasOwnProperty.call(state,k)&&localStorage.getItem(k));
  if(toImport.length&&confirm("Encontrei registros feitos em uma versão anterior neste aparelho. Quer importá-los para seu banco de dados?")){
   toImport.forEach(key=>{
    try{write(key,JSON.parse(localStorage.getItem(key)))}catch(e){}
   });
-  if(window.DGXrefresh)window.DGXrefresh();drawTasks();drawPlants();
+  if(window.DGXrefresh)window.DGXrefresh();drawTasks();drawPlants();if(window.DGXpaymentsRefresh)window.DGXpaymentsRefresh();
  }
 }
 async function bootstrap(){
