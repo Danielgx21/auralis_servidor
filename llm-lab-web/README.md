@@ -1,4 +1,4 @@
-# DGX LLM — versão 0.4
+# DGX LLM — versão 0.5
 
 Aplicação didática para investigar como redes neurais aprendem e construir uma assistente independente. A branch lab-llm-web-v1 está isolada dos jogos.
 
@@ -8,12 +8,15 @@ Site: https://laboratorio-llm-web.onrender.com/
 - **Conversa didática:** regras transparentes sobre IA, com contexto de mensagens anteriores. Não é uma LLM.
 - **Ferramentas:** calculadora restrita, tarefas salvas no navegador.
 - **Previsões:** modelo estatístico de caracteres como referência.
-- **Treinar IA:** rede neural real, implementada em JavaScript puro, treinada no dispositivo do visitante.
+- **Treinar IA:** rede neural real, implementada em JavaScript puro, treinada no dispositivo do visitante. Na v0.5, inclui interpretação do erro e novo teste com texto fornecido pelo visitante que não modifica os pesos.
+  - A tela mostra explicitamente que a rede de três caracteres usa somente o contexto final, mesmo quando o usuário digita uma frase inteira.
+  - O teste externo mede perda e perplexidade, informa quantos trechos foram aproveitados e descarta janelas com caracteres fora do vocabulário, informando cobertura. A independência depende de escolher um texto que não tenha feito parte do treinamento.
+  - O gráfico das últimas curvas ocupa toda a largura mesmo após muitos ajustes, e os pesos podem ser exportados como JSON. O formato salvo no navegador permanece compatível com o treinamento da versão 0.3.
   - Contexto de 3 caracteres, embeddings de dimensão 8, camada oculta tanh de 32 unidades e saída softmax.
   - Retropropagação e descida de gradiente nos pesos; curva de perda de treino e avaliação, amostragem de texto.
   - Peso inicial aleatório, atualização em blocos de 400 passos e persistência em localStorage.
   - Dados e pesos não são enviados a um serviço de inteligência artificial.
-  - É uma mini-rede preditora de caracteres, **não** um Transformer e **não** uma LLM conversacional. Os caracteres de avaliação vêm do mesmo texto, com janelas sobrepostas: este teste mede aprendizagem local, não prova generalização.
+  - É uma mini-rede preditora de caracteres, **não** um Transformer e **não** uma LLM conversacional. Os caracteres de avaliação vêm do mesmo texto, com janelas sobrepostas: esse gráfico mede aprendizagem em amostras correlacionadas e não prova generalização. Para um teste adicional, use a seção de texto diferente.
 - **Transformer (v0.4):** modelo próprio de 1 bloco com uma cabeça de atenção causal, embeddings de tokens/caracteres e posições, conexões residuais, rede feed-forward, softmax e retropropagação analítica. O treinamento ocorre no navegador.
   - Mostra as probabilidades do próximo caractere, os pesos de atenção entre as quatro posições de contexto e as curvas de perda.
   - Os últimos 20% dos dados ficam reservados para avaliação, mas padrões repetidos podem aparecer nos dois conjuntos.
