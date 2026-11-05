@@ -5,6 +5,7 @@ import urllib.request
 from http.cookies import SimpleCookie
 from urllib.parse import urlsplit
 import storage
+import push_service
 from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -145,13 +146,20 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply({"configured": storage.has_account()})
             if path == "/api/me":
                 return self.reply({"logged_in": bool(self.auth())})
+            if path == "/api/push/config":
+                user_id = self.auth()
+                if user_id is None:
+                    return self.reply({"error": "Entre na sua conta."}, 401)
+                return self.reply({"public_key": os.getenv("VAPID_PUBLIC_KEY", ""),
+                    "subscriptions": push_service.subscription_count(user_id),
+                    "scheduler": os.getenv("PUSH_SCHEDULER_ACTIVE") == "1"})
             if path == "/api/data":
                 user_id = self.auth()
                 if user_id is None:
                     return self.reply({"error": "Entre com sua senha."}, 401)
                 return self.reply({"data": storage.read_data(user_id)})
             if path == "/health":
-                return self.reply({"ok": True, "app": "dgx-meu-dia", "version": "0.3"})
+                return self.reply({"ok": True, "app": "dgx-meu-dia", "version": "0.4"})
         except Exception as e:
             print("Erro de GET", path, type(e).__name__, flush=True)
             return self.reply({"error": "Serviço de dados temporariamente indisponível."}, 503)
@@ -161,7 +169,9 @@ class Handler(BaseHTTPRequestHandler):
                  "/icon.svg": ("icon.svg", "image/svg+xml"),
                  "/sw.js": ("sw.js", "application/javascript; charset=utf-8"),
                  "/features.js": ("features.js", "application/javascript; charset=utf-8"),
-                 "/payments.js": ("payments.js", "application/javascript; charset=utf-8")}
+                 "/payments.js": ("payments.js", "application/javascript; charset=utf-8"),
+                 "/push_client.js": ("push_client.js", "application/javascript; charset=utf-8"),
+                 "/spotify.js": ("spotify.js", "application/javascript; charset=utf-8")}
         if path not in allow:
             return self.send(b"Not found", "text/plain; charset=utf-8", 404)
         filename, mime = allow[path]
@@ -174,10 +184,28 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split("?")[0]
         if not self.check_origin():
             return self.reply({"error": "Origem não autorizada."}, 403)
-        if path not in ("/api/auth/setup", "/api/auth/login", "/api/auth/logout", "/api/data"):
+        if path == "/api/push/dispatch" and not push_service.valid_dispatch_token(self.headers.get("Authorization", "")):
+            return self.reply({"error": "Acesso negado."}, 403)
+        if path not in ("/api/auth/setup", "/api/auth/login", "/api/auth/logout", "/api/data",
+                        "/api/push/subscribe", "/api/push/unsubscribe", "/api/push/test", "/api/push/dispatch"):
             return self.reply({"error": "Rota inexistente."}, 404)
         try:
             body = self.get_json()
+            if path == "/api/push/dispatch":
+                # Executado apenas pelo agendador Neon com token secreto.
+                response = fixtures()
+                games = response["games"] if response.get("source_label", "").startswith("ESPN") else []
+                return self.reply(push_service.dispatch(games))
+            if path.startswith("/api/push/"):
+                user_id = self.auth()
+                if user_id is None:
+                    return self.reply({"error": "Entre na sua conta."}, 401)
+                if path == "/api/push/subscribe":
+                    return self.reply(push_service.subscribe(user_id, body))
+                if path == "/api/push/unsubscribe":
+                    return self.reply(push_service.unsubscribe(user_id, body))
+                if path == "/api/push/test":
+                    return self.reply(push_service.send_test(user_id))
             if path == "/api/auth/setup":
                 token = storage.create_account(
                     str(body.get("password", "")), str(body.get("setup_code", "")))
@@ -206,5 +234,6 @@ if __name__ == "__main__":
     host = os.environ.get("HOST", "0.0.0.0")
     port = int(os.environ.get("PORT", 8766))
     storage.initialize()
-    print(f"DGX Meu Dia v0.3 com PostgreSQL ouvindo em {host}:{port}", flush=True)
+    push_service.setup()
+    print(f"DGX Meu Dia v0.4 com PostgreSQL ouvindo em {host}:{port}", flush=True)
     ThreadingHTTPServer((host, port), Handler).serve_forever()
