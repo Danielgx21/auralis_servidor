@@ -77,3 +77,8 @@ Runtime Python com comando \`python dgx-meu-dia/app.py\`.
 - Os dez painéis recolhíveis agora usam chevrons vetoriais SVG 19px em alvos de toque 42px. Ações secundárias permanecem no corpo; menu discreto Organizar permite expandir/recolher todos.
 - Nova seção fixa **Acontece hoje** no topo do Início, sempre visível: jogos do Corinthians identificados para o dia, tarefas pessoais/SME e lembretes de hoje, vencimentos de contas hoje, atrasos e previsão de vencimentos nos 3 dias seguintes. Cada bloco abre a seção correspondente. Cuidado: agenda esportiva não oficial e horários passíveis de alteração.
 - Resumo sincroniza com dados do Neon no login, alterações de tarefa, lembrete, baixa/edição de pagamentos e novos resultados da agenda do Corinthians; verifica mudança de dia.
+
+## v0.9.1 — Janela dos próximos três dias
+- Em **Acontece hoje**, os cartões Corinthians e Compromissos mostram explicitamente o que há hoje e o que está cadastrado para os três dias seguintes; exibem frase clara se não houver nenhum evento no período.
+- Hoje continua em destaque; quando há itens futuros, o aplicativo exibe o próximo item com prazo, nome e hora disponível. Sem dados confirmados do futebol, não afirma que não existirá jogo: diz 'não identificado'.
+- Contas mantidas como estavam, com vencimentos hoje, atrasados e próximos três dias.
