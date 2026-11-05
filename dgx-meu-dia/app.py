@@ -171,7 +171,7 @@ class Handler(BaseHTTPRequestHandler):
                     return self.reply({"error": "Entre na sua conta."}, 401)
                 id_param = parse_qs(urlsplit(self.path).query).get("id", [""])[0]
                 try:
-                    return self.reply(podcasts.episode_list(user_id, int(id_param)))
+                    return self.reply(podcasts.episode_list(user_id, id_param))
                 except (ValueError, TypeError) as error:
                     return self.reply({"error": str(error)}, 400)
             if path == "/api/push/config":
