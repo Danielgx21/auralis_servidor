@@ -181,6 +181,22 @@ function update(){
  $("dialogTrainCount").textContent=train.length;
  $("dialogTestCount").textContent=test.length;
  $("dialogModelStatus").textContent=steps>0?"Treinado":"Pesos aleatórios";
+ const report=$("dialogMistakes");
+ if(report){
+  if(steps===0||!test.length){
+   report.textContent="Treine para verificar as perguntas reservadas.";
+  }else{
+   const fails=[];
+   for(const row of test){
+    const pred=forward(row.ids).p, top=pred.indexOf(Math.max(...pred));
+    if(top!==row.label)fails.push("• "+row.q+"\n  Esperado: "+row.answer.slice(0,75)+
+      (row.answer.length>75?"…":"")+"\n  Escolhido: "+model.answers[top].slice(0,75)+(model.answers[top].length>75?"…":""));
+   }
+   report.textContent=fails.length?fails.slice(0,4).join("\n\n")+
+     (fails.length>4?"\n\n… e mais "+(fails.length-4)+" erro(s).":""):
+     "Nenhum erro nas perguntas reservadas deste conjunto pequeno.";
+  }
+ }
 }
 async function trainModel(){
  if(busy)return;
@@ -249,6 +265,41 @@ function download(){
  document.body.append(link);link.click();link.remove();
  setTimeout(()=>URL.revokeObjectURL(href),1500);
 }
+
+async function importCheckpoint(){
+ const input=$("dialogImportFile"),file=input?.files?.[0];
+ if(!file)return;
+ try{
+  if(file.size>400000)throw Error("Arquivo maior que 400 KB.");
+  const obj=JSON.parse(await file.text());
+  if(obj.format!=="DGX-supervised-neural-dialogue-v06"||
+     typeof obj.dataset!=="string"||obj.dataset.length>90000)
+    throw Error("Arquivo não é um checkpoint DGX v0.6 válido.");
+  const probe=parseData(obj.dataset);
+  if(JSON.stringify(probe.vocab)!==JSON.stringify(obj.vocab)||
+     JSON.stringify(probe.answers)!==JSON.stringify(obj.answers))
+    throw Error("Vocabulário ou respostas incompatíveis com os exemplos.");
+  const lengths={emb:probe.vocab.length*E,w1:E*H,b1:H,w2:H*probe.answers.length,b2:probe.answers.length};
+  for(const key of Object.keys(lengths)){
+   if(!Array.isArray(obj[key])||obj[key].length!==lengths[key]||
+       obj[key].some(x=>typeof x!=="number"||!Number.isFinite(x)))
+     throw Error("Pesos inválidos: "+key);
+  }
+  if(!Number.isSafeInteger(obj.steps)||obj.steps<0||obj.steps>1e8)
+    throw Error("Quantidade de passos inválida.");
+  if((model&&steps>0)&&!confirm("Substituir a rede treinada neste navegador pelos pesos do arquivo?"))return;
+  $("dialogExamples").value=obj.dataset;
+  initialize(obj.dataset);
+  for(const key of Object.keys(lengths))model[key]=Float64Array.from(obj[key]);
+  steps=obj.steps;
+  losses=Array.isArray(obj.losses)?obj.losses.filter(x=>x&&Number.isFinite(x.step)&&Number.isFinite(x.loss)).slice(-80):[];
+  try{localStorage.setItem(DATA_KEY,obj.dataset)}catch{}
+  save();update();testQuestion();
+  $("dialogNote").textContent="Checkpoint importado e pesos restaurados!";
+ }catch(e){$("dialogNote").textContent="Importação rejeitada: "+e.message}
+ finally{input.value=""}
+}
+
 function init(){
  const textarea=$("dialogExamples");if(!textarea)return;
  textarea.value=EXAMPLES;
@@ -259,6 +310,8 @@ function init(){
  $("dialogTest").onclick=testQuestion;
  $("dialogAdd").onclick=addExample;
  $("dialogDownload").onclick=download;
+ $("dialogImportBtn").onclick=()=>$("dialogImportFile").click();
+ $("dialogImportFile").onchange=importCheckpoint;
  textarea.onchange=()=>{
   try{localStorage.setItem(DATA_KEY,textarea.value)}catch{}
   if(signature(textarea.value)!==sig){
