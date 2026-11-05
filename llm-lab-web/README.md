@@ -1,8 +1,18 @@
-# DGX LLM — versão 0.6
+# DGX LLM — versão 0.7
 
 Aplicação didática para investigar como redes neurais aprendem e construir uma assistente independente. A branch lab-llm-web-v1 está isolada dos jogos.
 
 Site: https://laboratorio-llm-web.onrender.com/
+
+## Novidade da v0.7 — geração neural, palavra por palavra
+
+- **Gerar respostas:** novo modelo recorrente (RNN tanh) treinado do zero no navegador, sem GPU paga, sem APIs externas e sem alteração nos modelos anteriores.
+- O gerador transforma palavras em embeddings, combina a pergunta e o estado anterior e prevê a próxima palavra por softmax. Durante treinamento usa teacher forcing e retropropagação através do tempo (BPTT).
+- **Respostas novas:** a geração é autoregressiva, não uma simples seleção de resposta de lista, mas o vocabulário é restrito às palavras dos exemplos. Com poucos dados, as frases podem ser desconexas ou erradas; não é uma LLM Transformer, e o experimento não deve ser tratado como fonte de fatos.
+- Exemplos de treinamento editáveis no formato pergunta => resposta, com perda de treino/validação e checkpoints JSON exportáveis/importáveis para transferir pesos entre aparelhos.
+- **Conversar:** motor adicional Gerador neural · montar respostas. Ele roda na memória do navegador e não envia perguntas para serviços externos. Os modos didático e classificador ficam disponíveis.
+- A reserva de perguntas para avaliação é pequena e pode compartilhar palavras e estruturas com o conjunto de treino. Perda menor não comprova compreensão nem generalização.
+- Pesos e exemplos desse gerador usam chaves próprias do navegador, preservando todos os checkpoints anteriores (v0.3 a v0.6).
 
 ## Novidade da v0.6 — aprendizado supervisionado de perguntas e respostas
 
