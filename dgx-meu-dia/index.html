@@ -45,31 +45,58 @@ body.car-active{overflow:hidden}
 @media(max-width:720px){.bottomnav .tab{min-width:78px;flex:0 0 78px;min-height:76px;font-size:12px}.bottomnav .tab span{font-size:29px}.topright{gap:5px;flex-wrap:wrap;justify-content:flex-end}.topright .pill{font-size:10px}#enterCar{font-size:13px;padding:9px 11px}.car-tile{min-height:124px}.car-grid{gap:11px}.car-screen{gap:12px}}
 @media(max-width:355px){.car-grid{grid-template-columns:1fr}.car-tile{min-height:84px;flex-direction:row;justify-content:flex-start;padding:12px 20px}.car-icon{font-size:30px}.car-tile strong{font-size:17px}.car-tile span:not(.car-icon){display:none}}
 .brief-choice{display:flex;align-items:center;gap:10px;min-height:44px;padding:8px 10px;background:#1a3243;border:1px solid #35546a;border-radius:12px;font-size:13px}.brief-choice input{width:20px;height:20px;accent-color:#74d9c6}.car-bottom:disabled{opacity:.45}
+
+/* Painéis dobráveis da tela Início */
+.home-panel-actions-bar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin:-4px 0 16px}
+.home-panel-actions-bar .btn{min-height:45px;font-size:12px;padding:10px 13px}
+#page-home article[data-home-panel]>.home-panel-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:9px}
+#page-home article[data-home-panel]>.home-panel-head>h2{flex:1 1 148px}
+#page-home article[data-home-panel]>.home-panel-head>.home-panel-toggle{display:grid;place-items:center;flex:0 0 48px;width:48px;height:48px;min-height:48px;padding:0;margin-left:auto;font-size:29px;line-height:1;border:1px solid #41657c;background:#1c3649;color:#c7f3ea}
+#page-home article[data-home-panel].hero>.home-panel-head>div:first-child{flex:1 1 145px}
+#page-home article[data-home-panel].hero>.home-panel-head>button#locateBtn{min-height:44px}
+#page-home article[data-home-panel].home-is-collapsed>.home-panel-head{margin-bottom:0!important}
+#page-home .home-panel-content[hidden]{display:none!important}
+#page-home .home-panel-content{min-width:0}
+#page-home article[data-home-panel].home-is-collapsed{padding-top:14px;padding-bottom:14px}
+@media(max-width:720px){
+ .home-panel-actions-bar{align-items:flex-start}
+ .home-panel-actions-bar>.small{width:100%}
+ #page-home article[data-home-panel]>.home-panel-head{gap:7px}
+ #page-home article[data-home-panel]>.home-panel-head>h2{font-size:16px;flex:1 1 125px}
+ #page-home article[data-home-panel]>.home-panel-head>.home-panel-toggle{width:48px;flex-basis:48px}
+}
 </style>
 </head>
 <body class="locked">
 <div id="authGate" class="authgate" role="dialog" aria-label="Acesso ao DGX Meu Dia" aria-modal="true"><div class="authbox"><div class="logo" style="justify-content:center;margin-bottom:18px"><div class="mark">D</div>DGX Meu Dia</div><h1 id="authTitle" style="font-size:28px;text-align:center">Seu espaço pessoal</h1><p id="authMessage" class="sub" style="text-align:center">Conectando ao banco de dados...</p><form id="authForm" class="stack hide" style="margin-top:22px"><div class="field hide" id="setupCodeField"><label>Código de ativação inicial</label><input id="setupCode" type="text" autocomplete="off" placeholder="Cole o código recebido"></div><div class="field"><label id="authPasswordLabel">Sua senha</label><input id="authPassword" type="password" minlength="10" autocomplete="current-password" placeholder="Digite sua senha" required></div><button class="btn main full" id="authSubmit" type="submit">Entrar</button><div class="small" id="authError" style="text-align:center;color:#ffb2aa"></div></form><button class="btn ghost full hide" id="authRetry" style="margin-top:14px">Tentar novamente</button><p class="small" style="text-align:center;margin-top:22px">Seus dados ficam em um banco privado. Não compartilhe sua senha.</p></div></div>
 <div id="updatePrompt" class="updateprompt hide" role="status"><span>Nova versão disponível.</span><button class="btn main" id="updateNow" style="padding:8px 12px">Atualizar</button></div>
 <main class="shell">
-<header class="top"><div class="logo"><div class="mark">D</div><div>DGX <span style="color:#8ae2cc">Meu Dia</span></div></div><div class="topright"><span class="today" id="todayDate"></span><button class="btn main" id="enterCar" style="min-height:48px">🚘 Modo Carro</button><span class="pill aqua" id="appVersion">v0.7</span><button class="roundbtn hide" id="logoutBtn" style="padding:7px 9px;font-size:11px" title="Sair da conta">Sair</button></div></header>
+<header class="top"><div class="logo"><div class="mark">D</div><div>DGX <span style="color:#8ae2cc">Meu Dia</span></div></div><div class="topright"><span class="today" id="todayDate"></span><button class="btn main" id="enterCar" style="min-height:48px">🚘 Modo Carro</button><span class="pill aqua" id="appVersion">v0.8</span><button class="roundbtn hide" id="logoutBtn" style="padding:7px 9px;font-size:11px" title="Sair da conta">Sair</button></div></header>
 <section class="section active" id="page-home">
 <div class="intro"><p class="kicker">Seu espaço pessoal</p><h1>Um bom dia começa aqui.</h1><div class="sub">As coisas importantes para você, em um só lugar.</div></div>
+<div class="home-panel-actions-bar">
+  <span class="small">Personalize seus painéis</span>
+  <div class="actions">
+    <button class="btn ghost" id="homeCollapseAll" type="button">▴ Recolher tudo</button>
+    <button class="btn ghost" id="homeExpandAll" type="button">▾ Expandir tudo</button>
+  </div>
+</div>
 <div class="grid">
 <div class="col">
-<article class="panel hero" aria-label="Previsão do tempo">
+<article class="panel hero" data-home-panel="weather" aria-label="Previsão do tempo">
 <div class="hori" style="margin-bottom:16px"><div><div class="label" style="color:#bceee7">Tempo agora</div><h2 style="margin-top:4px" id="weatherCity">Santo André, SP</h2></div><button id="locateBtn">⌖ Minha localização</button></div>
 <div class="weatherrow"><div><div class="temp" id="weatherTemp">--°</div><div id="weatherDesc" style="font-size:14px;margin-top:8px;color:#d6eff0">Consultando previsão...</div></div><div class="weather-icon" id="weatherIcon">⛅</div></div>
 <div class="weatherdetails"><div>Sensação <b id="weatherFeel">--°</b></div><div>Máxima / mínima <b id="weatherRange">--° / --°</b></div><div>Chuva <b id="weatherRain">--%</b></div></div>
 <div class="weatherfoot">Dados: Open-Meteo · Atualizados ao abrir</div>
 </article>
-<article class="panel"><div class="panelhead"><h2>⚽ Próximos jogos do Corinthians</h2><span class="pill">Timão</span></div><div id="fixtureList" class="sub">Carregando partidas...</div><div class="weatherfoot" id="fixtureSource"></div></article>
-<article class="panel"><div class="panelhead"><h2>🎧 Podcasts favoritos</h2><button class="roundbtn" data-goto="podcasts">Ver episódios →</button></div><div class="small" id="homePodcastCount">Nenhum cadastrado</div><div id="homePodcasts" class="sub" style="margin-top:8px">Acompanhe seus programas para ver os novos episódios.</div></article>
-<article class="panel"><div class="panelhead"><h2>📅 Agenda de hoje</h2><button class="roundbtn" data-goto="calendar">Calendário →</button></div><div class="sub" id="homeTasks">Nenhuma tarefa para hoje.</div></article><article class="panel"><div class="panelhead"><h2>💳 Contas deste mês</h2><button class="roundbtn" data-goto="payments">Pagamentos →</button></div><div id="homePayments" class="sub">Cadastre suas despesas recorrentes para acompanhar os vencimentos.</div></article><article class="panel"><div class="panelhead"><h2>🌱 Minhas plantas</h2><button class="roundbtn" data-goto="plants">Abrir →</button></div><div id="homePlants" class="sub">Cadastre uma planta para começar.</div></article><article class="panel"><div class="panelhead"><h2>🔔 Seus avisos</h2><button class="roundbtn" data-goto="alerts">Adicionar +</button></div><div id="homeAlerts" class="sub">Nenhum aviso cadastrado.</div></article>
+<article class="panel" data-home-panel="corinthians"><div class="panelhead"><h2>⚽ Próximos jogos do Corinthians</h2><span class="pill">Timão</span></div><div id="fixtureList" class="sub">Carregando partidas...</div><div class="weatherfoot" id="fixtureSource"></div></article>
+<article class="panel" data-home-panel="podcasts"><div class="panelhead"><h2>🎧 Podcasts favoritos</h2><button class="roundbtn" data-goto="podcasts">Ver episódios →</button></div><div class="small" id="homePodcastCount">Nenhum cadastrado</div><div id="homePodcasts" class="sub" style="margin-top:8px">Acompanhe seus programas para ver os novos episódios.</div></article>
+<article class="panel" data-home-panel="calendar"><div class="panelhead"><h2>📅 Agenda de hoje</h2><button class="roundbtn" data-goto="calendar">Calendário →</button></div><div class="sub" id="homeTasks">Nenhuma tarefa para hoje.</div></article><article class="panel" data-home-panel="payments"><div class="panelhead"><h2>💳 Contas deste mês</h2><button class="roundbtn" data-goto="payments">Pagamentos →</button></div><div id="homePayments" class="sub">Cadastre suas despesas recorrentes para acompanhar os vencimentos.</div></article><article class="panel" data-home-panel="plants"><div class="panelhead"><h2>🌱 Minhas plantas</h2><button class="roundbtn" data-goto="plants">Abrir →</button></div><div id="homePlants" class="sub">Cadastre uma planta para começar.</div></article><article class="panel" data-home-panel="alerts"><div class="panelhead"><h2>🔔 Seus avisos</h2><button class="roundbtn" data-goto="alerts">Adicionar +</button></div><div id="homeAlerts" class="sub">Nenhum aviso cadastrado.</div></article>
 </div>
 <div class="col">
-<article class="panel soft"><div class="panelhead"><h2>Como você está hoje?</h2><span class="pill aqua" id="moodTimeTitle">Agora</span></div><p class="sub" style="margin:0 0 12px">Um registro rápido para acompanhar seus dias.</p><div class="moods" id="homeMoods"></div><div class="small" style="margin-top:12px" id="homeMoodStatus">Escolha como você se sente.</div><button class="btn ghost full" data-goto="mood" style="margin-top:13px">Ver meu diário →</button></article>
-<article class="panel"><div class="panelhead"><h2>🧠 Desafio do dia</h2><span class="pill aqua">Novo a cada dia</span></div><div class="label" id="homeChallengeCategory">Lógica</div><p style="font-weight:700;line-height:1.5;margin:9px 0 18px" id="homeChallengeText">Preparando desafio...</p><button class="btn main full" data-goto="challenge">Resolver desafio →</button></article>
-<article class="panel"><div class="panelhead"><h2>🎙️ Comandos de voz</h2><span class="pill">Experimental</span></div><p class="sub">Peça a previsão do tempo, consulte os jogos ou abra uma música no Spotify.</p><div class="actions"><button class="btn" data-goto="voice">Abrir assistente</button><button class="btn ghost" id="readBriefing">Ouvir resumo</button></div></article>
+<article class="panel soft" data-home-panel="mood"><div class="panelhead"><h2>Como você está hoje?</h2><span class="pill aqua" id="moodTimeTitle">Agora</span></div><p class="sub" style="margin:0 0 12px">Um registro rápido para acompanhar seus dias.</p><div class="moods" id="homeMoods"></div><div class="small" style="margin-top:12px" id="homeMoodStatus">Escolha como você se sente.</div><button class="btn ghost full" data-goto="mood" style="margin-top:13px">Ver meu diário →</button></article>
+<article class="panel" data-home-panel="challenge"><div class="panelhead"><h2>🧠 Desafio do dia</h2><span class="pill aqua">Novo a cada dia</span></div><div class="label" id="homeChallengeCategory">Lógica</div><p style="font-weight:700;line-height:1.5;margin:9px 0 18px" id="homeChallengeText">Preparando desafio...</p><button class="btn main full" data-goto="challenge">Resolver desafio →</button></article>
+<article class="panel" data-home-panel="voice"><div class="panelhead"><h2>🎙️ Comandos de voz</h2><span class="pill">Experimental</span></div><p class="sub">Peça a previsão do tempo, consulte os jogos ou abra uma música no Spotify.</p><div class="actions"><button class="btn" data-goto="voice">Abrir assistente</button><button class="btn ghost" id="readBriefing">Ouvir resumo</button></div></article>
 </div>
 </div>
 </section>
@@ -278,4 +305,5 @@ window.DGXsummaryData=function(){return {weather:weather,fixtures:fixtures}};win
 <script src="/podcasts.js" defer></script>
 <script src="/car_mode.js" defer></script>
 <script src="/briefing.js" defer></script>
+<script src="/home_panels.js" defer></script>
 </body></html>
