@@ -6,285 +6,285 @@
 const FACTS=[
  [
   "Biologia",
-  "Corais são animais, não plantas",
-  "Cada coral é formado por pequenos animais. Muitos deles vivem em parceria com algas microscópicas."
+  "Por que os corais são animais?",
+  "Cada pequeno coral se alimenta e possui células animais. Muitos vivem em parceria com algas que lhes fornecem nutrientes. Por isso, mesmo parecendo pedras ou plantas, eles são animais."
  ],
  [
   "Química",
-  "Por que uma diferença de pH importa tanto?",
-  "A escala de pH não cresce de um em um como uma régua. Uma solução de pH 3 tem cerca de 100 vezes mais íons de hidrogênio do que outra de pH 5."
+  "Por que duas unidades de pH fazem tanta diferença?",
+  "Cada unidade de pH corresponde a uma diferença aproximada de dez vezes na acidez. Por isso, uma solução de pH 3 tem cerca de cem vezes mais íons de hidrogênio disponíveis que uma de pH 5, em condições comparáveis."
  ],
  [
   "Física",
-  "A luz do Sol demora para chegar aqui",
-  "A luz solar leva cerca de oito minutos para chegar à Terra. O Sol que vemos no céu é, na verdade, a imagem de alguns minutos atrás."
+  "Por que vemos o Sol com atraso?",
+  "A luz precisa percorrer cerca de 150 milhões de quilômetros entre o Sol e a Terra. Essa viagem dura aproximadamente oito minutos e vinte segundos. Por isso, vemos o Sol como ele era alguns minutos atrás."
  ],
  [
   "História",
-  "Uma pedra ajudou a traduzir o Egito antigo",
-  "A Pedra de Roseta tinha o mesmo texto escrito de formas diferentes. Isso ajudou pesquisadores a entender os hieróglifos egípcios."
+  "Como a Pedra de Roseta ajudou a decifrar hieróglifos?",
+  "A pedra trazia o mesmo decreto em três formas de escrita, incluindo o grego, que estudiosos já conseguiam ler. A comparação dos textos ajudou a descobrir como interpretar os sinais egípcios."
  ],
  [
   "Geografia",
-  "O maior deserto do mundo é gelado",
-  "A Antártida é considerada um deserto porque quase não recebe precipitação. Um deserto não precisa ser quente."
+  "Por que a Antártida é considerada um deserto?",
+  "Deserto é uma região onde chove ou neva muito pouco. Como grande parte da Antártida recebe pouquíssima precipitação ao longo do ano, ela é um deserto polar, mesmo coberta de gelo."
  ],
  [
   "Ciências",
-  "Como as vacinas ajudam o corpo?",
-  "As vacinas preparam nossas defesas para reconhecer determinados microrganismos. Assim, o organismo pode reagir melhor se encontrá-los depois."
+  "Como as vacinas preparam nossas defesas?",
+  "Muitas vacinas mostram ao sistema imunológico um componente de um microrganismo, ou instruções para produzi-lo. Isso ajuda a criar uma resposta de memória, para que o organismo reaja melhor no futuro."
  ],
  [
   "Política",
-  "Um documento sobre direitos humanos",
-  "Em 1948, a ONU proclamou a Declaração Universal dos Direitos Humanos. O texto reúne direitos que devem valer para todas as pessoas.",
+  "O que foi a Declaração Universal dos Direitos Humanos?",
+  "Em 1948, a Assembleia Geral da ONU proclamou um documento que reúne direitos e liberdades fundamentais de todas as pessoas. Ele se tornou uma referência para acordos e leis de direitos humanos.",
   "https://www.un.org/en/about-us/universal-declaration-of-human-rights"
  ],
  [
   "Arte",
-  "Uma pintura nasceu de um bombardeio",
-  "Picasso pintou Guernica em 1937 após o bombardeio de uma cidade espanhola. A obra se tornou um símbolo da violência da guerra."
+  "Por que Picasso pintou Guernica?",
+  "Em 1937, o bombardeio da cidade espanhola de Guernica causou mortes e destruição. Picasso respondeu ao acontecimento com uma grande pintura que expressa o sofrimento provocado pela guerra."
  ],
  [
   "Biologia",
-  "Partes das nossas células têm DNA próprio",
-  "As mitocôndrias ajudam as células a produzir energia e possuem um pouco de DNA próprio. Isso é uma pista de sua origem evolutiva."
+  "Por que as mitocôndrias têm DNA próprio?",
+  "As mitocôndrias descendem de organismos que, há muito tempo, passaram a viver dentro de outras células. Elas mantiveram parte do seu material genético, um indício importante dessa história evolutiva."
  ],
  [
   "Química",
-  "Diamante e grafite são feitos da mesma coisa",
-  "Os dois são feitos de carbono. A diferença é como os átomos estão organizados: por isso um é muito duro e o outro se desgasta facilmente."
+  "Como diamante e grafite podem ser tão diferentes?",
+  "Ambos são feitos de carbono, mas seus átomos ficam ligados de maneiras diferentes. No diamante, a rede de ligações é muito rígida; no grafite, as camadas deslizam umas sobre as outras."
  ],
  [
   "Física",
-  "No espaço não há som como nos filmes",
-  "O som precisa de matéria para se espalhar, como ar ou água. No vácuo do espaço, não ouviríamos o barulho de uma explosão distante."
+  "Por que não ouviríamos uma explosão no espaço?",
+  "O som é uma vibração que precisa viajar através de matéria, como ar, água ou metal. Como quase não há matéria no espaço entre os astros, esse som não se propagaria até nós."
  ],
  [
   "História",
-  "Uma máquina ajudou a espalhar livros",
-  "No século XV, a impressão com tipos móveis ganhou força na Europa. Ela facilitou a produção de livros e a circulação de ideias."
+  "Como a prensa ajudou a espalhar livros?",
+  "A impressão com tipos móveis permitiu reutilizar letras para produzir muitas cópias de um texto. Isso tornou a produção de livros mais rápida do que copiar cada página à mão."
  ],
  [
   "Geografia",
-  "Os continentes ainda estão se movendo",
-  "As enormes placas que formam a parte externa da Terra se movem alguns centímetros por ano. Esse movimento está ligado a terremotos e vulcões."
+  "Por que os continentes se movem?",
+  "A parte mais externa da Terra é dividida em placas rochosas que se deslocam lentamente. Esse movimento altera a posição dos continentes e está ligado à formação de montanhas, terremotos e vulcões."
  ],
  [
   "Ciências",
   "Por que não há eclipse em toda Lua nova?",
-  "A órbita da Lua é inclinada. Por isso, ela quase sempre passa um pouco acima ou abaixo da linha entre a Terra e o Sol."
+  "Para ocorrer um eclipse solar, a Lua precisa passar exatamente entre o Sol e a Terra. Como sua órbita é inclinada, na maioria das luas novas ela passa acima ou abaixo dessa linha."
  ],
  [
   "Política",
-  "Quando as mulheres passaram a votar na Nova Zelândia?",
-  "Em 1893, a Nova Zelândia reconheceu o voto das mulheres nas eleições parlamentares, um marco na história do sufrágio.",
+  "O que mudou no voto feminino da Nova Zelândia em 1893?",
+  "Em 1893, uma lei reconheceu o direito das mulheres de votar nas eleições parlamentares do país. Foi um marco importante, embora ainda houvesse outras desigualdades políticas.",
   "https://www.women.govt.nz/about-us/history-womens-suffrage-aotearoa-new-zealand"
  ],
  [
   "Arte",
-  "Uma pintura deu nome a um movimento",
-  "O quadro Impressão, nascer do sol, de Claude Monet, ajudou a dar nome ao impressionismo, no século XIX."
+  "Como surgiu o nome impressionismo?",
+  "Em 1874, artistas exibiram pinturas que valorizavam luz e impressões visuais. O título de uma obra de Claude Monet, Impressão, nascer do sol, ajudou a dar nome ao movimento."
  ],
  [
   "Biologia",
-  "Fungos não são plantas",
-  "Cogumelos e outros fungos não fazem fotossíntese. Muitos deles ajudam a decompor folhas, madeira e outros restos de seres vivos."
+  "Por que fungos não são plantas?",
+  "Plantas geralmente produzem alimento por fotossíntese, mas os fungos obtêm nutrientes de matéria orgânica. Muitos decompõem restos de seres vivos e devolvem substâncias ao ambiente."
  ],
  [
   "Química",
-  "Dissolver açúcar não cria outra substância",
-  "Quando colocamos açúcar na água, suas moléculas se espalham pelo líquido. O açúcar continua sendo açúcar, mesmo sem aparecer."
+  "Por que o açúcar desaparece na água?",
+  "Quando o açúcar se dissolve, suas moléculas se espalham entre as moléculas de água. Ele continua presente, mesmo que não consigamos enxergá-lo."
  ],
  [
   "Física",
-  "O dobro da velocidade não é só o dobro de energia",
-  "Se a massa de um objeto não muda, dobrar sua velocidade faz sua energia de movimento ficar quatro vezes maior."
+  "Por que dobrar a velocidade quadruplica a energia cinética?",
+  "A energia de movimento depende do quadrado da velocidade. Assim, mantendo a massa igual, um objeto que se move duas vezes mais rápido possui quatro vezes mais energia cinética."
  ],
  [
   "História",
-  "Uma transformação começou nas fábricas",
-  "A Revolução Industrial ganhou força na Grã-Bretanha no século XVIII, mudando a maneira de produzir mercadorias e organizar o trabalho."
+  "Como a Revolução Industrial mudou o trabalho?",
+  "A partir do século XVIII, fábricas e máquinas passaram a concentrar etapas da produção, especialmente na Grã-Bretanha. Isso transformou profissões, cidades e formas de organizar o trabalho."
  ],
  [
   "Geografia",
-  "O rio Amazonas transporta muita água",
-  "O Amazonas é o rio com maior vazão do planeta. A água vem de uma bacia enorme, alimentada por chuvas e muitos afluentes."
+  "Por que o Amazonas transporta tanta água?",
+  "Ele recebe água de inúmeros rios que drenam uma região enorme da América do Sul. Com chuvas abundantes e muitos afluentes, o Amazonas apresenta a maior vazão entre os rios do planeta."
  ],
  [
   "Ciências",
-  "Duas coisas juntas nem sempre têm causa e efeito",
-  "Sorvetes e afogamentos podem aumentar no verão. Isso não quer dizer que sorvete provoque afogamento: o calor influencia os dois."
+  "Por que duas coisas podem aumentar juntas sem uma causar a outra?",
+  "No calor, podem aumentar tanto o consumo de sorvete quanto os casos de afogamento. Isso não significa que sorvete cause afogamento: a temperatura influencia os dois fenômenos."
  ],
  [
   "Política",
-  "Por que dividir o poder do Estado?",
-  "A separação entre poderes busca evitar que todas as decisões de governo fiquem concentradas numa única instituição."
+  "Por que existem poderes separados no Estado?",
+  "Dividir funções entre instituições permite que decisões sejam examinadas e limitadas por diferentes órgãos. A ideia procura evitar que todo o poder se concentre em uma única autoridade."
  ],
  [
   "Arte",
-  "Uma famosa onda nasceu de uma gravura",
-  "A Grande Onda de Kanagawa, de Hokusai, foi feita usando matrizes de madeira para impressão, e não tinta a óleo sobre tela."
+  "Como foi feita A Grande Onda de Kanagawa?",
+  "Hokusai criou uma imagem que podia ser impressa em papel usando matrizes entalhadas em madeira. É uma gravura japonesa, não uma pintura a óleo."
  ],
  [
   "Biologia",
-  "Polvos têm três corações",
-  "Dois corações ajudam a levar sangue às brânquias. O terceiro bombeia sangue para o restante do corpo."
+  "Por que os polvos precisam de três corações?",
+  "Dois corações bombeiam sangue para as brânquias, onde ocorre a troca de gases. O terceiro envia sangue oxigenado para o restante do corpo."
  ],
  [
   "Química",
-  "O sal de cozinha não é formado por moléculas isoladas",
-  "No sal sólido, partículas com cargas elétricas opostas ficam organizadas em uma estrutura que se repete, formando cristais."
+  "Como o sal forma cristais?",
+  "No sal de cozinha sólido, íons de sódio e cloreto, com cargas opostas, se atraem e se organizam em uma rede que se repete. Essa organização forma seus cristais."
  ],
  [
   "Física",
-  "Por que o céu é azul?",
-  "A luz do Sol tem várias cores. Ao atravessar o ar, a luz azul se espalha mais do que muitas outras cores, fazendo o céu parecer azul."
+  "Por que o céu parece azul durante o dia?",
+  "A luz do Sol reúne várias cores. Ao passar pela atmosfera, a luz azul se espalha mais intensamente em muitas direções, chegando aos nossos olhos de várias partes do céu."
  ],
  [
   "História",
-  "Uma epidemia mudou a Europa medieval",
-  "No século XIV, a peste negra matou milhões de pessoas e provocou grandes mudanças na economia e nas relações de trabalho."
+  "Como a peste negra afetou a Europa medieval?",
+  "A peste matou milhões de pessoas no século XIV. Com menos trabalhadores disponíveis, muitas comunidades passaram por mudanças nas relações de trabalho e na economia."
  ],
  [
   "Geografia",
-  "Um centímetro no mapa pode representar um quilômetro",
-  "Em um mapa com escala de 1 para 100 mil, cada centímetro equivale a um quilômetro na realidade."
+  "O que significa uma escala de 1 para 100 mil?",
+  "Significa que cada medida no mapa representa cem mil vezes essa medida no terreno. Portanto, um centímetro no mapa equivale a um quilômetro na realidade."
  ],
  [
   "Ciências",
-  "Como cientistas conseguem copiar DNA?",
-  "Uma técnica chamada PCR permite produzir muitas cópias de um trecho de DNA. Ela é usada em pesquisas e em diferentes exames."
+  "Como a técnica PCR copia DNA?",
+  "A PCR aquece e resfria uma amostra em ciclos, usando enzimas para produzir novas cópias de um trecho específico de DNA. Isso permite estudar quantidades muito pequenas do material."
  ],
  [
   "Política",
-  "Na Atenas antiga, nem todos podiam votar",
-  "A participação política era limitada a parte da população. Mulheres, pessoas escravizadas e muitos estrangeiros não tinham esse direito."
+  "Quem podia participar da democracia ateniense?",
+  "Na Atenas antiga, a participação política formal era reservada a determinados homens cidadãos. Mulheres, pessoas escravizadas e muitos estrangeiros não tinham os mesmos direitos."
  ],
  [
   "Arte",
-  "Abaporu é uma obra brasileira de 1928",
-  "Tarsila do Amaral pintou Abaporu em 1928. A obra se tornou um marco do modernismo brasileiro."
+  "Por que Abaporu é importante na arte brasileira?",
+  "Tarsila do Amaral pintou Abaporu em 1928. A obra ajudou a inspirar o movimento antropofágico, que propunha transformar influências culturais em criações brasileiras."
  ],
  [
   "Biologia",
-  "Bactérias podem compartilhar genes",
-  "Além de se multiplicarem, algumas bactérias conseguem passar pedaços de material genético umas para as outras."
+  "Como bactérias conseguem compartilhar genes?",
+  "Algumas bactérias transferem partes do próprio material genético para outras. Essa troca pode espalhar características entre indivíduos, inclusive resistência a antibióticos."
  ],
  [
   "Química",
-  "A ferrugem é uma mudança química",
-  "Quando o ferro reage com o oxigênio e a água, podem surgir novos compostos. É assim que se forma a ferrugem."
+  "Por que o ferro enferruja?",
+  "O ferro reage com o oxigênio em condições que geralmente envolvem água ou umidade. As reações formam compostos diferentes do metal original: a ferrugem."
  ],
  [
   "Física",
-  "A Lua não brilha com luz própria",
-  "A luz que vemos na Lua vem do Sol. As fases mudam conforme a parte iluminada que conseguimos enxergar daqui."
+  "Por que a Lua brilha no céu?",
+  "A Lua não produz a luz que vemos. Ela reflete a luz do Sol, e suas fases aparecem porque observamos diferentes porções de sua metade iluminada."
  ],
  [
   "História",
-  "O Japão passou por grandes mudanças em 1868",
-  "A Restauração Meiji marcou uma reorganização do governo japonês e abriu caminho para transformações sociais e econômicas."
+  "O que mudou no Japão a partir de 1868?",
+  "A Restauração Meiji reorganizou o governo japonês. Nas décadas seguintes, o país acelerou mudanças na indústria, educação e instituições."
  ],
  [
   "Geografia",
-  "A linha do Equador atravessa três continentes",
-  "Ela passa por regiões da América do Sul, da África e da Ásia. Também cruza oceanos."
+  "Por onde passa a linha do Equador?",
+  "Ela marca a latitude zero e divide o planeta em hemisférios Norte e Sul. Atravessa partes da América do Sul, da África e da Ásia, além de oceanos."
  ],
  [
   "Ciências",
   "Qual é a diferença entre meteoro e meteorito?",
-  "O brilho que vemos quando uma rocha espacial atravessa a atmosfera é um meteoro. Se um pedaço chega ao chão, é um meteorito."
+  "Meteoro é o brilho produzido quando um corpo vindo do espaço atravessa a atmosfera. Se algum fragmento chega à superfície da Terra, esse material é chamado meteorito."
  ],
  [
   "Política",
-  "A ONU foi criada em 1945",
-  "A Carta das Nações Unidas entrou em vigor em 24 de outubro de 1945, pouco depois do fim da Segunda Guerra Mundial."
+  "Por que 24 de outubro de 1945 é uma data importante para a ONU?",
+  "Nessa data, a Carta das Nações Unidas entrou em vigor e a organização passou a existir formalmente. Seu objetivo inclui promover a cooperação entre países."
  ],
  [
   "Arte",
-  "Van Gogh pintou um céu inesquecível",
-  "A Noite Estrelada foi pintada em 1889. O céu cheio de curvas é uma das marcas mais conhecidas dessa obra."
+  "Por que o céu de A Noite Estrelada chama atenção?",
+  "Van Gogh pintou a obra em 1889 usando curvas e pinceladas expressivas para representar o céu noturno. O resultado transmite movimento, em vez de copiar a cena de forma literal."
  ],
  [
   "Biologia",
-  "As folhas têm pequenas aberturas",
-  "Os estômatos permitem trocas de gases e ajudam a controlar a perda de água pelas plantas. São como pequenas portas nas folhas."
+  "Como as folhas fazem trocas de gases?",
+  "Pequenas aberturas chamadas estômatos permitem a entrada e saída de gases nas folhas. Elas também ajudam a regular a perda de água pela planta."
  ],
  [
   "Química",
-  "Por que vinagre e bicarbonato fazem espuma?",
-  "Ao misturar os dois, ocorre uma reação que libera gás carbônico. Esse gás forma as bolhas que vemos."
+  "Por que vinagre e bicarbonato fazem bolhas?",
+  "O ácido do vinagre reage com o bicarbonato e libera gás carbônico. As bolhas são esse gás saindo da mistura."
  ],
  [
   "Física",
-  "Por que o pêndulo pode marcar o tempo?",
-  "Um pêndulo mais curto balança mais rápido que um mais comprido. Seu ritmo previsível ajudou a criar relógios que medem o tempo."
+  "Como um pêndulo consegue marcar o tempo?",
+  "Quando suas oscilações são pequenas, um pêndulo leva aproximadamente o mesmo tempo para completar cada movimento de ida e volta. Os relógios usam essa regularidade para contar intervalos iguais e marcar os segundos."
  ],
  [
   "História",
-  "Uma mulher governou como faraó no Egito",
-  "Hatshepsut governou o Egito antigo durante a XVIII dinastia. Ela foi uma das mulheres que ocuparam o cargo de faraó."
+  "Como Hatshepsut se tornou faraó?",
+  "Hatshepsut assumiu o governo do Egito durante a XVIII dinastia e passou a usar os títulos e símbolos de faraó. Seu reinado mostra que mulheres também exerceram esse cargo no Egito antigo."
  ],
  [
   "Geografia",
-  "Por que países têm horários diferentes?",
-  "A Terra gira, então o Sol não aparece no mesmo horário em todos os lugares. Além disso, cada país define seus fusos horários oficiais."
+  "Por que os países têm fusos horários diferentes?",
+  "Como a Terra gira, o Sol atinge diferentes regiões em horários diferentes. Cada país adota horários oficiais para organizar a vida cotidiana, e suas fronteiras nem sempre seguem linhas retas."
  ],
  [
   "Ciências",
-  "O efeito estufa é importante para a vida",
-  "Gases da atmosfera ajudam a manter a Terra aquecida. O problema é que o aumento desses gases intensifica o aquecimento global."
+  "Por que o efeito estufa é necessário, mas pode causar problemas?",
+  "Gases da atmosfera retêm parte do calor que a Terra emite, ajudando a manter temperaturas adequadas à vida. Quando sua concentração aumenta, mais calor fica retido, intensificando o aquecimento global."
  ],
  [
   "Política",
-  "Uma carta tentou limitar o poder do rei",
-  "A Magna Carta foi acordada na Inglaterra em 1215 e impôs limites a algumas ações do rei. Ela ganhou novos significados ao longo do tempo."
+  "O que a Magna Carta buscava limitar?",
+  "Acordada na Inglaterra em 1215, ela estabeleceu restrições a certas decisões do rei e tratou de direitos de grupos específicos da época. Ao longo do tempo, passou a influenciar debates sobre limites do poder."
  ],
  [
   "Arte",
-  "Uma construção também pode ser arte",
-  "Na arquitetura, o uso de luz, espaço e materiais pode criar beleza e transmitir ideias, além de servir para morar ou trabalhar."
+  "Como uma construção pode ser uma obra de arte?",
+  "Arquitetos combinam formas, luz, materiais e espaços para criar experiências e transmitir ideias. Por isso, um edifício pode ter valor artístico além de sua função prática."
  ],
  [
   "Biologia",
-  "Como a água sobe pelas plantas?",
-  "As plantas têm vasos internos que transportam água das raízes para outras partes. Esse sistema é chamado xilema."
+  "Como a água chega das raízes às folhas?",
+  "As plantas vasculares possuem tubos chamados xilema. A evaporação de água nas folhas ajuda a puxar a água que sobe por esses tubos desde as raízes."
  ],
  [
   "Química",
-  "A água pode ferver abaixo de cem graus",
-  "Em lugares de grande altitude, a pressão do ar é menor. Por isso, a água pode ferver a menos de 100 graus Celsius."
+  "Por que a água ferve a menos de 100 °C em lugares altos?",
+  "A água ferve quando sua pressão de vapor alcança a pressão ao redor. Em grandes altitudes, a pressão atmosférica é menor; por isso, ela pode ferver a temperaturas mais baixas."
  ],
  [
   "Física",
-  "O GPS precisa da teoria da relatividade",
-  "Os relógios dos satélites funcionam em condições diferentes das da Terra. Correções previstas pela relatividade ajudam a manter a localização precisa."
+  "Por que o GPS precisa considerar a relatividade?",
+  "Relógios em satélites marcam o tempo de modo ligeiramente diferente dos relógios na Terra, devido à velocidade e à gravidade. Corrigir essa diferença evita erros crescentes na localização."
  ],
  [
   "História",
-  "A escrita ajudou a organizar cidades antigas",
-  "Na Mesopotâmia, um dos primeiros usos da escrita foi registrar quantidades, produtos e outras informações do comércio e da administração."
+  "Por que a escrita foi tão útil na Mesopotâmia?",
+  "Os registros escritos permitiram controlar estoques, trocas e pagamentos sem depender apenas da memória. Com o tempo, a escrita passou a ser usada também para leis, histórias e outros assuntos."
  ],
  [
   "Geografia",
-  "Nem todo rio chega ao mar do mesmo jeito",
-  "Alguns formam deltas, com vários canais e acúmulo de sedimentos. Outros chegam por estuários, onde a influência das marés pode ser grande."
+  "Por que alguns rios terminam em delta e outros em estuário?",
+  "Onde sedimentos se acumulam perto da foz, o rio pode formar vários canais e um delta. Onde marés e correntes redistribuem esses sedimentos, pode predominar uma entrada de água chamada estuário."
  ],
  [
   "Ciências",
-  "A descoberta do DNA envolveu várias pessoas",
-  "O modelo de dupla hélice publicado em 1953 contou com dados de diferentes pesquisadores, incluindo imagens produzidas por Rosalind Franklin e colaboradores."
+  "Por que a descoberta da estrutura do DNA foi coletiva?",
+  "O modelo de dupla hélice publicado em 1953 utilizou resultados de diferentes pesquisadores. Entre as contribuições importantes estavam imagens de difração de raios X produzidas por Rosalind Franklin e colaboradores."
  ],
  [
   "Política",
-  "A ONU não tem apenas uma assembleia",
-  "A Assembleia Geral reúne todos os países membros. O Conselho de Segurança tem responsabilidades específicas sobre paz e segurança internacionais."
+  "Qual é a diferença entre a Assembleia Geral e o Conselho de Segurança da ONU?",
+  "A Assembleia Geral reúne representantes de todos os Estados-membros e debate diversos assuntos. O Conselho de Segurança tem atribuições específicas para lidar com ameaças à paz e à segurança internacionais."
  ],
  [
   "Arte",
-  "O cinema contou histórias antes de ter som gravado",
-  "Durante décadas, filmes usaram imagens, gestos e textos na tela para contar histórias, antes de o som sincronizado se popularizar."
+  "Como os filmes contavam histórias antes do som sincronizado?",
+  "Atores usavam gestos e expressões, enquanto a montagem e textos na tela ajudavam a explicar as cenas. As sessões também podiam ter música ao vivo."
  ]
 ];
 const $=id=>document.getElementById(id);
