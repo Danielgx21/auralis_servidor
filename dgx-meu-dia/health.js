@@ -154,6 +154,18 @@ function drawHistory(rows){
 function draw(){
  const rows=completeRows();
  drawCards(rows);chart(rows);drawAnalysis(rows);drawHistory(rows);
+ const latest=rows.at(-1),home=$("homeHealth");
+ if(home){
+  if(!latest)home.textContent="Registre ou importe medições da sua Band 10 para acompanhar tendências e comparar com seu humor.";
+  else{
+   const bits=[];
+   if(Number.isFinite(latest.heartAvg))bits.push("FC média: "+formatMetric("heartAvg",latest.heartAvg));
+   if(Number.isFinite(latest.heartRest))bits.push("Repouso: "+formatMetric("heartRest",latest.heartRest));
+   if(Number.isFinite(latest.sleepHours))bits.push("Sono: "+formatMetric("sleepHours",latest.sleepHours));
+   if(Number.isFinite(latest.steps))bits.push("Passos: "+formatMetric("steps",latest.steps));
+   home.textContent="Última medição ("+dateBR(latest.day)+"): "+(bits.join(" · ")||"Dados registrados")+".";
+  }
+ }
  $("healthSyncState").textContent="Dados privados salvos na sua conta DGX. Sem conexão automática com Huawei Saúde.";
 }
 function fillForm(row){
