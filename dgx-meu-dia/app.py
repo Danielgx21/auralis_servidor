@@ -30,42 +30,50 @@ def fixtures():
     with _lock:
         if _cache["until"] and now < _cache["until"]:
             return _cache["data"]
-    start = now.strftime("%Y%m%d")
-    end = (now + timedelta(days=40)).strftime("%Y%m%d")
-    url = ("https://site.api.espn.com/apis/site/v2/sports/soccer/bra.1/scoreboard"
-           f"?dates={start}-{end}&limit=600")
+    # A API de placares da ESPN não aceita intervalos longos YYYYMMDD-YYYYMMDD:
+    # consultar por mês e filtrar os eventos futuros. Fonte não oficial.
+    this_month = now.replace(day=1)
+    next_month = (this_month + timedelta(days=35)).replace(day=1)
+    months = [this_month.strftime("%Y%m"), next_month.strftime("%Y%m")]
     games = []
     origin = "ESPN (dados públicos não oficiais)"
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": "DGXMeuDia/1.0"})
-        with urllib.request.urlopen(req, timeout=7) as response:
-            raw = json.load(response)
-        for event in raw.get("events", []):
-            comp = (event.get("competitions") or [{}])[0]
-            sides = comp.get("competitors", [])
-            if len(sides) != 2:
-                continue
-            names = [x.get("team", {}).get("displayName", "") for x in sides]
-            if not any("corinthians" in name.lower() for name in names):
-                continue
-            stamp = event.get("date")
-            if not stamp:
-                continue
-            event_time = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
-            if event_time < now:
-                continue
-            home = next((x for x in sides if x.get("homeAway") == "home"), sides[0])
-            away = next((x for x in sides if x.get("homeAway") == "away"), sides[1])
-            games.append({
-                "id": "espn-" + str(event.get("id", "")),
-                "date": stamp,
-                "home": home.get("team", {}).get("displayName", "Mandante"),
-                "away": away.get("team", {}).get("displayName", "Visitante"),
-                "competition": "Brasileirão",
-                "source": "https://www.espn.com.br/futebol/time/agenda/_/id/874",
-            })
-    except Exception as exc:
-        print("Agenda dinâmica indisponível:", repr(exc), flush=True)
+    failed_months = 0
+    for month in months:
+        url = ("https://site.api.espn.com/apis/site/v2/sports/soccer/bra.1/scoreboard"
+               f"?dates={month}&limit=600")
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "DGXMeuDia/1.0"})
+            with urllib.request.urlopen(req, timeout=7) as response:
+                raw = json.load(response)
+            for event in raw.get("events", []):
+                comp = (event.get("competitions") or [{}])[0]
+                sides = comp.get("competitors", [])
+                if len(sides) != 2:
+                    continue
+                names = [x.get("team", {}).get("displayName", "") for x in sides]
+                if not any("corinthians" in name.lower() for name in names):
+                    continue
+                stamp = event.get("date")
+                if not stamp:
+                    continue
+                event_time = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+                if event_time < now:
+                    continue
+                home = next((x for x in sides if x.get("homeAway") == "home"), sides[0])
+                away = next((x for x in sides if x.get("homeAway") == "away"), sides[1])
+                games.append({
+                    "id": "espn-" + str(event.get("id", "")),
+                    "date": stamp,
+                    "home": home.get("team", {}).get("displayName", "Mandante"),
+                    "away": away.get("team", {}).get("displayName", "Visitante"),
+                    "competition": "Brasileirão",
+                    "source": "https://www.espn.com.br/futebol/time/agenda/_/id/874",
+                })
+        except Exception as exc:
+            failed_months += 1
+            print("Agenda dinâmica indisponível para", month, repr(exc), flush=True)
+    if failed_months:
+        origin = "ESPN (consulta parcial, dados não oficiais)"
     games = sorted(games, key=lambda item: item["date"])
     if not games:
         games = [g for g in FALLBACK if datetime.fromisoformat(g["date"]) >= now]
