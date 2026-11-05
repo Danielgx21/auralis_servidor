@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 from pywebpush import webpush, WebPushException
 from py_vapid import Vapid
 import storage
+import podcasts
 
 TZ = ZoneInfo("America/Sao_Paulo")
 PREFS_DEFAULT = {
@@ -22,7 +23,8 @@ PREFS_DEFAULT = {
     "reminders": True,
     "plants": True,
     "corinthians": True,
-    "mood": False
+    "mood": False,
+    "podcasts": True
 }
 VALID_HOSTS = ("fcm.googleapis.com", "fcmregistrations.googleapis.com",
                "updates.push.services.mozilla.com", "push.services.mozilla.com",
@@ -274,6 +276,8 @@ def dispatch(games=None):
     for user_id in user_ids:
         data = storage.read_data(user_id)
         events = _events(data, now, games or [])
+        if _prefs(data)["podcasts"]:
+            events.extend(podcasts.monitor(user_id, data.get("dgx_podcasts_v1", []), now))
         with storage.connect() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT endpoint_hash,endpoint,p256dh,auth FROM dgx_push_subscriptions WHERE user_id=%s",
