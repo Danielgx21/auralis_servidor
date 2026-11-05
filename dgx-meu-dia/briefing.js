@@ -74,7 +74,7 @@ function buildGames(){
 }
 function buildKnowledge(){
  const fact=window.DGXdailyFact?.();
- return fact?"Conhecimento do dia, "+fact.category+". "+fact.title+". "+fact.text:
+ return fact?"Curiosidade do dia: "+fact.title+". "+fact.text:
    "O conhecimento do dia ainda não carregou.";
 }
 function buildReminders(){
