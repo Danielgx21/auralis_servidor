@@ -4,10 +4,10 @@
 "use strict";
 const $=id=>document.getElementById(id);
 function speak(txt){
+ if(window.DGXsay){window.DGXsay(txt);return}
  if(!("speechSynthesis" in window))return;
  speechSynthesis.cancel();
- const u=new SpeechSynthesisUtterance(txt);u.lang="pt-BR";u.rate=.95;
- speechSynthesis.speak(u);
+ const u=new SpeechSynthesisUtterance(txt);u.lang="pt-BR";speechSynthesis.speak(u);
 }
 function open(){
  $("carScreen").classList.remove("hide");
