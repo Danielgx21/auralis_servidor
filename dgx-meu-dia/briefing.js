@@ -3,13 +3,17 @@
 "use strict";
 const $=id=>document.getElementById(id);
 const KEY="dgx_briefing_prefs_v1", TZ="America/Sao_Paulo";
-const names={weather:"Previsão do tempo",tasks:"Agenda SME e pessoal",payments:"Pagamentos próximos",games:"Corinthians",podcasts:"Novidades dos podcasts",reminders:"Lembretes",mood:"Lembrete de humor"};
-const defaults={weather:true,tasks:true,payments:true,games:true,podcasts:true,reminders:true,mood:false};
+const names={knowledge:"Conhecimento do dia",weather:"Previsão do tempo",tasks:"Agenda SME e pessoal",payments:"Pagamentos próximos",games:"Corinthians",reminders:"Lembretes",mood:"Lembrete de humor"};
+const defaults={knowledge:true,weather:true,tasks:true,payments:true,games:true,reminders:true,mood:false};
 const day=()=>new Intl.DateTimeFormat("sv-SE",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
 const hour=()=>Number(new Intl.DateTimeFormat("en-GB",{timeZone:TZ,hour:"2-digit",hour12:false}).format(new Date()));
 const read=(key,fallback)=>window.DGXStore?.read(key,fallback)??fallback;
 const notify=msg=>window.DGXtoast?.(msg);
-const prefs=()=>({...defaults,...read(KEY,{})});
+const prefs=()=>{
+ const p={...defaults,...read(KEY,{})};
+ delete p.podcasts; // podcasts permanecem na aba Podcasts, mas saem da narração do resumo
+ return p;
+};
 const currency=cents=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(cents||0)/100);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const dateAt=(date,relative=false)=>new Date(date+"T12:00:00").toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"});
@@ -68,19 +72,10 @@ function buildGames(){
  const str=when.toLocaleString("pt-BR",{timeZone:TZ,weekday:"long",day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"});
  return "Corinthians: próximo jogo identificado, "+safeSentence(g.home)+" contra "+safeSentence(g.away)+", "+str+". Os horários podem mudar.";
 }
-function buildPodcasts(){
- const followed=read("dgx_podcasts_v1",[]);
- if(!followed.length)return "Você ainda não acompanha podcasts no DGX.";
- const eps=(window.DGXpodcastsGetLatest?.()||[]).slice().sort((a,b)=>(b.released||"").localeCompare(a.released||""));
- if(!eps.length)return "Não consegui carregar novos episódios dos seus podcasts agora.";
- const recent=eps.filter(e=>{
-  if(!e.released)return false;
-  const delta=Date.now()-new Date(e.released).getTime();
-  return delta>=-86400000&&delta<=14*86400000;
- });
- const list=recent.length?recent.slice(0,3):eps.slice(0,1);
- const intro=recent.length?"Novos episódios encontrados: ":"Entre os últimos episódios disponíveis: ";
- return intro+list.map(e=>safeSentence(e.title)+", do podcast "+safeSentence(e.show)).join("; ")+". Para ouvir, abra o podcast no Spotify antes de dirigir.";
+function buildKnowledge(){
+ const fact=window.DGXdailyFact?.();
+ return fact?"Conhecimento do dia, "+fact.category+". "+fact.title+". "+fact.text:
+   "O conhecimento do dia ainda não carregou.";
 }
 function buildReminders(){
  const reminders=read("dgx_reminders_v1",[]).filter(r=>r&&r.at&&!Number.isNaN(Date.parse(r.at))&&new Date(r.at)>=new Date()&&new Date(r.at)<=new Date(Date.now()+2*86400000)).sort((a,b)=>a.at.localeCompare(b.at));
@@ -91,7 +86,7 @@ function buildMood(){
  const period=hour()<16?"manha":"noite",done=read("dgx_moods_v1",[]).some(x=>x.day===day()&&x.period===period);
  return done?"Seu humor já foi registrado neste período.":"Você ainda não registrou seu humor "+(period==="manha"?"da manhã.":"da noite.");
 }
-const funcs={weather:buildWeather,tasks:buildTasks,payments:buildPayments,games:buildGames,podcasts:buildPodcasts,reminders:buildReminders,mood:buildMood};
+const funcs={knowledge:buildKnowledge,weather:buildWeather,tasks:buildTasks,payments:buildPayments,games:buildGames,reminders:buildReminders,mood:buildMood};
 function sections(){
  const p=prefs();const parts=[greeting()];
  Object.keys(names).forEach(key=>{if(p[key])try{parts.push(funcs[key]())}catch(err){console.warn("Resumo "+key,err)}});
@@ -99,6 +94,67 @@ function sections(){
  return parts;
 }
 let chunks=[],index=0,playing=false;
+const synth=window.speechSynthesis;
+function availableVoices(){
+ if(!synth||typeof synth.getVoices!=="function")return [];
+ const voices=synth.getVoices();
+ const pt=voices.filter(v=>/^pt(?:-|_)/i.test(v.lang));
+ return pt.sort((a,b)=>{
+  const score=v=>(/^pt[-_]BR$/i.test(v.lang)?12:0)+(/natural|neural|google|microsoft/i.test(v.name)?4:0)+(v.localService?1:0);
+  return score(b)-score(a);
+ });
+}
+function chosenVoice(){
+ const voices=availableVoices();
+ const preferred=prefs().voiceURI;
+ if(preferred){
+  const exact=voices.find(v=>v.voiceURI===preferred);if(exact)return exact;
+ }
+ // Deixar de usar a primeira voz-padrão antiga quando outra voz pt-BR estiver disponível.
+ return voices.find(v=>!v.default) || voices[0] || null;
+}
+function currentRate(){
+ const rate=Number(prefs().voiceRate);
+ return Number.isFinite(rate)&&rate>=.8&&rate<=1.2?rate:1;
+}
+function applyVoice(utterance){
+ const chosen=chosenVoice();
+ utterance.lang=chosen?.lang||"pt-BR";
+ if(chosen)utterance.voice=chosen;
+ utterance.rate=currentRate();
+ utterance.pitch=1.04;
+}
+function speakResponse(text){
+ if(!synth||typeof SpeechSynthesisUtterance==="undefined")return false;
+ if(playing)stop();
+ else synth.cancel();
+ const u=new SpeechSynthesisUtterance(String(text||""));
+ applyVoice(u);
+ synth.speak(u);
+ return true;
+}
+function updateVoiceList(){
+ const select=$("dgxVoiceSelect"),label=$("dgxVoiceInfo");
+ if(!select)return;
+ const voices=availableVoices(),preferred=prefs().voiceURI||"";
+ const option=document.createElement("option");
+ option.value="";option.textContent="Voz brasileira alternativa (automática)";
+ select.replaceChildren(option);
+ for(const voice of voices){
+  const opt=document.createElement("option");
+  opt.value=voice.voiceURI;
+  opt.textContent=voice.name+" · "+voice.lang+(voice.default?" (padrão)":"");
+  select.appendChild(opt);
+ }
+ select.value=preferred&&voices.some(v=>v.voiceURI===preferred)?preferred:"";
+ $("dgxVoiceSpeed").value=String(currentRate());
+ if(label)label.textContent=voices.length>1?
+  "Escolha uma das "+voices.length+" vozes de português disponíveis no seu aparelho.":
+  voices.length===1?"O Android forneceu uma voz em português. A velocidade e o tom foram ajustados; outras opções dependem do aparelho.":
+  "O Android ainda não informou vozes em português. Tentaremos usar a voz padrão do dispositivo.";
+}
+window.DGXsay=speakResponse;
+
 function renderState(text){
  if($("briefingStatus"))$("briefingStatus").textContent=text;
  if($("carStatus")&&!$("carScreen").classList.contains("hide"))$("carStatus").textContent=text;
@@ -116,7 +172,7 @@ function playNext(){
  const line=chunks[index++];
  renderState("Lendo "+(index-1)+"/"+(chunks.length-2)+": "+line.slice(0,125));
  const u=new SpeechSynthesisUtterance(line);
- u.lang="pt-BR";u.rate=.93;u.pitch=1;
+ applyVoice(u);
  u.onend=()=>{if(playing)playNext()};
  u.onerror=()=>{if(playing)playNext()};
  speechSynthesis.speak(u);
@@ -127,10 +183,6 @@ function start(){
  // Iniciar imediatamente no mesmo gesto de toque é mais compatível com Android.
  chunks=sections();index=0;playing=true;speechSynthesis.cancel();
  playNext();
- // Recarrega podcasts para o próximo resumo sem atrasar o início da fala.
- if(prefs().podcasts&&window.DGXpodcastsRefresh){
-   Promise.resolve(window.DGXpodcastsRefresh()).catch(err=>console.warn("Podcasts não atualizados",err));
- }
 }
 function renderPrefs(){
  const p=prefs();
@@ -143,11 +195,29 @@ function renderPrefs(){
 }
 window.DGXbriefingStart=start;
 window.DGXbriefingStop=stop;
-window.DGXbriefingRefresh=renderPrefs;
+window.DGXbriefingRefresh=()=>{renderPrefs();updateVoiceList()};
 $("briefingPlay").onclick=start;
 $("briefingStop").onclick=stop;
 $("readBriefing").onclick=start;
 $("carBriefingStop").onclick=stop;
 renderPrefs();
+updateVoiceList();
+if(synth){
+ if(typeof synth.addEventListener==="function")synth.addEventListener("voiceschanged",updateVoiceList);
+ else synth.onvoiceschanged=updateVoiceList;
+}
+$("dgxVoiceSelect").addEventListener("change",()=>{
+ const selected=$("dgxVoiceSelect").value;
+ window.DGXStore?.write(KEY,{...prefs(),voiceURI:selected});
+ notify("Voz escolhida. Toque em Testar voz para ouvir.");
+});
+$("dgxVoiceSpeed").addEventListener("change",()=>{
+ const rate=Number($("dgxVoiceSpeed").value);
+ window.DGXStore?.write(KEY,{...prefs(),voiceRate:rate});
+ notify("Velocidade de leitura salva.");
+});
+$("dgxVoiceTest").addEventListener("click",()=>{
+ speakResponse("Olá! Eu sou a nova voz do DGX Meu Dia. Aqui estão as informações mais interessantes para o seu dia.");
+});
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&playing)renderState("A leitura pode ser interrompida pelo Android com a tela bloqueada.")});
 })();
