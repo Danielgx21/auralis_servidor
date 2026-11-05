@@ -78,7 +78,7 @@ function agendaSummary(day){
  const describe=e=>e.type+": "+e.title+(e.time?" · "+e.time:"")+(e.done?" ✓":"");
  if(current.length){
   const details=current.slice(0,2).map(describe).join(" • ")+(current.length>2?" • +"+(current.length-2)+" outro(s)":"");
-  const suffix=next.length?" Próximos 3 dias: "+next.length+" compromisso(s). "+
+  const suffix=next.length?" Próximos 3 dias: "+next.length+(next.length===1?" compromisso. ":" compromissos. ")+
     next.slice(0,1).map(e=>whenAhead(Math.round((Date.parse(e.date+"T12:00:00Z")-Date.parse(day+"T12:00:00Z"))/86400000))+": "+describe(e)).join(""):
     " Nenhum outro compromisso cadastrado nos próximos 3 dias.";
   return {heading:current.length===1?"1 compromisso hoje":current.length+" compromissos hoje",
