@@ -134,6 +134,7 @@ $("podcastImportSpotify").onclick=async()=>{
  }catch(e){$("podcastSearchResults").innerHTML='<div class="empty">'+esc(e.message)+'</div>';notify("Erro no Spotify: "+e.message)}
 };
 window.DGXpodcastsGetLatest=()=>latestEpisodes.map(e=>({...e}));
+window.DGXpodcastsRefresh=refreshLatest;
 window.DGXpodcastsInit=()=>{
  renderWatched();
  refreshLatest();
