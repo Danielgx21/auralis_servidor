@@ -36,7 +36,12 @@ function eligible(item,month){
 }
 function monthAmount(item,month){
  const alt=item.monthly&&item.monthly[month];
- return Number.isSafeInteger(alt)&&alt>=0?alt:(item.amountCents||0);
+ if(Number.isSafeInteger(alt)&&alt>=0)return alt;
+ // Preserve o valor efetivamente pago em meses anteriores,
+ // mesmo depois de editar o valor-base das mensalidades futuras.
+ const receipt=item.paid&&item.paid[month];
+ if(receipt&&Number.isSafeInteger(receipt.amountCents)&&receipt.amountCents>=0)return receipt.amountCents;
+ return item.amountCents||0;
 }
 function paidFor(item,month){return item.paid&&item.paid[month]||null}
 function activeItems(month){return bills().filter(b=>eligible(b,month)).sort((a,b)=>a.dueDay-b.dueDay||a.title.localeCompare(b.title,"pt-BR"))}
