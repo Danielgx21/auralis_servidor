@@ -424,7 +424,7 @@ function checkAlerts(){var now=Date.now();allReminders().forEach(function(r){var
 notificationStatus();renderReminders();renderHomeReminders();setInterval(checkAlerts,30000);
 document.addEventListener("visibilitychange",function(){if(!document.hidden){loadFixtures();checkAlerts()}});
 
-function say(text){if(!("speechSynthesis" in window))return;window.speechSynthesis.cancel();var utter=new SpeechSynthesisUtterance(text);utter.lang="pt-BR";utter.rate=1;window.speechSynthesis.speak(utter)}
+function say(text){if(window.DGXsay){window.DGXsay(text);return}if(!("speechSynthesis" in window))return;window.speechSynthesis.cancel();var utter=new SpeechSynthesisUtterance(text);utter.lang="pt-BR";window.speechSynthesis.speak(utter)}
 function nextGame(){return fixtures.find(function(g){return new Date(g.date).getTime()>Date.now()})}
 function weatherSentence(){return weather&&weather.current?"Agora faz "+Math.round(weather.current.temperature_2m)+" graus em "+el("weatherCity").textContent+". "+el("weatherDesc").textContent+".":"Ainda não consegui consultar a previsão."}
 function fixtureSentence(){var g=nextGame();return g?"O próximo jogo do Corinthians é "+g.home+" contra "+g.away+", "+dt(g.date)+". Confirme o horário antes da partida.":"Não consegui identificar o próximo jogo nesta fonte."}
