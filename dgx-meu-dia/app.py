@@ -159,7 +159,8 @@ class Handler(BaseHTTPRequestHandler):
                  "/index.html": ("index.html", "text/html; charset=utf-8"),
                  "/manifest.webmanifest": ("manifest.webmanifest", "application/manifest+json"),
                  "/icon.svg": ("icon.svg", "image/svg+xml"),
-                 "/sw.js": ("sw.js", "application/javascript; charset=utf-8")}
+                 "/sw.js": ("sw.js", "application/javascript; charset=utf-8"),
+                 "/features.js": ("features.js", "application/javascript; charset=utf-8")}
         if path not in allow:
             return self.send(b"Not found", "text/plain; charset=utf-8", 404)
         filename, mime = allow[path]
