@@ -34,15 +34,39 @@ ROLES = "ironhunter:'fighter',runesmith:'caster',standardbearer:'front',chameleo
 
 # Arte original em SVG: não reaproveita personagens existentes nem interfere nas skins.
 ART = r"""
-// Um atlas otimizado com os nove retratos ilustrados. Células 192 x 192,
-// renderizadas no mesmo tamanho e com o mesmo enquadramento dos campeões anteriores.
+// Retratos premium do atlas 3x3. O mesmo círculo e o mesmo tamanho do elenco
+// original são usados no catálogo, na loja e no tabuleiro; os recortes focam
+// nos rostos (não diminuem a miniatura).
 const NEW_PORTRAIT_ORDER=['ironhunter','runesmith','standardbearer','chameleon','ashdruid','voidweaver','chronomancer','duskinq','phoenix'];
 const NEW_PORTRAIT_ATLAS='/assets/miniaturas-novos-retratos-20261104.avif';
+const NEW_PORTRAIT_CROPS={
+ ironhunter:[27,8,132],
+ runesmith:[27,6,132],
+ standardbearer:[27,5,132],
+ chameleon:[27,7,132],
+ ashdruid:[28,6,132],
+ voidweaver:[26,6,132],
+ chronomancer:[21,8,132],
+ duskinq:[26,5,132],
+ phoenix:[27,14,138]
+};
 function newMiniatureArt(type){
  const index=NEW_PORTRAIT_ORDER.indexOf(type);
  if(index<0)return null;
- const x=(index%3)*192, y=Math.floor(index/3)*192;
- return `<svg viewBox="${x} ${y} 192 192" class="mini-art portrait-exact new-portrait" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><image href="${NEW_PORTRAIT_ATLAS}" x="0" y="0" width="576" height="576" preserveAspectRatio="none"/></svg>`;
+ const [cx,cy,side]=NEW_PORTRAIT_CROPS[type];
+ const zoom=100/side;
+ const x=((index%3)*192+cx)*zoom;
+ const y=(Math.floor(index/3)*192+cy)*zoom;
+ const full=576*zoom;
+ // O recorte circular é desenhado dentro do SVG. Isso evita as imagens
+ // quadradas mesmo onde o contêiner da ficha não tem border-radius.
+ const clipId='new-portrait-clip-'+type;
+ return `<svg viewBox="0 0 100 100" class="mini-art portrait-exact new-portrait" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+   <defs><clipPath id="${clipId}"><circle cx="50" cy="50" r="47.5"/></clipPath></defs>
+   <image href="${NEW_PORTRAIT_ATLAS}" x="${-x}" y="${-y}" width="${full}" height="${full}" preserveAspectRatio="none" clip-path="url(#${clipId})"/>
+   <circle cx="50" cy="50" r="47.5" fill="none" stroke="#f6d69c" stroke-width="2.6"/>
+   <circle cx="50" cy="50" r="45.4" fill="none" stroke="#9e6034" stroke-opacity=".68" stroke-width=".65"/>
+ </svg>`;
 }
 """
 
@@ -160,6 +184,14 @@ def apply_new_characters_html(html):
     html=_replace_one(html,"const PROJECTILES=new Set(['bow','hunter','toxic','spear','spark']);","const PROJECTILES=new Set(['bow','hunter','toxic','spear','spark','ironhunter','runesmith']);",'interceptação de projéteis')
     html=_replace_one(html,"const FRONTLINERS=new Set(['guard','golem','paladin','sentinel','earth','templar']);","const FRONTLINERS=new Set(['guard','golem','paladin','sentinel','earth','templar','standardbearer']);",'protetor de aliados')
     html=_replace_one(html,'function miniArt(type){',''+ART+'\nfunction miniArt(type){\n const newArt=newMiniatureArt(type);if(newArt)return newArt;','arte distinta')
+    # O tabuleiro reserva o encaixe retrato integral apenas para antigos aprovados.
+    # Incluir os 9 novos na mesma regra preserva diâmetro e espaçamento.
+    html=_replace_one(
+        html,
+        "APPROVED_PORTRAITS[piece.type]?'portrait-frame':''",
+        "(APPROVED_PORTRAITS[piece.type]||NEW_PORTRAIT_ORDER.includes(piece.type))?'portrait-frame':''",
+        'mesmo tamanho no tabuleiro'
+    )
     html=_replace_one(html,'function skillReady(actor,period){','function skillReady(actor,period){\n if(actor._silencedThisAction)return false;','silêncio real')
     html=_replace_one(html,'function performTurn(actor){',ABILITIES+'\nfunction performTurn(actor){','habilidade renascimento')
     html=_replace_one(html,'actor.strikes++;const type=actor.type;','actor.strikes++;const type=actor.type;'+ON_TURN,'habilidades no início')
@@ -179,7 +211,7 @@ def verify_new_characters_html(html):
     after=apply_new_characters_html(html)
     for name in NEW_TYPES:
         if after.count(name)<3:raise RuntimeError('Miniatura não integrada: '+name)
-    for marker in ('tryPhoenixRebirth(target)','silencedActions','newMiniatureArt(type)','portrait-exact new-portrait','actor.turretActions=3','actor.hasteActions>0?1.18:1'):
+    for marker in ('tryPhoenixRebirth(target)','silencedActions','newMiniatureArt(type)','portrait-exact new-portrait','NEW_PORTRAIT_CROPS','NEW_PORTRAIT_ORDER.includes(piece.type)','actor.turretActions=3','actor.hasteActions>0?1.18:1'):
         if marker not in after:raise RuntimeError('Habilidade ausente: '+marker)
     counts=Counter()
     for _,(_,a,b) in NEW_TYPES.items():counts.update((a,b))
