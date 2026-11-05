@@ -177,7 +177,7 @@ window.DGXpodcastsSpeakLatest=()=>{
  const e=latestEpisodes[0];
  const message=e?"Episódio recente: "+e.title+", do podcast "+e.show+". Para ouvir, abra o Spotify quando estiver parado.":
  "Você ainda não tem episódios carregados. Abra Podcasts e acompanhe seus programas favoritos.";
- if(window.speechSynthesis){window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(message);u.lang="pt-BR";window.speechSynthesis.speak(u)}
+ if(window.DGXsay)window.DGXsay(message);else if(window.speechSynthesis){window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(message);u.lang="pt-BR";window.speechSynthesis.speak(u)}
  return message;
 };
 renderWatched();
