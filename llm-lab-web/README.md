@@ -1,8 +1,18 @@
-# DGX LLM — versão 0.5
+# DGX LLM — versão 0.6
 
 Aplicação didática para investigar como redes neurais aprendem e construir uma assistente independente. A branch lab-llm-web-v1 está isolada dos jogos.
 
 Site: https://laboratorio-llm-web.onrender.com/
+
+## Novidade da v0.6 — aprendizado supervisionado de perguntas e respostas
+
+- A aba **Ensinar conversa** treina, do zero no navegador, uma pequena rede neural de classificação por embeddings de palavras (16 dimensões), camada oculta tanh (24 neurônios) e softmax.
+- A base é editável: cada linha usa o formato "pergunta => resposta". Formule várias perguntas diferentes com a mesma resposta para ensinar uma categoria.
+- A última pergunta de cada categoria com três ou mais exemplos fica separada para avaliação. A interface exibe a acurácia em perguntas reservadas e exemplos de erros reais; esse conjunto limitado não é uma prova de generalização.
+- A conversa pode usar esse motor diretamente no navegador quando selecionado **Neural · pesos próprios neste navegador**. Não envia perguntas para uma API de IA nesse modo.
+- As respostas são **recuperadas dos exemplos do usuário**, não produzidas generativamente como faria uma LLM. O classificador informa quando não reconhece a pergunta ou não alcança confiança suficiente.
+- Pesos e exemplos ficam no armazenamento local do navegador. É possível exportar e importar checkpoints JSON para transferir o modelo entre dispositivos. Importar um checkpoint pode substituir os pesos e exemplos locais, mediante confirmação.
+- A rede neural de conversa é separada do Transformer de caracteres da outra aba: nenhum desses módulos, isoladamente, possui a competência de uma LLM moderna.
 
 ## O que funciona sem pagar por GPU
 - **Conversa didática:** regras transparentes sobre IA, com contexto de mensagens anteriores. Não é uma LLM.
