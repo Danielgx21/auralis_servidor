@@ -10,7 +10,20 @@ import os
 import secrets
 from datetime import datetime, timedelta, timezone
 
-import psycopg
+try:
+    import psycopg
+except ImportError:
+    # Render deste serviço foi criado com build sem dependências e a integração
+    # disponível não permite alterar esse comando. Instala ao iniciar.
+    import subprocess
+    import sys
+    from pathlib import Path
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", "--disable-pip-version-check",
+         "--no-input", "-r", str(Path(__file__).with_name("requirements.txt"))]
+    )
+    import psycopg
+
 from psycopg.types.json import Jsonb
 
 ALLOWED_KEYS = {
