@@ -1,6 +1,6 @@
-/* DGX Meu Dia PWA v0.4: atualiza a interface sem reinstalar APK. */
-const CACHE="dgx-meu-dia-v04";
-const STATIC=["/","/index.html","/features.js","/payments.js","/push_client.js","/spotify.js","/manifest.webmanifest","/icon.svg"];
+/* DGX Meu Dia PWA v0.5: atualiza a interface sem reinstalar APK. */
+const CACHE="dgx-meu-dia-v05";
+const STATIC=["/","/index.html","/features.js","/payments.js","/push_client.js","/spotify.js","/podcasts.js","/car_mode.js","/manifest.webmanifest","/icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(STATIC)));
 });
