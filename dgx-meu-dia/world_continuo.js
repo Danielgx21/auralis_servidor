@@ -179,7 +179,9 @@ function observatory(){
  $("wcAIStrategies").innerHTML=Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([s,num])=>
   '<span class="wc-ai-pill">'+esc(labels[s]||s)+': '+fmt(num)+'</span>').join("");
  const decisions=world.nations.filter(n=>n.ai?.lastDecision).sort((a,b)=>
-  b.ai.lastDecision.year-a.ai.lastDecision.year||a.id-b.id);
+  b.ai.lastDecision.year-a.ai.lastDecision.year||
+  (["expansion","diplomacy","defense","food"].includes(b.ai.lastDecision.action)?1:0)-(["expansion","diplomacy","defense","food"].includes(a.ai.lastDecision.action)?1:0)||
+  (a.id+world.year*7)%30-(b.id+world.year*7)%30);
  $("wcAIHighlights").innerHTML=decisions.length?decisions.slice(0,6).map(n=>
   '<article><span class="wc-ai-dot" style="background:'+colors[n.color].hex+'"></span><div><strong>'+esc(n.name)+'</strong><small>Ano '+fmt(n.ai.lastDecision.year)+' · '+esc(labels[n.ai.strategy])+'</small>'+
   '<p>'+esc(n.ai.lastDecision.label)+'. '+esc(n.ai.lastDecision.reason)+'</p></div></article>').join(""):
