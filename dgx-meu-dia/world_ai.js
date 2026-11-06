@@ -50,7 +50,7 @@ function focus(world,n){
   cientifica:.46+r.science*.57,
   social:.42+r.shortage*.65+r.unrest*.52,
   industrial:.50+r.economy*.46,
-  expansionista:.27+(n.military/Math.max(1,n.gdp)>.065?.18:0)+(r.security<.5?.16:0)-(r.war?.5:0)
+  expansionista:.43+(n.military/Math.max(1,n.gdp)>.075?.24:0)+(r.security<.5?.16:0)-(r.war?.5:0)-(r.shortage>.6?.20:0)
  };
  for(const k of Object.keys(ratings)){
   ratings[k]+=(culture[n.color]?.[k]||0)+(n.ai?.strategy===k?.24:0);
@@ -136,8 +136,8 @@ function decide(world,n){
  }
  ai.goals=goals;
  const options=neighbors(world,n);
- const friend=options.filter(p=>p.rel.score> -15).sort((a,b)=>b.rel.score-a.rel.score)[0];
- const neutral=options.filter(p=>p.rel.score<52).sort((a,b)=>a.rel.score-b.rel.score)[0];
+ const friend=options.filter(p=>p.rel.score> -15&&p.rel.score<88).sort((a,b)=>b.rel.score-a.rel.score)[0];
+ const neutral=options.filter(p=>p.rel.score<52&&!p.rel.alliance).sort((a,b)=>a.rel.score-b.rel.score)[0];
  const rival=options.filter(p=>p.rel.score< -15).sort((a,b)=>a.rel.score-b.rel.score)[0];
  const candidates=[
   ["food",.35+r.shortage*1.4,null],["education",.38+r.science*.66,null],
@@ -145,7 +145,7 @@ function decide(world,n){
   ["commerce",.30+r.trade*.65,friend],["diplomacy",.29+r.security*.40,neutral],
   ["welfare",.39+r.unrest*.67,null],["reserves",.20+clamp((85-n.stock)/90,0,1)*1.10,null],
   ["reforms",.26+r.unrest*.80,null],
-  ["expansion",.16+(r.security<.6?.22:0)+(n.military>n.gdp*.06?.18:0),rival]
+  ["expansion",.38+(r.security<.6?.22:0)+(n.military>n.gdp*.075?.26:0),rival]
  ];
  const eligible=candidates.filter(([k,,p])=>
   (!["commerce","diplomacy","expansion"].includes(k)||p)&&n.treasury>=n.gdp*actions[k].cost+1);
