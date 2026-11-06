@@ -111,3 +111,9 @@ Runtime Python com comando \`python dgx-meu-dia/app.py\`.
 - Ao abrir a aba Desafio, a escolha é sincronizada do banco para refletir correções realizadas em outros dispositivos.
 - As 56 curiosidades foram individualmente revisadas: cada uma agora traz uma pergunta específica e uma resposta que explica diretamente o mecanismo, o motivo ou a relevância. Curiosidade do dia 05/11: como as oscilações regulares de um pêndulo permitem contar intervalos iguais e marcar segundos.
 - Texto do resumo falado alterado para uma pausa natural entre a pergunta diária e a resposta; PWA atualizada.
+
+## v0.14 — Identidade do locutor da fala (05/11/2026)
+- O usuário pediu para alterar a **voz em si**, não simplesmente português brasileiro versus português europeu ou velocidade/tom.
+- Na aba Voz, seletor passa a mostrar os nomes dos locutores em português que o próprio Android/navegador libera. Botão **Trocar voz e ouvir** percorre vozes distintas e reproduz uma amostra no mesmo toque. A voz escolhida é salva no Neon e usada nos resumos, comandos, modo carro e Spotify.
+- A escolha automática prioriza outro locutor em vez do padrão do sistema quando disponível. Se existir uma única voz exposta ao navegador, o aplicativo informa a limitação e desabilita a troca; não afirma que outra voz foi aplicada.
+- A velocidade continua independente da identidade da voz. Não há integração de TTS em nuvem ou garantia de mais vozes instaladas no dispositivo. Preferências anteriores são preservadas.
