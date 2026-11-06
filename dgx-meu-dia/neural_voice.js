@@ -124,9 +124,10 @@ function cancel(){
 }
 async function speak(text){
  if(!isSelected())throw Error("As vozes neurais não estão ativadas.");
+ // Não baixar ~295 MB automaticamente ao tocar um resumo depois de reabrir o app.
+ if(!ready)throw Error("Para ouvir esta voz, abra a aba Voz e toque em Ativar vozes locais usando Wi-Fi.");
  const token=++generation;
  prepareAudio();
- await load();
  if(token!==generation)return;
  const pieces=chunkText(text);
  for(const part of pieces){
@@ -151,6 +152,7 @@ function refresh(){
  else status("Opcional: 3 vozes brasileiras com timbres próprios. Download de "+MODEL_BYTES+" ao ativar. Recomenda-se Wi-Fi.");
 }
 async function activate(){
+ if(!ready&&!window.confirm("Este recurso precisa baixar aproximadamente 295 MB de um modelo de voz. Recomendamos usar Wi-Fi para não consumir sua franquia móvel. O texto falado será processado no próprio aparelho. Deseja ativar agora?"))return;
  try{
   prepareAudio();
   await load();
