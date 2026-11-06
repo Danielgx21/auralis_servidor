@@ -187,7 +187,7 @@ class Handler(BaseHTTPRequestHandler):
                     return self.reply({"error": "Entre com sua senha."}, 401)
                 return self.reply({"data": storage.read_data(user_id)})
             if path == "/health":
-                return self.reply({"ok": True, "app": "dgx-meu-dia", "version": "0.14"})
+                return self.reply({"ok": True, "app": "dgx-meu-dia", "version": "0.15"})
         except Exception as e:
             print("Erro de GET", path, type(e).__name__, flush=True)
             return self.reply({"error": "Serviço de dados temporariamente indisponível."}, 503)
@@ -203,6 +203,8 @@ class Handler(BaseHTTPRequestHandler):
                  "/podcasts.js": ("podcasts.js", "application/javascript; charset=utf-8"),
                  "/car_mode.js": ("car_mode.js", "application/javascript; charset=utf-8"),
                  "/briefing.js": ("briefing.js", "application/javascript; charset=utf-8"),
+                 "/neural_voice.js": ("neural_voice.js", "application/javascript; charset=utf-8"),
+                 "/neural_voice_worker.js": ("neural_voice_worker.js", "application/javascript; charset=utf-8"),
                  "/home_panels.js": ("home_panels.js", "application/javascript; charset=utf-8"),
                  "/today.js": ("today.js", "application/javascript; charset=utf-8"),
                  "/daily_facts.js": ("daily_facts.js", "application/javascript; charset=utf-8")}
@@ -270,5 +272,5 @@ if __name__ == "__main__":
     storage.initialize()
     push_service.setup()
     podcasts.setup()
-    print(f"DGX Meu Dia v0.14 com PostgreSQL ouvindo em {host}:{port}", flush=True)
+    print(f"DGX Meu Dia v0.15 com PostgreSQL ouvindo em {host}:{port}", flush=True)
     ThreadingHTTPServer((host, port), Handler).serve_forever()
