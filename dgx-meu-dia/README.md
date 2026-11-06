@@ -117,3 +117,10 @@ Runtime Python com comando \`python dgx-meu-dia/app.py\`.
 - Na aba Voz, seletor passa a mostrar os nomes dos locutores em português que o próprio Android/navegador libera. Botão **Trocar voz e ouvir** percorre vozes distintas e reproduz uma amostra no mesmo toque. A voz escolhida é salva no Neon e usada nos resumos, comandos, modo carro e Spotify.
 - A escolha automática prioriza outro locutor em vez do padrão do sistema quando disponível. Se existir uma única voz exposta ao navegador, o aplicativo informa a limitação e desabilita a troca; não afirma que outra voz foi aplicada.
 - A velocidade continua independente da identidade da voz. Não há integração de TTS em nuvem ou garantia de mais vozes instaladas no dispositivo. Preferências anteriores são preservadas.
+
+## v0.15 — Três vozes brasileiras independentes do Android (05/11/2026)
+- Motor neural opcional do **MediaPipe Text-to-Speech / Kokoro-82M**, funcionando no navegador localmente e separado do Web Speech API, com 3 perfis pt-BR: **Dora** (pf_dora, feminina), **Alex** (pm_alex, masculina) e **Santa** (pm_santa, masculina).
+- O modelo possui **aproximadamente 295 MB**. Não existe download automático: somente após clicar em **Ativar vozes locais**, com aviso explícito de preferência por Wi-Fi. As amostras e leitura completa são feitas no dispositivo; o texto pessoal não é enviado a serviços TTS em nuvem.
+- Integração com o resumo, a voz do DGX, Modo Carro e comandos do Spotify usando o mesmo mecanismo de resposta. A voz normal do Android permanece como alternativa e é possível retornar a ela pelo botão. Erros do motor local são mostrados sem fingir que uma troca ocorreu.
+- A saída neural utiliza um Web Worker dedicado, importação MediaPipe via jsDelivr, pesos publicados pela comunidade LiteRT no Hugging Face e Web Audio no navegador; tenta GPU e depois CPU.
+- **Experimental e não verificado em aparelho físico**: depende da disponibilidade do arquivo remoto, da biblioteca MediaPipe, de memória suficiente, suporte a WebAssembly e permissões de reprodução no Android. Não ativar automaticamente, especialmente em redes móveis.
