@@ -12,7 +12,7 @@ const fmt=(n,d=0)=>Number(n||0).toLocaleString("pt-BR",{minimumFractionDigits:d,
 const pct=n=>fmt(n*100,1)+"%";
 const colors=E.COLOR;
 const NATION_COUNT=30;
-let world=E.create(),selected=6,playing=false,speed=1,elapsed=0,lastFrame=Date.now(),mapMode="relations",colorFilter="all",sortMode="influence",filterHistory="all",active=false,saving=false;
+let world=E.create(),selected=6,playing=false,speed=1,elapsed=0,lastFrame=Date.now(),mapMode="relations",colorFilter="all",sortMode="influence",filterHistory="all",active=false,saving=0;
 const centers=new Map(),regions=[];
 const nodesLeft=[
  [[96,151],[191,133],[301,154],[393,177]],
@@ -79,15 +79,14 @@ const regionBy=id=>regions.find(r=>r.id===id);
 const nation=id=>world.nations[id-1];
 function summary(){return E.aggregate(world)}
 function save(){
- if(saving){return}
- saving=true;
+ saving++;
  $("wcSaveStatus").textContent="Salvando no banco...";
  world.lastSaved=new Date().toISOString();
  const copy=JSON.parse(JSON.stringify(world));
  const op=window.DGXStore?.write(KEY,copy);
  if(op&&typeof op.then==="function"){
-  op.then(()=>$("wcSaveStatus").textContent="✓ Mundo salvo na sua conta").catch(()=>$("wcSaveStatus").textContent="Erro de gravação — confira sua conexão").finally(()=>{saving=false});
- }else{saving=false;$("wcSaveStatus").textContent="Entre na conta para salvar o mundo";}
+  op.then(()=>{if(saving===1)$("wcSaveStatus").textContent="✓ Mundo salvo na sua conta"}).catch(()=>$("wcSaveStatus").textContent="Erro de gravação — confira sua conexão").finally(()=>{saving=Math.max(0,saving-1)});
+ }else{saving=Math.max(0,saving-1);$("wcSaveStatus").textContent="Entre na conta para salvar o mundo";}
 }
 function name(id){return nation(id)?.name||"País "+id}
 function groupPowers(){
@@ -163,7 +162,7 @@ function detail(){
  $("wcNationColor").style.color=COLOR[n.color].hex;
  $("wcNationSwatch").style.background=COLOR[n.color].hex;
  $("wcNationDescription").textContent=COLOR[n.color].trait;
- $("wcRenameInput").value=n.name.startsWith("País ")? "":n.name;
+ if(document.activeElement!==$("wcRenameInput"))$("wcRenameInput").value=n.name.startsWith("País ")? "":n.name;
  $("wcNationStats").innerHTML=[
   ["População",fmt(n.pop,1)+" mi"],["Economia",fmt(n.gdp,1)+" B"],["Índice social",fmt(n.social,3)],
   ["Influência",fmt(E.score(n))],["Tecnologia",fmt(n.tech,2)],["Estabilidade",pct(n.stability)],
@@ -259,6 +258,7 @@ function play(){
 }
 function updateClock(){
  if(!playing||!active||document.hidden)return;
+ if(!$("page-world").classList.contains("active")){active=false;pause();return}
  const now=Date.now(),delta=Math.min(1700,now-lastFrame);
  lastFrame=now;
  elapsed+=delta;
@@ -271,6 +271,7 @@ function updateClock(){
  $("wcProgress").style.width=v+"%";
 }
 function init(){
+ active=!!$("page-world")?.classList.contains("active");
  const saved=window.DGXStore?.read(KEY,null);
  if(E.validate(saved))world=JSON.parse(JSON.stringify(saved));
  else world=E.create();
@@ -327,8 +328,8 @@ function bind(){
  window.addEventListener("hashchange",()=>{if(location.hash!=="#world")pause()});
  // Não avançar em segundo plano ao visitar as outras abas do DGX.
  document.addEventListener("click",event=>{
-  const other=event.target.closest?.("[data-page]");
-  if(other&&other.dataset.page!=="world"){active=false;pause()}
+  const other=event.target.closest?.("[data-page], [data-goto]");
+  if(other&&(other.dataset.page||other.dataset.goto)!=="world"){active=false;pause()}
  });
  setInterval(updateClock,1000);
 }
