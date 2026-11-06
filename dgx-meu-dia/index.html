@@ -200,6 +200,19 @@ body.car-active{overflow:hidden}
 #challengeResult .challenge-answer{font-size:16px;font-weight:800;line-height:1.4;margin:9px 0 6px;color:#95edd5}
 #challengeResult .result-incorrect{border-color:#847054;background:#39382e}
 #challengeResult .result-incorrect .challenge-answer{color:#b3f0d6}
+
+/* Motor de voz local, sem download automático */
+.dgx-neural-box{border:1px solid #3b626d;border-radius:17px;padding:16px;background:linear-gradient(140deg,#153945,#142b3e);margin:16px 0}
+.dgx-neural-head{display:flex;align-items:center;gap:11px;margin-bottom:13px}
+.dgx-neural-head strong{display:block;font-size:16px}
+.dgx-neural-head .small{font-size:11px;margin-top:4px}
+.dgx-neural-symbol{width:39px;height:39px;border:1px solid #4c8a85;background:#215451;color:#aaf7d9;display:grid;place-items:center;font-size:25px;border-radius:13px;flex:0 0 39px}
+.dgx-neural-box>p{margin:9px 0;line-height:1.55}
+.dgx-neural-controls{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;margin:16px 0 12px}
+.dgx-neural-controls .field{margin:0;min-width:175px}
+.dgx-neural-controls .btn{min-height:44px;font-size:12px}
+.dgx-neural-box #dgxNeuralStatus{min-height:30px;color:#a3d4d9;margin-top:12px}
+@media(max-width:640px){.dgx-neural-controls .field{flex-basis:100%!important}.dgx-neural-controls .btn{flex:1 1 148px}}
 </style>
 </head>
 <body class="locked">
@@ -209,7 +222,7 @@ body.car-active{overflow:hidden}
 <header class="top app-header" aria-label="Cabeçalho do DGX">
   <div class="app-header-brand" aria-label="DGX Meu Dia"><span class="app-header-mark">D</span><div class="app-header-wordmark"><strong>DGX <span>Meu Dia</span></strong><small>Seu assistente pessoal</small></div></div>
   <span class="app-header-date today" id="todayDate"></span>
-  <span class="app-header-version" id="appVersion">v0.14</span>
+  <span class="app-header-version" id="appVersion">v0.15</span>
   <div class="app-header-controls">
     <button class="app-header-car" id="enterCar" type="button"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 11 1.7-5.1A2 2 0 0 1 8.6 4.5h6.8a2 2 0 0 1 1.9 1.4L19 11"/><rect x="3" y="11" width="18" height="7" rx="2"/><path d="M6 18v2M18 18v2M6.5 14.5h.01M17.5 14.5h.01"/></svg><span>Modo Carro</span></button>
     <button class="app-header-logout hide" id="logoutBtn" type="button" title="Sair da conta" aria-label="Sair da conta"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg><span>Sair</span></button>
@@ -324,6 +337,22 @@ body.car-active{overflow:hidden}
 <p class="sub">Uma sequência de áudio com as informações que você escolher. Configure e inicie enquanto estiver parado.</p>
 <div class="actions" style="margin:12px 0"><button class="btn main" id="briefingPlay">▶ Ouvir meu resumo</button><button class="btn ghost" id="briefingStop" disabled>⏹ Parar</button></div>
 <p class="small" id="briefingStatus" role="status">Pronto para iniciar.</p>
+
+<div class="dgx-neural-box">
+ <div class="dgx-neural-head"><span class="dgx-neural-symbol" aria-hidden="true">♫</span><div><strong>Mais vozes brasileiras</strong><div class="small">Motor de voz independente do Android · experimental</div></div></div>
+ <p class="sub">Três locutores com timbres próprios, sem trocar o idioma: uma voz feminina e duas masculinas. O texto é transformado em áudio no próprio dispositivo.</p>
+ <p class="small"><strong>Atenção ao consumo de internet:</strong> é necessário baixar um modelo de aproximadamente <strong>295 MB</strong> na primeira ativação. Recomendamos Wi-Fi. O modelo pode precisar ser baixado novamente se o cache do navegador for apagado.</p>
+ <div class="dgx-neural-controls">
+  <div class="field" style="flex:1 1 195px"><label for="dgxNeuralVoice">Escolha uma voz</label><select id="dgxNeuralVoice">
+   <option value="pf_dora">Dora — feminina</option><option value="pm_alex">Alex — masculina</option><option value="pm_santa">Santa — masculina</option>
+  </select></div>
+  <button type="button" class="btn main" id="dgxNeuralActivate">Ativar vozes locais</button>
+  <button type="button" class="btn ghost" id="dgxNeuralTest" disabled>Ouvir voz escolhida</button>
+  <button type="button" class="btn ghost" id="dgxNeuralDisable">Voltar à voz do Android</button>
+ </div>
+ <p class="small" id="dgxNeuralStatus" role="status">Nenhum modelo de voz adicional foi carregado.</p>
+</div>
+<p class="small" style="margin-top:18px;font-weight:750">Voz padrão do Android</p>
 <div class="dgx-voice-settings">
   <div class="field" style="flex:1 1 220px"><label for="dgxVoiceSelect">Escolher o locutor (timbre da voz)</label><select id="dgxVoiceSelect"><option value="__auto">Procurando diferentes vozes no Android...</option></select></div>
   <div class="field" style="flex:0 1 146px"><label for="dgxVoiceSpeed">Velocidade</label><select id="dgxVoiceSpeed"><option value="0.88">Calma</option><option value="1" selected>Natural</option><option value="1.12">Rápida</option></select></div>
@@ -783,6 +812,7 @@ window.DGXsummaryData=function(){return {weather:weather,fixtures:fixtures,fixtu
 <script src="/spotify.js" defer></script>
 <script src="/podcasts.js" defer></script>
 <script src="/car_mode.js" defer></script>
+<script src="/neural_voice.js" defer></script>
 <script src="/briefing.js" defer></script>
 <script src="/home_panels.js" defer></script>
 <script src="/today.js" defer></script>
