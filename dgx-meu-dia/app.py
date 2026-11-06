@@ -187,7 +187,7 @@ class Handler(BaseHTTPRequestHandler):
                     return self.reply({"error": "Entre com sua senha."}, 401)
                 return self.reply({"data": storage.read_data(user_id)})
             if path == "/health":
-                return self.reply({"ok": True, "app": "dgx-meu-dia", "version": "0.15"})
+                return self.reply({"ok": True, "app": "dgx-meu-dia", "version": "0.16"})
         except Exception as e:
             print("Erro de GET", path, type(e).__name__, flush=True)
             return self.reply({"error": "Serviço de dados temporariamente indisponível."}, 503)
@@ -207,7 +207,10 @@ class Handler(BaseHTTPRequestHandler):
                  "/neural_voice_worker.js": ("neural_voice_worker.js", "application/javascript; charset=utf-8"),
                  "/home_panels.js": ("home_panels.js", "application/javascript; charset=utf-8"),
                  "/today.js": ("today.js", "application/javascript; charset=utf-8"),
-                 "/daily_facts.js": ("daily_facts.js", "application/javascript; charset=utf-8")}
+                 "/daily_facts.js": ("daily_facts.js", "application/javascript; charset=utf-8"),
+                 "/world_engine.js": ("world_engine.js", "application/javascript; charset=utf-8"),
+                 "/world_continuo.js": ("world_continuo.js", "application/javascript; charset=utf-8"),
+                 "/world_continuo.css": ("world_continuo.css", "text/css; charset=utf-8")}
         if path not in allow:
             return self.send(b"Not found", "text/plain; charset=utf-8", 404)
         filename, mime = allow[path]
@@ -272,5 +275,5 @@ if __name__ == "__main__":
     storage.initialize()
     push_service.setup()
     podcasts.setup()
-    print(f"DGX Meu Dia v0.15 com PostgreSQL ouvindo em {host}:{port}", flush=True)
+    print(f"DGX Meu Dia v0.16 com PostgreSQL ouvindo em {host}:{port}", flush=True)
     ThreadingHTTPServer((host, port), Handler).serve_forever()
