@@ -127,11 +127,22 @@ function applyVoice(utterance){
  utterance.pitch=1; // Não simular "outra voz" mudando apenas a afinação.
 }
 function speakResponse(text){
+ if(playing)stop();else synth?.cancel();
+ if(window.DGXNeural?.isSelected()){
+  window.DGXNeural.prepareAudio();
+  window.DGXNeural.speak(text).catch(error=>{
+   notify("Voz neural indisponível: "+error.message+". Usando a voz do Android.");
+   nativeSpeak(text);
+  });
+  return true;
+ }
+ return nativeSpeak(text);
+}
+function nativeSpeak(text){
  if(!synth||typeof SpeechSynthesisUtterance==="undefined")return false;
- if(playing)stop();else synth.cancel();
- const u=new SpeechSynthesisUtterance(String(text||""));
- applyVoice(u);
- synth.speak(u);
+ const utterance=new SpeechSynthesisUtterance(String(text||""));
+ applyVoice(utterance);
+ synth.cancel();synth.speak(utterance);
  return true;
 }
 function updateVoiceList(){
@@ -156,7 +167,7 @@ function updateVoiceList(){
   if(voices.length>=2)label.textContent=
    "Voz atual: "+(chosen?.name||"padrão")+". Há "+voices.length+" locutores em português disponíveis. Toque em Trocar voz para ouvir outra pessoa falando.";
   else if(voices.length===1)label.textContent=
-   "Seu navegador disponibiliza apenas a voz "+voices[0].name+". Não há outro locutor para selecionar aqui. Ajustar velocidade ou tom não cria uma voz diferente.";
+   "O Android oferece apenas a voz "+voices[0].name+". Para experimentar três locutores independentes, veja as vozes neurais abaixo (download opcional).";
   else label.textContent=
    "O navegador não disponibilizou vozes em português. O DGX usa a voz padrão do Android; não é possível trocar o locutor nesta tela.";
  }
@@ -171,7 +182,7 @@ function voiceSample(){
 function nextVoice(){
  const voices=availableVoices();
  if(voices.length<2){
-  notify("O navegador oferece apenas um locutor em português. Não consegui trocar a voz de verdade.");
+  notify("O Android oferece um único locutor. Ative as vozes neurais opcionais logo abaixo para escolher mais três.");
   return;
  }
  const current=chosenVoice();
@@ -192,6 +203,7 @@ function renderState(text){
 function stop(){
  playing=false;chunks=[];index=0;
  if("speechSynthesis" in window)speechSynthesis.cancel();
+ window.DGXNeural?.cancel();
  renderState("Leitura interrompida.");
 }
 function playNext(){
@@ -199,17 +211,32 @@ function playNext(){
  if(index>=chunks.length){playing=false;renderState("Resumo concluído.");return}
  const line=chunks[index++];
  renderState("Lendo "+(index-1)+"/"+(chunks.length-2)+": "+line.slice(0,125));
+ if(window.DGXNeural?.isSelected()){
+  window.DGXNeural.speak(line)
+   .then(()=>{if(playing)playNext()})
+   .catch(error=>{
+    if(!playing)return;
+    notify("Motor neural falhou: "+error.message+". Continuando com a voz do Android.");
+    nativeReadSegment(line);
+   });
+  return;
+ }
+ nativeReadSegment(line);
+}
+function nativeReadSegment(line){
+ if(!synth){if(playing)playNext();return}
  const u=new SpeechSynthesisUtterance(line);
  applyVoice(u);
  u.onend=()=>{if(playing)playNext()};
  u.onerror=()=>{if(playing)playNext()};
- speechSynthesis.speak(u);
+ synth.speak(u);
 }
 function start(){
- if(!("speechSynthesis" in window)){notify("Seu navegador não disponibiliza voz sintetizada.");return}
+ if(!("speechSynthesis" in window)&&!window.DGXNeural?.isSelected()){notify("Seu navegador não disponibiliza voz sintetizada.");return}
  stop();
- // Iniciar imediatamente no mesmo gesto de toque é mais compatível com Android.
- chunks=sections();index=0;playing=true;speechSynthesis.cancel();
+ // Desbloquear a saída de áudio no gesto de toque, antes de baixar o modelo.
+ if(window.DGXNeural?.isSelected())window.DGXNeural.prepareAudio();
+ chunks=sections();index=0;playing=true;synth?.cancel();
  playNext();
 }
 function renderPrefs(){
@@ -223,7 +250,7 @@ function renderPrefs(){
 }
 window.DGXbriefingStart=start;
 window.DGXbriefingStop=stop;
-window.DGXbriefingRefresh=()=>{renderPrefs();updateVoiceList()};
+window.DGXbriefingRefresh=()=>{renderPrefs();updateVoiceList();window.DGXNeural?.refresh()};
 $("briefingPlay").onclick=start;
 $("briefingStop").onclick=stop;
 $("readBriefing").onclick=start;
@@ -242,6 +269,8 @@ $("dgxVoiceSelect").addEventListener("change",()=>{
   window.DGXStore?.write(KEY,{...prefs(),voiceURI:"__auto",voiceName:""});
   updateVoiceList();
  }
+ if(window.DGXNeural?.isSelected())window.DGXStore?.write(KEY,{...prefs(),voiceEngine:"system"});
+ window.DGXNeural?.refresh();
  voiceSample();
 });
 $("dgxVoiceNext").addEventListener("click",nextVoice);
