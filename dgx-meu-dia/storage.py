@@ -38,6 +38,7 @@ ALLOWED_KEYS = {
     "dgx_podcasts_v1",
     "dgx_briefing_prefs_v1",
     "dgx_home_panels_v1",
+    "dgx_world_v1",
 }
 SESSION_DAYS = 60
 
