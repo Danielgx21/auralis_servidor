@@ -57,7 +57,7 @@ const EDGES=[
 [29,30]
 ];
 const SEA=[
-[3,13],[6,16],[7,17],[7,15],[7,28],[10,28],[10,29],[11,13],[11,22],[12,23],
+[3,13],[6,16],[6,15],[16,15],[25,23],[14,24],[7,17],[7,15],[7,28],[10,28],[10,29],[11,13],[11,22],[12,23],
 [13,22],[14,23],[15,23],[15,24],[15,17],[17,21],[17,28],[19,29],
 [20,27],[21,25],[21,30],[22,23],[23,24],[23,27],[24,30],[27,30],
 [28,29],[29,30]
@@ -103,13 +103,21 @@ function create(){
   if(RIVALRIES.some(([x,y])=>key(x,y)===key(a,b)))score-=52;
   if((A.color==="amarelo"&&B.color==="azul")||(A.color==="azul"&&B.color==="amarelo"))score+=14;
   if((A.color==="verde"||B.color==="verde")&&A.color!==B.color)score+=4;
-  relations[key(a,b)]={score:clamp(score,-85,90),alliance:false,trade:0};
+  const initialAlliance=[[6,16],[15,23],[14,24]].some(([x,y])=>key(x,y)===key(a,b));
+  const supply=A.resources.filter(item=>!B.resources.includes(item)).length+B.resources.filter(item=>!A.resources.includes(item)).length;
+  const scoreFinal=initialAlliance?72:clamp(score,-85,90);
+  const trade=round(Math.max(0,Math.sqrt(A.gdp*B.gdp)*.009*(1+supply*.10)*(1+scoreFinal/220)*(isSea(a,b)?1.17:1)),2);
+  relations[key(a,b)]={score:scoreFinal,alliance:initialAlliance,trade};
  }
  const world={
   version:1,year:1,seed:20261105,nations,relations,wars:[],history:[],
   metrics:[],auto:false,lastEvent:"Fundação do Mundo Contínuo",lastSaved:null
  };
- world.history=[{year:1,type:"world",text:"Nasce o Mundo Contínuo: 30 nações, dez cores com territórios e raros indivíduos roxos. Nenhuma fronteira será estática."}];
+ world.history=[
+  {year:1,type:"world",text:"Nasce o Mundo Contínuo: 30 nações, dez cores com territórios e raros indivíduos roxos. Nenhuma fronteira será estática."},
+  {year:1,type:"diplomacy",text:"Os blocos vermelhos, azuis e amarelos afirmam suas áreas de influência, enquanto as nações verdes movimentam os maiores mercados populacionais."},
+  {year:1,type:"alliance",text:"Surgem três alianças iniciais: países 6 e 16 (vermelhos), 15 e 23 (azuis), 14 e 24 (amarelos). O comércio já cruza mares e fronteiras."}
+ ];
  world.metrics=[aggregate(world)];
  return world;
 }
