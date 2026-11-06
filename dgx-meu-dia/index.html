@@ -209,7 +209,7 @@ body.car-active{overflow:hidden}
 <header class="top app-header" aria-label="Cabeçalho do DGX">
   <div class="app-header-brand" aria-label="DGX Meu Dia"><span class="app-header-mark">D</span><div class="app-header-wordmark"><strong>DGX <span>Meu Dia</span></strong><small>Seu assistente pessoal</small></div></div>
   <span class="app-header-date today" id="todayDate"></span>
-  <span class="app-header-version" id="appVersion">v0.13</span>
+  <span class="app-header-version" id="appVersion">v0.14</span>
   <div class="app-header-controls">
     <button class="app-header-car" id="enterCar" type="button"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 11 1.7-5.1A2 2 0 0 1 8.6 4.5h6.8a2 2 0 0 1 1.9 1.4L19 11"/><rect x="3" y="11" width="18" height="7" rx="2"/><path d="M6 18v2M18 18v2M6.5 14.5h.01M17.5 14.5h.01"/></svg><span>Modo Carro</span></button>
     <button class="app-header-logout hide" id="logoutBtn" type="button" title="Sair da conta" aria-label="Sair da conta"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg><span>Sair</span></button>
@@ -325,11 +325,11 @@ body.car-active{overflow:hidden}
 <div class="actions" style="margin:12px 0"><button class="btn main" id="briefingPlay">▶ Ouvir meu resumo</button><button class="btn ghost" id="briefingStop" disabled>⏹ Parar</button></div>
 <p class="small" id="briefingStatus" role="status">Pronto para iniciar.</p>
 <div class="dgx-voice-settings">
-  <div class="field" style="flex:1 1 220px"><label for="dgxVoiceSelect">Voz do DGX</label><select id="dgxVoiceSelect"><option value="">Procurando vozes do dispositivo...</option></select></div>
+  <div class="field" style="flex:1 1 220px"><label for="dgxVoiceSelect">Escolher o locutor (timbre da voz)</label><select id="dgxVoiceSelect"><option value="__auto">Procurando diferentes vozes no Android...</option></select></div>
   <div class="field" style="flex:0 1 146px"><label for="dgxVoiceSpeed">Velocidade</label><select id="dgxVoiceSpeed"><option value="0.88">Calma</option><option value="1" selected>Natural</option><option value="1.12">Rápida</option></select></div>
-  <button type="button" class="btn ghost" id="dgxVoiceTest">Testar voz</button>
+  <button type="button" class="btn main" id="dgxVoiceNext">Trocar voz e ouvir</button><button type="button" class="btn ghost" id="dgxVoiceTest">Ouvir esta voz</button>
 </div>
-<p class="small" id="dgxVoiceInfo">As vozes disponíveis dependem do Android. Escolha a que preferir.</p>
+<p class="small" id="dgxVoiceInfo">O DGX vai listar os locutores disponibilizados pelo Android. Mudar velocidade não altera a identidade da voz.</p>
 <details style="margin-top:15px"><summary style="cursor:pointer;min-height:40px;font-weight:700">Personalizar o que será lido</summary>
 <div id="briefingPrefs" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:6px;margin-top:12px"></div>
 </details><p class="small" style="margin-top:12px">A leitura usa a voz do navegador. Pode ser interrompida com a tela bloqueada ou se o Android suspender a página. Não há gravação de áudio.</p>
