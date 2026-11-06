@@ -222,7 +222,7 @@ body.car-active{overflow:hidden}
 <header class="top app-header" aria-label="Cabeçalho do DGX">
   <div class="app-header-brand" aria-label="DGX Meu Dia"><span class="app-header-mark">D</span><div class="app-header-wordmark"><strong>DGX <span>Meu Dia</span></strong><small>Seu assistente pessoal</small></div></div>
   <span class="app-header-date today" id="todayDate"></span>
-  <span class="app-header-version" id="appVersion">v0.16</span>
+  <span class="app-header-version" id="appVersion">v0.17</span>
   <div class="app-header-controls">
     <button class="app-header-car" id="enterCar" type="button"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 11 1.7-5.1A2 2 0 0 1 8.6 4.5h6.8a2 2 0 0 1 1.9 1.4L19 11"/><rect x="3" y="11" width="18" height="7" rx="2"/><path d="M6 18v2M18 18v2M6.5 14.5h.01M17.5 14.5h.01"/></svg><span>Modo Carro</span></button>
     <button class="app-header-logout hide" id="logoutBtn" type="button" title="Sair da conta" aria-label="Sair da conta"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg><span>Sair</span></button>
@@ -389,6 +389,7 @@ body.car-active{overflow:hidden}
     <button id="wcPlay" class="wc-primary" type="button">▶ Continuar mundo</button>
     <button id="wcOneYear" type="button">+ 1 ano</button>
     <button id="wcTenYears" type="button">+ 10 anos</button>
+    <button id="wcNewGame" type="button" title="Reiniciar com as três potências equilibradas">↻ Novo jogo</button>
     <label for="wcSpeed">Velocidade
       <select id="wcSpeed" aria-label="Velocidade de evolução">
         <option value="1" selected>1× · 8 s/ano</option><option value="2">2× · 4 s/ano</option><option value="4">4× · 2 s/ano</option>
@@ -501,11 +502,11 @@ body.car-active{overflow:hidden}
 </main>
 <nav class="bottomnav" aria-label="Navegação principal">
 <button class="tab active" data-page="home"><span>🏠</span>Início</button>
-<button class="tab" data-page="world"><span>🌎</span>Mundo</button>
 <button class="tab" data-page="calendar"><span>📅</span>Agenda</button><button class="tab" data-page="payments"><span>💳</span>Contas</button><button class="tab" data-page="plants"><span>🌱</span>Plantas</button><button class="tab" data-page="podcasts"><span>🎧</span>Podcasts</button><button class="tab" data-page="challenge"><span>🧠</span>Desafios</button>
 <button class="tab" data-page="mood"><span>☺</span>Humor</button>
 <button class="tab" data-page="alerts"><span>🔔</span>Avisos</button>
 <button class="tab" data-page="voice"><span>🎙️</span>Voz</button>
+<button class="tab" data-page="world"><span>🌎</span>Jogo</button>
 </nav>
 <div class="car-screen hide" id="carScreen" role="dialog" aria-modal="true" aria-label="Modo Carro">
 <div class="car-head"><div><div class="label">DGX Meu Dia</div><h1>🚘 Modo Carro</h1></div><button class="car-exit" id="carExit">✕ Sair</button></div>

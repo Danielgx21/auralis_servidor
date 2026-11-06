@@ -1,4 +1,4 @@
-/* MUNDO CONTÍNUO · DGX v0.16
+/* MUNDO CONTÍNUO · DGX v0.17
    Motor determinístico de simulação fictícia: 30 países, comércio, população,
    distribuição das cores, tecnologia, recursos, alianças e conflitos.
    Os números são dados inventados para o jogo, não estatísticas reais.
@@ -21,29 +21,29 @@ const COLOR={
 const DEFINITIONS=[
 [1,"verde",72,290,.68,"madeira,ferro,grãos"],
 [2,"rosa",39,210,.76,"arte,ervas,têxteis"],
-[3,"amarelo",55,480,.82,"ciência,finanças,sal"],
+[3,"azul",55,540,.82,"educação,comércio,sal"],
 [4,"laranja",61,340,.63,"cobre,cavalos,pesca"],
 [5,"verde",88,410,.70,"trigo,ferro,madeira"],
-[6,"vermelho",47,530,.75,"aço,porto,cavalos"],
+[6,"vermelho",47,700,.75,"aço,porto,cavalos"],
 [7,"turquesa",31,250,.73,"pesca,navios,especiarias"],
 [8,"cinza",28,260,.79,"engenharia,pedra,armas"],
-[9,"amarelo",50,450,.83,"comércio,vidro,estudos"],
+[9,"laranja",50,450,.73,"comércio,vidro,oficinas"],
 [10,"laranja",76,390,.66,"cobre,carvão,fronteira"],
 [11,"cinza",18,190,.81,"níquel,rotas polares,pesca"],
 [12,"rosa",22,170,.80,"pérolas,arte,medicina"],
 [13,"verde",67,360,.71,"rios,madeira,milho"],
 [14,"amarelo",64,560,.85,"tecnologia,bancos,ouro"],
-[15,"azul",58,590,.84,"marinha,educação,comércio"],
-[16,"vermelho",44,520,.74,"aço,exército,manufatura"],
+[15,"azul",58,670,.84,"marinha,educação,comércio"],
+[16,"vermelho",44,685,.74,"aço,exército,manufatura"],
 [17,"turquesa",26,300,.78,"portos,sal,navegação"],
 [18,"verde",82,430,.69,"arroz,frutas,madeira"],
 [19,"marrom",70,400,.65,"minério,pedra,energia"],
 [20,"preto",36,340,.72,"obsidiana,investigação,finanças"],
 [21,"laranja",24,220,.67,"cobre,estaleiros,pesca"],
 [22,"verde",95,470,.70,"florestas,peles,grãos"],
-[23,"azul",60,610,.86,"diplomacia,marinha,indústria"],
+[23,"azul",60,680,.86,"diplomacia,marinha,indústria"],
 [24,"amarelo",74,640,.88,"pesquisa,bancos,vidro"],
-[25,"vermelho",53,570,.77,"aço,carvão,cavalos"],
+[25,"vermelho",53,725,.77,"aço,carvão,cavalos"],
 [26,"cinza",48,380,.80,"pedra,engenharia,defesa"],
 [27,"verde",89,420,.68,"arroz,madeira,borracha"],
 [28,"rosa",16,130,.82,"coral,medicina,turismo"],
@@ -110,12 +110,12 @@ function create(){
   relations[key(a,b)]={score:scoreFinal,alliance:initialAlliance,trade};
  }
  const world={
-  version:1,year:1,seed:20261105,nations,relations,wars:[],history:[],
+  version:1,balanceVersion:2,year:1,seed:20261105,nations,relations,wars:[],history:[],
   metrics:[],auto:false,lastEvent:"Fundação do Mundo Contínuo",lastSaved:null
  };
  world.history=[
   {year:1,type:"world",text:"Nasce o Mundo Contínuo: 30 nações, dez cores com territórios e raros indivíduos roxos. Nenhuma fronteira será estática."},
-  {year:1,type:"diplomacy",text:"Os blocos vermelhos, azuis e amarelos afirmam suas áreas de influência, enquanto as nações verdes movimentam os maiores mercados populacionais."},
+  {year:1,type:"diplomacy",text:"Vermelhos, azuis e amarelos iniciam como potências de influência equivalente: os vermelhos se destacam pela defesa, os azuis pela cooperação e os amarelos pelo conhecimento. As nações verdes movimentam os maiores mercados populacionais."},
   {year:1,type:"alliance",text:"Surgem três alianças iniciais: países 6 e 16 (vermelhos), 15 e 23 (azuis), 14 e 24 (amarelos). O comércio já cruza mares e fronteiras."}
  ];
  world.metrics=[aggregate(world)];

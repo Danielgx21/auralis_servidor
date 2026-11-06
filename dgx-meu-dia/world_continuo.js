@@ -1,4 +1,4 @@
-/* DGX · MUNDO CONTÍNUO · v0.16
+/* DGX · MUNDO CONTÍNUO · v0.17
  * Mapa geográfico vetorial selecionável e simulação histórica persistida no Neon.
  * 1 ano virtual = 8 segundos reais no modo normal, apenas com a aba aberta.
  */
@@ -221,7 +221,7 @@ function legend(){
   const stats=by[col]||{count:0,pop:0};
   return '<article class="wc-color-info"><h3><i class="wc-swatch" style="background:'+info.hex+'"></i>'+
   info.name+' <span style="font-size:10px;color:#98b8c4;font-weight:500">'+(col==="roxo"?"sem país":stats.count+" país(es)")+'</span></h3>'+
-  '<p>'+esc(info.trait)+'</p><small class="wc-muted">'+(col==="roxo"?"Identidade rara, dispersa pela população":fmt(stats.pop,0)+" milhões nas nações dessa cor")+'</small></article>';
+  '<p>'+esc(info.trait)+'</p><small class="wc-muted">'+(col==="roxo"?"Identidade rara, dispersa pela população":fmt(stats.pop,0)+" milhões nas nações dessa cor"+(["vermelho","azul","amarelo"].includes(col)?" · influência do bloco: "+fmt(stats.influence,0):""))+'</small></article>';
  }).join("");
 }
 function render(){
@@ -277,7 +277,7 @@ function init(){
  else world=E.create();
  selected=Math.min(30,Math.max(1,selected));
  render();
- $("wcSaveStatus").textContent=E.validate(saved)?"Mundo recuperado da sua conta":"Cenário inicial pronto — salve ao avançar o tempo ou nomear um país";
+ $("wcSaveStatus").textContent=E.validate(saved)?(world.balanceVersion===2?"Mundo recuperado da sua conta":"Mundo antigo preservado. Use Novo jogo para iniciar com os três blocos equilibrados."):"Cenário equilibrado pronto — salve ao avançar o tempo ou nomear um país";
 }
 function open(){
  active=true;
@@ -285,12 +285,17 @@ function open(){
  const snapshot=window.DGXStore.read(KEY,null);
  if(E.validate(snapshot)&&world.year!==snapshot.year&&!playing)world=JSON.parse(JSON.stringify(snapshot));
  render();
+ if(world.balanceVersion!==2)$("wcSaveStatus").textContent="Mundo antigo preservado. Use Novo jogo para iniciar com os três blocos equilibrados.";
  if(!playing)lastFrame=Date.now();
 }
 function bind(){
  $("wcPlay").addEventListener("click",play);
  $("wcOneYear").addEventListener("click",()=>{pause();advance(1)});
  $("wcTenYears").addEventListener("click",()=>{pause();advance(10)});
+ $("wcNewGame").addEventListener("click",()=>{
+  if(!window.confirm("Reiniciar o jogo? O mundo salvo, os nomes dos países e a evolução histórica serão substituídos por um novo cenário com as três potências equilibradas."))return;
+  pause();world=E.create();selected=6;render();persist();
+ });
  $("wcSpeed").addEventListener("change",()=>{speed=Number($("wcSpeed").value)||1;elapsed=0;lastFrame=Date.now()});
  $("wcMapMode").addEventListener("change",()=>{mapMode=$("wcMapMode").value;svgdrawing()});
  $("wcMapSvg").addEventListener("click",event=>{
