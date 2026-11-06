@@ -97,37 +97,38 @@ let chunks=[],index=0,playing=false;
 const synth=window.speechSynthesis;
 function availableVoices(){
  if(!synth||typeof synth.getVoices!=="function")return [];
- const voices=synth.getVoices();
- const pt=voices.filter(v=>/^pt(?:-|_)/i.test(v.lang));
- return pt.sort((a,b)=>{
-  const score=v=>(/^pt[-_]BR$/i.test(v.lang)?12:0)+(/natural|neural|google|microsoft/i.test(v.name)?4:0)+(v.localService?1:0);
-  return score(b)-score(a);
+ // Mantém o idioma português. A escolha abaixo é de LOCUTOR, não de sotaque.
+ const voices=synth.getVoices().filter(v=>/^pt(?:[-_]|$)/i.test(v.lang||""));
+ return voices.sort((a,b)=>{
+  if(!!a.default!==!!b.default)return a.default?1:-1;
+  return (a.name||"").localeCompare(b.name||"","pt-BR");
  });
 }
 function chosenVoice(){
- const voices=availableVoices();
- const preferred=prefs().voiceURI;
- if(preferred){
-  const exact=voices.find(v=>v.voiceURI===preferred);if(exact)return exact;
+ const voices=availableVoices(),p=prefs(),id=p.voiceURI||"";
+ if(id&&id!=="__auto"){
+  const exact=voices.find(v=>v.voiceURI===id);
+  if(exact)return exact;
+  const named=voices.find(v=>v.name===p.voiceName);
+  if(named)return named;
  }
- // Deixar de usar a primeira voz-padrão antiga quando outra voz pt-BR estiver disponível.
- return voices.find(v=>!v.default) || voices[0] || null;
+ // Alternativa real à voz padrão, somente se o navegador fornecer outra.
+ return voices.find(v=>!v.default)||voices[0]||null;
 }
 function currentRate(){
  const rate=Number(prefs().voiceRate);
  return Number.isFinite(rate)&&rate>=.8&&rate<=1.2?rate:1;
 }
 function applyVoice(utterance){
- const chosen=chosenVoice();
- utterance.lang=chosen?.lang||"pt-BR";
- if(chosen)utterance.voice=chosen;
+ const selected=chosenVoice();
+ utterance.lang=selected?.lang||"pt-BR";
+ if(selected)utterance.voice=selected;
  utterance.rate=currentRate();
- utterance.pitch=1.04;
+ utterance.pitch=1; // Não simular "outra voz" mudando apenas a afinação.
 }
 function speakResponse(text){
  if(!synth||typeof SpeechSynthesisUtterance==="undefined")return false;
- if(playing)stop();
- else synth.cancel();
+ if(playing)stop();else synth.cancel();
  const u=new SpeechSynthesisUtterance(String(text||""));
  applyVoice(u);
  synth.speak(u);
@@ -136,24 +137,51 @@ function speakResponse(text){
 function updateVoiceList(){
  const select=$("dgxVoiceSelect"),label=$("dgxVoiceInfo");
  if(!select)return;
- const voices=availableVoices(),preferred=prefs().voiceURI||"";
- const option=document.createElement("option");
- option.value="";option.textContent="Voz brasileira alternativa (automática)";
- select.replaceChildren(option);
+ const voices=availableVoices(),p=prefs(),chosen=chosenVoice();
+ const automatic=document.createElement("option");
+ automatic.value="__auto";automatic.textContent="Automático (voz diferente da padrão, se houver)";
+ select.replaceChildren(automatic);
  for(const voice of voices){
   const opt=document.createElement("option");
   opt.value=voice.voiceURI;
-  opt.textContent=voice.name+" · "+voice.lang+(voice.default?" (padrão)":"");
+  opt.textContent=voice.name+(voice.default?" — voz padrão":" — alternativa");
   select.appendChild(opt);
  }
- select.value=preferred&&voices.some(v=>v.voiceURI===preferred)?preferred:"";
+ const selectedId=voices.some(v=>v.voiceURI===p.voiceURI)?p.voiceURI:"__auto";
+ select.value=selectedId;
  $("dgxVoiceSpeed").value=String(currentRate());
- if(label)label.textContent=voices.length>1?
-  "Escolha uma das "+voices.length+" vozes de português disponíveis no seu aparelho.":
-  voices.length===1?"O Android forneceu uma voz em português. A velocidade e o tom foram ajustados; outras opções dependem do aparelho.":
-  "O Android ainda não informou vozes em português. Tentaremos usar a voz padrão do dispositivo.";
+ const nextButton=$("dgxVoiceNext");
+ if(nextButton)nextButton.disabled=voices.length<2;
+ if(label){
+  if(voices.length>=2)label.textContent=
+   "Voz atual: "+(chosen?.name||"padrão")+". Há "+voices.length+" locutores em português disponíveis. Toque em Trocar voz para ouvir outra pessoa falando.";
+  else if(voices.length===1)label.textContent=
+   "Seu navegador disponibiliza apenas a voz "+voices[0].name+". Não há outro locutor para selecionar aqui. Ajustar velocidade ou tom não cria uma voz diferente.";
+  else label.textContent=
+   "O navegador não disponibilizou vozes em português. O DGX usa a voz padrão do Android; não é possível trocar o locutor nesta tela.";
+ }
+}
+function saveVoice(voice){
+ window.DGXStore?.write(KEY,{...prefs(),voiceURI:voice.voiceURI,voiceName:voice.name});
+ updateVoiceList();
+}
+function voiceSample(){
+ return speakResponse("Olá! Esta é a minha voz. Vou conversar com você e ler seu resumo do dia no DGX Meu Dia.");
+}
+function nextVoice(){
+ const voices=availableVoices();
+ if(voices.length<2){
+  notify("O navegador oferece apenas um locutor em português. Não consegui trocar a voz de verdade.");
+  return;
+ }
+ const current=chosenVoice();
+ const index=voices.findIndex(v=>v.voiceURI===current?.voiceURI);
+ const next=voices[(index+1)%voices.length];
+ saveVoice(next);
+ voiceSample();
 }
 window.DGXsay=speakResponse;
+
 
 function renderState(text){
  if($("briefingStatus"))$("briefingStatus").textContent=text;
@@ -207,17 +235,21 @@ if(synth){
  else synth.onvoiceschanged=updateVoiceList;
 }
 $("dgxVoiceSelect").addEventListener("change",()=>{
- const selected=$("dgxVoiceSelect").value;
- window.DGXStore?.write(KEY,{...prefs(),voiceURI:selected});
- notify("Voz escolhida. Toque em Testar voz para ouvir.");
+ const id=$("dgxVoiceSelect").value;
+ const voice=availableVoices().find(v=>v.voiceURI===id);
+ if(voice)saveVoice(voice);
+ else{
+  window.DGXStore?.write(KEY,{...prefs(),voiceURI:"__auto",voiceName:""});
+  updateVoiceList();
+ }
+ voiceSample();
 });
+$("dgxVoiceNext").addEventListener("click",nextVoice);
 $("dgxVoiceSpeed").addEventListener("change",()=>{
  const rate=Number($("dgxVoiceSpeed").value);
  window.DGXStore?.write(KEY,{...prefs(),voiceRate:rate});
- notify("Velocidade de leitura salva.");
+ notify("Velocidade de leitura salva. Isso não muda o locutor.");
 });
-$("dgxVoiceTest").addEventListener("click",()=>{
- speakResponse("Olá! Eu sou a nova voz do DGX Meu Dia. Aqui estão as informações mais interessantes para o seu dia.");
-});
+$("dgxVoiceTest").addEventListener("click",voiceSample);
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&playing)renderState("A leitura pode ser interrompida pelo Android com a tela bloqueada.")});
 })();
