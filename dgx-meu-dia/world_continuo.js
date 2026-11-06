@@ -1,4 +1,4 @@
-/* DGX · MUNDO CONTÍNUO · v0.17
+/* DGX · AETHERA · v0.18
  * Mapa geográfico vetorial selecionável e simulação histórica persistida no Neon.
  * 1 ano virtual = 8 segundos reais no modo normal, apenas com a aba aberta.
  */
@@ -147,11 +147,43 @@ function stats(){
  $("wcStatTrade").textContent="Comércio: "+fmt(m.trade,0)+" B/ano";
  $("wcGreenPopulation").textContent="Nações verdes: "+fmt(count.verde?.pop||0,0)+" milhões de habitantes";
  $("wcYearBadge").textContent="Ano "+fmt(world.year);
- $("wcPlay").textContent=playing?"⏸ Pausar mundo":"▶ Continuar mundo";
+ $("wcPlay").textContent=playing?"⏸ Pausar Aethera":"▶ Continuar Aethera";
  $("wcPlay").setAttribute("aria-pressed",String(playing));
  $("wcPlay").disabled=world.year>=500;
  $("wcOneYear").disabled=world.year>=500;
  $("wcTenYears").disabled=world.year>=491;
+}
+function nationIntelligence(n){
+ const ai=n.ai||{},label=window.DGXWorldAI?.labels||{};
+ $("wcAIStrategy").textContent=label[ai.strategy]||"Em análise";
+ $("wcAIGoals").innerHTML=(ai.goals||[]).slice(0,3).map(g=>
+   '<div class="wc-ai-goal"><div><span>'+esc(g.label)+'</span><strong>'+fmt(g.value)+'/100</strong></div>'+
+   '<div class="wc-ai-track"><i style="width:'+Math.max(0,Math.min(100,Number(g.value)||0))+'%"></i></div></div>'
+ ).join("")||'<p class="wc-muted">Nenhuma prioridade calculada.</p>';
+ const d=ai.lastDecision;
+ $("wcAIDecision").innerHTML=d?'<small>ÚLTIMA DECISÃO · ANO '+fmt(d.year)+'</small><strong>'+esc(d.label)+'</strong>'+
+   '<p>'+esc(d.reason)+'</p><span class="wc-muted">Custo estimado: '+fmt(d.cost,1)+' B</span>':
+   '<p>Estratégia inicial definida. Avance um ano para acompanhar as primeiras decisões.</p>';
+ const outcome=ai.lastOutcome;
+ const notes=(ai.memory||[]).slice(0,3);
+ $("wcAIMemory").innerHTML='<strong>Memória de decisões</strong>'+
+  (outcome?'<p class="wc-muted">Última avaliação: '+esc(outcome.result)+'. '+esc(outcome.detail)+'</p>':'<p class="wc-muted">Ainda sem medidas avaliadas.</p>')+
+  (notes.length?'<ul>'+notes.map(m=>'<li>Ano '+fmt(m.year)+': '+esc(window.DGXWorldAI?.actions?.[m.action]?.label||m.action)+' — '+(m.success?"resultado positivo":"resultado insuficiente")+'</li>').join("")+'</ul>':'');
+}
+function observatory(){
+ const counts={},labels=window.DGXWorldAI?.labels||{};
+ for(const n of world.nations){
+  const s=n.ai?.strategy||"sem estratégia";
+  counts[s]=(counts[s]||0)+1;
+ }
+ $("wcAIStrategies").innerHTML=Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([s,num])=>
+  '<span class="wc-ai-pill">'+esc(labels[s]||s)+': '+fmt(num)+'</span>').join("");
+ const decisions=world.nations.filter(n=>n.ai?.lastDecision).sort((a,b)=>
+  b.ai.lastDecision.year-a.ai.lastDecision.year||a.id-b.id);
+ $("wcAIHighlights").innerHTML=decisions.length?decisions.slice(0,6).map(n=>
+  '<article><span class="wc-ai-dot" style="background:'+colors[n.color].hex+'"></span><div><strong>'+esc(n.name)+'</strong><small>Ano '+fmt(n.ai.lastDecision.year)+' · '+esc(labels[n.ai.strategy])+'</small>'+
+  '<p>'+esc(n.ai.lastDecision.label)+'. '+esc(n.ai.lastDecision.reason)+'</p></div></article>').join(""):
+  '<p class="wc-muted">Avance um ano para observar as primeiras decisões das nações.</p>';
 }
 function detail(){
  const n=nation(selected);
@@ -168,6 +200,7 @@ function detail(){
   ["Influência",fmt(E.score(n))],["Tecnologia",fmt(n.tech,2)],["Estabilidade",pct(n.stability)],
   ["Alimentos",pct(n.food)],["Ambiente",pct(n.environment)],["Reservas",fmt(n.stock,1)],["Tesouro",fmt(n.treasury,0)+" B"]
  ].map(([label,value])=>'<div><small>'+label+'</small><strong>'+value+'</strong></div>').join("");
+ nationIntelligence(n);
  $("wcResources").innerHTML=n.resources.map(v=>'<span>'+esc(v)+'</span>').join("");
  const mix=Object.entries(n.mix).sort((a,b)=>b[1]-a[1]).filter(v=>v[1]>.005);
  $("wcNationMix").innerHTML=mix.map(([col,p])=>'<span title="'+COLOR[col].name+': '+pct(p)+'" style="width:'+pct(p)+';background:'+COLOR[col].hex+'"></span>').join("");
@@ -226,7 +259,7 @@ function legend(){
 }
 function render(){
  if(!document.getElementById("wcPage"))return;
- stats();svgdrawing();detail();timeline();table();chart();legend();
+ stats();svgdrawing();detail();observatory();timeline();table();chart();legend();
 }
 function choose(id,scroll=false){
  id=Number(id);
@@ -275,6 +308,7 @@ function init(){
  const saved=window.DGXStore?.read(KEY,null);
  if(E.validate(saved))world=JSON.parse(JSON.stringify(saved));
  else world=E.create();
+ E.prepare(world);
  selected=Math.min(30,Math.max(1,selected));
  render();
  $("wcSaveStatus").textContent=E.validate(saved)?(world.balanceVersion===2?"Mundo recuperado da sua conta":"Mundo antigo preservado. Use Novo jogo para iniciar com os três blocos equilibrados."):"Cenário equilibrado pronto — salve ao avançar o tempo ou nomear um país";
@@ -284,6 +318,7 @@ function open(){
  if(!window.DGXStore)return;
  const snapshot=window.DGXStore.read(KEY,null);
  if(E.validate(snapshot)&&world.year!==snapshot.year&&!playing)world=JSON.parse(JSON.stringify(snapshot));
+ E.prepare(world);
  render();
  if(world.balanceVersion!==2)$("wcSaveStatus").textContent="Mundo antigo preservado. Use Novo jogo para iniciar com os três blocos equilibrados.";
  if(!playing)lastFrame=Date.now();

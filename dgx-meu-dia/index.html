@@ -222,7 +222,7 @@ body.car-active{overflow:hidden}
 <header class="top app-header" aria-label="Cabeçalho do DGX">
   <div class="app-header-brand" aria-label="DGX Meu Dia"><span class="app-header-mark">D</span><div class="app-header-wordmark"><strong>DGX <span>Meu Dia</span></strong><small>Seu assistente pessoal</small></div></div>
   <span class="app-header-date today" id="todayDate"></span>
-  <span class="app-header-version" id="appVersion">v0.17</span>
+  <span class="app-header-version" id="appVersion">v0.18</span>
   <div class="app-header-controls">
     <button class="app-header-car" id="enterCar" type="button"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 11 1.7-5.1A2 2 0 0 1 8.6 4.5h6.8a2 2 0 0 1 1.9 1.4L19 11"/><rect x="3" y="11" width="18" height="7" rx="2"/><path d="M6 18v2M18 18v2M6.5 14.5h.01M17.5 14.5h.01"/></svg><span>Modo Carro</span></button>
     <button class="app-header-logout hide" id="logoutBtn" type="button" title="Sair da conta" aria-label="Sair da conta"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg><span>Sair</span></button>
@@ -375,7 +375,7 @@ body.car-active{overflow:hidden}
 <div id="wcPage">
   <header class="wc-hero">
    <div class="wc-eyebrow">SUA SIMULAÇÃO DE CIVILIZAÇÕES · AETHERA</div>
-   <h1>Mundo Contínuo <span class="wc-year" id="wcCurrentYear">Ano 1</span></h1>
+   <h1>Aethera <span class="wc-year" id="wcCurrentYear">Ano 1</span></h1>
    <p>Um mundo fictício com 30 países, dez cores que formam nações e raros indivíduos roxos. As pessoas mudam, as economias crescem, recursos se esgotam e decisões coletivas transformam alianças e fronteiras de influência.</p>
   </header>
   <div class="wc-kpis" aria-label="Indicadores gerais do mundo">
@@ -386,7 +386,7 @@ body.car-active{overflow:hidden}
    <div class="wc-kpi"><small>Alianças</small><strong id="wcStatAlliances">—</strong></div>
   </div>
   <div class="wc-toolbar" aria-label="Controle de simulação">
-    <button id="wcPlay" class="wc-primary" type="button">▶ Continuar mundo</button>
+    <button id="wcPlay" class="wc-primary" type="button">▶ Continuar Aethera</button>
     <button id="wcOneYear" type="button">+ 1 ano</button>
     <button id="wcTenYears" type="button">+ 10 anos</button>
     <button id="wcNewGame" type="button" title="Reiniciar com as três potências equilibradas">↻ Novo jogo</button>
@@ -439,6 +439,12 @@ body.car-active{overflow:hidden}
         <button type="submit" class="wc-small-btn">Salvar nome</button>
       </form>
       <div class="wc-stats-grid" id="wcNationStats"></div>
+      <section class="wc-ai-nation" aria-labelledby="wcAIHeading">
+        <div class="wc-card-head"><h2 id="wcAIHeading">🧠 Inteligência nacional</h2><span id="wcAIStrategy" class="wc-ai-pill">Planejando</span></div>
+        <div id="wcAIGoals" class="wc-ai-goals" aria-label="Prioridades do governo"></div>
+        <div id="wcAIDecision" class="wc-ai-decision"></div>
+        <div id="wcAIMemory" class="wc-ai-memory"></div>
+      </section>
       <label class="wc-field-label">Recursos estratégicos</label><div class="wc-tags" id="wcResources"></div>
       <label class="wc-field-label">Composição das cores sociais</label>
       <div class="wc-mix" id="wcNationMix" aria-label="Distribuição social da população"></div>
@@ -449,6 +455,12 @@ body.car-active{overflow:hidden}
       <button type="button" class="wc-small-btn" id="wcGoSelected" style="margin-top:13px">Ver este país</button>
     </aside>
   </div>
+  <article class="wc-card wc-observatory">
+    <div class="wc-card-head"><h2>🔭 Observatório de Aethera</h2><small>30 países tomam decisões autônomas a cada ano</small></div>
+    <div id="wcAIStrategies" class="wc-ai-strategies"></div>
+    <div id="wcAIHighlights" class="wc-ai-highlights"></div>
+    <p class="wc-muted">Ações baseadas em recursos, necessidades, resultados anteriores e diplomacia. A simulação é autônoma: você apenas observa.</p>
+  </article>
   <div class="wc-bottom-grid">
    <article class="wc-card">
      <div class="wc-card-head"><h2>📊 Economia, população e influência</h2><small id="wcTableCount">30 países</small></div>
@@ -486,7 +498,7 @@ body.car-active{overflow:hidden}
      <option value="all">Todos</option><option value="war">Guerras e paz</option>
      <option value="alliance">Alianças</option><option value="economy">Crises econômicas</option>
      <option value="society">Mudanças sociais</option><option value="technology">Ciência</option>
-     <option value="climate">Clima</option>
+     <option value="climate">Clima</option><option value="politics">Decisões nacionais</option>
     </select>
     <div id="wcHistory" class="wc-history" aria-live="polite"></div>
    </article>
@@ -506,7 +518,7 @@ body.car-active{overflow:hidden}
 <button class="tab" data-page="mood"><span>☺</span>Humor</button>
 <button class="tab" data-page="alerts"><span>🔔</span>Avisos</button>
 <button class="tab" data-page="voice"><span>🎙️</span>Voz</button>
-<button class="tab" data-page="world"><span>🌎</span>Jogo</button>
+<button class="tab" data-page="world"><span>🌎</span>Aethera</button>
 </nav>
 <div class="car-screen hide" id="carScreen" role="dialog" aria-modal="true" aria-label="Modo Carro">
 <div class="car-head"><div><div class="label">DGX Meu Dia</div><h1>🚘 Modo Carro</h1></div><button class="car-exit" id="carExit">✕ Sair</button></div>
@@ -936,6 +948,7 @@ else{el("micBtn").onclick=function(){toast("Reconhecimento de voz não disponív
 window.DGXsummaryData=function(){return {weather:weather,fixtures:fixtures,fixtureLabel:fixtureLabel}};window.DGXgoto=go;window.DGXtoast=toast;window.DGXrefresh=function(){restoreMoodForm();renderHistory();renderChallenge();renderReminders();renderHomeReminders()};
 })();
 </script>
+<script src="/world_ai.js" defer></script>
 <script src="/world_engine.js" defer></script>
 <script src="/world_continuo.js" defer></script>
 <script src="/features.js" defer></script>

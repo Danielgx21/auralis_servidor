@@ -1,4 +1,4 @@
-/* MUNDO CONTÍNUO · DGX v0.17
+/* MUNDO CONTÍNUO · DGX v0.18
    Motor determinístico de simulação fictícia: 30 países, comércio, população,
    distribuição das cores, tecnologia, recursos, alianças e conflitos.
    Os números são dados inventados para o jogo, não estatísticas reais.
@@ -118,6 +118,7 @@ function create(){
   {year:1,type:"diplomacy",text:"Vermelhos, azuis e amarelos iniciam como potências de influência equivalente: os vermelhos se destacam pela defesa, os azuis pela cooperação e os amarelos pelo conhecimento. As nações verdes movimentam os maiores mercados populacionais."},
   {year:1,type:"alliance",text:"Surgem três alianças iniciais: países 6 e 16 (vermelhos), 15 e 23 (azuis), 14 e 24 (amarelos). O comércio já cruza mares e fronteiras."}
  ];
+ window.DGXWorldAI?.bootstrap(world);
  world.metrics=[aggregate(world)];
  return world;
 }
@@ -141,6 +142,7 @@ function annual(world){
  if(!world||world.version!==1)throw Error("Formato de mundo desconhecido");
  if(world.year>=500)throw Error("Limite do calendário atingido (ano 500).");
  world.year++;
+ window.DGXWorldAI?.tick(world,note);
  const rnd=rand((world.seed+world.year*2654435761)>>>0);
  const frac=(min,max)=>min+(max-min)*rnd();
  const allies=(a,b)=>affinity(world,a,b)?.alliance;
@@ -314,5 +316,6 @@ function validate(world){
   world.nations.every((n,i)=>n.id===i+1&&Number.isFinite(n.pop)&&Number.isFinite(n.gdp)&&
    COLOR[n.color]&&typeof n.name==="string")&&typeof world.relations==="object"&&Array.isArray(world.history);
 }
-window.DGXWorldEngine={COLOR,DEFINITIONS,EDGES,SEA,allRoutes,RIVALRIES,create,step,aggregate,score,topRelations,validate,key};
+function prepare(world){return window.DGXWorldAI?.bootstrap(world)||false}
+window.DGXWorldEngine={COLOR,DEFINITIONS,EDGES,SEA,allRoutes,RIVALRIES,create,step,aggregate,score,topRelations,validate,prepare,key};
 })();
