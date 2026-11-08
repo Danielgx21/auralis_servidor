@@ -312,7 +312,7 @@ function reset(level){
   heroId:heroChoice,x:portrait?W*.5:W*.24,y:portrait?H*.72:H*.56,r:h.role==='GUARDIÃO'?20:17,
   hp:h.hp+hpBoost,maxHp:h.hp+hpBoost,energy:100,maxEnergy:100,vx:0,vy:0,angle:0,hit:0,shield:0,
   invuln:0,dash:0,dashVx:0,dashVy:0,empowered:false,hitCombo:0,attackAnim:0,
-  cool:{dash:0,pulse:0,shield:0,frost:0,arc:0,nova:0},shoot:0
+  cool:Object.fromEntries(heroSkillIds().map(id=>[id,0])),shoot:0
  };
  enemy={
   heroId:m.hero,x:portrait?W*.5:W*.76,y:portrait?H*.26:H*.44,r:m.boss?23:missions[level].hero==='orun'?21:18,
@@ -426,7 +426,7 @@ function endGame(win){if(mode!=='playing')return;mode=win?'won':'lost';$('missio
   arsenal.credits+=earned;
   bests[selected]=Math.max(bests[selected],stars);
   unlocked=Math.max(unlocked,Math.min(5,selected+2));save();saveArsenal();
-  if(previous===0)newUnlocks=[...Object.values(skillDefs),...Object.values(itemDefs)].filter(x=>x.unlock===selected+1).map(x=>x.name);
+  if(previous===0)newUnlocks=Object.values(itemDefs).filter(x=>x.unlock===selected+1).map(x=>x.name);
  }
  const display=win?'<div class="stars">'+[1,2,3].map(i=>`<span class="${i<=stars?'earned':'empty'}">★</span>`).join('')+'</div>':'';
  const c1=win?'★':'○',c2=win&&player.hp/player.maxHp>=.75?'★':'○',c3=win&&elapsed<=m.time?'★':'○';
@@ -436,7 +436,7 @@ function endGame(win){if(mode!=='playing')return;mode=win?'won':'lost';$('missio
 function renderMissions(){const el=$('missions');el.innerHTML=missions.map((m,i)=>`<button class="mission ${i===selected?'active':''}" data-level="${i}" ${i>=unlocked?'disabled':''}><span class="num">${i>=unlocked?'⌑':String(i+1).padStart(2,'0')}</span><span class="mission-info"><strong>${m.name}</strong><small>${m.enemy}</small></span><span class="mini-stars">${Array.from({length:3},(_,j)=>bests[i]>j?'★':'☆').join('')}</span></button>`).join('');el.querySelectorAll('.mission:not(:disabled)').forEach(b=>b.onclick=()=>{selected=Number(b.dataset.level);showMenu()})}
 function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');if(toastTimeout)clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('show'),1250)}
 function updateHud(){const m=missions[selected];$('playerHeroName').textContent='✦ '+chosenHero().name;$('levelLabel').textContent='MISSÃO '+String(selected+1).padStart(2,'0');$('enemyName').textContent=m.enemy;$('clock').textContent=Math.floor(elapsed/60).toString().padStart(2,'0')+':'+Math.floor(elapsed%60).toString().padStart(2,'0');$('playerHpText').textContent=player?Math.ceil(player.hp)+'/'+player.maxHp:chosenHero().hp+'/'+chosenHero().hp;$('enemyHpText').textContent=enemy?Math.ceil(enemy.hp)+'/'+m.hp:'—';$('playerHp').style.width=(player?clamp(player.hp/player.maxHp*100,0,100):100)+'%';$('playerEnergy').style.width=(player?player.energy:100)+'%';$('enemyHp').style.width=(enemy?clamp(enemy.hp/enemy.maxHp*100,0,100):100)+'%';$('objectiveTag').textContent=`★ Vencer  ★ Vida ≥75%  ★ Até ${m.time}s`;
- if(player){arsenal.skills.forEach((id,i)=>{const b=$(['dashBtn','pulseBtn','shieldBtn'][i]),d=skillDefs[id],cd=player.cool[id],el=b.querySelector('.cd-text');b.querySelector('b').textContent=d.icon;b.querySelector('small').textContent=d.short;b.setAttribute('aria-label',d.name);b.classList.toggle('oncd',cd>.03||player.energy<d.cost);el.hidden=!(cd>.03);el.textContent=cd>0?cd.toFixed(1):''})}
+ if(player){heroSkillIds().forEach((id,i)=>{const b=$(['dashBtn','pulseBtn','shieldBtn'][i]),d=skillDefs[id],cd=player.cool[id],el=b.querySelector('.cd-text');b.querySelector('b').textContent=d.icon;b.querySelector('small').textContent=d.short;b.setAttribute('aria-label',d.name);b.classList.toggle('oncd',cd>.03||player.energy<d.cost);el.hidden=!(cd>.03);el.textContent=cd>0?cd.toFixed(1):''})}
  const btn=$('fireBtn');
  if(player){
   const h=chosenHero(),progress=1-clamp(player.shoot/h.attackTime,0,1);
@@ -509,7 +509,7 @@ function enemyFire(){
 
 const castDirection=(which,aimSpec)=>{
  if(aimSpec&&aimSpec.dir)return unit(aimSpec.dir.x,aimSpec.dir.y);
- if(which==='dash'){const movement=moveVec();if(Math.hypot(movement.x,movement.y)>.14)return unit(movement.x,movement.y);}
+ if(['lyria_step','vexor_lunge','orun_charge'].includes(which)){const movement=moveVec();if(Math.hypot(movement.x,movement.y)>.14)return unit(movement.x,movement.y);}
  return unit(enemy.x-player.x,enemy.y-player.y);
 };
 const groundTarget=(which,aimSpec)=>{
@@ -528,7 +528,7 @@ function segmentPointDistance(px,py,ax,ay,bx,by){
  return Math.hypot(px-(ax+dx*t),py-(ay+dy*t));
 }
 function ability(which,aimSpec=null){
- if(mode!=='playing'||!player||!skillDefs[which]||!arsenal.skills.includes(which))return false;
+ if(mode!=='playing'||!player||!skillDefs[which]||!heroSkillIds(player.heroId).includes(which))return false;
  const lvl=skillLevel(which),cost=skillCost(which),cd=skillCooldown(which);
  if(player.cool[which]>.01||player.energy<cost){tone(170,.04,'sine',.015);return false}
  const direction=castDirection(which,aimSpec);
@@ -859,7 +859,7 @@ canvas.addEventListener('pointermove',e=>{if(e.pointerType==='mouse'){aim={...po
 canvas.addEventListener('pointerdown',e=>{if(mode==='playing'&&e.pointerType==='mouse'){e.preventDefault();aim={...pointInCanvas(e),active:true};queueSingleShot(targetDirection());canvas.setPointerCapture(e.pointerId)}});
 canvas.addEventListener('pointerup',()=>{});canvas.addEventListener('pointercancel',()=>{});
 
-window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' ','q','e','r','1','2','3','escape'].includes(k))e.preventDefault();if(k==='escape'){showPause();return}if(mode!=='playing')return;keys.add(k);if(!e.repeat){if(k==='q'||k==='1')ability(arsenal.skills[0]);if(k==='e'||k==='2')ability(arsenal.skills[1]);if(k==='r'||k==='3')ability(arsenal.skills[2]);if(k===' ')queueSingleShot(targetDirection())}});
+window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' ','q','e','r','1','2','3','escape'].includes(k))e.preventDefault();if(k==='escape'){showPause();return}if(mode!=='playing')return;keys.add(k);if(!e.repeat){if(k==='q'||k==='1')ability(heroSkillIds()[0]);if(k==='e'||k==='2')ability(heroSkillIds()[1]);if(k==='r'||k==='3')ability(heroSkillIds()[2]);if(k===' ')queueSingleShot(targetDirection())}});
 window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{if(mode==='playing')showPause();keys.clear();shotQueue.length=0});
 $('fullscreenBtn').onclick=()=>{if(document.fullscreenElement&&document.exitFullscreen){document.exitFullscreen()}else enterImmersive()};
 $('rotateFullscreen').onclick=enterImmersive;
@@ -942,7 +942,7 @@ function maybeActivateSkillAim(now){
 }
 function beginSkillTouch(e,index){
  if(mode!=='playing'||skillPointer!==null)return;
- const which=arsenal.skills[index],def=skillDefs[which];
+ const which=heroSkillIds()[index],def=skillDefs[which];
  if(!def)return;
  e.preventDefault();
  if(skillAimKind(which)==='self'){ability(which);return}
