@@ -741,7 +741,7 @@ function drawEnemyWindup(t){
  ctx.restore();
 }
 function drawAimGuide(t){
- if(!player||mode!=='playing'||!touchAim.active)return; // Nenhuma linha longa fora do toque de mira.
+ if(!player||mode!=='playing'||!touchAim.active||(skillTouch&&skillTouch.active))return; // Prioridade visual à habilidade.
  const d=targetDirection(),sx=player.x+d.x*(player.r+13),sy=player.y+d.y*(player.r+13);
  const desired=Math.min(chosenHero().range,Math.max(300,Math.min(430,Math.min(W,H)*1.02)));
  let length=desired;
@@ -758,6 +758,53 @@ function drawAimGuide(t){
  ctx.restore();
 }
 
+
+function drawSkillGuide(t){
+ if(mode!=='playing'||!skillTouch||!skillTouch.active||!player)return;
+ const which=skillTouch.which,spell=skillDefs[which],lvl=skillLevel(which);
+ const castSpec=skillTouch.dragged?{dir:skillTouch.dir,distance:skillTouch.distance}:null;
+ const color=which==='frost'?'#8de4ff':which==='arc'?'#ffe38a':'#74f6e0';
+ ctx.save();ctx.shadowBlur=8;ctx.shadowColor=color;
+ if(which==='frost'){
+  const radius=spell.radius+7*(lvl-1),p=groundTarget(which,castSpec);
+  ring(player.x,player.y,spell.range,'#8bd8f0',.24,1.4);
+  circle(p.x,p.y,radius,'#9de1ff',.13);
+  ring(p.x,p.y,radius,color,.89,3);
+  ring(p.x,p.y,radius*.75,color,.4,1.3);
+  ctx.setLineDash([7,7]);
+  line(player.x,player.y,p.x,p.y,color,1.6,.6);
+  ctx.setLineDash([]);
+  circle(p.x,p.y,5,'#ffffff',.95);
+  ring(p.x,p.y,10,'#ffffff',.72,1.5);
+ }else{
+  const dir=castDirection(which,castSpec);
+  const len=which==='dash'?(.17+.025*(lvl-1))*(580+35*lvl):spell.range;
+  const startX=player.x,startY=player.y,
+        ex=startX+dir.x*len,ey=startY+dir.y*len;
+  if(which==='arc'){
+   const radius=spell.radius+3*(lvl-1),px=-dir.y*radius,py=dir.x*radius;
+   ctx.beginPath();
+   ctx.moveTo(startX+px,startY+py);ctx.lineTo(ex+px,ey+py);
+   ctx.lineTo(ex-px,ey-py);ctx.lineTo(startX-px,startY-py);ctx.closePath();
+   ctx.fillStyle='rgba(255,220,138,.12)';ctx.fill();
+   ctx.strokeStyle='rgba(255,230,164,.5)';ctx.lineWidth=1.5;ctx.stroke();
+  }
+  ctx.setLineDash([10,8]);
+  line(startX+dir.x*(player.r+4),startY+dir.y*(player.r+4),ex,ey,color,3,.9);
+  ctx.setLineDash([]);
+  ring(ex,ey,which==='arc'?spell.radius+2:15,color,.83,2.3);
+  const left={x:ex-dir.x*15-dir.y*10,y:ey-dir.y*15+dir.x*10};
+  const right={x:ex-dir.x*15+dir.y*10,y:ey-dir.y*15-dir.x*10};
+  line(left.x,left.y,ex,ey,color,2.4,.9);
+  line(right.x,right.y,ex,ey,color,2.4,.9);
+ }
+ ctx.shadowBlur=0;
+ ctx.font='800 11px system-ui';ctx.textAlign='center';
+ ctx.fillStyle='#f4fbff';ctx.shadowColor='#000';ctx.shadowBlur=6;
+ const label=which==='frost'?'GEADA · ÁREA':which==='arc'?'RAIO · LINHA':'INVESTIDA · DIREÇÃO';
+ ctx.fillText(label,clamp(player.x,90,W-90),clamp(player.y-55,58,H-30));
+ ctx.restore();
+}
 function drawProjectiles(){
  for(const b of bullets){
   for(let i=0;i<b.trail.length;i++){
@@ -784,7 +831,7 @@ function drawProjectiles(){
  }
 }
 function drawParticles(){ctx.save();ctx.globalCompositeOperation='lighter';for(const p of particles){circle(p.x,p.y,p.size*(p.life/p.max),p.color,clamp(p.life/p.max,0,1)*.9)}ctx.restore();for(const w of waves){let p=1-w.life/w.full;ring(w.x,w.y,w.max*p,w.color,1-p,w.lineWidth*(1-p*.65))}ctx.save();ctx.font='900 14px system-ui';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=5;for(const f of floaters){ctx.globalAlpha=clamp(f.life/.7,0,1);ctx.fillStyle=f.color;ctx.fillText(f.txt,f.x,f.y)}ctx.restore()}
-function draw(t){ctx.save();ctx.clearRect(0,0,W,H);if(shake>0&&mode==='playing')ctx.translate(rnd(-shake,shake),rnd(-shake,shake));drawBackground(t);drawPillars(t);if(mode!=='menu'&&player&&enemy){drawHazards(t);drawEnemyWindup(t);drawProjectiles();drawEntity(enemy,false,t);drawEntity(player,true,t);drawAimGuide(t);drawParticles()}else{ // attract mode
+function draw(t){ctx.save();ctx.clearRect(0,0,W,H);if(shake>0&&mode==='playing')ctx.translate(rnd(-shake,shake),rnd(-shake,shake));drawBackground(t);drawPillars(t);if(mode!=='menu'&&player&&enemy){drawHazards(t);drawEnemyWindup(t);drawProjectiles();drawEntity(enemy,false,t);drawEntity(player,true,t);drawAimGuide(t);drawSkillGuide(t);drawParticles()}else{ // attract mode
  const cx=W*.36,cy=H*.53,ex=W*.68,ey=H*.48;drawEntity({heroId:heroChoice,x:cx,y:cy,r:18,angle:Math.atan2(ey-cy,ex-cx),hit:0,shield:0,invuln:0},true,t);drawEntity({heroId:missions[selected].hero,x:ex,y:ey,r:19,angle:Math.atan2(cy-ey,cx-ex),hp:1,maxHp:1,hit:0},false,t);for(let i=0;i<6;i++){const p=(t*.24+i/6)%1,cx1=lerp(cx,ex,p),cy1=lerp(cy,ey,p);circle(cx1,cy1,3,'#83f5e6',.15+.4*Math.sin(p*Math.PI))}
  }ctx.restore()}
 function loop(now){let dt=Math.min(.04,(now-last)/1000||.016);last=now;maybeActivateAim(now);maybeActivateSkillAim(now);tick(dt);draw(sceneTime);requestAnimationFrame(loop)}
