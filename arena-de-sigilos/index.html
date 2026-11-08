@@ -487,49 +487,94 @@ function enemyFire(){
  burst(enemy.x+d.x*22,enemy.y+d.y*22,m.color,6,80);
  tone(170,.09,'sawtooth',.025);
 }
-function ability(which){
- if(mode!=='playing'||!player||!skillDefs[which]||!arsenal.skills.includes(which))return;
+
+const castDirection=(which,aimSpec)=>{
+ if(aimSpec&&aimSpec.dir)return unit(aimSpec.dir.x,aimSpec.dir.y);
+ if(which==='dash'){const movement=moveVec();if(Math.hypot(movement.x,movement.y)>.14)return unit(movement.x,movement.y);}
+ return unit(enemy.x-player.x,enemy.y-player.y);
+};
+const groundTarget=(which,aimSpec)=>{
+ const spell=skillDefs[which],range=spell.range;
+ if(aimSpec&&aimSpec.dir){
+  const v=unit(aimSpec.dir.x,aimSpec.dir.y);
+  const step=clamp(aimSpec.distance??range,0,range);
+  return {x:clamp(player.x+v.x*step,12,W-12),y:clamp(player.y+v.y*step,12,H-12)};
+ }
+ const vector=unit(enemy.x-player.x,enemy.y-player.y),step=Math.min(range,dist(enemy,player));
+ return {x:clamp(player.x+vector.x*step,12,W-12),y:clamp(player.y+vector.y*step,12,H-12)};
+};
+function segmentPointDistance(px,py,ax,ay,bx,by){
+ const dx=bx-ax,dy=by-ay,den=dx*dx+dy*dy;
+ const t=clamp(den?((px-ax)*dx+(py-ay)*dy)/den:0,0,1);
+ return Math.hypot(px-(ax+dx*t),py-(ay+dy*t));
+}
+function ability(which,aimSpec=null){
+ if(mode!=='playing'||!player||!skillDefs[which]||!arsenal.skills.includes(which))return false;
  const lvl=skillLevel(which),cost=skillCost(which),cd=skillCooldown(which);
- if(player.cool[which]>.01||player.energy<cost){tone(170,.04,'sine',.01);return}
- if(['frost','arc'].includes(which)&&dist(player,enemy)>490){toast('FORA DE ALCANCE');return}
- player.energy-=cost;player.cool[which]=cd;if(player.heroId==='vexor')player.empowered=true;
+ if(player.cool[which]>.01||player.energy<cost){tone(170,.04,'sine',.015);return false}
+ const direction=castDirection(which,aimSpec);
+ player.energy-=cost;player.cool[which]=cd;
+ if(player.heroId==='vexor')player.empowered=true;
  if(which==='dash'){
-  let m=moveVec();if(Math.hypot(m.x,m.y)<.05)m=targetDirection();
+  // O trajeto do dash corresponde à seta mostrada durante a mira.
   player.dash=.17+.025*(lvl-1);player.invuln=.24+.055*(lvl-1);
-  player.dashVx=m.x*(580+35*lvl);player.dashVy=m.y*(580+35*lvl);
-  addWave(player.x,player.y,35,.27,'#85eafa');tone(760,.16,'sawtooth',.045);toast('INVESTIDA NV. '+lvl);
+  player.dashVx=direction.x*(580+35*lvl);player.dashVy=direction.y*(580+35*lvl);
+  addWave(player.x,player.y,35,.27,'#85eafa');
+  tone(760,.16,'sawtooth',.045);toast('INVESTIDA NV. '+lvl);
  }else if(which==='pulse'){
+  // Área centrada no corpo: toca e ativa, sem seleção de direção.
   const r=99+11*lvl;addWave(player.x,player.y,r,.38,'#d6a7fc',5);burst(player.x,player.y,'#d0b6ff',24,210);
   if(dist(player,enemy)<=r+enemy.r){
    damageEnemy(35+9*lvl);enemy.stun=.4+.09*lvl;
-   const uv=unit(enemy.x-player.x,enemy.y-player.y);enemy.x+=uv.x*(34+8*lvl);enemy.y+=uv.y*(34+8*lvl);wallCollision(enemy);
+   const uv=unit(enemy.x-player.x,enemy.y-player.y);
+   enemy.x+=uv.x*(34+8*lvl);enemy.y+=uv.y*(34+8*lvl);wallCollision(enemy);
   }
   for(const b of bullets){if(b.side==='enemy'&&dist(player,b)<r)b.life=0}
   tone(260,.28,'triangle',.06);toast('PULSO NV. '+lvl);
  }else if(which==='shield'){
+  // Proteção no próprio personagem: execução imediata.
   player.shield=1.9+.45*lvl;
   addWave(player.x,player.y,39,.35,'#a0b7ff');burst(player.x,player.y,'#a0b7ff',12,70);
   tone(510,.3,'sine',.05);toast('ESCUDO NV. '+lvl);
  }else if(which==='frost'){
-  line(player.x,player.y,enemy.x,enemy.y,'#92e7ff',4,.96);
-  addWave(enemy.x,enemy.y,65,.5,'#9fe9ff',4);burst(enemy.x,enemy.y,'#86ddfd',23,125);
-  enemy.slowTimer=2.8+.75*lvl;
-  damageEnemy(17+8*lvl);tone(630,.22,'sine',.05);toast('GEADA: ALVO LENTO');
+  // Geada é uma área escolhida no chão. Pode falhar se o rival sair do círculo.
+  const p=groundTarget(which,aimSpec),radius=skillDefs.frost.radius+7*(lvl-1);
+  addWave(p.x,p.y,radius,.46,'#9fe9ff',5);burst(p.x,p.y,'#86ddfd',24,145);
+  if(Math.hypot(enemy.x-p.x,enemy.y-p.y)<=radius+enemy.r){
+   enemy.slowTimer=2.8+.75*lvl;damageEnemy(17+8*lvl);
+   toast('GEADA: ALVO LENTO');
+  }else toast('GEADA: ÁREA CONJURADA');
+  tone(630,.22,'sine',.05);
  }else if(which==='arc'){
-  line(player.x,player.y,enemy.x,enemy.y,'#ffe27b',4.5,.95);
-  addWave(enemy.x,enemy.y,63,.34,'#ffe083',4);burst(enemy.x,enemy.y,'#fff09e',18,180);
-  damageEnemy(32+11*lvl);
-  let cleared=0;
-  for(const b of bullets){if(b.side==='enemy'&&(dist(b,player)<140+15*lvl||dist(b,enemy)<145+15*lvl)){b.life=0;cleared++}}
-  if(cleared)burst(player.x,player.y,'#efdf97',Math.min(24,cleared*3),115);
-  tone(840,.2,'sawtooth',.042);toast('RAIO: RAJADA DISSIPADA');
+  // Raio atravessa uma linha reta; nem o dano nem a limpeza de projéteis são automáticos.
+  const startX=player.x,startY=player.y,length=skillDefs.arc.range;
+  const endX=startX+direction.x*length,endY=startY+direction.y*length;
+  const width=skillDefs.arc.radius+3*(lvl-1);
+  for(let i=0;i<9;i++){const t=i/8;burst(startX+direction.x*length*t,startY+direction.y*length*t,'#ffe48b',3,90)}
+  for(let i=0;i<5;i++){
+   const f=i/4;addWave(startX+(endX-startX)*f,startY+(endY-startY)*f,24,.26,'#ffe083',2.5);
+  }
+  let hit=false,cleared=0;
+  if(segmentPointDistance(enemy.x,enemy.y,startX,startY,endX,endY)<=enemy.r+width){
+   damageEnemy(32+11*lvl);hit=true;
+  }
+  for(const b of bullets){
+   if(b.side==='enemy'&&segmentPointDistance(b.x,b.y,startX,startY,endX,endY)<b.r+width){
+    b.life=0;cleared++;
+   }
+  }
+  toast(hit?'RAIO: ACERTO DIRETO':cleared?'RAIO: PROJÉTEIS DISSIPADOS':'RAIO: ERROU');
+  tone(840,.20,'sawtooth',.042);
  }else if(which==='nova'){
-  const r=125+13*lvl;addWave(player.x,player.y,r,.4,'#ffb7d8',6);burst(player.x,player.y,'#ffc1e6',35,190);
+  // Nova é radial, sem mira: mira manual aqui atrapalharia o combate.
+  const r=125+13*lvl;addWave(player.x,player.y,r,.4,'#ffb7d8',6);
+  burst(player.x,player.y,'#ffc1e6',35,190);
   if(dist(player,enemy)<r+enemy.r)damageEnemy(40+12*lvl);
   for(const b of bullets){if(b.side==='enemy'&&dist(b,player)<r)b.life=0}
   tone(280,.26,'triangle',.066);toast('NOVA NV. '+lvl);
  }
  updateHud();
+ return true;
 }
 function damagePlayer(n){if(player.invuln>0)return;if(player.shield>0){burst(player.x,player.y,'#9bbaff',6,100);tone(520,.05,'sine',.027);return}player.hp-=n;player.hit=.28;shake=6;hitText(player.x,player.y-21,n,'#ff889d');burst(player.x,player.y,'#ff7e9b',10,130);tone(130,.12,'sawtooth',.06);if(player.hp<=0){player.hp=0;endGame(false)}}
 function damageEnemy(n){if(enemy.hp<=0)return;if(enemy.barrier>0)n=Math.round(n*.65);enemy.hp-=n;enemy.hit=.25;shake=3;hitText(enemy.x,enemy.y-20,n,'#ffe59c');burst(enemy.x,enemy.y,missions[selected].color,9,125);tone(280,.075,'triangle',.037);if(enemy.hp<=0){enemy.hp=0;burst(enemy.x,enemy.y,missions[selected].color,32,230);endGame(true)}}
