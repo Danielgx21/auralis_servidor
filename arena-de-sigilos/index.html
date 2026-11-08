@@ -574,7 +574,7 @@ function endGame(win){
  if($('next'))$('next').onclick=()=>reset(selected+1);
  renderMissions();updateHud();
 }
-function renderMissions(){const el=$('missions');el.innerHTML=missions.map((m,i)=>`<button class="mission ${i===selected?'active':''}" data-level="${i}" ${i>=unlocked?'disabled':''}><span class="num">${i>=unlocked?'⌑':String(i+1).padStart(2,'0')}</span><span class="mission-info"><strong>${m.name}</strong><small>${m.enemy}</small></span><span class="mini-stars">${Array.from({length:3},(_,j)=>bests[i]>j?'★':'☆').join('')}</span></button>`).join('');el.querySelectorAll('.mission:not(:disabled)').forEach(b=>b.onclick=()=>{selected=Number(b.dataset.level);showMenu()})}
+function renderMissions(){const el=$('missions');el.innerHTML=missions.map((m,i)=>`<button class="mission ${i===selected?'active':''}" data-level="${i}" ${i>=unlocked?'disabled':''}><span class="num">${i>=unlocked?'⌑':String(i+1).padStart(2,'0')}</span><span class="mission-info"><strong>${m.name}</strong><small>LÍDER: ${m.enemy} · EQUIPE RUBRA</small></span><span class="mini-stars">${Array.from({length:3},(_,j)=>bests[i]>j?'★':'☆').join('')}</span></button>`).join('');el.querySelectorAll('.mission:not(:disabled)').forEach(b=>b.onclick=()=>{selected=Number(b.dataset.level);showMenu()})}
 function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');if(toastTimeout)clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('show'),1250)}
 function updateHud(){
  const m=missions[selected],l=aliveCount(0),r=aliveCount(1);
@@ -1704,7 +1704,7 @@ function endFireTouch(e){
  fireBtn.classList.remove('aiming');aimPad.classList.remove('active');aimThumb.style.transform='translate(-50%,-50%)';
 }
 function beginFireTouch(e,captureElement){
- if(mode!=='playing'||firePointer!==null)return;
+ if(mode!=='playing'||!player||player.hp<=0||firePointer!==null)return;
  e.preventDefault();fireTouch=true;firePointer=e.pointerId;
  // Um toque simples usa a mira automática; arrastar ativa a direção manual.
  const initial=unit(enemy.x-player.x,enemy.y-player.y);
@@ -1747,7 +1747,7 @@ function maybeActivateSkillAim(now){
  updateSkillVector();
 }
 function beginSkillTouch(e,index){
- if(mode!=='playing'||skillPointer!==null)return;
+ if(mode!=='playing'||!player||player.hp<=0||skillPointer!==null)return;
  const which=heroSkillIds()[index],def=skillDefs[which];
  if(!def)return;
  e.preventDefault();
