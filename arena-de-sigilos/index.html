@@ -312,7 +312,7 @@ function showMenu(){
  $('modalContent').innerHTML='<div class="eyebrow">CÍRCULO '+String(selected+1).padStart(2,'0')+' / 05 · <span style="color:#ffdc8c">✦ '+arsenal.credits+' FRAGMENTOS</span></div>'+
  '<h2>'+m.name+'</h2><p>'+m.desc+' Enfrente <b style="color:'+m.color+'">'+m.enemy+'</b> ('+m.hp+' PV, '+m.damage+' dano, '+m.fire.toFixed(1)+'s/ataque) e tente ganhar as três estrelas.</p>'+
  '<div class="result-objectives"><div><span>★</span> Derrote o rival</div><div><span>★</span> Termine com pelo menos 75% da vida</div><div><span>★</span> Vença em até '+m.time+' segundos</div></div>'+
- '<div class="battle-hint">💡 '+recommend+'</div><div class="loadout-preview"><span class="menu-hero">CAMPEÃO: '+selectedHeroText()+'</span><br>Kit: '+loadoutLine()+'</div>'+
+ '<div class="battle-hint">💡 '+recommend+'<div style="margin-top:5px;color:#bff4ec">Habilidades: toque rápido = mira automática; segure = visualize o alcance, arraste e solte para lançar. Pulso, Escudo e Nova ativam imediatamente.</div></div><div class="loadout-preview"><span class="menu-hero">CAMPEÃO: '+selectedHeroText()+'</span><br>Kit: '+loadoutLine()+'</div>'+
  '<div class="actions"><button class="primary" id="startGame">INICIAR X1 ✦</button><button class="secondary" id="openHeroes">◇ PERSONAGENS</button><button class="secondary" id="openArsenal">⚒ ARSENAL</button></div>'+
  '<p style="margin:9px auto 0;font-size:10px">Ganhe fragmentos e novas habilidades ao completar missões. Rejogue para melhorar suas estrelas.</p>';
  $('startGame').onclick=()=>{enterImmersive();reset(selected)};
@@ -370,7 +370,7 @@ function renderArsenal(){
  }).join('');
  el.innerHTML='<div class="arsenal-head"><strong>⚒ ARSENAL</strong><span class="coin">✦ '+arsenal.credits+' FRAGMENTOS</span><button class="secondary" data-action="back" style="padding:7px 9px">VOLTAR</button></div>'+
  '<div class="arsenal-tabs"><button data-action="tab" data-tab="skills" class="'+(isSkill?'active':'')+'">HABILIDADES</button><button data-action="tab" data-tab="items" class="'+(!isSkill?'active':'')+'">EQUIPAMENTOS</button></div>'+
- '<div class="arsenal-info">'+(isSkill?'Escolha qual dos 3 botões de poder vai receber a habilidade. Elas ficam mais fortes ao melhorar de nível.':'Escolha um dos 2 espaços de equipamentos. Cada item modifica uma característica real do combate.')+'</div>'+
+ '<div class="arsenal-info">'+(isSkill?'Escolha qual dos 3 botões vai receber a habilidade. Setas e áreas permitem segurar para mirar; poderes ao redor do corpo são instantâneos. Melhore cada habilidade até o nível 3.':'Escolha um dos 2 espaços de equipamentos. Cada item modifica uma característica real do combate.')+'</div>'+
  '<div class="arsenal-slots">'+equipSlots+'</div><div class="arsenal-cards">'+cards+'</div>'+
  '<div class="arsenal-info" style="margin-top:11px">Você ganha fragmentos ao vencer fases e bônus por novas estrelas. Novos poderes e itens são liberados gratuitamente ao progredir.</div>';
  el.scrollTop=scroll;
@@ -397,7 +397,7 @@ function renderArsenal(){
   }
  };
 }
-function showPause(){if(mode==='playing'){mode='paused';$('missionShelf').hidden=true;$('overlay').classList.remove('picker-open');$('overlay').classList.remove('hidden');$('modalContent').innerHTML='<div class="eyebrow">TEMPO CONGELADO</div><h2>Duelo pausado</h2><p>Seu rival não vai a lugar nenhum.</p><div class="actions"><button class="primary" id="resume">CONTINUAR</button><button class="secondary" id="retry">RECOMEÇAR</button><button class="secondary" id="menu">MISSÕES</button></div>';$('resume').onclick=resume;$('retry').onclick=()=>reset(selected);$('menu').onclick=showMenu;firing=false;keys.clear();clearSkillTouch()}else if(mode==='paused')resume()}
+function showPause(){if(mode==='playing'){mode='paused';$('missionShelf').hidden=true;$('overlay').classList.remove('picker-open','hero-open','arsenal-open');$('overlay').classList.remove('hidden');$('modalContent').innerHTML='<div class="eyebrow">TEMPO CONGELADO</div><h2>Duelo pausado</h2><p>Seu rival não vai a lugar nenhum.</p><div class="actions"><button class="primary" id="resume">CONTINUAR</button><button class="secondary" id="retry">RECOMEÇAR</button><button class="secondary" id="menu">MISSÕES</button></div>';$('resume').onclick=resume;$('retry').onclick=()=>reset(selected);$('menu').onclick=showMenu;firing=false;keys.clear();clearSkillTouch()}else if(mode==='paused')resume()}
 function resume(){mode='playing';$('overlay').classList.add('hidden');last=performance.now()}
 function endGame(win){if(mode!=='playing')return;mode=win?'won':'lost';$('missionShelf').hidden=true;$('overlay').classList.remove('picker-open');firing=false;keys.clear();clearSkillTouch();if(win){for(let i=0;i<38;i++)spawnPart(rnd(W*.14,W*.85),rnd(H*.19,H*.8),rnd(0,TWO),rnd(50,185),rnd(.3,1),'#f7ce78',rnd(2,5));tone(730,.18,'triangle',.075);setTimeout(()=>tone(1010,.2,'sine',.04),125)}else tone(150,.35,'sawtooth',.04);
  const m=missions[selected],stars=win?1+Number(player.hp/player.maxHp>=.75)+Number(elapsed<=m.time):0,previous=bests[selected];
