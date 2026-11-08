@@ -918,6 +918,220 @@ function damageUnit(u,n,source=null){
 }
 function damagePlayer(n,source=null){return damageUnit(player,n,source)}
 function damageEnemy(n,source=player){return damageUnit(refreshTarget(),n,source)}
+
+// IAs dos nove personagens não controlados: avanço, proteção da retaguarda,
+// conjuração, uso de habilidades próprias e ataques melee/ranged.
+function botTarget(u){
+ const list=living(u.team===0?1:0);
+ if(!list.length)return null;
+ u.focusTime-=.025;
+ if(u.aiGoal&&u.aiGoal.hp>0&&u.focusTime>0)return u.aiGoal;
+ let best=null,score=Infinity;
+ for(const target of list){
+  const d=dist(u,target);
+  const value=d+(target.hp/target.maxHp)*16+(target===player?7:0);
+  if(value<score){score=value;best=target}
+ }
+ u.aiGoal=best;u.focusTime=rnd(.55,1.1);
+ return best;
+}
+function botLaunchLine(u,c,damage,slow=0){
+ const def=skillDefs[c.which],dir=c.dir,speed=def.aim==='direction'?480:440;
+ const x=u.x+dir.x*(u.r+10),y=u.y+dir.y*(u.r+10);
+ abilityShots.push({type:'line',which:c.which,team:u.team,source:u,x,y,
+  vx:dir.x*speed,vy:dir.y*speed,travelled:0,range:def.range,
+  radius:def.radius||18,size:9,damage,clearShots:c.which==='nyra_bolt',
+  color:heroes[u.heroId].color,life:def.range/speed+.10,trail:[],slow});
+ burst(x,y,heroes[u.heroId].color,6,75);
+}
+function botLaunchArea(u,c,damage,effect='',power=0){
+ const def=skillDefs[c.which],p=c.target||{x:u.x,y:u.y},color=heroes[u.heroId].color;
+ const d=dist(u,p),duration=clamp(.19+d/950,.25,.51);
+ abilityShots.push({type:'area',which:c.which,team:u.team,source:u,x:u.x,y:u.y,
+  fromX:u.x,fromY:u.y,tx:p.x,ty:p.y,t:0,duration,damage,
+  radius:def.radius||70,color,slow:c.which==='nyra_rift'?1.7:c.which==='lyria_rain'?1.0:0,
+  stun:c.which==='nyra_rift'?.3:0,
+  effect,heal:effect==='heal'?power:0,shieldDuration:1.25,
+  life:duration+.12,size:9,trail:[]});
+ burst(u.x,u.y,color,9,85);
+}
+function beginBotSkill(u,which,target,point=null){
+ if(mode!=='playing'||u.hp<=0||u.casting||u.dash>0||!which)return false;
+ const def=skillDefs[which];
+ if(!def||u.cool[which]>.01||u.energy<def.cost||u.stun>0)return false;
+ const aimAt=point||target||u,dir=unit(aimAt.x-u.x,aimAt.y-u.y);
+ u.energy-=def.cost;u.cool[which]=def.cd*(u.team===1?1.02:1);
+ const distStep=Math.min(def.range||0,dist(u,aimAt));
+ const c={which,level:1,dir,target:def.aim==='area'?{
+  x:clamp(u.x+dir.x*distStep,12,W-12),
+  y:clamp(u.y+dir.y*distStep,12,H-12)
+ }:null,remaining:def.cast,duration:def.cast};
+ if(def.cast<=0)resolveBotSkill(u,c);
+ else {u.casting=c;addWave(u.x,u.y,u.r+12,.22,heroes[u.heroId].color,2)}
+ u.actionClock=rnd(.9,1.7);
+ return true;
+}
+function resolveBotSkill(u,c){
+ if(!c||u.hp<=0||mode!=='playing')return;
+ const id=c.which,h=heroes[u.heroId],def=skillDefs[id],foes=living(u.team===0?1:0);
+ const friendlies=living(u.team);
+ if(id==='lyria_step'||id==='vexor_lunge'||id==='orun_charge'){
+  const range=def.range,duration=.24;
+  u.dash=duration;u.dashVx=c.dir.x*range/duration;u.dashVy=c.dir.y*range/duration;
+  u.invuln=Math.max(u.invuln,id==='lyria_step'?.16:.10);
+  u.dashSkill={which:id,damage:id==='lyria_step'?0:id==='vexor_lunge'?24:25,
+   width:def.radius||20,stun:id==='orun_charge'?.35:.13,hitTargets:new Set(),color:h.color};
+  emitFragments(u.x,u.y,h.color,7,100,.25,'dash');
+ }else if(['lyria_pierce','nyra_bolt','seris_tether'].includes(id)){
+  botLaunchLine(u,c,id==='nyra_bolt'?32:id==='lyria_pierce'?30:21);
+ }else if(['lyria_rain','nyra_rift','vexor_mark','seris_bloom'].includes(id)){
+  botLaunchArea(u,c,id==='seris_bloom'?0:id==='vexor_mark'?12:25,
+   id==='seris_bloom'?'heal':'',id==='seris_bloom'?42:0);
+ }else if(id==='orun_guard'||id==='nyra_barrier'){
+  u.shield=Math.max(u.shield,1.15);
+  if(id==='orun_guard')healUnit(u,14,u);
+  addWave(u.x,u.y,47,.32,h.color,3);
+  emitFragments(u.x,u.y,h.color,10,90,.32,'shield');
+ }else if(id==='seris_aegis'){
+  for(const f of friendlies)if(dist(u,f)<def.radius+f.r){
+   f.shield=Math.max(f.shield,1.25);healUnit(f,6,u);
+  }
+  addWave(u.x,u.y,def.radius,.4,h.color,4);
+  emitFragments(u.x,u.y,h.color,12,90,.36,'shield');
+ }else if(id==='vexor_whirl'||id==='orun_quake'){
+  skillRadiusDamage(u,def.radius,id==='orun_quake'?32:33,h.color,0,
+   id==='orun_quake'?.45:0,u.team,u);
+  for(const b of bullets)if(b.team!==u.team&&dist(b,u)<def.radius)b.life=0;
+ }
+}
+function botChooseSkill(u,target){
+ if(!target||u.actionClock>0||u.casting||u.dash>0||u.stun>0)return false;
+ const h=heroes[u.heroId],d=dist(u,target),skills=h.skills;
+ const ready=id=>id&&u.cool[id]<=.01&&u.energy>=skillDefs[id].cost;
+ const weakest=closestAllyTo(u),hurt=weakest&&weakest.hp/weakest.maxHp<.78;
+ const nearbyThreats=living(u.team===0?1:0).filter(e=>dist(u,e)<145);
+ let candidates=[];
+ if(u.heroId==='seris'){
+  if(hurt)candidates.push({id:'seris_bloom',point:weakest});
+  if(nearbyThreats.length)candidates.push({id:'seris_aegis'});
+  candidates.push({id:'seris_tether',point:target});
+ }else if(u.heroId==='orun'){
+  if(u.hp/u.maxHp<.73)candidates.push({id:'orun_guard'});
+  if(d<145)candidates.push({id:'orun_quake'});
+  if(d>60&&d<220)candidates.push({id:'orun_charge'});
+ }else if(u.heroId==='vexor'){
+  if(d>55&&d<230)candidates.push({id:'vexor_lunge'});
+  if(d<115)candidates.push({id:'vexor_whirl'});
+  if(d<265)candidates.push({id:'vexor_mark',point:target});
+ }else if(u.heroId==='lyria'){
+  if(d<100)candidates.push({id:'lyria_step',point:{x:u.x-(target.x-u.x),y:u.y-(target.y-u.y)}});
+  if(d<335)candidates.push({id:'lyria_rain',point:target});
+  if(d<500)candidates.push({id:'lyria_pierce'});
+ }else if(u.heroId==='nyra'){
+  if(u.hp/u.maxHp<.52)candidates.push({id:'nyra_barrier'});
+  if(d<300)candidates.push({id:'nyra_rift',point:target});
+  if(d<490)candidates.push({id:'nyra_bolt'});
+ }
+ for(const c of candidates){
+  if(ready(c.id)&&beginBotSkill(u,c.id,target,c.point||null))return true;
+ }
+ return false;
+}
+function botBasicAttack(u,target){
+ if(!target||u.hp<=0||target.hp<=0||u.stun>0)return;
+ const h=heroes[u.heroId],direction=unit(target.x-u.x,target.y-u.y);
+ if(dist(u,target)>unitRange(u)+target.r+12)return;
+ u.angle=Math.atan2(direction.y,direction.x);
+ let damage=u.damage;
+ u.hitCombo++;
+ if(u.heroId==='lyria'&&u.hitCombo%3===0)damage+=10;
+ if(u.heroId==='nyra'&&u.hitCombo%3===0)damage+=13;
+ if(u.heroId==='orun'&&u.hitCombo%3===0)healUnit(u,11,u);
+ if(u.heroId==='seris'&&u.hitCombo%3===0)target.slowTimer=Math.max(target.slowTimer,.85);
+ if(u.heroId==='vexor'&&target.marked>0){
+  damage+=target.markBonus||15;target.marked=0;target.markBonus=0;
+ }
+ u.attackAnim=.22;
+ if(meleeClass(u.heroId)){
+  damageUnit(target,damage,u);
+  addWave(u.x+direction.x*21,u.y+direction.y*21,32,.22,h.color,2);
+  emitFragments(target.x,target.y,h.color,5,65,.20,'dash');
+ }else{
+  const speed=h.projectile*.88,origin=u.r+12;
+  bullets.push({x:u.x+direction.x*origin,y:u.y+direction.y*origin,
+   vx:direction.x*speed,vy:direction.y*speed,r:u.heroId==='nyra'?6.7:5,
+   life:unitRange(u)/speed+.14,side:u.team===0?'player':'enemy',
+   team:u.team,source:u,heroId:u.heroId,damage,color:h.color,trail:[],bounces:0});
+  burst(u.x+direction.x*origin,u.y+direction.y*origin,h.color,4,60);
+ }
+}
+function moveBot(u,dt,target){
+ if(!target)return;
+ const dx=target.x-u.x,dy=target.y-u.y,d=Math.hypot(dx,dy)||1;
+ const dirX=dx/d,dirY=dy/d,melee=meleeClass(u.heroId);
+ const desired=melee?46:(u.heroId==='seris'?238:u.heroId==='nyra'?217:222);
+ let inward=d>desired+18?1:d<desired-20?-1:0;
+ if(!melee&&u.hp/u.maxHp<.33)inward=Math.min(inward,0);
+ const strafe=melee?.12:.37,side=u.team===0?1:-1;
+ let mx=dirX*inward-dirY*strafe*side;
+ let my=dirY*inward+dirX*strafe*side;
+ const m=Math.hypot(mx,my);if(m>1){mx/=m;my/=m}
+ // A conjuração diminui deslocamento, mas não para o personagem sem necessidade.
+ const factor=u.casting?.36:u.windup>0?.45:1;
+ const speed=u.speed*(u.slowTimer>0?.62:1)*factor;
+ u.vx=lerp(u.vx,mx*speed,clamp(dt*5,0,1));
+ u.vy=lerp(u.vy,my*speed,clamp(dt*5,0,1));
+ u.x+=u.vx*dt;u.y+=u.vy*dt;
+ u.angle=Math.atan2(dy,dx);
+}
+function tickBot(u,dt){
+ if(!u||u.hp<=0)return;
+ u.shoot=Math.max(0,u.shoot-dt);
+ u.actionClock-=dt;
+ const target=botTarget(u);
+ if(!target)return;
+ if(u.dash>0){
+  u.dash=Math.max(0,u.dash-dt);
+  const ox=u.x,oy=u.y;
+  u.x+=u.dashVx*dt;u.y+=u.dashVy*dt;
+  wallCollision(u);
+  tickDashContacts(u,ox,oy);
+  if(u.dash<=0)u.dashSkill=null;
+  return;
+ }
+ if(u.stun<=0)moveBot(u,dt,target);
+ wallCollision(u);
+ if(u.casting){
+  const c=u.casting;c.remaining=Math.max(0,c.remaining-dt);
+  if(c.remaining<=0){u.casting=null;resolveBotSkill(u,c)}
+ }
+ if(u.windup>0){
+  u.windup=Math.max(0,u.windup-dt);
+  if(u.windup<=0&&u.stun<=0){
+   botBasicAttack(u,u.windupTarget||target);
+   u.windupTarget=null;u.shoot=heroes[u.heroId].attackTime*(u.team===1?1.07:1.02);
+  }
+ }
+ if(u.stun>0||u.casting||u.dash>0)return;
+ if(botChooseSkill(u,target))return;
+ if(u.shoot<=.01&&u.windup<=0&&dist(u,target)<unitRange(u)+target.r){
+  u.windup=meleeClass(u.heroId)?.12:.16;
+  u.windupTarget=target;
+ }
+}
+function tickDashContacts(u,fromX,fromY){
+ const d=u.dashSkill;
+ if(!d||d.damage<=0)return;
+ for(const target of living(u.team===0?1:0)){
+  if(d.hitTargets.has(target.id))continue;
+  if(segmentPointDistance(target.x,target.y,fromX,fromY,u.x,u.y)>target.r+u.r+d.width*.45)continue;
+  d.hitTargets.add(target.id);
+  if(d.stun>0){target.stun=Math.max(target.stun,d.stun);target.casting=null}
+  damageUnit(target,d.damage,u);
+  addWave(target.x,target.y,36,.29,d.color,3);
+  emitFragments(target.x,target.y,d.color,7,105,.30,'burst');
+ }
+}
 function tick(dt){sceneTime+=dt;shake=Math.max(0,shake-27*dt);flash=Math.max(0,flash-dt*2);for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=1-dt*2;p.vy*=1-dt*2;p.life-=dt}particles=particles.filter(p=>p.life>0);for(const w of waves)w.life-=dt;waves=waves.filter(w=>w.life>0);for(const f of floaters){f.y-=dt*25;f.life-=dt}floaters=floaters.filter(f=>f.life>0);
  tickAbilityVisuals(dt);
  if(mode!=='playing')return;
