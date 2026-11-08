@@ -161,11 +161,18 @@ canvas {width:100%;height:100%;}
 .basic-wait small{color:#ffc995}
 @media(max-height:415px){.overlay.hero-open .modal{padding:8px}.hero-choice{padding:7px;grid-template-columns:34px 1fr}.hero-choice.chosen{padding:6px}.hero-mark{height:32px;width:32px;font-size:23px}.hero-choice em{font-size:8px}.hero-selection{margin:6px 0}}
 @media(max-width:640px){.hero-selection{gap:6px}.hero-choice{grid-template-columns:32px 1fr;padding:7px}.hero-choice.chosen{padding:6px}.hero-mark{height:32px;width:32px;font-size:24px}}
+
+/* V1.9 — mira por pressão dos poderes, mantendo o joystick de movimento independente */
+.ability-cancel{display:none;position:absolute;z-index:7;right:max(28px,env(safe-area-inset-right));top:25%;border:1px solid #f1a0a0b0;background:#6d223cae;border-radius:40px;color:#ffdee7;font-size:10px;font-weight:900;letter-spacing:.04em;padding:10px 12px;pointer-events:none;box-shadow:0 5px 23px #0008}
+.ability-cancel.show{display:block}
+.skill-btn.aim-holding{border:2px solid #b9fff5;box-shadow:0 0 17px #5af8cf88,inset 0 0 13px #56e7db44}
+.skill-btn.aim-self:active{border-color:#ddfff9}
+@media (max-height:350px){.ability-cancel{top:21%;padding:6px 9px}}
 </style>
 </head>
 <body>
 <div class="app">
-  <header class="topbar"><div class="brand"><div class="brand-icon"><svg viewBox="0 0 32 32" fill="none"><path d="M16 2 28 16 16 30 4 16 16 2Z" stroke="#6BE8DF" stroke-width="2"/><path d="M16 7 23 16 16 25 9 16 16 7Z" stroke="#ECDE9B" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="#6BE8DF"/></svg></div><div><h1>ARENA DE SIGILOS</h1><small>PROTÓTIPO // EDIÇÃO ZERO</small></div></div><div class="build">5 MISSÕES · V1.8 · X1 DE CAMPEÕES</div></header>
+  <header class="topbar"><div class="brand"><div class="brand-icon"><svg viewBox="0 0 32 32" fill="none"><path d="M16 2 28 16 16 30 4 16 16 2Z" stroke="#6BE8DF" stroke-width="2"/><path d="M16 7 23 16 16 25 9 16 16 7Z" stroke="#ECDE9B" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="#6BE8DF"/></svg></div><div><h1>ARENA DE SIGILOS</h1><small>PROTÓTIPO // EDIÇÃO ZERO</small></div></div><div class="build">5 MISSÕES · V1.9 · MIRA DE HABILIDADES</div></header>
   <div class="arena-grid">
     <section>
       <div class="stage" id="stage">
@@ -178,7 +185,7 @@ canvas {width:100%;height:100%;}
         <div class="objective-tag" id="objectiveTag">Derrote o rival e conquiste suas estrelas</div>
         <div class="top-buttons"><button class="icon-btn" id="fullscreenBtn" title="Entrar ou sair da tela cheia" aria-label="Tela cheia">⛶</button><button class="icon-btn" id="muteBtn" title="Ativar/desativar som" aria-label="Ativar ou desativar som">♪</button><button class="icon-btn" id="pauseBtn" title="Pausar" aria-label="Pausar">Ⅱ</button></div>
         <div class="toast" id="toast"></div>
-        <div class="mobile-controls" id="mobileControls"><div class="joy" id="joy"><div class="joy-knob" id="joyKnob"></div></div><div class="aim-pad" id="aimPad"><div class="aim-thumb" id="aimThumb"></div></div><div class="skill-controls"><button class="skill-btn" id="dashBtn" aria-label="Investida"><b>➤</b><small>Dash</small><span class="cd-text" hidden></span></button><button class="skill-btn" id="pulseBtn" aria-label="Pulso"><b>✳</b><small>Pulso</small><span class="cd-text" hidden></span></button><button class="skill-btn" id="shieldBtn" aria-label="Escudo"><b>◇</b><small>Escudo</small><span class="cd-text" hidden></span></button><button class="skill-btn fire" id="fireBtn" aria-label="Atirar"><b>✦</b><small>ATIRAR</small></button></div></div>
+        <div class="ability-cancel" id="abilityCancel">✕ CANCELAR</div><div class="mobile-controls" id="mobileControls"><div class="joy" id="joy"><div class="joy-knob" id="joyKnob"></div></div><div class="aim-pad" id="aimPad"><div class="aim-thumb" id="aimThumb"></div></div><div class="skill-controls"><button class="skill-btn" id="dashBtn" aria-label="Investida"><b>➤</b><small>Dash</small><span class="cd-text" hidden></span></button><button class="skill-btn" id="pulseBtn" aria-label="Pulso"><b>✳</b><small>Pulso</small><span class="cd-text" hidden></span></button><button class="skill-btn" id="shieldBtn" aria-label="Escudo"><b>◇</b><small>Escudo</small><span class="cd-text" hidden></span></button><button class="skill-btn fire" id="fireBtn" aria-label="Atirar"><b>✦</b><small>ATIRAR</small></button></div></div>
         <div class="phase-pips" id="phasePips"><i class="on"></i><i></i><i></i><i></i><i></i></div>
         <div class="overlay" id="overlay"><div class="modal" id="modalContent"></div><aside class="mission-shelf" id="missionShelf"><h3>ESCOLHER FASE · 3 ESTRELAS</h3><div id="missions"></div></aside></div><div class="rotate-prompt" id="rotatePrompt"><div class="rotate-symbol">⤵</div><strong>Gire o celular</strong><p>A Arena de Sigilos agora foi feita para jogar na horizontal, ocupando a tela inteira.</p><button type="button" id="rotateFullscreen">ATIVAR TELA CHEIA</button></div>
       </div>
@@ -223,12 +230,12 @@ const chosenHero=()=>heroes[heroChoice];
 const selectedHeroText=()=>{const h=chosenHero();return h.name+' · '+h.role+' · '+h.hp+' PV · '+h.damage+' dano · '+(1/h.attackTime).toFixed(2)+' ataques/s';};
 const saveHero=()=>{try{localStorage.setItem('sigils-hero-v1',heroChoice)}catch(_){}};
 const skillDefs={
- dash:{name:'Investida',short:'Dash',icon:'➤',desc:'Esquiva veloz. Ideal contra chefes e rajadas.',cost:22,cd:4.2,unlock:0},
- pulse:{name:'Pulso Arcano',short:'Pulso',icon:'✳',desc:'Empurra inimigos e destrói projéteis próximos.',cost:35,cd:8,unlock:0},
- shield:{name:'Escudo',short:'Escudo',icon:'◇',desc:'Bloqueia dano por alguns instantes.',cost:30,cd:10.5,unlock:0},
- frost:{name:'Geada',short:'Geada',icon:'❄',desc:'Diminui a velocidade do rival; ótimo contra Zéfiro (fase 2).',cost:34,cd:8.5,unlock:1},
- arc:{name:'Raio',short:'Raio',icon:'ϟ',desc:'Dano elétrico e dissipa projéteis; ótimo no Oráculo (fase 3).',cost:38,cd:9,unlock:2},
- nova:{name:'Nova',short:'Nova',icon:'✺',desc:'Explosão ampla contra grupos de tiros; ótima no Bastião (fase 4).',cost:45,cd:10.5,unlock:3}
+ dash:{name:'Investida',short:'Dash',icon:'➤',desc:'Esquiva direcional: segure e arraste para escolher a direção.',cost:22,cd:4.2,unlock:0,aim:'direction'},
+ pulse:{name:'Pulso Arcano',short:'Pulso',icon:'✳',desc:'Explosão circular ao redor do corpo, sem mira.',cost:35,cd:8,unlock:0,aim:'self'},
+ shield:{name:'Escudo',short:'Escudo',icon:'◇',desc:'Proteção imediata no próprio personagem, sem mira.',cost:30,cd:10.5,unlock:0,aim:'self'},
+ frost:{name:'Geada',short:'Geada',icon:'❄',desc:'Marca uma área no chão e desacelera quem estiver dentro. Segure para escolher o local.',cost:34,cd:8.5,unlock:1,aim:'area',range:270,radius:66},
+ arc:{name:'Raio',short:'Raio',icon:'ϟ',desc:'Dispara um raio em linha reta que pode errar. Segure para mirar.',cost:38,cd:9,unlock:2,aim:'direction',range:425,radius:26},
+ nova:{name:'Nova',short:'Nova',icon:'✺',desc:'Explosão em círculo ao redor do personagem, sem mira.',cost:45,cd:10.5,unlock:3,aim:'self'}
 };
 const itemDefs={
  lens:{name:'Lente Astral',icon:'◈',desc:'Aumenta o dano dos disparos básicos.',unlock:0},
@@ -252,6 +259,7 @@ const equippedItem=id=>arsenal.items.includes(id);
 const acquired=def=>!def.unlock||bests[def.unlock-1]>0;
 const skillCooldown=id=>Math.max(1,skillDefs[id].cd-.48*(skillLevel(id)-1))*(equippedItem('core')?1-.075*itemLevel('core'):1);
 const skillCost=id=>skillDefs[id].cost;
+const skillAimKind=id=>(skillDefs[id]&&skillDefs[id].aim)||'self';
 const saveArsenal=()=>{try{localStorage.setItem('sigils-arsenal-v2',JSON.stringify(arsenal))}catch(_){}};
 const loadoutLine=()=>arsenal.skills.map(id=>skillDefs[id].short).join(' · ')+' | '+arsenal.items.map(id=>itemDefs[id].name).join(' + ');
 function resize(){const oldW=W||0,oldH=H||0;const r=stage.getBoundingClientRect();W=r.width;H=r.height;if(oldW&&oldH&&player&&enemy&&(Math.abs(oldW-W)>5||Math.abs(oldH-H)>5)){for(const o of [player,enemy,...obstacles,...bullets,...particles,...hazards,...waves,...floaters]){if(typeof o.x==='number')o.x*=W/oldW;if(typeof o.y==='number')o.y*=H/oldH}if(player)wallCollision(player);if(enemy)wallCollision(enemy)}dpr=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);makeStars();if(mode==='menu')draw(0)}
@@ -356,7 +364,7 @@ function renderArsenal(){
    prism:'1 ricochete · +'+(2*lvl)+' de dano refletido',
    core:'-'+(7.5*lvl)+'% de recarga das habilidades'
   };
-  const stat=isSkill?'Recarga '+skillCooldown(id).toFixed(1)+'s · '+d.cost+' energia':itemStat[id];
+  const stat=isSkill?'Recarga '+skillCooldown(id).toFixed(1)+'s · '+d.cost+' energia · '+(d.aim==='self'?'uso imediato':d.aim==='area'?'mira de área':'mira direcional'):itemStat[id];
   return '<article class="arsenal-card '+(unlockedNow?'':'locked')+'"><div class="card-title"><span><span class="card-icon">'+d.icon+'</span> '+d.name+'</span><span class="card-rank">'+(unlockedNow?'Nv. '+lvl+'/3':'🔒')+'</span></div>'+
   '<div class="card-desc">'+d.desc+'<div style="color:#ffe0a1;margin-top:4px">'+(unlockedNow?stat:'')+'</div></div>'+locktext+(unlockedNow?'<div class="card-action">'+equip+upgrade+'</div>':'')+'</article>';
  }).join('');
