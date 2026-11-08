@@ -769,6 +769,7 @@ function drawEntity(o,isPlayer,t){
   for(let i=0;i<6;i++){const a=i*TWO/6+t*.45;polygon(Math.cos(a)*(r+16),Math.sin(a)*(r+16),5,3,'#fba2ed',a,true,.83)}
   ctx.restore();
  }
+ if(!isPlayer&&o.marked>0){ring(o.x,o.y,r+17,'#ff9d8e',.7+Math.sin(t*8)*.2,2.5);ctx.save();ctx.textAlign='center';ctx.font='900 18px system-ui';ctx.fillStyle='#ffc3a1';ctx.fillText('◎',o.x,o.y-r-48);ctx.restore()}
  if(o.barrier>0||o.shield>0){
   const protective=isPlayer?'#afbeff':'#ffd4a8';
   ring(o.x,o.y,r+18,protective,.5+Math.sin(t*7)*.12,3);
@@ -821,7 +822,7 @@ function drawSkillGuide(t){
  const category=spell.aim,color=chosenHero().color;
  ctx.save();ctx.shadowBlur=8;ctx.shadowColor=color;
  if(category==='area'){
-  const p=groundTarget(which,manual),rad=spell.radius+7*(lvl-1);
+  const p=groundTarget(which,manual),rad=spell.radius+(which==='vexor_mark'?5:8)*(lvl-1);
   ring(player.x,player.y,spell.range,color,.19,1.4);
   circle(p.x,p.y,rad,color,.14);
   ring(p.x,p.y,rad,color,.87,3);
@@ -829,7 +830,7 @@ function drawSkillGuide(t){
   ctx.setLineDash([8,8]);line(player.x,player.y,p.x,p.y,color,1.6,.6);
   ctx.setLineDash([]);ring(p.x,p.y,10,'#efffff',.88,1.9);circle(p.x,p.y,3,'#ffffff',.97);
  }else{
-  const dir=castDirection(which,manual),len=spell.range;
+  const dir=castDirection(which,manual),len=spell.range+(which==='orun_charge'?8*(lvl-1):['lyria_step','vexor_lunge'].includes(which)?10*(lvl-1):0);
   const ax=player.x,ay=player.y,bx=ax+dir.x*len,by=ay+dir.y*len;
   const isDash=['lyria_step','vexor_lunge','orun_charge'].includes(which);
   if(!isDash){
