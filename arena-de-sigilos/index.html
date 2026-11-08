@@ -319,7 +319,7 @@ function resize(){
  dpr=Math.min(2,window.devicePixelRatio||1);
  canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
  ctx.setTransform(dpr,0,0,dpr,0,0);
- makeStars();
+ starfield=Array.from({length:24},()=>({x:rnd(0,W),y:rnd(0,H),r:rnd(.6,2),phase:rnd(0,TWO)}));
  if(mode==='playing')updateHud();
 }
 function positionPillars(n){const pts=n===2?[[.34,.43],[.66,.57]]:n===3?[[.29,.38],[.72,.37],[.52,.68]]:[[.28,.36],[.72,.36],[.28,.67],[.72,.67]];obstacles=pts.map(([a,b],i)=>({x:clamp(W*a,46,W-46),y:clamp(H*b,Math.min(108,H*.24),H-Math.min(70,H*.16)),r:clamp(Math.min(W,H)*(.045+(i%2)*.007),15,25),rot:i*.55}));
