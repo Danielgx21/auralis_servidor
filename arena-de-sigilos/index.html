@@ -313,31 +313,72 @@ function positionPillars(n){const pts=n===2?[[.34,.43],[.66,.57]]:n===3?[[.29,.3
  // Keep mobile corridors open.
  if(W<500){obstacles=obstacles.map((o,i)=>({...o,r:15,x:clamp(o.x,31,W-31)}))}
 }
+
+function meleeClass(id){
+ const role=heroes[id]?.role;
+ return role==='DUELISTA'||role==='GUARDIÃO';
+}
+function unitRange(u){
+ return meleeClass(u.heroId)?(u.heroId==='orun'?62:63):Math.min(400,heroes[u.heroId].range*.76);
+}
+function living(side){
+ return (side===0?allies:enemies).filter(u=>u.hp>0);
+}
+function nearestOpponent(from,maxRange=Infinity){
+ const others=living(from.team===0?1:0);
+ let best=null,bestScore=Infinity;
+ for(const target of others){
+  const d=dist(from,target),score=d+(target.hp/target.maxHp)*18+(target===player&&from.team===1?5:0);
+  if(d<=maxRange&&score<bestScore){best=target;bestScore=score}
+ }
+ return best;
+}
+function closestAllyTo(u){
+ const group=living(u.team);
+ return group.sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0]||u;
+}
+function refreshTarget(){
+ enemy=player?nearestOpponent(player):enemies.find(u=>u.hp>0)||null;
+ return enemy;
+}
+function aliveCount(side){return living(side).length}
+function createUnit(heroId,team,index,controlled=false){
+ const h=heroes[heroId],melee=meleeClass(heroId);
+ const top=Math.min(82,H*.22)+34,bottom=H-44;
+ const spawnY=top+(bottom-top)*(index+.12)/4.25;
+ const spawnX=team===0?(melee?W*.27:W*.15):(melee?W*.73:W*.85);
+ const amp=team===1?1+selected*.022:1;
+ const hpBoost=controlled&&equippedItem('ward')?10+10*itemLevel('ward'):0;
+ const hp=Math.round(h.hp*amp)+hpBoost;
+ return {
+  id:team+'-'+index,heroId,team,controlled,
+  x:spawnX+rnd(-8,8),y:spawnY+rnd(-5,5),r:melee?(heroId==='orun'?19:17):15,
+  hp,maxHp:hp,damage:Math.round(h.damage*(controlled?1:.70)*(team===1?1+selected*.05:1)),
+  speed:h.move*(team===1?1+selected*.006:1),range:unitRange({heroId}),vx:0,vy:0,angle:team===0?0:Math.PI,
+  energy:100,maxEnergy:100,shoot:rnd(.25,.95),windup:0,windupTarget:null,
+  cool:Object.fromEntries(h.skills.map(id=>[id:rnd(1.7,3.4)])),casting:null,aiGoal:null,focusTime:0,
+  hit:0,shield:0,barrier:0,invuln:0,dash:0,dashVx:0,dashVy:0,dashSkill:null,
+  stun:0,slowTimer:0,marked:0,markBonus:0,empowered:false,hitCombo:0,attackAnim:0,
+  dodgeCooldown:rnd(2.8,5),actionClock:0,special:rnd(6,9),healBonus:0
+ };
+}
 function reset(level){
- selected=level;const m=missions[level],h=chosenHero();
- elapsed=0;sceneTime=0;shake=0;flash=0;
+ selected=level;elapsed=0;sceneTime=0;shake=0;flash=0;teamKills={ally:0,enemy:0};
  bullets=[];abilityShots=[];abilityVisuals=[];particles=[];waves=[];hazards=[];floaters=[];
  keys.clear();firing=false;touchAim.active=false;touchAim.id=null;
  firePointer=null;fireTouch=false;clearSkillTouch();shotQueue.length=0;
  joy.x=0;joy.y=0;joy.id=null;
  $('joy').classList.remove('active');$('fireBtn').classList.remove('aiming');$('aimPad').classList.remove('active');
- const portrait=W/H<.87;
- const hpBoost=equippedItem('ward')?10+10*itemLevel('ward'):0;
- player={
-  heroId:heroChoice,x:portrait?W*.5:W*.24,y:portrait?H*.72:H*.56,r:h.role==='GUARDIÃO'?20:17,
-  hp:h.hp+hpBoost,maxHp:h.hp+hpBoost,energy:100,maxEnergy:100,vx:0,vy:0,angle:0,hit:0,shield:0,
-  invuln:0,dash:0,dashVx:0,dashVy:0,empowered:false,hitCombo:0,attackAnim:0,
-  cool:Object.fromEntries(heroSkillIds().map(id=>[id,0])),casting:null,dashSkill:null,shoot:0
- };
- enemy={
-  heroId:m.hero,x:portrait?W*.5:W*.76,y:portrait?H*.26:H*.44,r:m.boss?23:missions[level].hero==='orun'?21:18,
-  hp:m.hp,maxHp:m.hp,speed:m.speed,vx:0,vy:0,shoot:1.5,windup:0,
-  moveAngle:0,change:0,hit:0,burst:0,special:5.5,angle:0,stun:0,slowTimer:0,marked:0,markBonus:0,
-  shield:0,barrier:0,hitCombo:0,dodgeCooldown:2.4+Math.random()*2
- };
- positionPillars(m.obstacles);lastTouchDir=unit(enemy.x-player.x,enemy.y-player.y);
+ const heroIds=Object.keys(heroes),friends=[heroChoice,...heroIds.filter(id=>id!==heroChoice)];
+ const foes=heroIds.slice(selected%heroIds.length).concat(heroIds.slice(0,selected%heroIds.length));
+ allies=friends.map((id,i)=>createUnit(id,0,i,i===0));
+ enemies=foes.map((id,i)=>createUnit(id,1,i,false));
+ player=allies[0];
+ // Confrontos 5x5 precisam de espaço para as unidades e para as esquivas.
+ positionPillars(Math.min(2,missions[level].obstacles));
+ refreshTarget();lastTouchDir=enemy?unit(enemy.x-player.x,enemy.y-player.y):{x:1,y:0};
  mode='playing';$('overlay').classList.add('hidden');
- updateHud();renderMissions();toast(h.name+' CONTRA '+m.enemy);tone(510,.12,'triangle');
+ updateHud();renderMissions();toast('5 × 5 · EQUIPE AZUL VS RUBRA');tone(510,.12,'triangle');
 }
 function showMenu(){
  mode='menu';$('missionShelf').hidden=false;$('overlay').classList.add('picker-open');
