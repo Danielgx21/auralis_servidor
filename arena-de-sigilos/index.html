@@ -322,6 +322,33 @@ function resize(){
  starfield=Array.from({length:24},()=>({x:rnd(0,W),y:rnd(0,H),r:rnd(.6,2),phase:rnd(0,TWO)}));
  if(mode==='playing')updateHud();
 }
+function circle(x,y,r,color,alpha=1){
+ if(!Number.isFinite(x)||!Number.isFinite(y)||!(r>0))return;
+ ctx.save();ctx.globalAlpha*=clamp(alpha,0,1);
+ ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,TWO);ctx.fill();ctx.restore();
+}
+function ring(x,y,r,color,alpha=1,width=2,start=0,end=TWO){
+ if(!Number.isFinite(x)||!Number.isFinite(y)||!(r>0))return;
+ ctx.save();ctx.globalAlpha*=clamp(alpha,0,1);
+ ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.arc(x,y,r,start,end);ctx.stroke();ctx.restore();
+}
+function line(x1,y1,x2,y2,color,width=2,alpha=1){
+ ctx.save();ctx.globalAlpha*=clamp(alpha,0,1);
+ ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';
+ ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.restore();
+}
+function polygon(x,y,r,points,color,rotation=0,filled=true,alpha=1,strokeWidth=2){
+ if(!Number.isFinite(x)||!Number.isFinite(y)||!(r>0)||points<3)return;
+ ctx.save();ctx.globalAlpha*=clamp(alpha,0,1);
+ ctx.beginPath();
+ for(let i=0;i<points;i++){
+  const a=rotation+i*TWO/points,px=x+Math.cos(a)*r,py=y+Math.sin(a)*r;
+  if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);
+ }
+ ctx.closePath();
+ if(filled){ctx.fillStyle=color;ctx.fill()}else{ctx.strokeStyle=color;ctx.lineWidth=strokeWidth;ctx.stroke()}
+ ctx.restore();
+}
 function tone(freq,dur=.09,wave='sine',volume=.025){
  if(!soundOn)return;
  try{
