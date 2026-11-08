@@ -97,7 +97,7 @@ canvas {width:100%;height:100%;}
  .overlay .modal p {margin-bottom:4px;font-size:10px;}
  .mission-shelf {height:100%;}
 }
-/* V1.3: joystick e mira flutuantes, cada um em sua metade da tela */
+/* V1.4: tiro por toque único; segure/arraste para mirar e solte para disparar */
 .mobile-controls{inset:0!important;bottom:0!important;padding:0!important;justify-content:flex-end;align-items:stretch}
 .mobile-controls .joy{position:absolute;left:0;top:0;transform:translate(-50%,-50%);opacity:0;pointer-events:none;transition:opacity .10s ease;z-index:1}
 .mobile-controls .joy.active{opacity:.96}
@@ -112,7 +112,7 @@ canvas {width:100%;height:100%;}
 </head>
 <body>
 <div class="app">
-  <header class="topbar"><div class="brand"><div class="brand-icon"><svg viewBox="0 0 32 32" fill="none"><path d="M16 2 28 16 16 30 4 16 16 2Z" stroke="#6BE8DF" stroke-width="2"/><path d="M16 7 23 16 16 25 9 16 16 7Z" stroke="#ECDE9B" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="#6BE8DF"/></svg></div><div><h1>ARENA DE SIGILOS</h1><small>PROTÓTIPO // EDIÇÃO ZERO</small></div></div><div class="build">5 MISSÕES · V1.3 · CONTROLES LIVRES</div></header>
+  <header class="topbar"><div class="brand"><div class="brand-icon"><svg viewBox="0 0 32 32" fill="none"><path d="M16 2 28 16 16 30 4 16 16 2Z" stroke="#6BE8DF" stroke-width="2"/><path d="M16 7 23 16 16 25 9 16 16 7Z" stroke="#ECDE9B" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="#6BE8DF"/></svg></div><div><h1>ARENA DE SIGILOS</h1><small>PROTÓTIPO // EDIÇÃO ZERO</small></div></div><div class="build">5 MISSÕES · V1.4 · TIRO POR TOQUE</div></header>
   <div class="arena-grid">
     <section>
       <div class="stage" id="stage">
@@ -131,7 +131,7 @@ canvas {width:100%;height:100%;}
       </div>
       <div class="tip">WASD para mover · Mouse para mirar · Clique ou Espaço para atirar · 1 / 2 / 3 para habilidades</div>
     </section>
-    <aside class="side"><section class="panel"><h3>Campanha · 3 estrelas</h3><div id="retiredMissions"></div></section><section class="panel"><h3>Arsenal de sigilos</h3><div class="guide"><div class="guide-item"><span class="key">CLICK</span><span><strong style="color:#dceeff">Disparo astral</strong><br>Atire em movimento</span></div><div class="guide-item"><span class="key">1 / Q</span><span><strong style="color:#dceeff">Investida</strong><br>Esquiva rápida e invulnerável</span></div><div class="guide-item"><span class="key">2 / E</span><span><strong style="color:#dceeff">Pulso</strong><br>Dano e empurrão próximos</span></div><div class="guide-item"><span class="key">3 / R</span><span><strong style="color:#dceeff">Escudo</strong><br>Proteção por 2 segundos</span></div></div><hr style="border:0;border-top:1px solid var(--line);margin:15px 0"><p class="info-note">A zona brilhante no centro recupera sua energia mais rápido. Use os pilares como cobertura. No celular, toque e arraste no lado direito para mirar.</p></section><section class="panel"><span class="effect-title">DESAFIO DE VERDADE</span><p class="info-note" style="margin-top:10px">Cada fase oferece ★ por vencer, ★ por preservar a vida e ★ por vencer antes do tempo-alvo. Suas melhores notas ficam salvas neste navegador.</p></section></aside>
+    <aside class="side"><section class="panel"><h3>Campanha · 3 estrelas</h3><div id="retiredMissions"></div></section><section class="panel"><h3>Arsenal de sigilos</h3><div class="guide"><div class="guide-item"><span class="key">CLICK</span><span><strong style="color:#dceeff">Disparo astral</strong><br>Atire em movimento</span></div><div class="guide-item"><span class="key">1 / Q</span><span><strong style="color:#dceeff">Investida</strong><br>Esquiva rápida e invulnerável</span></div><div class="guide-item"><span class="key">2 / E</span><span><strong style="color:#dceeff">Pulso</strong><br>Dano e empurrão próximos</span></div><div class="guide-item"><span class="key">3 / R</span><span><strong style="color:#dceeff">Escudo</strong><br>Proteção por 2 segundos</span></div></div><hr style="border:0;border-top:1px solid var(--line);margin:15px 0"><p class="info-note">A zona brilhante no centro recupera sua energia mais rápido. Use os pilares como cobertura. No celular, um toque no lado direito lança um disparo; arraste e solte para mirar com precisão.</p></section><section class="panel"><span class="effect-title">DESAFIO DE VERDADE</span><p class="info-note" style="margin-top:10px">Cada fase oferece ★ por vencer, ★ por preservar a vida e ★ por vencer antes do tempo-alvo. Suas melhores notas ficam salvas neste navegador.</p></section></aside>
   </div><div class="footer"><span>Projeto experimental · Feito em Canvas 2D, sem imagens externas</span><span>Desktop + celular · Funciona sem internet depois de salvo</span></div>
 </div>
 <script>
@@ -152,7 +152,7 @@ const missions=[
  {name:'Coração de Ferro',enemy:'BASTIÃO',hp:590,time:70,speed:122,fire:.92,damage:11,bullets:3,color:'#ff886e',desc:'Desvie de ataques e use a cobertura.',obstacles:4,hazards:true},
  {name:'Último Ritual',enemy:'ARQUISIGILO',hp:740,time:85,speed:165,fire:.80,damage:12,bullets:4,color:'#ef6cf1',desc:'Um chefe rápido com ataques em área.',obstacles:4,hazards:true,boss:true}
 ];
-let W=900,H=560,dpr=1,mode='menu',selected=0,unlocked=1,bests=[0,0,0,0,0], player=null,enemy=null,obstacles=[],bullets=[],particles=[],waves=[],hazards=[],floaters=[],elapsed=0,last=0,sceneTime=0,shake=0,flash=0,starfield=[], soundOn=true,ac=null,aim={x:600,y:260,active:false}, keys=new Set(),joy={x:0,y:0,id:null}, firing=false, captureId=null, uiTimer=0, toastTimeout=null, touchAim={id:null,active:false,x:1,y:0,startX:0,startY:0};
+let W=900,H=560,dpr=1,mode='menu',selected=0,unlocked=1,bests=[0,0,0,0,0], player=null,enemy=null,obstacles=[],bullets=[],particles=[],waves=[],hazards=[],floaters=[],elapsed=0,last=0,sceneTime=0,shake=0,flash=0,starfield=[], soundOn=true,ac=null,aim={x:600,y:260,active:false}, keys=new Set(),joy={x:0,y:0,id:null}, firing=false, captureId=null, uiTimer=0, toastTimeout=null, touchAim={id:null,active:false,x:1,y:0,startX:0,startY:0},lastTouchDir={x:1,y:0},shotQueue=[];
 const TWO=Math.PI*2,clamp=(a,b,c)=>Math.max(b,Math.min(c,a)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),unit=(x,y)=>{let l=Math.hypot(x,y)||1;return {x:x/l,y:y/l}},lerp=(a,b,t)=>a+(b-a)*t;
 try{const s=JSON.parse(localStorage.getItem('sigils-progress-v1'));if(s&&Array.isArray(s.bests)){bests=s.bests.slice(0,5).map(n=>clamp(n|0,0,3));while(bests.length<5)bests.push(0);unlocked=clamp((s.unlocked|0)||1,1,5)}}catch(_){ }
 const save=()=>{try{localStorage.setItem('sigils-progress-v1',JSON.stringify({bests,unlocked}))}catch(_){}};
@@ -168,12 +168,12 @@ function positionPillars(n){const pts=n===2?[[.34,.43],[.66,.57]]:n===3?[[.29,.3
  // Keep mobile corridors open.
  if(W<500){obstacles=obstacles.map((o,i)=>({...o,r:15,x:clamp(o.x,31,W-31)}))}
 }
-function reset(level){selected=level;const m=missions[level];elapsed=0;sceneTime=0;shake=0;flash=0;bullets=[];particles=[];waves=[];hazards=[];floaters=[];keys.clear();firing=false;touchAim.active=false;touchAim.id=null;firePointer=null;fireTouch=false;joy.x=0;joy.y=0;joy.id=null;$('joy').classList.remove('active');$('fireBtn').classList.remove('aiming');$('aimPad').classList.remove('active');const portrait=W/H<.87;
+function reset(level){selected=level;const m=missions[level];elapsed=0;sceneTime=0;shake=0;flash=0;bullets=[];particles=[];waves=[];hazards=[];floaters=[];keys.clear();firing=false;touchAim.active=false;touchAim.id=null;firePointer=null;fireTouch=false;shotQueue.length=0;joy.x=0;joy.y=0;joy.id=null;$('joy').classList.remove('active');$('fireBtn').classList.remove('aiming');$('aimPad').classList.remove('active');const portrait=W/H<.87;
  player={x:portrait?W*.5:W*.24,y:portrait?H*.72:H*.56,r:15,hp:140,maxHp:140,energy:100,maxEnergy:100,vx:0,vy:0,angle:0,hit:0,shield:0,invuln:0,dash:0,dashVx:0,dashVy:0,cool:{dash:0,pulse:0,shield:0},shoot:0};
  enemy={x:portrait?W*.5:W*.76,y:portrait?H*.26:H*.44,r:m.boss?21:17,hp:m.hp,maxHp:m.hp,speed:m.speed,vx:0,vy:0,shoot:1.5,moveAngle:0,change:0,hit:0,burst:0,special:5.5,angle:0,stun:0};
- positionPillars(m.obstacles);mode='playing';$('overlay').classList.add('hidden');updateHud();renderMissions();toast('DUEL0 INICIADO'.replace('0','O'));tone(510,.12,'triangle');
+ positionPillars(m.obstacles);lastTouchDir=unit(enemy.x-player.x,enemy.y-player.y);mode='playing';$('overlay').classList.add('hidden');updateHud();renderMissions();toast('DUEL0 INICIADO'.replace('0','O'));tone(510,.12,'triangle');
 }
-function showMenu(){mode='menu';$('missionShelf').hidden=false;$('overlay').classList.add('picker-open');$('overlay').classList.remove('hidden');const m=missions[selected];$('modalContent').innerHTML=`<div class="eyebrow">CÍRCULO ${String(selected+1).padStart(2,'0')} / 05</div><h2>${m.name}</h2><p>${m.desc} Enfrente <b style="color:${m.color}">${m.enemy}</b> e tente ganhar as três estrelas.</p><div class="result-objectives"><div><span>★</span> Derrote o rival</div><div><span>★</span> Termine com pelo menos 75% da vida</div><div><span>★</span> Vença em até ${m.time} segundos</div></div><div class="actions"><button class="primary" id="startGame">INICIAR DUELO ✦</button></div><p style="margin:14px auto 0;font-size:11px">${matchMedia('(pointer:coarse)').matches?'Toque à esquerda para mover; toque à direita para atirar e arraste para mirar.':'WASD para mover, mouse para mirar e clique para disparar. Use 1, 2 e 3 para habilidades.'}</p>`;$('startGame').onclick=()=>{enterImmersive();reset(selected)};updateHud();renderMissions()}
+function showMenu(){mode='menu';$('missionShelf').hidden=false;$('overlay').classList.add('picker-open');$('overlay').classList.remove('hidden');const m=missions[selected];$('modalContent').innerHTML=`<div class="eyebrow">CÍRCULO ${String(selected+1).padStart(2,'0')} / 05</div><h2>${m.name}</h2><p>${m.desc} Enfrente <b style="color:${m.color}">${m.enemy}</b> e tente ganhar as três estrelas.</p><div class="result-objectives"><div><span>★</span> Derrote o rival</div><div><span>★</span> Termine com pelo menos 75% da vida</div><div><span>★</span> Vença em até ${m.time} segundos</div></div><div class="actions"><button class="primary" id="startGame">INICIAR DUELO ✦</button></div><p style="margin:14px auto 0;font-size:11px">${matchMedia('(pointer:coarse)').matches?'Esquerda: mover. Direita: toque para um tiro; arraste e solte para mirar e disparar.':'WASD para mover, mouse para mirar e clique para disparar. Use 1, 2 e 3 para habilidades.'}</p>`;$('startGame').onclick=()=>{enterImmersive();reset(selected)};updateHud();renderMissions()}
 function showPause(){if(mode==='playing'){mode='paused';$('missionShelf').hidden=true;$('overlay').classList.remove('picker-open');$('overlay').classList.remove('hidden');$('modalContent').innerHTML='<div class="eyebrow">TEMPO CONGELADO</div><h2>Duelo pausado</h2><p>Seu rival não vai a lugar nenhum.</p><div class="actions"><button class="primary" id="resume">CONTINUAR</button><button class="secondary" id="retry">RECOMEÇAR</button><button class="secondary" id="menu">MISSÕES</button></div>';$('resume').onclick=resume;$('retry').onclick=()=>reset(selected);$('menu').onclick=showMenu;firing=false;keys.clear()}else if(mode==='paused')resume()}
 function resume(){mode='playing';$('overlay').classList.add('hidden');last=performance.now()}
 function endGame(win){if(mode!=='playing')return;mode=win?'won':'lost';$('missionShelf').hidden=true;$('overlay').classList.remove('picker-open');firing=false;keys.clear();if(win){for(let i=0;i<38;i++)spawnPart(rnd(W*.14,W*.85),rnd(H*.19,H*.8),rnd(0,TWO),rnd(50,185),rnd(.3,1),'#f7ce78',rnd(2,5));tone(730,.18,'triangle',.075);setTimeout(()=>tone(1010,.2,'sine',.04),125)}else tone(150,.35,'sawtooth',.04);
@@ -195,8 +195,9 @@ function hitText(x,y,n,color){floaters.push({x,y,txt:String(Math.round(n)),life:
 function addWave(x,y,max,life,color,lineWidth=3){waves.push({x,y,max,life,full:life,color,lineWidth})}
 function wallCollision(o){const margin=o.r+12;o.x=clamp(o.x,margin,W-margin);o.y=clamp(o.y,Math.min(82,H*.22)+margin,H-margin-6);for(const p of obstacles){let dx=o.x-p.x,dy=o.y-p.y,d=Math.hypot(dx,dy),min=o.r+p.r+3;if(d<min){const n=unit(dx||1,dy||0);o.x+=n.x*(min-d);o.y+=n.y*(min-d)}}}
 function moveVec(){let x=0,y=0;if(keys.has('w')||keys.has('arrowup'))y--;if(keys.has('s')||keys.has('arrowdown'))y++;if(keys.has('a')||keys.has('arrowleft'))x--;if(keys.has('d')||keys.has('arrowright'))x++;x+=joy.x;y+=joy.y;const len=Math.hypot(x,y);return len>1?{x:x/len,y:y/len}:{x,y}}
-function targetDirection(){if(touchAim.active)return{x:touchAim.x,y:touchAim.y};const isMobile=matchMedia('(pointer:coarse)').matches||W<580;if(isMobile||!aim.active)return unit(enemy.x-player.x,enemy.y-player.y);return unit(aim.x-player.x,aim.y-player.y)}
-function shootPlayer(){if(mode!=='playing'||player.shoot>0)return;const dir=targetDirection();player.angle=Math.atan2(dir.y,dir.x);const speed=440;bullets.push({x:player.x+dir.x*23,y:player.y+dir.y*23,vx:dir.x*speed,vy:dir.y*speed,r:5,life:1.6,side:'player',damage:12,color:'#74f1e3',trail:[]});player.shoot=.285;burst(player.x+dir.x*24,player.y+dir.y*24,'#7ef4eb',4,55);tone(390,.046,'triangle',.023)}
+function targetDirection(){if(touchAim.active)return{x:touchAim.x,y:touchAim.y};const isMobile=matchMedia('(pointer:coarse)').matches||W<580;if(isMobile)return lastTouchDir;if(!aim.active)return unit(enemy.x-player.x,enemy.y-player.y);return unit(aim.x-player.x,aim.y-player.y)}
+function shootPlayer(dir){if(mode!=='playing'||player.shoot>0)return;player.angle=Math.atan2(dir.y,dir.x);const speed=500;bullets.push({x:player.x+dir.x*23,y:player.y+dir.y*23,vx:dir.x*speed,vy:dir.y*speed,r:6,life:1.6,side:'player',damage:12,color:'#74f1e3',trail:[]});player.shoot=.16;burst(player.x+dir.x*24,player.y+dir.y*24,'#7ef4eb',6,65);tone(390,.046,'triangle',.028)}
+function queueSingleShot(dir){if(mode!=='playing'||!player)return;const d=unit(dir.x,dir.y);shotQueue.push(d);if(shotQueue.length>12)shotQueue.shift();if(player.shoot<=0)shootPlayer(shotQueue.shift())}
 function enemyFire(){const m=missions[selected], base=Math.atan2(player.y+player.vy*.2-enemy.y,player.x+player.vx*.2-enemy.x),spread=m.bullets>1?.15:0;for(let i=0;i<m.bullets;i++){let a=base+(i-(m.bullets-1)/2)*spread;const sp=185+selected*10;bullets.push({x:enemy.x+Math.cos(a)*23,y:enemy.y+Math.sin(a)*23,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:m.boss?6.5:5.7,life:2.7,side:'enemy',damage:m.damage,color:m.color,trail:[]})}burst(enemy.x,enemy.y,m.color,6,85);tone(165,.07,'sawtooth',.022)}
 function ability(which){if(mode!=='playing'||!player)return;const costs={dash:22,pulse:35,shield:30},cds={dash:4.2,pulse:8,shield:10.5};if(player.cool[which]>.01 || player.energy<costs[which]){tone(170,.04,'sine',.01);return}player.energy-=costs[which];player.cool[which]=cds[which];
  if(which==='dash'){let m=moveVec();if(Math.hypot(m.x,m.y)<.05)m=targetDirection();player.dash=.18;player.invuln=.24;player.dashVx=m.x*600;player.dashVy=m.y*600;addWave(player.x,player.y,35,.27,'#85eafa');tone(760,.16,'sawtooth',.045);toast('INVESTIDA')}
@@ -214,7 +215,7 @@ function tick(dt){sceneTime+=dt;shake=Math.max(0,shake-27*dt);flash=Math.max(0,f
  if(player.dash>0){player.dash-=dt;player.x+=player.dashVx*dt;player.y+=player.dashVy*dt;if(Math.random()<.85)spawnPart(player.x,player.y,rnd(0,TWO),rnd(20,90),.3,'#79f8e9',rnd(2,6))}
  else{player.x+=player.vx*dt;player.y+=player.vy*dt}
  wallCollision(player);const pdir=targetDirection();player.angle=Math.atan2(pdir.y,pdir.x);
- if(firing||keys.has(' '))shootPlayer();
+ if(shotQueue.length&&player.shoot<=0)shootPlayer(shotQueue.shift());
  enemy.shoot-=dt;enemy.change-=dt;enemy.special-=dt;
  if(enemy.stun<=0){const dx=player.x-enemy.x,dy=player.y-enemy.y,d=Math.hypot(dx,dy)||1;const nx=dx/d,ny=dy/d;
  if(enemy.change<=0){enemy.change=rnd(1,2.3);enemy.moveAngle=Math.random()<.5?-1:1}
@@ -256,14 +257,26 @@ function drawEntity(o,isPlayer,t){if(!o)return;const color=isPlayer?'#6ef2e0':mi
  if(isPlayer&&o.shield>0){ring(o.x,o.y,r+19,'#a8baff',.55+Math.sin(t*8)*.18,3);polygon(o.x,o.y,r+23,6,'#9caeff',t*.35,false,.52,1)}
  if(!isPlayer){const barW=56;ctx.fillStyle='#030917bc';ctx.fillRect(o.x-barW/2,o.y-r-24,barW,4);ctx.fillStyle=color;ctx.fillRect(o.x-barW/2,o.y-r-24,barW*clamp(o.hp/o.maxHp,0,1),4)}
 }
-function drawAimGuide(t){if(!touchAim.active||!player||mode!=='playing')return;
- const dx=touchAim.x,dy=touchAim.y,ex=player.x+dx*105,ey=player.y+dy*105;
- ctx.save();ctx.setLineDash([7,7]);line(player.x+dx*24,player.y+dy*24,ex,ey,'#a7fff0',2,.7);ctx.setLineDash([]);
- ring(ex,ey,12,'#b5fff0',.85,2);line(ex-17,ey,ex-8,ey,'#e4fffc',1.5,.9);line(ex+8,ey,ex+17,ey,'#e4fffc',1.5,.9);
- line(ex,ey-17,ex,ey-8,'#e4fffc',1.5,.9);line(ex,ey+8,ex,ey+17,'#e4fffc',1.5,.9);
- circle(ex,ey,2,'#ffffff',.95);ctx.restore();
+function drawAimGuide(t){
+ if(!player||mode!=='playing')return;
+ const mobile=matchMedia('(pointer:coarse)').matches||W<580;
+ if(!mobile&&!aim.active)return;
+ const d=targetDirection(),sx=player.x+d.x*23,sy=player.y+d.y*23;
+ const desired=Math.max(300,Math.min(430,Math.min(W,H)*1.02));
+ let length=desired;
+ if(d.x>.0001)length=Math.min(length,(W-10-sx)/d.x);else if(d.x<-.0001)length=Math.min(length,(10-sx)/d.x);
+ if(d.y>.0001)length=Math.min(length,(H-10-sy)/d.y);else if(d.y<-.0001)length=Math.min(length,(10-sy)/d.y);
+ length=Math.max(0,length);
+ const ex=sx+d.x*length,ey=sy+d.y*length;
+ ctx.save();ctx.shadowBlur=10;ctx.shadowColor='#5ef6ec';
+ ctx.setLineDash([11,7]);line(sx,sy,ex,ey,'#b9fff6',3,.94);ctx.setLineDash([]);ctx.shadowBlur=0;
+ // A guia começa no mesmo ponto e usa o mesmo vetor que a bolinha disparada.
+ circle(sx,sy,4,'#ebfffd',.95);ring(ex,ey,11,'#baffef',.86,2);
+ line(ex-18,ey,ex-7,ey,'#e7ffff',2,.92);line(ex+7,ey,ex+18,ey,'#e7ffff',2,.92);
+ line(ex,ey-18,ex,ey-7,'#e7ffff',2,.92);line(ex,ey+7,ex,ey+18,'#e7ffff',2,.92);
+ ctx.restore();
 }
-function drawProjectiles(){for(const b of bullets){for(let i=0;i<b.trail.length;i++){let q=b.trail[i];circle(q.x,q.y,b.r*(.35+.55*i/b.trail.length),b.color,.09+.43*i/b.trail.length)}ctx.save();ctx.shadowColor=b.color;ctx.shadowBlur=19;circle(b.x,b.y,b.r,b.color,.94);ctx.shadowBlur=0;circle(b.x,b.y,b.r*.43,'#ffffff',.95);ctx.restore()}}
+function drawProjectiles(){for(const b of bullets){for(let i=0;i<b.trail.length;i++){let q=b.trail[i];circle(q.x,q.y,b.r*(.35+.55*i/b.trail.length),b.color,.09+.43*i/b.trail.length)}ctx.save();ctx.shadowColor=b.color;ctx.shadowBlur=19;circle(b.x,b.y,b.r,b.color,.94);ctx.shadowBlur=0;circle(b.x,b.y,b.r*.52,'#ffffff',.95);ctx.restore()}}
 function drawParticles(){ctx.save();ctx.globalCompositeOperation='lighter';for(const p of particles){circle(p.x,p.y,p.size*(p.life/p.max),p.color,clamp(p.life/p.max,0,1)*.9)}ctx.restore();for(const w of waves){let p=1-w.life/w.full;ring(w.x,w.y,w.max*p,w.color,1-p,w.lineWidth*(1-p*.65))}ctx.save();ctx.font='900 14px system-ui';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=5;for(const f of floaters){ctx.globalAlpha=clamp(f.life/.7,0,1);ctx.fillStyle=f.color;ctx.fillText(f.txt,f.x,f.y)}ctx.restore()}
 function draw(t){ctx.save();ctx.clearRect(0,0,W,H);if(shake>0&&mode==='playing')ctx.translate(rnd(-shake,shake),rnd(-shake,shake));drawBackground(t);drawPillars(t);if(mode!=='menu'&&player&&enemy){drawHazards(t);drawProjectiles();drawEntity(enemy,false,t);drawEntity(player,true,t);drawAimGuide(t);drawParticles()}else{ // attract mode
  const cx=W*.36,cy=H*.53,ex=W*.68,ey=H*.48;drawEntity({x:cx,y:cy,r:18,angle:Math.atan2(ey-cy,ex-cx),hit:0,shield:0,invuln:0},true,t);drawEntity({x:ex,y:ey,r:19,angle:Math.atan2(cy-ey,cx-ex),hp:1,maxHp:1,hit:0},false,t);for(let i=0;i<6;i++){const p=(t*.24+i/6)%1,cx1=lerp(cx,ex,p),cy1=lerp(cy,ey,p);circle(cx1,cy1,3,'#83f5e6',.15+.4*Math.sin(p*Math.PI))}
@@ -271,11 +284,11 @@ function draw(t){ctx.save();ctx.clearRect(0,0,W,H);if(shake>0&&mode==='playing')
 function loop(now){let dt=Math.min(.04,(now-last)/1000||.016);last=now;tick(dt);draw(sceneTime);requestAnimationFrame(loop)}
 function pointInCanvas(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 canvas.addEventListener('pointermove',e=>{if(e.pointerType==='mouse'){aim={...pointInCanvas(e),active:true}}});
-canvas.addEventListener('pointerdown',e=>{if(mode==='playing'&&e.pointerType!=='touch'){e.preventDefault();aim={...pointInCanvas(e),active:true};firing=true;canvas.setPointerCapture(e.pointerId)}});
-canvas.addEventListener('pointerup',()=>firing=false);canvas.addEventListener('pointercancel',()=>firing=false);
-window.addEventListener('pointerup',()=>{if(!fireTouch)firing=false});
-window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' ','q','e','r','1','2','3','escape'].includes(k))e.preventDefault();if(k==='escape'){showPause();return}if(mode!=='playing')return;keys.add(k);if(!e.repeat){if(k==='q'||k==='1')ability('dash');if(k==='e'||k==='2')ability('pulse');if(k==='r'||k==='3')ability('shield')}});
-window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{if(mode==='playing')showPause();keys.clear();firing=false});
+canvas.addEventListener('pointerdown',e=>{if(mode==='playing'&&e.pointerType==='mouse'){e.preventDefault();aim={...pointInCanvas(e),active:true};queueSingleShot(targetDirection());canvas.setPointerCapture(e.pointerId)}});
+canvas.addEventListener('pointerup',()=>{});canvas.addEventListener('pointercancel',()=>{});
+
+window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' ','q','e','r','1','2','3','escape'].includes(k))e.preventDefault();if(k==='escape'){showPause();return}if(mode!=='playing')return;keys.add(k);if(!e.repeat){if(k==='q'||k==='1')ability('dash');if(k==='e'||k==='2')ability('pulse');if(k==='r'||k==='3')ability('shield');if(k===' ')queueSingleShot(targetDirection())}});
+window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{if(mode==='playing')showPause();keys.clear();shotQueue.length=0});
 $('fullscreenBtn').onclick=()=>{if(document.fullscreenElement&&document.exitFullscreen){document.exitFullscreen()}else enterImmersive()};
 $('rotateFullscreen').onclick=enterImmersive;
 document.addEventListener('fullscreenchange',()=>{$('fullscreenBtn').textContent=document.fullscreenElement?'⛶':'⛶';resize()});
@@ -287,19 +300,28 @@ function updateTouchAim(e){
  if(firePointer!==e.pointerId)return;
  const dx=e.clientX-touchAim.startX,dy=e.clientY-touchAim.startY;
  const dist=Math.hypot(dx,dy),radius=28;
- const maxX=dist>0?dx/dist*Math.min(dist,radius):0, maxY=dist>0?dy/dist*Math.min(dist,radius):0;
- aimThumb.style.transform=`translate(calc(-50% + ${maxX}px),calc(-50% + ${maxY}px))`;
- if(dist>12){const v=unit(dx,dy);touchAim.x=v.x;touchAim.y=v.y;touchAim.active=true;fireBtn.classList.add('aiming');}
+ const px=dist>0?dx/dist*Math.min(dist,radius):0,py=dist>0?dy/dist*Math.min(dist,radius):0;
+ aimThumb.style.transform=`translate(calc(-50% + ${px}px),calc(-50% + ${py}px))`;
+ if(dist>9){
+  const v=unit(dx,dy);touchAim.x=v.x;touchAim.y=v.y;touchAim.active=true;
+  lastTouchDir={x:v.x,y:v.y};fireBtn.classList.add('aiming');
+ }
 }
 function endFireTouch(e){
  if(firePointer!==e.pointerId)return;
+ // A direção desenhada é preservada para a única bolinha disparada ao soltar.
+ const dir=touchAim.active?{x:touchAim.x,y:touchAim.y}:{...lastTouchDir};
+ if(e.type==='pointerup')queueSingleShot(dir);
  firePointer=null;fireTouch=false;firing=false;touchAim.active=false;touchAim.id=null;
  fireBtn.classList.remove('aiming');aimPad.classList.remove('active');aimThumb.style.transform='translate(-50%,-50%)';
 }
 function beginFireTouch(e,captureElement){
  if(mode!=='playing'||firePointer!==null)return;
- e.preventDefault();fireTouch=true;firing=true;firePointer=e.pointerId;
- touchAim={id:e.pointerId,active:false,x:1,y:0,startX:e.clientX,startY:e.clientY};
+ e.preventDefault();fireTouch=true;firePointer=e.pointerId;
+ // O toque simples mira diretamente no ponto tocado na arena.
+ const pt=pointInCanvas(e),initial=unit(pt.x-player.x,pt.y-player.y);
+ lastTouchDir={x:initial.x,y:initial.y};
+ touchAim={id:e.pointerId,active:true,x:initial.x,y:initial.y,startX:e.clientX,startY:e.clientY};
  const r=stage.getBoundingClientRect(),half=47;
  aimPad.style.left=clamp(e.clientX-r.left,half,Math.max(half,r.width-half))+'px';
  aimPad.style.top=clamp(e.clientY-r.top,half,Math.max(half,r.height-half))+'px';
