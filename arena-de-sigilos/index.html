@@ -682,15 +682,15 @@ function drawEnemyWindup(t){
  const reach=Math.min(missions[selected].range,Math.hypot(W,H));
  const ex=enemy.x+d.x*reach,ey=enemy.y+d.y*reach;
  ctx.save();ctx.setLineDash([6,7]);
- line(enemy.x+d.x*23,enemy.y+d.y*23,ex,ey,'#ff8eaf',2.5,.58+Math.sin(t*27)*.23);
+ line(enemy.x+d.x*(enemy.r+14),enemy.y+d.y*(enemy.r+14),ex,ey,'#ff8eaf',2.5,.58+Math.sin(t*27)*.23);
  ctx.setLineDash([]);
  ring(enemy.x,enemy.y,enemy.r+15,'#ffb2a3',.62,2.2);
  ctx.restore();
 }
 function drawAimGuide(t){
  if(!player||mode!=='playing'||!touchAim.active)return; // Nenhuma linha longa fora do toque de mira.
- const d=targetDirection(),sx=player.x+d.x*23,sy=player.y+d.y*23;
- const desired=Math.max(300,Math.min(430,Math.min(W,H)*1.02));
+ const d=targetDirection(),sx=player.x+d.x*(player.r+13),sy=player.y+d.y*(player.r+13);
+ const desired=Math.min(chosenHero().range,Math.max(300,Math.min(430,Math.min(W,H)*1.02)));
  let length=desired;
  if(d.x>.0001)length=Math.min(length,(W-10-sx)/d.x);else if(d.x<-.0001)length=Math.min(length,(10-sx)/d.x);
  if(d.y>.0001)length=Math.min(length,(H-10-sy)/d.y);else if(d.y<-.0001)length=Math.min(length,(10-sy)/d.y);
