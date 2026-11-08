@@ -301,14 +301,27 @@ const skillCost=id=>skillDefs[id].cost;
 const skillAimKind=id=>(skillDefs[id]&&skillDefs[id].aim)||'self';
 const saveArsenal=()=>{try{localStorage.setItem('sigils-arsenal-v3',JSON.stringify(arsenal))}catch(_){}};
 const loadoutLine=()=>heroSkillIds().map(id=>skillDefs[id].short).join(' · ')+' | '+arsenal.items.map(id=>itemDefs[id].name).join(' + ');
-function resize(){const oldW=W||0,oldH=H||0;const r=stage.getBoundingClientRect();W=r.width;H=r.height;if(oldW&&oldH&&player&&enemy&&(Math.abs(oldW-W)>5||Math.abs(oldH-H)>5)){for(const o of [player,enemy,...obstacles,...bullets,...particles,...hazards,...waves,...floaters]){if(typeof o.x==='number')o.x*=W/oldW;if(typeof o.y==='number')o.y*=H/oldH}if(player)wallCollision(player);if(enemy)wallCollision(enemy)}dpr=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);makeStars();if(mode==='menu')draw(0)}
-function makeStars(){starfield=Array.from({length:65},()=>({x:Math.random()*W,y:Math.random()*H,r:rnd(.4,1.6),phase:rnd(0,7)}))}
-function tone(freq=440,dur=.07,type='sine',gain=.045){if(!soundOn)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();let t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);o.frequency.exponentialRampToValueAtTime(Math.max(60,freq*.63),t+dur);g.gain.setValueAtTime(gain,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+dur+.02)}catch(_){}}
-const xxy=(c,alpha=1)=>{ctx.globalAlpha=alpha;ctx.fillStyle=c};
-function circle(x,y,r,color,alpha=1){xxy(color,alpha);ctx.beginPath();ctx.arc(x,y,Math.max(.5,r),0,TWO);ctx.fill();ctx.globalAlpha=1}
-function line(x1,y1,x2,y2,color,width=1,alpha=1){ctx.globalAlpha=alpha;ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.globalAlpha=1}
-function ring(x,y,r,col,alpha=1,width=1,start=0,end=TWO){ctx.strokeStyle=col;ctx.globalAlpha=alpha;ctx.lineWidth=width;ctx.beginPath();ctx.arc(x,y,Math.max(.1,r),start,end);ctx.stroke();ctx.globalAlpha=1}
-function polygon(x,y,r,n,col,rot=0,fill=false,alpha=1,width=2){ctx.beginPath();for(let i=0;i<n;i++){const a=rot+i*TWO/n;let px=x+Math.cos(a)*r,py=y+Math.sin(a)*r;i?ctx.lineTo(px,py):ctx.moveTo(px,py)}ctx.closePath();ctx.globalAlpha=alpha;if(fill){ctx.fillStyle=col;ctx.fill()}else{ctx.lineWidth=width;ctx.strokeStyle=col;ctx.stroke()}ctx.globalAlpha=1}
+function resize(){
+ const oldW=W||0,oldH=H||0,r=stage.getBoundingClientRect();
+ W=r.width;H=r.height;
+ if(oldW&&oldH&&player&&Math.abs(oldW-W)+Math.abs(oldH-H)>8){
+  const sw=W/oldW,sh=H/oldH;
+  for(const o of [...allies,...enemies,...obstacles,...bullets,...abilityShots,...abilityVisuals,...particles,...hazards,...waves,...floaters]){
+   if(typeof o.x==='number')o.x*=sw;
+   if(typeof o.y==='number')o.y*=sh;
+   if(typeof o.tx==='number')o.tx*=sw;
+   if(typeof o.ty==='number')o.ty*=sh;
+   if(typeof o.fromX==='number')o.fromX*=sw;
+   if(typeof o.fromY==='number')o.fromY*=sh;
+  }
+  for(const u of [...allies,...enemies])wallCollision(u);
+ }
+ dpr=Math.min(2,window.devicePixelRatio||1);
+ canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ makeStars();
+ if(mode==='playing')updateHud();
+}
 function positionPillars(n){const pts=n===2?[[.34,.43],[.66,.57]]:n===3?[[.29,.38],[.72,.37],[.52,.68]]:[[.28,.36],[.72,.36],[.28,.67],[.72,.67]];obstacles=pts.map(([a,b],i)=>({x:clamp(W*a,46,W-46),y:clamp(H*b,Math.min(108,H*.24),H-Math.min(70,H*.16)),r:clamp(Math.min(W,H)*(.045+(i%2)*.007),15,25),rot:i*.55}));
  // Keep mobile corridors open.
  if(W<500){obstacles=obstacles.map((o,i)=>({...o,r:15,x:clamp(o.x,31,W-31)}))}
@@ -1398,7 +1411,7 @@ function drawEntity(o,isPlayer,t){
   ring(o.x,o.y,r+18,protective,.5+Math.sin(t*7)*.12,3);
   polygon(o.x,o.y,r+21,6,protective,t*.22,false,.35,1.2);
  }
- if(!controlled){
+ if(!controlled&&Number.isFinite(o.hp)&&Number.isFinite(o.maxHp)){
   const bw=44,ratio=clamp(o.hp/o.maxHp,0,1);
   ctx.fillStyle='#020914dd';ctx.fillRect(o.x-bw/2,o.y-r-19,bw,5);
   ctx.fillStyle=friendly?'#69ddbb':'#ff7896';
@@ -1433,7 +1446,7 @@ function drawEnemyWindup(t){
 function drawAimGuide(t){
  if(!player||mode!=='playing'||!touchAim.active||player.casting||(skillTouch&&skillTouch.active))return; // Prioridade visual à habilidade.
  const d=targetDirection(),sx=player.x+d.x*(player.r+13),sy=player.y+d.y*(player.r+13);
- const desired=Math.min(chosenHero().range,Math.max(300,Math.min(430,Math.min(W,H)*1.02)));
+ const desired=meleeClass(player.heroId)?unitRange(player)+20:Math.min(chosenHero().range,Math.max(260,Math.min(390,Math.min(W,H)*1.02)));
  let length=desired;
  if(d.x>.0001)length=Math.min(length,(W-10-sx)/d.x);else if(d.x<-.0001)length=Math.min(length,(10-sx)/d.x);
  if(d.y>.0001)length=Math.min(length,(H-10-sy)/d.y);else if(d.y<-.0001)length=Math.min(length,(10-sy)/d.y);
@@ -1513,7 +1526,7 @@ function drawAbilityProjectiles(){
   const dy=p.type==='line'?p.vy:p.ty-p.fromY;
   ctx.save();ctx.translate(p.x,p.y);ctx.rotate(Math.atan2(dy,dx));
   ctx.shadowColor=p.color;ctx.shadowBlur=18;
-  if(p.which==='lyria_pierce'||p.which==='lyria_rain'){
+  if(p.which==='lyria_pierce'||p.which==='lyria_rain'||p.which==='seris_tether'||p.which==='seris_bloom'){
    // Flecha visível desde a saída do arco até a região de impacto.
    line(-20,0,8,0,p.color,3.3,.98);
    polygon(11,0,p.size,3,'#effff6',0,true,.96);
