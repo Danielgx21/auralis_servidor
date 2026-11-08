@@ -217,7 +217,7 @@ const missions=[
  {name:'Coração de Ferro',enemy:'BASTIÃO',hero:'orun',hp:319,time:88,speed:153,fire:1.65,damage:25,bullets:1,color:'#acb0ff',desc:'Um tanque resistente: não desperdice habilidades.',obstacles:4,hazards:true,range:380},
  {name:'Último Ritual',enemy:'ARQUISIGILO',hero:'nyra',hp:348,time:104,speed:189,fire:1.33,damage:28,bullets:1,color:'#f582d9',desc:'O último duelo exige posicionamento, leitura e combos.',obstacles:4,hazards:true,boss:true,range:505}
 ];
-let W=900,H=560,dpr=1,mode='menu',selected=0,unlocked=1,bests=[0,0,0,0,0], player=null,enemy=null,obstacles=[],bullets=[],particles=[],waves=[],hazards=[],floaters=[],elapsed=0,last=0,sceneTime=0,shake=0,flash=0,starfield=[], soundOn=true,ac=null,aim={x:600,y:260,active:false}, keys=new Set(),joy={x:0,y:0,id:null}, firing=false, captureId=null, uiTimer=0, toastTimeout=null, touchAim={id:null,active:false,x:1,y:0,startX:0,startY:0},lastTouchDir={x:1,y:0},shotQueue=[];
+let W=900,H=560,dpr=1,mode='menu',selected=0,unlocked=1,bests=[0,0,0,0,0], player=null,enemy=null,obstacles=[],bullets=[],abilityShots=[],abilityVisuals=[],particles=[],waves=[],hazards=[],floaters=[],elapsed=0,last=0,sceneTime=0,shake=0,flash=0,starfield=[], soundOn=true,ac=null,aim={x:600,y:260,active:false}, keys=new Set(),joy={x:0,y:0,id:null}, firing=false, captureId=null, uiTimer=0, toastTimeout=null, touchAim={id:null,active:false,x:1,y:0,startX:0,startY:0},lastTouchDir={x:1,y:0},shotQueue=[];
 const TWO=Math.PI*2,clamp=(a,b,c)=>Math.max(b,Math.min(c,a)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),unit=(x,y)=>{let l=Math.hypot(x,y)||1;return {x:x/l,y:y/l}},lerp=(a,b,t)=>a+(b-a)*t;
 try{const s=JSON.parse(localStorage.getItem('sigils-progress-v1'));if(s&&Array.isArray(s.bests)){bests=s.bests.slice(0,5).map(n=>clamp(n|0,0,3));while(bests.length<5)bests.push(0);unlocked=clamp((s.unlocked|0)||1,1,5)}}catch(_){ }
 const save=()=>{try{localStorage.setItem('sigils-progress-v1',JSON.stringify({bests,unlocked}))}catch(_){}};
@@ -281,7 +281,8 @@ const skillLevel=id=>arsenal.skillLevels[id]||1;
 const itemLevel=id=>arsenal.itemLevels[id]||1;
 const equippedItem=id=>arsenal.items.includes(id);
 const acquired=def=>!def.unlock||bests[def.unlock-1]>0;
-const skillCooldown=id=>Math.max(1,skillDefs[id].cd-.45*(skillLevel(id)-1))*(equippedItem('core')?1-.075*itemLevel('core'):1);
+const skillCooldown=id=>Math.max(1,skillDefs[id].cd-.45*(skillLevel(id)-1))*(equippedItem('core')?1-.06*itemLevel('core'):1);
+const skillCastTime=id=>Math.max(.11,skillDefs[id].cast-.025*(skillLevel(id)-1));
 const skillCost=id=>skillDefs[id].cost;
 const skillAimKind=id=>(skillDefs[id]&&skillDefs[id].aim)||'self';
 const saveArsenal=()=>{try{localStorage.setItem('sigils-arsenal-v3',JSON.stringify(arsenal))}catch(_){}};
@@ -301,7 +302,7 @@ function positionPillars(n){const pts=n===2?[[.34,.43],[.66,.57]]:n===3?[[.29,.3
 function reset(level){
  selected=level;const m=missions[level],h=chosenHero();
  elapsed=0;sceneTime=0;shake=0;flash=0;
- bullets=[];particles=[];waves=[];hazards=[];floaters=[];
+ bullets=[];abilityShots=[];abilityVisuals=[];particles=[];waves=[];hazards=[];floaters=[];
  keys.clear();firing=false;touchAim.active=false;touchAim.id=null;
  firePointer=null;fireTouch=false;clearSkillTouch();shotQueue.length=0;
  joy.x=0;joy.y=0;joy.id=null;
@@ -312,7 +313,7 @@ function reset(level){
   heroId:heroChoice,x:portrait?W*.5:W*.24,y:portrait?H*.72:H*.56,r:h.role==='GUARDIÃO'?20:17,
   hp:h.hp+hpBoost,maxHp:h.hp+hpBoost,energy:100,maxEnergy:100,vx:0,vy:0,angle:0,hit:0,shield:0,
   invuln:0,dash:0,dashVx:0,dashVy:0,empowered:false,hitCombo:0,attackAnim:0,
-  cool:Object.fromEntries(heroSkillIds().map(id=>[id,0])),shoot:0
+  cool:Object.fromEntries(heroSkillIds().map(id=>[id,0])),casting:null,dashSkill:null,shoot:0
  };
  enemy={
   heroId:m.hero,x:portrait?W*.5:W*.76,y:portrait?H*.26:H*.44,r:m.boss?23:missions[level].hero==='orun'?21:18,
@@ -373,8 +374,8 @@ function renderArsenal(){
  const itemBonus=id=>{
   const lvl=itemLevel(id);
   return {lens:'+'+2*lvl+' dano básico',ward:'+'+(10+10*lvl)+' PV',
-   stride:'+'+(5.5*lvl).toFixed(1)+'% movimento',cell:'+'+18*lvl+'% energia',
-   prism:'1 ricochete · +'+2*lvl+' dano',core:'-'+(7.5*lvl).toFixed(1)+'% recarga'}[id];
+   stride:'+'+(4.5*lvl).toFixed(1)+'% movimento',cell:'+'+12*lvl+'% energia',
+   prism:'1 ricochete · +'+2*lvl+' dano',core:'-'+(6*lvl).toFixed(1)+'% recarga'}[id];
  };
  const fixed=isSkill?heroSkillIds().map((id,i)=>'<div class="fixed-skill">PODER '+(i+1)+'<small>'+skillDefs[id].name+'</small><span>FIXO</span></div>').join(''):
   slots.map((id,i)=>'<button data-action="slot" data-index="'+i+'" class="'+(itemSlot===i?'selected':'')+'">ITEM '+(i+1)+'<small>'+itemDefs[id].name+'</small></button>').join('');
@@ -383,7 +384,7 @@ function renderArsenal(){
   const cost=level===1?(isSkill?50:38):(isSkill?90:72);
   const upgrade=unlocked&&level<3?'<button class="upgrade" data-action="upgrade" data-id="'+id+'" '+(arsenal.credits<cost?'disabled':'')+'>EVOLUIR '+cost+' ✦</button>':'';
   const equip=!isSkill&&unlocked?'<button data-action="equip" data-id="'+id+'">'+(slots.includes(id)?'EM USO':'EQUIPAR')+'</button>':'';
-  const detail=isSkill?'Recarga '+skillCooldown(id).toFixed(1)+'s · '+d.cost+' energia · '+(d.aim==='self'?'instantânea':d.aim==='area'?'mira em área':'mira direcional'):itemBonus(id);
+  const detail=isSkill?'Conjuração '+skillCastTime(id).toFixed(2)+'s · recarga '+skillCooldown(id).toFixed(1)+'s · '+d.cost+' energia · '+(d.aim==='self'?'ao redor do corpo':d.aim==='area'?'mira em área':'mira direcional'):itemBonus(id);
   return '<article class="arsenal-card '+(unlocked?'':'locked')+'"><div class="card-title"><span><span class="card-icon">'+d.icon+'</span> '+d.name+'</span><span class="card-rank">'+(unlocked?'Nv. '+level+'/3':'🔒')+'</span></div>'+
    '<div class="card-desc">'+d.desc+'<div style="color:#ffe0a1;margin-top:4px">'+(unlocked?detail:'')+'</div></div>'+
    (isSkill?'<div class="fixed-label">EXCLUSIVA DE '+chosenHero().name+' · NÃO EQUIPÁVEL</div>':'')+
@@ -436,7 +437,7 @@ function endGame(win){if(mode!=='playing')return;mode=win?'won':'lost';$('missio
 function renderMissions(){const el=$('missions');el.innerHTML=missions.map((m,i)=>`<button class="mission ${i===selected?'active':''}" data-level="${i}" ${i>=unlocked?'disabled':''}><span class="num">${i>=unlocked?'⌑':String(i+1).padStart(2,'0')}</span><span class="mission-info"><strong>${m.name}</strong><small>${m.enemy}</small></span><span class="mini-stars">${Array.from({length:3},(_,j)=>bests[i]>j?'★':'☆').join('')}</span></button>`).join('');el.querySelectorAll('.mission:not(:disabled)').forEach(b=>b.onclick=()=>{selected=Number(b.dataset.level);showMenu()})}
 function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');if(toastTimeout)clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('show'),1250)}
 function updateHud(){const m=missions[selected];$('playerHeroName').textContent='✦ '+chosenHero().name;$('levelLabel').textContent='MISSÃO '+String(selected+1).padStart(2,'0');$('enemyName').textContent=m.enemy;$('clock').textContent=Math.floor(elapsed/60).toString().padStart(2,'0')+':'+Math.floor(elapsed%60).toString().padStart(2,'0');$('playerHpText').textContent=player?Math.ceil(player.hp)+'/'+player.maxHp:chosenHero().hp+'/'+chosenHero().hp;$('enemyHpText').textContent=enemy?Math.ceil(enemy.hp)+'/'+m.hp:'—';$('playerHp').style.width=(player?clamp(player.hp/player.maxHp*100,0,100):100)+'%';$('playerEnergy').style.width=(player?player.energy:100)+'%';$('enemyHp').style.width=(enemy?clamp(enemy.hp/enemy.maxHp*100,0,100):100)+'%';$('objectiveTag').textContent=`★ Vencer  ★ Vida ≥75%  ★ Até ${m.time}s`;
- if(player){heroSkillIds().forEach((id,i)=>{const b=$(['dashBtn','pulseBtn','shieldBtn'][i]),d=skillDefs[id],cd=player.cool[id],el=b.querySelector('.cd-text');b.querySelector('b').textContent=d.icon;b.querySelector('small').textContent=d.short;b.setAttribute('aria-label',d.name);b.classList.toggle('oncd',cd>.03||player.energy<d.cost);el.hidden=!(cd>.03);el.textContent=cd>0?cd.toFixed(1):''})}
+ if(player){heroSkillIds().forEach((id,i)=>{const b=$(['dashBtn','pulseBtn','shieldBtn'][i]),d=skillDefs[id],cd=player.cool[id],el=b.querySelector('.cd-text');b.querySelector('b').textContent=d.icon;b.querySelector('small').textContent=d.short;b.setAttribute('aria-label',d.name);b.classList.toggle('oncd',cd>.03||player.energy<d.cost||!!player.casting);el.hidden=!(cd>.03||player.casting?.which===id);el.textContent=player.casting?.which===id?player.casting.remaining.toFixed(1):cd>0?cd.toFixed(1):''})}
  const btn=$('fireBtn');
  if(player){
   const h=chosenHero(),progress=1-clamp(player.shoot/h.attackTime,0,1);
@@ -454,7 +455,7 @@ function wallCollision(o){const margin=o.r+12;o.x=clamp(o.x,margin,W-margin);o.y
 function moveVec(){let x=0,y=0;if(keys.has('w')||keys.has('arrowup'))y--;if(keys.has('s')||keys.has('arrowdown'))y++;if(keys.has('a')||keys.has('arrowleft'))x--;if(keys.has('d')||keys.has('arrowright'))x++;x+=joy.x;y+=joy.y;const len=Math.hypot(x,y);return len>1?{x:x/len,y:y/len}:{x,y}}
 function targetDirection(){if(touchAim.active&&touchAim.dragged)return{x:touchAim.x,y:touchAim.y};const isMobile=matchMedia('(pointer:coarse)').matches||W<580;if(isMobile||!aim.active)return unit(enemy.x-player.x,enemy.y-player.y);return unit(aim.x-player.x,aim.y-player.y)}
 function shootPlayer(dir){
- if(mode!=='playing'||player.shoot>.005)return;
+ if(mode!=='playing'||player.shoot>.005||player.casting)return;
  const h=chosenHero(),direction=unit(dir.x,dir.y);
  player.angle=Math.atan2(direction.y,direction.x);
  const speed=h.projectile,origin=player.r+13;
@@ -476,7 +477,7 @@ function queueSingleShot(dir){
  const d=unit(dir.x,dir.y);
  // Um clique é uma ordem de ataque. No máximo uma ordem fica armazenada.
  shotQueue.length=0;
- if(player.shoot<=.005)shootPlayer(d);
+ if(player.shoot<=.005&&!player.casting)shootPlayer(d);
  else shotQueue.push(d);
 }
 function onBasicHit(damage){
@@ -635,12 +636,12 @@ function damageEnemy(n){if(enemy.hp<=0)return;if(enemy.barrier>0)n=Math.round(n*
 function tick(dt){sceneTime+=dt;shake=Math.max(0,shake-27*dt);flash=Math.max(0,flash-dt*2);for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=1-dt*2;p.vy*=1-dt*2;p.life-=dt}particles=particles.filter(p=>p.life>0);for(const w of waves)w.life-=dt;waves=waves.filter(w=>w.life>0);for(const f of floaters){f.y-=dt*25;f.life-=dt}floaters=floaters.filter(f=>f.life>0);
  if(mode!=='playing')return;
  elapsed+=dt;for(const k in player.cool)player.cool[k]=Math.max(0,player.cool[k]-dt);player.hit=Math.max(0,player.hit-dt);enemy.hit=Math.max(0,enemy.hit-dt);player.invuln=Math.max(0,player.invuln-dt);player.shield=Math.max(0,player.shield-dt);player.shoot=Math.max(0,player.shoot-dt);player.attackAnim=Math.max(0,player.attackAnim-dt);enemy.stun=Math.max(0,enemy.stun-dt);enemy.slowTimer=Math.max(0,enemy.slowTimer-dt);enemy.marked=Math.max(0,enemy.marked-dt);enemy.barrier=Math.max(0,enemy.barrier-dt);enemy.dodgeCooldown=Math.max(0,enemy.dodgeCooldown-dt);
- player.energy=clamp(player.energy+dt*(dist(player,{x:W*.5,y:H*.53})<72?31:14)*(equippedItem('cell')?1+.18*itemLevel('cell'):1),0,100);
- const m=moveVec(),speed=chosenHero().move*(equippedItem('stride')?1+.055*itemLevel('stride'):1);player.vx=m.x*speed;player.vy=m.y*speed;
+ player.energy=clamp(player.energy+dt*(dist(player,{x:W*.5,y:H*.53})<72?31:14)*(equippedItem('cell')?1+.12*itemLevel('cell'):1),0,100);
+ const m=moveVec(),speed=chosenHero().move*(equippedItem('stride')?1+.045*itemLevel('stride'):1)*(player.casting?.55:1);player.vx=m.x*speed;player.vy=m.y*speed;
  if(player.dash>0){player.dash-=dt;player.x+=player.dashVx*dt;player.y+=player.dashVy*dt;if(Math.random()<.85)spawnPart(player.x,player.y,rnd(0,TWO),rnd(20,90),.3,'#79f8e9',rnd(2,6))}
  else{player.x+=player.vx*dt;player.y+=player.vy*dt}
  wallCollision(player);const pdir=targetDirection();player.angle=Math.atan2(pdir.y,pdir.x);
- if(shotQueue.length&&player.shoot<=0)shootPlayer(shotQueue.shift());
+ if(shotQueue.length&&player.shoot<=0&&!player.casting)shootPlayer(shotQueue.shift());
  enemy.shoot-=dt;enemy.change-=dt;enemy.special-=dt;
  if(enemy.stun>0)enemy.windup=0;
  else{
