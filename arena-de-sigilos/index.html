@@ -479,20 +479,44 @@ function renderArsenal(){
 }
 function showPause(){if(mode==='playing'){mode='paused';$('missionShelf').hidden=true;$('overlay').classList.remove('picker-open','hero-open','arsenal-open');$('overlay').classList.remove('hidden');$('modalContent').innerHTML='<div class="eyebrow">TEMPO CONGELADO</div><h2>Team fight pausada</h2><p>As duas equipes permanecerão na arena até você continuar.</p><div class="actions"><button class="primary" id="resume">CONTINUAR</button><button class="secondary" id="retry">RECOMEÇAR</button><button class="secondary" id="menu">MISSÕES</button></div>';$('resume').onclick=resume;$('retry').onclick=()=>reset(selected);$('menu').onclick=showMenu;firing=false;keys.clear();clearSkillTouch()}else if(mode==='paused')resume()}
 function resume(){mode='playing';$('overlay').classList.add('hidden');last=performance.now()}
-function endGame(win){if(mode!=='playing')return;mode=win?'won':'lost';$('missionShelf').hidden=true;$('overlay').classList.remove('picker-open');firing=false;keys.clear();clearSkillTouch();if(win){for(let i=0;i<38;i++)spawnPart(rnd(W*.14,W*.85),rnd(H*.19,H*.8),rnd(0,TWO),rnd(50,185),rnd(.3,1),'#f7ce78',rnd(2,5));tone(730,.18,'triangle',.075);setTimeout(()=>tone(1010,.2,'sine',.04),125)}else tone(150,.35,'sawtooth',.04);
- const m=missions[selected],stars=win?1+Number(player.hp/player.maxHp>=.75)+Number(elapsed<=m.time):0,previous=bests[selected];
+
+function endGame(win){
+ if(mode!=='playing')return;
+ mode=win?'won':'lost';$('missionShelf').hidden=true;
+ $('overlay').classList.remove('picker-open','arsenal-open','hero-open');
+ firing=false;keys.clear();clearSkillTouch();
+ if(win){
+  for(let i=0;i<38;i++)spawnPart(rnd(W*.14,W*.85),rnd(H*.19,H*.8),rnd(0,TWO),rnd(50,185),rnd(.3,1),'#f7ce78',rnd(2,5));
+  tone(730,.18,'triangle',.075);setTimeout(()=>tone(1010,.2,'sine',.04),125);
+ }else tone(150,.35,'sawtooth',.04);
+ const m=missions[selected],survived=player.hp>0&&player.hp/player.maxHp>=.6;
+ const stars=win?1+Number(survived)+Number(elapsed<=m.time):0,previous=bests[selected];
  let earned=0,newUnlocks=[];
  if(win){
   earned=previous===0?38+14*stars:(stars>previous?8+14*(stars-previous):8);
-  arsenal.credits+=earned;
-  bests[selected]=Math.max(bests[selected],stars);
+  arsenal.credits+=earned;bests[selected]=Math.max(previous,stars);
   unlocked=Math.max(unlocked,Math.min(5,selected+2));save();saveArsenal();
   if(previous===0)newUnlocks=Object.values(itemDefs).filter(x=>x.unlock===selected+1).map(x=>x.name);
  }
  const display=win?'<div class="stars">'+[1,2,3].map(i=>`<span class="${i<=stars?'earned':'empty'}">★</span>`).join('')+'</div>':'';
- const c1=win?'★':'○',c2=win&&player.hp/player.maxHp>=.75?'★':'○',c3=win&&elapsed<=m.time?'★':'○';
- $('overlay').classList.remove('hidden');$('modalContent').innerHTML=`<div class="eyebrow">${win?'RITUAL CONCLUÍDO':'SIGILO ROMPIDO'}</div><h2>${win?'VITÓRIA!':'DERROTA'}</h2>${display}<p>${win?`Você derrotou ${m.enemy} em ${elapsed.toFixed(1)} segundos. ${stars===3?'Perfeito! As três estrelas são suas.':'Consegue melhorar sua avaliação?'}`:'O rival venceu este duelo. Observe os ataques e tente uma estratégia diferente.'}</p><div class="result-objectives"><div class="${win?'':'miss'}"><span>${c1}</span> Derrotar os cinco rivais</div><div class="${c2==='★'?'':'miss'}"><span>${c2}</span> Terminar com 75% da vida (${Math.max(0,Math.round(player.hp/player.maxHp*100))}%)</div><div class="${c3==='★'?'':'miss'}"><span>${c3}</span> Vencer até ${m.time}s (${elapsed.toFixed(1)}s)</div></div>${win?`<div class="battle-hint">+${earned} ✦ fragmentos${newUnlocks.length?` · NOVO: ${newUnlocks.join(" e ")}`:""}</div>`:""}<div class="actions"><button class="primary" id="retry">${win?'JOGAR NOVAMENTE':'TENTAR DE NOVO'}</button>${win&&selected<4?'<button class="secondary" id="next">PRÓXIMA FASE →</button>':''}<button class="secondary" id="menu">VER MISSÕES</button><button class="secondary" id="postArsenal">⚒ ARSENAL</button></div>`;
- $('retry').onclick=()=>reset(selected);$('menu').onclick=showMenu;$('postArsenal').onclick=()=>showArsenal('skills');if($('next'))$('next').onclick=()=>reset(selected+1);renderMissions();updateHud()
+ const c1=win?'★':'○',c2=win&&survived?'★':'○',c3=win&&elapsed<=m.time?'★':'○';
+ $('overlay').classList.remove('hidden');
+ $('modalContent').innerHTML=`<div class="eyebrow">${win?'BATALHA CONCLUÍDA':'EQUIPE ELIMINADA'}</div>
+ <h2>${win?'VITÓRIA AZUL!':'DERROTA RUBRA'}</h2>${display}
+ <p>${win?`Sua equipe venceu o 5x5 em ${elapsed.toFixed(1)} segundos. ${player.hp>0?'Você sobreviveu!':'Seus aliados garantiram a vitória após sua queda.'}`:
+ 'A equipe rubra eliminou seus cinco campeões. Ajuste itens e estratégias para a próxima luta.'}</p>
+ <div class="result-objectives">
+ <div class="${win?'':'miss'}"><span>${c1}</span> Eliminar os cinco adversários (${teamKills.ally} abates)</div>
+ <div class="${c2==='★'?'':'miss'}"><span>${c2}</span> Sobreviver com 60% da vida (${Math.max(0,Math.round(player.hp/player.maxHp*100))}%)</div>
+ <div class="${c3==='★'?'':'miss'}"><span>${c3}</span> Ganhar até ${m.time}s (${elapsed.toFixed(1)}s)</div></div>
+ ${win?`<div class="battle-hint">+${earned} ✦ fragmentos${newUnlocks.length?' · NOVO: '+newUnlocks.join(' e '):''}</div>`:''}
+ <div class="actions"><button class="primary" id="retry">${win?'JOGAR NOVAMENTE':'TENTAR DE NOVO'}</button>
+ ${win&&selected<4?'<button class="secondary" id="next">PRÓXIMA BATALHA →</button>':''}
+ <button class="secondary" id="menu">VER BATALHAS</button><button class="secondary" id="postArsenal">⚒ ARSENAL</button></div>`;
+ $('retry').onclick=()=>reset(selected);$('menu').onclick=showMenu;
+ $('postArsenal').onclick=()=>showArsenal('items');
+ if($('next'))$('next').onclick=()=>reset(selected+1);
+ renderMissions();updateHud();
 }
 function renderMissions(){const el=$('missions');el.innerHTML=missions.map((m,i)=>`<button class="mission ${i===selected?'active':''}" data-level="${i}" ${i>=unlocked?'disabled':''}><span class="num">${i>=unlocked?'⌑':String(i+1).padStart(2,'0')}</span><span class="mission-info"><strong>${m.name}</strong><small>${m.enemy}</small></span><span class="mini-stars">${Array.from({length:3},(_,j)=>bests[i]>j?'★':'☆').join('')}</span></button>`).join('');el.querySelectorAll('.mission:not(:disabled)').forEach(b=>b.onclick=()=>{selected=Number(b.dataset.level);showMenu()})}
 function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');if(toastTimeout)clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('show'),1250)}
@@ -792,8 +816,44 @@ function tickAbilityVisuals(dt){
  }
  abilityVisuals=abilityVisuals.filter(f=>f.life>0);
 }
-function damagePlayer(n){if(player.invuln>0)return;if(player.shield>0){burst(player.x,player.y,'#9bbaff',6,100);tone(520,.05,'sine',.027);return}player.hp-=n;player.hit=.28;shake=6;hitText(player.x,player.y-21,n,'#ff889d');burst(player.x,player.y,'#ff7e9b',10,130);tone(130,.12,'sawtooth',.06);if(player.hp<=0){player.hp=0;endGame(false)}}
-function damageEnemy(n){if(enemy.hp<=0)return;if(enemy.barrier>0)n=Math.round(n*.65);enemy.hp-=n;enemy.hit=.25;shake=3;hitText(enemy.x,enemy.y-20,n,'#ffe59c');burst(enemy.x,enemy.y,missions[selected].color,9,125);tone(280,.075,'triangle',.037);if(enemy.hp<=0){enemy.hp=0;burst(enemy.x,enemy.y,missions[selected].color,32,230);endGame(true)}}
+
+function healUnit(u,n,source=null){
+ if(!u||u.hp<=0||mode!=='playing')return 0;
+ const amount=Math.max(0,Math.round(Math.min(n,u.maxHp-u.hp)));
+ if(!amount)return 0;
+ u.hp+=amount;hitText(u.x,u.y-u.r-16,'+'+amount,'#a6ffca');
+ burst(u.x,u.y,'#95ffd5',5,63);
+ return amount;
+}
+function damageUnit(u,n,source=null){
+ if(!u||u.hp<=0||mode!=='playing')return 0;
+ if(u.invuln>0)return 0;
+ if(u.shield>0){
+  // Escudos não ficam invisíveis: absorvem somente a primeira troca durante a duração.
+  u.shield=0;
+  burst(u.x,u.y,'#9bbaff',9,95);
+  ring(u.x,u.y,u.r+17,'#b4d8ff',.9,3);
+  return 0;
+ }
+ if(u.barrier>0)n*=.72;
+ const amount=Math.max(1,Math.round(n));
+ u.hp=Math.max(0,u.hp-amount);u.hit=.22;
+ if(u===player)shake=3.3;
+ hitText(u.x,u.y-u.r-15,amount,u.team===0?'#ffaaba':'#ffe4a3');
+ burst(u.x,u.y,u.team===0?'#ff8da9':'#ffbf94',6,100);
+ if(u.hp<=0){
+  burst(u.x,u.y,heroes[u.heroId].color,22,155);
+  addWave(u.x,u.y,45,.45,u.team===0?'#79e8ee':'#ff82a5',3.5);
+  u.casting=null;u.windup=0;u.dash=0;
+  if(u.team===1){teamKills.ally++;if(u===enemy)refreshTarget()}
+  else {teamKills.enemy++;if(u===player){shotQueue.length=0;clearSkillTouch();touchAim.active=false;toast('SEU CAMPEÃO CAIU · ALIADOS CONTINUAM')}}
+  const blue=aliveCount(0),red=aliveCount(1);
+  if(red===0||blue===0)endGame(red===0);
+ }
+ return amount;
+}
+function damagePlayer(n,source=null){return damageUnit(player,n,source)}
+function damageEnemy(n,source=player){return damageUnit(refreshTarget(),n,source)}
 function tick(dt){sceneTime+=dt;shake=Math.max(0,shake-27*dt);flash=Math.max(0,flash-dt*2);for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=1-dt*2;p.vy*=1-dt*2;p.life-=dt}particles=particles.filter(p=>p.life>0);for(const w of waves)w.life-=dt;waves=waves.filter(w=>w.life>0);for(const f of floaters){f.y-=dt*25;f.life-=dt}floaters=floaters.filter(f=>f.life>0);
  tickAbilityVisuals(dt);
  if(mode!=='playing')return;
