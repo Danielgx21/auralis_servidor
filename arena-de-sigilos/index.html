@@ -1313,17 +1313,23 @@ function drawHazards(t){
  }
 }
 function drawEntity(o,isPlayer,t){
- if(!o)return;
- const heroId=o.heroId||(isPlayer?heroChoice:missions[selected].hero),h=heroes[heroId]||heroes.lyria;
- const color=isPlayer?h.color:missions[selected].color,r=o.r||18,face=o.angle||0,hit=(o.hit||0)>0;
- const sway=Math.sin(t*3+(isPlayer?0:2))*.8;
+ if(!o||o.hp<=0)return;
+ const friendly=o.team===0||(o.team===undefined&&isPlayer),controlled=o===player;
+ const heroId=o.heroId||(isPlayer?heroChoice:missions[selected].hero);
+ const h=heroes[heroId]||heroes.lyria;
+ const color=h.color,r=o.r||18,face=o.angle||0,hit=(o.hit||0)>0;
+ const sway=Math.sin(t*3+(friendly?0:2))*.8;
  ctx.save();
- // Sombra e marcador de equipe no chão.
- circle(o.x,o.y+3,r+12,'#000710',.5);ring(o.x,o.y,r+12,isPlayer?'#50e6d3':'#ff8ba3',.5,2);
+ circle(o.x,o.y+3,r+8,'#000710',.52);
+ ring(o.x,o.y,r+(controlled?13:8),friendly?'#65f7ed':'#ff788e',controlled?.88:.6,controlled?3:1.8);
  ctx.translate(o.x,o.y+sway);
- if(isPlayer&&(o.invuln||0)>0&&Math.floor(t*21)%2===0)ctx.globalAlpha=.53;
- ctx.shadowColor=color;ctx.shadowBlur=16;circle(0,0,r+2,'#081425',1);ctx.shadowBlur=0;
- ring(0,0,r+4,color,.62,2,t*.5,t*.5+Math.PI*1.3);
+ if(controlled&&(o.invuln||0)>0&&Math.floor(t*21)%2===0)ctx.globalAlpha=.53;
+ if(controlled&&o.casting){
+  ctx.shadowBlur=22;ctx.shadowColor=color;
+ }else{ctx.shadowBlur=12;ctx.shadowColor=color}
+ circle(0,0,r+2,'#081425',1);
+ ctx.shadowBlur=0;
+ ring(0,0,r+4,color,.62,1.9,t*.5,t*.5+Math.PI*1.3);
  ctx.rotate(face);
  if(heroId==='lyria'){
   // Atiradora: capa afilada, capuz e arco longo visível.
@@ -1366,38 +1372,63 @@ function drawEntity(o,isPlayer,t){
   circle(r*1.3,r*.64,r*.28,'#f0a8ff');
   ring(r*1.3,r*.64,r*.44,color,.9,1.7);
   circle(r*.48,-r*.48,r*.13,'#ffffff',.9);
+ }else if(heroId==='seris'){
+  // Suporte: aura floral, bastão de luz e pétalas.
+  ctx.beginPath();
+  ctx.moveTo(-r*.85,-r*.5);ctx.lineTo(r*.25,-r*.72);ctx.lineTo(r*.75,0);
+  ctx.lineTo(r*.25,r*.72);ctx.lineTo(-r*.85,r*.5);ctx.closePath();
+  ctx.fillStyle='#592c60';ctx.fill();ctx.strokeStyle=color;ctx.lineWidth=2;ctx.stroke();
+  for(let i=0;i<5;i++){
+   const ang=i*TWO/5+t*.25;
+   circle(Math.cos(ang)*r*.52,Math.sin(ang)*r*.52,r*.22,color,.74);
+  }
+  circle(-r*.18,0,r*.30,'#fce0f5');
+  line(0,r*.45,r*1.23,r*.53,'#ffd4ed',3);
+  polygon(r*1.26,r*.54,r*.37,5,'#ffa7dc',t*.35,true,.97);
  }
  ctx.restore();
- if(!isPlayer&&missions[selected].boss){
+ if(!friendly&&missions[selected].boss&&o===enemies[0]){
   ctx.save();ctx.translate(o.x,o.y);ring(0,0,r+14,'#fa7ed6',.62+Math.sin(t*4)*.15,2.5);
   for(let i=0;i<6;i++){const a=i*TWO/6+t*.45;polygon(Math.cos(a)*(r+16),Math.sin(a)*(r+16),5,3,'#fba2ed',a,true,.83)}
   ctx.restore();
  }
- if(!isPlayer&&o.marked>0){ring(o.x,o.y,r+17,'#ff9d8e',.7+Math.sin(t*8)*.2,2.5);ctx.save();ctx.textAlign='center';ctx.font='900 18px system-ui';ctx.fillStyle='#ffc3a1';ctx.fillText('◎',o.x,o.y-r-48);ctx.restore()}
+ if(o.marked>0){ring(o.x,o.y,r+17,'#ff9d8e',.7+Math.sin(t*8)*.2,2.5);ctx.save();ctx.textAlign='center';ctx.font='900 18px system-ui';ctx.fillStyle='#ffc3a1';ctx.fillText('◎',o.x,o.y-r-48);ctx.restore()}
  if(o.barrier>0||o.shield>0){
-  const protective=isPlayer?'#afbeff':'#ffd4a8';
+  const protective=friendly?'#afbeff':'#ffd4a8';
   ring(o.x,o.y,r+18,protective,.5+Math.sin(t*7)*.12,3);
   polygon(o.x,o.y,r+21,6,protective,t*.22,false,.35,1.2);
  }
- if(!isPlayer){
-  const bw=66;
-  ctx.fillStyle='#020914da';ctx.fillRect(o.x-bw/2,o.y-r-29,bw,6);
-  ctx.fillStyle=color;ctx.fillRect(o.x-bw/2,o.y-r-29,bw*clamp(o.hp/o.maxHp,0,1),6);
-  ctx.save();ctx.font='800 9px system-ui';ctx.textAlign='center';
-  ctx.fillStyle='#e7d8ef';ctx.shadowColor='#000';ctx.shadowBlur=4;
-  ctx.fillText(missions[selected].enemy,o.x,o.y-r-36);ctx.restore();
+ if(!controlled){
+  const bw=44,ratio=clamp(o.hp/o.maxHp,0,1);
+  ctx.fillStyle='#020914dd';ctx.fillRect(o.x-bw/2,o.y-r-19,bw,5);
+  ctx.fillStyle=friendly?'#69ddbb':'#ff7896';
+  ctx.fillRect(o.x-bw/2,o.y-r-19,bw*ratio,5);
+  ctx.save();ctx.font='800 8px system-ui';ctx.textAlign='center';
+  ctx.fillStyle=friendly?'#cbfff0':'#ffdbdf';ctx.shadowColor='#000';ctx.shadowBlur=4;
+  ctx.fillText(h.name,o.x,o.y-r-25);
+  ctx.restore();
  }
 }
 function drawEnemyWindup(t){
- if(!enemy||enemy.windup<=0||mode!=='playing')return;
- const d=unit((enemy.aimX??player.x)-enemy.x,(enemy.aimY??player.y)-enemy.y);
- const reach=Math.min(missions[selected].range,Math.hypot(W,H));
- const ex=enemy.x+d.x*reach,ey=enemy.y+d.y*reach;
- ctx.save();ctx.setLineDash([6,7]);
- line(enemy.x+d.x*(enemy.r+14),enemy.y+d.y*(enemy.r+14),ex,ey,'#ff8eaf',2.5,.58+Math.sin(t*27)*.23);
- ctx.setLineDash([]);
- ring(enemy.x,enemy.y,enemy.r+15,'#ffb2a3',.62,2.2);
- ctx.restore();
+ if(mode!=='playing')return;
+ for(const u of [...allies.slice(1),...enemies]){
+  if(u.hp<=0)continue;
+  if(u.windup>0&&u.windupTarget&&u.windupTarget.hp>0){
+   const d=unit(u.windupTarget.x-u.x,u.windupTarget.y-u.y);
+   const reach=unitRange(u),ex=u.x+d.x*reach,ey=u.y+d.y*reach;
+   ctx.save();ctx.setLineDash([6,6]);
+   line(u.x+d.x*(u.r+9),u.y+d.y*(u.r+9),ex,ey,
+    u.team===0?'#76f3e7':'#ffa3b8',2,.44+Math.sin(t*18)*.14);
+   ctx.setLineDash([]);ring(u.x,u.y,u.r+9,u.team===0?'#7feddd':'#ff9eb2',.35,1.5);
+   ctx.restore();
+  }
+  if(u.casting){
+   const ratio=clamp(1-u.casting.remaining/(u.casting.duration||1),0,1);
+   const width=35,x=u.x-width/2,y=u.y+u.r+11;
+   ctx.fillStyle='#05121cc9';ctx.fillRect(x,y,width,3);
+   ctx.fillStyle=u.team===0?'#80f6df':'#ff9dbc';ctx.fillRect(x,y,width*ratio,3);
+  }
+ }
 }
 function drawAimGuide(t){
  if(!player||mode!=='playing'||!touchAim.active||player.casting||(skillTouch&&skillTouch.active))return; // Prioridade visual à habilidade.
@@ -1561,7 +1592,10 @@ function drawProjectiles(){
  }
 }
 function drawParticles(){ctx.save();ctx.globalCompositeOperation='lighter';for(const p of particles){circle(p.x,p.y,p.size*(p.life/p.max),p.color,clamp(p.life/p.max,0,1)*.9)}ctx.restore();for(const w of waves){let p=1-w.life/w.full;ring(w.x,w.y,w.max*p,w.color,1-p,w.lineWidth*(1-p*.65))}ctx.save();ctx.font='900 14px system-ui';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=5;for(const f of floaters){ctx.globalAlpha=clamp(f.life/.7,0,1);ctx.fillStyle=f.color;ctx.fillText(f.txt,f.x,f.y)}ctx.restore()}
-function draw(t){ctx.save();ctx.clearRect(0,0,W,H);if(shake>0&&mode==='playing')ctx.translate(rnd(-shake,shake),rnd(-shake,shake));drawBackground(t);drawPillars(t);if(mode!=='menu'&&player&&enemy){drawHazards(t);drawEnemyWindup(t);drawProjectiles();drawAbilityProjectiles();drawEntity(enemy,false,t);drawEntity(player,true,t);drawAimGuide(t);drawSkillGuide(t);drawCastingOverlay();drawParticles()}else{ // attract mode
+function draw(t){ctx.save();ctx.clearRect(0,0,W,H);if(shake>0&&mode==='playing')ctx.translate(rnd(-shake,shake),rnd(-shake,shake));drawBackground(t);drawPillars(t);if(mode!=='menu'&&player&&enemy){drawHazards(t);drawEnemyWindup(t);drawProjectiles();drawAbilityProjectiles();
+ for(const u of [...allies,...enemies].filter(u=>u.hp>0).sort((a,b)=>a.y-b.y))drawEntity(u,u.team===0,t);
+ if(player.hp>0){drawAimGuide(t);drawSkillGuide(t);drawCastingOverlay()}
+ drawParticles()}else{ // attract mode
  const cx=W*.36,cy=H*.53,ex=W*.68,ey=H*.48;drawEntity({heroId:heroChoice,x:cx,y:cy,r:18,angle:Math.atan2(ey-cy,ex-cx),hit:0,shield:0,invuln:0},true,t);drawEntity({heroId:missions[selected].hero,x:ex,y:ey,r:19,angle:Math.atan2(cy-ey,cx-ex),hp:1,maxHp:1,hit:0},false,t);for(let i=0;i<6;i++){const p=(t*.24+i/6)%1,cx1=lerp(cx,ex,p),cy1=lerp(cy,ey,p);circle(cx1,cy1,3,'#83f5e6',.15+.4*Math.sin(p*Math.PI))}
  }ctx.restore()}
 function loop(now){let dt=Math.min(.04,(now-last)/1000||.016);last=now;maybeActivateAim(now);maybeActivateSkillAim(now);tick(dt);draw(sceneTime);requestAnimationFrame(loop)}
