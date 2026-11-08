@@ -279,7 +279,7 @@ function reset(level){
  elapsed=0;sceneTime=0;shake=0;flash=0;
  bullets=[];particles=[];waves=[];hazards=[];floaters=[];
  keys.clear();firing=false;touchAim.active=false;touchAim.id=null;
- firePointer=null;fireTouch=false;shotQueue.length=0;
+ firePointer=null;fireTouch=false;clearSkillTouch();shotQueue.length=0;
  joy.x=0;joy.y=0;joy.id=null;
  $('joy').classList.remove('active');$('fireBtn').classList.remove('aiming');$('aimPad').classList.remove('active');
  const portrait=W/H<.87;
@@ -397,9 +397,9 @@ function renderArsenal(){
   }
  };
 }
-function showPause(){if(mode==='playing'){mode='paused';$('missionShelf').hidden=true;$('overlay').classList.remove('picker-open');$('overlay').classList.remove('hidden');$('modalContent').innerHTML='<div class="eyebrow">TEMPO CONGELADO</div><h2>Duelo pausado</h2><p>Seu rival não vai a lugar nenhum.</p><div class="actions"><button class="primary" id="resume">CONTINUAR</button><button class="secondary" id="retry">RECOMEÇAR</button><button class="secondary" id="menu">MISSÕES</button></div>';$('resume').onclick=resume;$('retry').onclick=()=>reset(selected);$('menu').onclick=showMenu;firing=false;keys.clear()}else if(mode==='paused')resume()}
+function showPause(){if(mode==='playing'){mode='paused';$('missionShelf').hidden=true;$('overlay').classList.remove('picker-open');$('overlay').classList.remove('hidden');$('modalContent').innerHTML='<div class="eyebrow">TEMPO CONGELADO</div><h2>Duelo pausado</h2><p>Seu rival não vai a lugar nenhum.</p><div class="actions"><button class="primary" id="resume">CONTINUAR</button><button class="secondary" id="retry">RECOMEÇAR</button><button class="secondary" id="menu">MISSÕES</button></div>';$('resume').onclick=resume;$('retry').onclick=()=>reset(selected);$('menu').onclick=showMenu;firing=false;keys.clear();clearSkillTouch()}else if(mode==='paused')resume()}
 function resume(){mode='playing';$('overlay').classList.add('hidden');last=performance.now()}
-function endGame(win){if(mode!=='playing')return;mode=win?'won':'lost';$('missionShelf').hidden=true;$('overlay').classList.remove('picker-open');firing=false;keys.clear();if(win){for(let i=0;i<38;i++)spawnPart(rnd(W*.14,W*.85),rnd(H*.19,H*.8),rnd(0,TWO),rnd(50,185),rnd(.3,1),'#f7ce78',rnd(2,5));tone(730,.18,'triangle',.075);setTimeout(()=>tone(1010,.2,'sine',.04),125)}else tone(150,.35,'sawtooth',.04);
+function endGame(win){if(mode!=='playing')return;mode=win?'won':'lost';$('missionShelf').hidden=true;$('overlay').classList.remove('picker-open');firing=false;keys.clear();clearSkillTouch();if(win){for(let i=0;i<38;i++)spawnPart(rnd(W*.14,W*.85),rnd(H*.19,H*.8),rnd(0,TWO),rnd(50,185),rnd(.3,1),'#f7ce78',rnd(2,5));tone(730,.18,'triangle',.075);setTimeout(()=>tone(1010,.2,'sine',.04),125)}else tone(150,.35,'sawtooth',.04);
  const m=missions[selected],stars=win?1+Number(player.hp/player.maxHp>=.75)+Number(elapsed<=m.time):0,previous=bests[selected];
  let earned=0,newUnlocks=[];
  if(win){
@@ -787,7 +787,7 @@ function drawParticles(){ctx.save();ctx.globalCompositeOperation='lighter';for(c
 function draw(t){ctx.save();ctx.clearRect(0,0,W,H);if(shake>0&&mode==='playing')ctx.translate(rnd(-shake,shake),rnd(-shake,shake));drawBackground(t);drawPillars(t);if(mode!=='menu'&&player&&enemy){drawHazards(t);drawEnemyWindup(t);drawProjectiles();drawEntity(enemy,false,t);drawEntity(player,true,t);drawAimGuide(t);drawParticles()}else{ // attract mode
  const cx=W*.36,cy=H*.53,ex=W*.68,ey=H*.48;drawEntity({heroId:heroChoice,x:cx,y:cy,r:18,angle:Math.atan2(ey-cy,ex-cx),hit:0,shield:0,invuln:0},true,t);drawEntity({heroId:missions[selected].hero,x:ex,y:ey,r:19,angle:Math.atan2(cy-ey,cx-ex),hp:1,maxHp:1,hit:0},false,t);for(let i=0;i<6;i++){const p=(t*.24+i/6)%1,cx1=lerp(cx,ex,p),cy1=lerp(cy,ey,p);circle(cx1,cy1,3,'#83f5e6',.15+.4*Math.sin(p*Math.PI))}
  }ctx.restore()}
-function loop(now){let dt=Math.min(.04,(now-last)/1000||.016);last=now;maybeActivateAim(now);tick(dt);draw(sceneTime);requestAnimationFrame(loop)}
+function loop(now){let dt=Math.min(.04,(now-last)/1000||.016);last=now;maybeActivateAim(now);maybeActivateSkillAim(now);tick(dt);draw(sceneTime);requestAnimationFrame(loop)}
 function pointInCanvas(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 canvas.addEventListener('pointermove',e=>{if(e.pointerType==='mouse'){aim={...pointInCanvas(e),active:true}}});
 canvas.addEventListener('pointerdown',e=>{if(mode==='playing'&&e.pointerType==='mouse'){e.preventDefault();aim={...pointInCanvas(e),active:true};queueSingleShot(targetDirection());canvas.setPointerCapture(e.pointerId)}});
@@ -846,7 +846,78 @@ function beginFireTouch(e,captureElement){
 fireBtn.addEventListener('pointerdown',e=>beginFireTouch(e,fireBtn));
 fireBtn.addEventListener('pointermove',updateTouchAim);
 for(const ev of ['pointerup','pointercancel','lostpointercapture'])fireBtn.addEventListener(ev,endFireTouch);
-['dashBtn','pulseBtn','shieldBtn'].forEach((id,i)=>$(id).addEventListener('pointerdown',e=>{e.preventDefault();ability(arsenal.skills[i])}));
+
+let skillPointer=null,skillTouch=null;
+const abilityCancel=$('abilityCancel'),abilityButtons=['dashBtn','pulseBtn','shieldBtn'];
+const SKILL_HOLD_MS=220;
+function clearSkillTouch(){
+ if(skillTouch&&skillTouch.button)skillTouch.button.classList.remove('aim-holding');
+ abilityCancel.classList.remove('show');
+ skillPointer=null;skillTouch=null;
+}
+function updateSkillVector(){
+ if(!skillTouch||!skillTouch.active)return;
+ const dx=skillTouch.currentX-skillTouch.startX,dy=skillTouch.currentY-skillTouch.startY;
+ const distance=Math.hypot(dx,dy);
+ if(distance>10){
+  skillTouch.dir=unit(dx,dy);
+  skillTouch.dragged=true;
+  if(skillAimKind(skillTouch.which)==='area'){
+   skillTouch.distance=clamp(distance/57*skillDefs[skillTouch.which].range,0,skillDefs[skillTouch.which].range);
+  }
+ }
+}
+function maybeActivateSkillAim(now){
+ if(!skillTouch||skillPointer===null||skillTouch.active||mode!=='playing'||now-skillTouch.startedAt<SKILL_HOLD_MS)return;
+ skillTouch.active=true;
+ skillTouch.button.classList.add('aim-holding');
+ abilityCancel.classList.add('show');
+ updateSkillVector();
+}
+function beginSkillTouch(e,index){
+ if(mode!=='playing'||skillPointer!==null)return;
+ const which=arsenal.skills[index],def=skillDefs[which];
+ if(!def)return;
+ e.preventDefault();
+ if(skillAimKind(which)==='self'){ability(which);return}
+ if(player.cool[which]>.01||player.energy<def.cost){tone(170,.05,'sine',.019);return}
+ const button=$(abilityButtons[index]),auto=unit(enemy.x-player.x,enemy.y-player.y);
+ skillPointer=e.pointerId;
+ skillTouch={
+  id:e.pointerId,which,button,active:false,dragged:false,
+  dir:auto,distance:def.range||200,
+  startX:e.clientX,startY:e.clientY,
+  currentX:e.clientX,currentY:e.clientY,startedAt:performance.now()
+ };
+ try{button.setPointerCapture(e.pointerId)}catch(_){}
+}
+function updateSkillTouch(e){
+ if(skillPointer!==e.pointerId||!skillTouch)return;
+ e.preventDefault();
+ skillTouch.currentX=e.clientX;skillTouch.currentY=e.clientY;
+ if(skillTouch.active)updateSkillVector();
+}
+function stopSkillTouch(e){
+ if(skillPointer!==e.pointerId||!skillTouch)return;
+ const t=skillTouch;
+ let cancelled=e.type!=='pointerup';
+ if(!cancelled&&t.active){
+  const rect=abilityCancel.getBoundingClientRect();
+  if(e.clientX>=rect.left-10&&e.clientX<=rect.right+10&&e.clientY>=rect.top-10&&e.clientY<=rect.bottom+10)cancelled=true;
+ }
+ if(!cancelled){
+  // Toque rápido: mira automática. Pressão longa com arraste: mira manual.
+  ability(t.which,t.active&&t.dragged?{dir:t.dir,distance:t.distance}:null);
+ }else if(t.active&&e.type==='pointerup')toast('HABILIDADE CANCELADA');
+ clearSkillTouch();
+}
+abilityButtons.forEach((id,i)=>{
+ const button=$(id);
+ button.addEventListener('pointerdown',e=>beginSkillTouch(e,i));
+ button.addEventListener('pointermove',updateSkillTouch);
+ for(const event of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(event,stopSkillTouch);
+});
+
 const joyel=$('joy');let joyStartX=0,joyStartY=0;
 function joystickMove(e){if(joy.id!==e.pointerId)return;
  const r=joyel.getBoundingClientRect(),dx=e.clientX-joyStartX,dy=e.clientY-joyStartY;
