@@ -443,7 +443,7 @@ function updateHud(){const m=missions[selected];$('playerHeroName').textContent=
   const h=chosenHero(),progress=1-clamp(player.shoot/h.attackTime,0,1);
   btn.classList.toggle('basic-ready',player.shoot<=.02);btn.classList.toggle('basic-wait',player.shoot>.02);
   btn.querySelector('b').textContent=player.shoot<=.02?'✦':'◔';
-  btn.querySelector('small').textContent=player.shoot<=.02?'ATIRAR':shotQueue.length?'PRONTO':' '+player.shoot.toFixed(1)+'s';
+  btn.querySelector('small').textContent=player.casting?'CAST':player.shoot<=.02?'ATIRAR':shotQueue.length?'PRONTO':' '+player.shoot.toFixed(1)+'s';
   btn.style.setProperty('--attack-progress',Math.round(progress*100)+'%');
  }
  $('phasePips').innerHTML=missions.map((x,i)=>`<i class="${i===selected?'on':''}"></i>`).join('')}
@@ -904,7 +904,7 @@ function drawEnemyWindup(t){
  ctx.restore();
 }
 function drawAimGuide(t){
- if(!player||mode!=='playing'||!touchAim.active||(skillTouch&&skillTouch.active))return; // Prioridade visual à habilidade.
+ if(!player||mode!=='playing'||!touchAim.active||player.casting||(skillTouch&&skillTouch.active))return; // Prioridade visual à habilidade.
  const d=targetDirection(),sx=player.x+d.x*(player.r+13),sy=player.y+d.y*(player.r+13);
  const desired=Math.min(chosenHero().range,Math.max(300,Math.min(430,Math.min(W,H)*1.02)));
  let length=desired;
@@ -923,14 +923,16 @@ function drawAimGuide(t){
 
 
 function drawSkillGuide(t){
- if(mode!=='playing'||!skillTouch||!skillTouch.active||!player)return;
- const which=skillTouch.which,spell=skillDefs[which],lvl=skillLevel(which);
+ if(mode!=='playing'||!player)return;
+ const preview=player.casting||(skillTouch&&skillTouch.active?skillTouch:null);
+ if(!preview)return;
+ const which=preview.which,spell=skillDefs[which],lvl=skillLevel(which);
  if(!spell||spell.aim==='self')return;
- const manual=skillTouch.dragged?{dir:skillTouch.dir,distance:skillTouch.distance}:null;
+ const manual=preview.dir&&(player.casting||preview.dragged)?{dir:preview.dir,distance:preview.distance}:null;
  const category=spell.aim,color=chosenHero().color;
  ctx.save();ctx.shadowBlur=8;ctx.shadowColor=color;
  if(category==='area'){
-  const p=groundTarget(which,manual),rad=spell.radius+(which==='vexor_mark'?5:8)*(lvl-1);
+  const p=player.casting?.target||groundTarget(which,manual),rad=spell.radius+(which==='vexor_mark'?5:8)*(lvl-1);
   ring(player.x,player.y,spell.range,color,.19,1.4);
   circle(p.x,p.y,rad,color,.14);
   ring(p.x,p.y,rad,color,.87,3);
@@ -962,6 +964,81 @@ function drawSkillGuide(t){
  ctx.fillText(spell.name.toUpperCase()+' · '+(category==='area'?'ÁREA':'DIREÇÃO'),clamp(player.x,115,W-115),clamp(player.y-61,60,H-32));
  ctx.restore();
 }
+
+function drawAbilityProjectiles(){
+ if(!abilityShots.length&&!abilityVisuals.length)return;
+ ctx.save();
+ for(const p of abilityShots){
+  if(p.type==='area'&&!p.decorative){
+   const glow=.34+.17*Math.sin(sceneTime*10);
+   circle(p.tx,p.ty,p.radius,p.color,.08);
+   ring(p.tx,p.ty,p.radius,p.color,glow,2);
+   ring(p.tx,p.ty,p.radius*(.77+.14*Math.sin(sceneTime*5)),p.color,.28,1.3);
+  }
+ }
+ for(const p of abilityShots){
+  if(!p.trail||!p.trail.length)continue;
+  for(let i=0;i<p.trail.length;i++){
+   const q=p.trail[i],alpha=(i+1)/p.trail.length;
+   circle(q.x,q.y,p.size*(.4+.42*alpha),p.color,alpha*.37);
+  }
+  const dx=p.type==='line'?p.vx:p.tx-p.fromX;
+  const dy=p.type==='line'?p.vy:p.ty-p.fromY;
+  ctx.save();ctx.translate(p.x,p.y);ctx.rotate(Math.atan2(dy,dx));
+  ctx.shadowColor=p.color;ctx.shadowBlur=18;
+  if(p.which==='lyria_pierce'||p.which==='lyria_rain'){
+   // Flecha visível desde a saída do arco até a região de impacto.
+   line(-20,0,8,0,p.color,3.3,.98);
+   polygon(11,0,p.size,3,'#effff6',0,true,.96);
+   line(-17,-5,-10,0,p.color,1.8);
+   line(-17,5,-10,0,p.color,1.8);
+  }else if(p.which==='nyra_bolt'||p.which==='nyra_rift'){
+   // Lança arcana e orbe do círculo rúnico.
+   ring(0,0,p.size+3,p.color,.85,2.4);
+   circle(0,0,p.size,p.color,.96);
+   circle(0,0,p.size*.53,'#ffffff',.95);
+   line(-p.size-13,0,-p.size+2,0,p.color,3,.9);
+   line(p.size-2,0,p.size+7,0,p.color,2,.88);
+  }else{
+   // Selo de marca de Vexor em voo.
+   polygon(0,0,p.size+3,4,p.color,Math.PI/4,true,.9);
+   polygon(0,0,p.size*.64,4,'#fff3df',Math.PI/4,false,.95,1.8);
+   circle(0,0,3,'#ffffff',.93);
+  }
+  ctx.restore();
+ }
+ for(const f of abilityVisuals){
+  const alpha=clamp(f.life/f.full,0,1);
+  ctx.save();ctx.translate(f.x,f.y);ctx.rotate(f.angle+sceneTime*.55);
+  ctx.globalAlpha=alpha;ctx.shadowColor=f.color;ctx.shadowBlur=12;
+  if(f.kind==='shield'){
+   polygon(0,0,f.size+2,6,f.color,Math.PI/6,true,.75);
+   polygon(0,0,f.size*.6,6,'#e8f7ff',Math.PI/6,false,.9,1.6);
+  }else if(f.kind==='dash'){
+   line(-f.size*2,0,f.size*2,0,f.color,3.5,.9);
+   polygon(f.size*2,0,f.size,3,'#efffff',0,true,.9);
+  }else{
+   polygon(0,0,f.size*1.7,4,f.color,Math.PI/4,true,.87);
+   circle(0,0,f.size*.33,'#ffffff',.85);
+  }
+  ctx.restore();
+ }
+ ctx.restore();
+}
+function drawCastingOverlay(){
+ if(!player||!player.casting||mode!=='playing')return;
+ const c=player.casting,def=skillDefs[c.which],ratio=clamp(1-c.remaining/c.duration,0,1);
+ const color=chosenHero().color,x=clamp(player.x,60,W-60),y=clamp(player.y+player.r+29,45,H-25),barWidth=106;
+ ctx.save();
+ ring(player.x,player.y,player.r+11+ratio*5,color,.42+ratio*.45,2.5);
+ ring(player.x,player.y,player.r+21,color,.16+ratio*.3,1.2);
+ ctx.fillStyle='#041320db';ctx.fillRect(x-barWidth/2-3,y-3,barWidth+6,13);
+ ctx.strokeStyle='#8bbdd69b';ctx.lineWidth=1;ctx.strokeRect(x-barWidth/2-3,y-3,barWidth+6,13);
+ ctx.fillStyle=color;ctx.fillRect(x-barWidth/2,y,barWidth*ratio,7);
+ ctx.textAlign='center';ctx.font='900 10px system-ui';ctx.shadowColor='#000';ctx.shadowBlur=4;
+ ctx.fillStyle='#e9fff9';ctx.fillText('CONJURANDO · '+def.short.toUpperCase()+'  '+c.remaining.toFixed(1)+'s',x,y-11);
+ ctx.restore();
+}
 function drawProjectiles(){
  for(const b of bullets){
   for(let i=0;i<b.trail.length;i++){
@@ -988,7 +1065,7 @@ function drawProjectiles(){
  }
 }
 function drawParticles(){ctx.save();ctx.globalCompositeOperation='lighter';for(const p of particles){circle(p.x,p.y,p.size*(p.life/p.max),p.color,clamp(p.life/p.max,0,1)*.9)}ctx.restore();for(const w of waves){let p=1-w.life/w.full;ring(w.x,w.y,w.max*p,w.color,1-p,w.lineWidth*(1-p*.65))}ctx.save();ctx.font='900 14px system-ui';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=5;for(const f of floaters){ctx.globalAlpha=clamp(f.life/.7,0,1);ctx.fillStyle=f.color;ctx.fillText(f.txt,f.x,f.y)}ctx.restore()}
-function draw(t){ctx.save();ctx.clearRect(0,0,W,H);if(shake>0&&mode==='playing')ctx.translate(rnd(-shake,shake),rnd(-shake,shake));drawBackground(t);drawPillars(t);if(mode!=='menu'&&player&&enemy){drawHazards(t);drawEnemyWindup(t);drawProjectiles();drawEntity(enemy,false,t);drawEntity(player,true,t);drawAimGuide(t);drawSkillGuide(t);drawParticles()}else{ // attract mode
+function draw(t){ctx.save();ctx.clearRect(0,0,W,H);if(shake>0&&mode==='playing')ctx.translate(rnd(-shake,shake),rnd(-shake,shake));drawBackground(t);drawPillars(t);if(mode!=='menu'&&player&&enemy){drawHazards(t);drawEnemyWindup(t);drawProjectiles();drawAbilityProjectiles();drawEntity(enemy,false,t);drawEntity(player,true,t);drawAimGuide(t);drawSkillGuide(t);drawCastingOverlay();drawParticles()}else{ // attract mode
  const cx=W*.36,cy=H*.53,ex=W*.68,ey=H*.48;drawEntity({heroId:heroChoice,x:cx,y:cy,r:18,angle:Math.atan2(ey-cy,ex-cx),hit:0,shield:0,invuln:0},true,t);drawEntity({heroId:missions[selected].hero,x:ex,y:ey,r:19,angle:Math.atan2(cy-ey,cx-ex),hp:1,maxHp:1,hit:0},false,t);for(let i=0;i<6;i++){const p=(t*.24+i/6)%1,cx1=lerp(cx,ex,p),cy1=lerp(cy,ey,p);circle(cx1,cy1,3,'#83f5e6',.15+.4*Math.sin(p*Math.PI))}
  }ctx.restore()}
 function loop(now){let dt=Math.min(.04,(now-last)/1000||.016);last=now;maybeActivateAim(now);maybeActivateSkillAim(now);tick(dt);draw(sceneTime);requestAnimationFrame(loop)}
