@@ -556,45 +556,68 @@ function hitText(x,y,n,color){floaters.push({x,y,txt:String(Math.round(n)),life:
 function addWave(x,y,max,life,color,lineWidth=3){waves.push({x,y,max,life,full:life,color,lineWidth})}
 function wallCollision(o){const margin=o.r+12;o.x=clamp(o.x,margin,W-margin);o.y=clamp(o.y,Math.min(82,H*.22)+margin,H-margin-6);for(const p of obstacles){let dx=o.x-p.x,dy=o.y-p.y,d=Math.hypot(dx,dy),min=o.r+p.r+3;if(d<min){const n=unit(dx||1,dy||0);o.x+=n.x*(min-d);o.y+=n.y*(min-d)}}}
 function moveVec(){let x=0,y=0;if(keys.has('w')||keys.has('arrowup'))y--;if(keys.has('s')||keys.has('arrowdown'))y++;if(keys.has('a')||keys.has('arrowleft'))x--;if(keys.has('d')||keys.has('arrowright'))x++;x+=joy.x;y+=joy.y;const len=Math.hypot(x,y);return len>1?{x:x/len,y:y/len}:{x,y}}
-function targetDirection(){if(touchAim.active&&touchAim.dragged)return{x:touchAim.x,y:touchAim.y};const isMobile=matchMedia('(pointer:coarse)').matches||W<580;if(isMobile||!aim.active)return unit(enemy.x-player.x,enemy.y-player.y);return unit(aim.x-player.x,aim.y-player.y)}
+function targetDirection(){
+ if(touchAim.active&&touchAim.dragged)return{x:touchAim.x,y:touchAim.y};
+ const target=refreshTarget();
+ if(!target)return{x:1,y:0};
+ const isMobile=matchMedia('(pointer:coarse)').matches||W<580;
+ if(isMobile||!aim.active)return unit(target.x-player.x,target.y-player.y);
+ return unit(aim.x-player.x,aim.y-player.y);
+}
 function shootPlayer(dir){
- if(mode!=='playing'||player.shoot>.005||player.casting)return;
- const h=chosenHero(),direction=unit(dir.x,dir.y);
+ if(mode!=='playing'||!player||player.hp<=0||player.shoot>.005||player.casting||player.stun>0)return;
+ const h=chosenHero(),direction=unit(dir.x,dir.y),origin=player.r+13;
  player.angle=Math.atan2(direction.y,direction.x);
- const speed=h.projectile,origin=player.r+13;
  let damage=h.damage+(equippedItem('lens')?2*itemLevel('lens'):0);
  const empowered=player.heroId==='vexor'&&player.empowered;
  if(empowered){damage+=13;player.empowered=false}
- bullets.push({
-  x:player.x+direction.x*origin,y:player.y+direction.y*origin,
-  vx:direction.x*speed,vy:direction.y*speed,r:h.role==='MAGA'?7:5.6,
-  life:h.range/speed,side:'player',heroId:player.heroId,damage,
-  bounces:equippedItem('prism')?1:0,color:empowered?'#ffdf98':h.color,trail:[]
- });
  player.shoot=h.attackTime;player.attackAnim=.26;
- burst(player.x+direction.x*origin,player.y+direction.y*origin,h.color,7,75);
- tone(player.heroId==='orun'?260:player.heroId==='nyra'?520:420,.065,'triangle',.036);
+ if(meleeClass(player.heroId)){
+  // Melees não lançam bolinhas: o ataque básico é um corte com alcance curto.
+  const target=living(1).filter(u=>{
+   const dx=u.x-player.x,dy=u.y-player.y,d=Math.hypot(dx,dy);
+   return d<=unitRange(player)+u.r&&((dx*direction.x+dy*direction.y)/(d||1))>.25;
+  }).sort((a,b)=>dist(a,player)-dist(b,player))[0];
+  addWave(player.x+direction.x*24,player.y+direction.y*24,37,.25,h.color,2.3);
+  emitFragments(player.x+direction.x*29,player.y+direction.y*29,h.color,7,85,.24,'dash');
+  if(target)onBasicHit(damage,target);
+  tone(player.heroId==='orun'?260:360,.08,'triangle',.036);
+ }else{
+  const speed=h.projectile;
+  bullets.push({
+   x:player.x+direction.x*origin,y:player.y+direction.y*origin,
+   vx:direction.x*speed,vy:direction.y*speed,r:h.role==='MAGA'?6.5:5.3,
+   life:Math.min(h.range,460)/speed,side:'player',team:0,source:player,
+   heroId:player.heroId,damage,bounces:equippedItem('prism')?1:0,
+   color:empowered?'#ffdf98':h.color,trail:[]
+  });
+  burst(player.x+direction.x*origin,player.y+direction.y*origin,h.color,6,70);
+  tone(player.heroId==='nyra'?520:420,.065,'triangle',.026);
+ }
 }
 function queueSingleShot(dir){
- if(mode!=='playing'||!player)return;
+ if(mode!=='playing'||!player||player.hp<=0)return;
  const d=unit(dir.x,dir.y);
- // Um clique é uma ordem de ataque. No máximo uma ordem fica armazenada.
  shotQueue.length=0;
  if(player.shoot<=.005&&!player.casting)shootPlayer(d);
  else shotQueue.push(d);
 }
-function onBasicHit(damage){
+function onBasicHit(damage,target=enemy){
+ if(!target||target.hp<=0)return;
  player.hitCombo++;
  const id=player.heroId;
  if(id==='lyria'&&player.hitCombo%3===0){damage+=14;toast('LYRIA · TIRO PRECISO')}
- else if(id==='nyra'&&player.hitCombo%3===0){damage+=19;addWave(enemy.x,enemy.y,48,.28,'#e4a5fc');toast('NYRA · RUNA EXPLOSIVA')}
+ else if(id==='nyra'&&player.hitCombo%3===0){damage+=19;addWave(target.x,target.y,40,.28,'#e4a5fc')}
  else if(id==='orun'&&player.hitCombo%3===0){
-  const heal=Math.min(15,player.maxHp-player.hp);
-  if(heal>0){player.hp+=heal;hitText(player.x,player.y-27,'+'+heal,'#93f9b9')}
-  addWave(player.x,player.y,37,.27,'#a8baff');
+  healUnit(player,15,player);addWave(player.x,player.y,37,.27,'#a8baff');
+ }else if(id==='seris'&&player.hitCombo%3===0){
+  target.slowTimer=Math.max(target.slowTimer,1.1);
  }
- if(id==='vexor'&&enemy.marked>0){damage+=enemy.markBonus||20;enemy.marked=0;enemy.markBonus=0;toast('VEXOR · MARCA DETONADA')}
- damageEnemy(damage);
+ if(id==='vexor'&&target.marked>0){
+  damage+=target.markBonus||20;target.marked=0;target.markBonus=0;
+  toast('VEXOR · MARCA DETONADA');
+ }
+ damageUnit(target,damage,player);
 }
 function enemyFire(){
  const m=missions[selected],h=heroes[m.hero];
