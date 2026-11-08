@@ -273,7 +273,7 @@ function reset(level){selected=level;const m=missions[level];elapsed=0;sceneTime
 }
 
 function showMenu(){
- mode='menu';$('missionShelf').hidden=false;$('overlay').classList.add('picker-open');$('overlay').classList.remove('arsenal-open','hidden');
+ mode='menu';$('missionShelf').hidden=false;$('overlay').classList.add('picker-open');$('overlay').classList.remove('arsenal-open','hero-open','hidden');
  const m=missions[selected],recommend=[
  'Treine a Investida para evitar os primeiros tiros.',
  'Geada e Botas do Vento ajudam contra a velocidade de Zéfiro.',
@@ -284,15 +284,38 @@ function showMenu(){
  $('modalContent').innerHTML='<div class="eyebrow">CÍRCULO '+String(selected+1).padStart(2,'0')+' / 05 · <span style="color:#ffdc8c">✦ '+arsenal.credits+' FRAGMENTOS</span></div>'+
  '<h2>'+m.name+'</h2><p>'+m.desc+' Enfrente <b style="color:'+m.color+'">'+m.enemy+'</b> e tente ganhar as três estrelas.</p>'+
  '<div class="result-objectives"><div><span>★</span> Derrote o rival</div><div><span>★</span> Termine com pelo menos 75% da vida</div><div><span>★</span> Vença em até '+m.time+' segundos</div></div>'+
- '<div class="battle-hint">💡 '+recommend+'</div><div class="loadout-preview">Equipado: '+loadoutLine()+'</div>'+
- '<div class="actions"><button class="primary" id="startGame">INICIAR DUELO ✦</button><button class="secondary" id="openArsenal">⚒ ARSENAL</button></div>'+
+ '<div class="battle-hint">💡 '+recommend+'</div><div class="loadout-preview"><span class="menu-hero">CAMPEÃO: '+selectedHeroText()+'</span><br>Kit: '+loadoutLine()+'</div>'+
+ '<div class="actions"><button class="primary" id="startGame">INICIAR X1 ✦</button><button class="secondary" id="openHeroes">◇ PERSONAGENS</button><button class="secondary" id="openArsenal">⚒ ARSENAL</button></div>'+
  '<p style="margin:9px auto 0;font-size:10px">Ganhe fragmentos e novas habilidades ao completar missões. Rejogue para melhorar suas estrelas.</p>';
  $('startGame').onclick=()=>{enterImmersive();reset(selected)};
- $('openArsenal').onclick=()=>showArsenal('skills');
+ $('openArsenal').onclick=()=>showArsenal('skills');$('openHeroes').onclick=showHeroSelect;
  updateHud();renderMissions();
 }
+
+function showHeroSelect(){
+ mode='menu';$('missionShelf').hidden=false;
+ $('overlay').classList.remove('hidden','arsenal-open');$('overlay').classList.add('picker-open','hero-open');
+ const c=chosenHero();
+ $('modalContent').innerHTML='<div class="arsenal-head"><strong>◇ ESCOLHA SEU CAMPEÃO</strong><button class="secondary" id="heroBack" style="padding:7px 10px">VOLTAR</button></div>'+
+ '<div class="arsenal-info">Cada personagem tem vida, velocidade, ataque básico e passiva próprios. As habilidades equipadas no Arsenal continuam disponíveis para todos.</div>'+
+ '<div class="hero-selection">'+Object.entries(heroes).map(([id,h])=>
+ '<button data-hero="'+id+'" class="hero-choice '+(id===heroChoice?'chosen':'')+'">'+
+ '<span class="hero-mark" style="color:'+h.color+'">'+h.symbol+'</span>'+
+ '<strong>'+h.name+'</strong><small>'+h.role+'</small>'+
+ '<b>'+h.hp+' PV · '+h.damage+' dano · '+h.attackTime.toFixed(2)+'s/ataque</b>'+
+ '<em>'+h.summary+'</em></button>').join('')+'</div>'+
+ '<div class="hero-preview"><strong>'+c.name+' · PASSIVA</strong><div>'+c.passive+'</div></div>'+
+ '<div class="actions" style="margin-top:9px"><button class="primary" id="heroConfirm">CONFIRMAR '+c.name+'</button></div>';
+ $('heroBack').onclick=showMenu;
+ $('heroConfirm').onclick=showMenu;
+ $('modalContent').querySelectorAll('[data-hero]').forEach(btn=>btn.onclick=()=>{
+  if(!heroes[btn.dataset.hero])return;
+  heroChoice=btn.dataset.hero;saveHero();showHeroSelect();
+ });
+ renderMissions();
+}
 function showArsenal(tab=arsenalTab){
- mode='menu';arsenalTab=tab;$('missionShelf').hidden=false;$('overlay').classList.add('picker-open','arsenal-open');$('overlay').classList.remove('hidden');
+ mode='menu';arsenalTab=tab;$('missionShelf').hidden=false;$('overlay').classList.add('picker-open','arsenal-open');$('overlay').classList.remove('hidden','hero-open');
  renderArsenal();renderMissions();
 }
 function renderArsenal(){
