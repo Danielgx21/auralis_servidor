@@ -140,17 +140,38 @@ canvas {width:100%;height:100%;}
 .battle-hint{font-size:11px;color:#ead092;padding:8px 10px;background:#aa77331d;border:1px solid #bb93454f;border-radius:8px;margin:8px auto;line-height:1.4;max-width:430px}
 @media(max-height:490px){.overlay.arsenal-open .modal{padding:8px 11px}.arsenal-head{top:-8px}.arsenal-card{padding:6px}.arsenal-card .card-desc{min-height:0}.arsenal-slots button{min-height:38px}}
 @media(max-width:550px){.arsenal-cards{grid-template-columns:1fr}.arsenal-card{padding:7px}}
+
+/* V1.8: campeões, duelo e preparação legível na horizontal */
+.overlay.hero-open{display:grid;grid-template-columns:minmax(0,560px) minmax(160px,230px);gap:10px;align-content:center}
+.overlay.hero-open .modal{width:100%;height:auto;max-height:100%;padding:11px 15px;overflow:auto}
+.hero-selection{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;text-align:left;margin:10px 0}
+.hero-choice{position:relative;border-radius:13px;min-width:0;display:grid;grid-template-columns:44px 1fr;align-items:center;column-gap:9px;row-gap:3px;padding:11px 10px;border:1px solid #5e859c7c;background:linear-gradient(130deg,#152d41,#091b30);color:#deeffd;text-align:left}
+.hero-choice.chosen{border:2px solid #69e4d7;background:linear-gradient(130deg,#19495b,#12253e);padding:10px 9px;box-shadow:0 0 0 1px #90ffe130}
+.hero-mark{grid-row:span 3;width:42px;height:42px;display:grid;place-items:center;font-size:31px;border-radius:12px;border:1px solid currentColor;background:#ffffff0b}
+.hero-choice strong{font-size:12px;letter-spacing:.08em;line-height:1.1}
+.hero-choice small{font-size:9px;color:#b4c8da}
+.hero-choice em{grid-column:1/-1;color:#d6e5f0;font-size:9px;line-height:1.3;font-style:normal}
+.hero-choice b{font-size:9px;color:#f3d68e}
+.hero-preview{font-size:11px;line-height:1.5;padding:9px;border-radius:10px;text-align:left;color:#dbf4ff;border:1px solid #65b2bf55;background:#071624b8}
+.hero-preview strong{color:#7bf0db}
+.hero-preview div{margin-top:4px}
+.menu-hero{color:#7cecdc!important;font-size:11px;font-weight:850}
+.basic-ready{border-color:#68e4dc!important}
+.basic-wait{opacity:.72;filter:saturate(.5)}
+.basic-wait small{color:#ffc995}
+@media(max-height:415px){.overlay.hero-open .modal{padding:8px}.hero-choice{padding:7px;grid-template-columns:34px 1fr}.hero-choice.chosen{padding:6px}.hero-mark{height:32px;width:32px;font-size:23px}.hero-choice em{font-size:8px}.hero-selection{margin:6px 0}}
+@media(max-width:640px){.hero-selection{gap:6px}.hero-choice{grid-template-columns:32px 1fr;padding:7px}.hero-choice.chosen{padding:6px}.hero-mark{height:32px;width:32px;font-size:24px}}
 </style>
 </head>
 <body>
 <div class="app">
-  <header class="topbar"><div class="brand"><div class="brand-icon"><svg viewBox="0 0 32 32" fill="none"><path d="M16 2 28 16 16 30 4 16 16 2Z" stroke="#6BE8DF" stroke-width="2"/><path d="M16 7 23 16 16 25 9 16 16 7Z" stroke="#ECDE9B" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="#6BE8DF"/></svg></div><div><h1>ARENA DE SIGILOS</h1><small>PROTÓTIPO // EDIÇÃO ZERO</small></div></div><div class="build">5 MISSÕES · V1.7 · ARSENAL</div></header>
+  <header class="topbar"><div class="brand"><div class="brand-icon"><svg viewBox="0 0 32 32" fill="none"><path d="M16 2 28 16 16 30 4 16 16 2Z" stroke="#6BE8DF" stroke-width="2"/><path d="M16 7 23 16 16 25 9 16 16 7Z" stroke="#ECDE9B" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="#6BE8DF"/></svg></div><div><h1>ARENA DE SIGILOS</h1><small>PROTÓTIPO // EDIÇÃO ZERO</small></div></div><div class="build">5 MISSÕES · V1.8 · X1 DE CAMPEÕES</div></header>
   <div class="arena-grid">
     <section>
       <div class="stage" id="stage">
         <canvas id="game" aria-label="Arena interativa de combate entre sigilos"></canvas>
         <div class="hud">
-          <div class="meter-wrap"><div class="meter-title"><span>✦ SEU SIGILO</span><span id="playerHpText">140/140</span></div><div class="meter"><i id="playerHp"></i></div><div class="meter energy"><i id="playerEnergy"></i></div></div>
+          <div class="meter-wrap"><div class="meter-title"><span id="playerHeroName">✦ LYRIA</span><span id="playerHpText">140/140</span></div><div class="meter"><i id="playerHp"></i></div><div class="meter energy"><i id="playerEnergy"></i></div></div>
           <div class="round-center"><strong id="clock">00:00</strong><small id="levelLabel">MISSÃO 01</small></div>
           <div class="meter-wrap"><div class="meter-title"><span id="enemyName">RIVAL</span><span id="enemyHpText">—</span></div><div class="meter enemy"><i id="enemyHp"></i></div></div>
         </div>
@@ -178,17 +199,29 @@ async function enterImmersive(){
 }
 
 const missions=[
- {name:'Primeiro Círculo',enemy:'CENTELHA',hp:315,time:40,speed:104,fire:1.38,damage:9,bullets:1,color:'#ff8e7d',desc:'Aprenda a se mover e a atacar.',obstacles:2},
- {name:'Ventos Cortantes',enemy:'ZÉFIRO',hp:410,time:52,speed:135,fire:1.15,damage:10,bullets:2,color:'#ffc378',desc:'O rival ataca em rajadas duplas.',obstacles:3},
- {name:'Olho da Tempestade',enemy:'ORÁCULO',hp:480,time:60,speed:144,fire:1.13,damage:11,bullets:3,color:'#f581d0',desc:'Áreas do mapa se tornam perigosas.',obstacles:3,hazards:true},
- {name:'Coração de Ferro',enemy:'BASTIÃO',hp:590,time:70,speed:122,fire:.92,damage:11,bullets:3,color:'#ff886e',desc:'Desvie de ataques e use a cobertura.',obstacles:4,hazards:true},
- {name:'Último Ritual',enemy:'ARQUISIGILO',hp:740,time:85,speed:165,fire:.80,damage:12,bullets:4,color:'#ef6cf1',desc:'Um chefe rápido com ataques em área.',obstacles:4,hazards:true,boss:true}
+ {name:'Primeiro Círculo',enemy:'CENTELHA',hero:'lyria',hp:225,time:58,speed:172,fire:1.38,damage:21,bullets:1,color:'#ffad86',desc:'Aprenda a trocar golpes e se reposicionar.',obstacles:2,range:480},
+ {name:'Ventos Cortantes',enemy:'ZÉFIRO',hero:'vexor',hp:244,time:66,speed:218,fire:1.08,damage:24,bullets:1,color:'#ffbd68',desc:'Um duelista veloz: use o terreno e acerte a hora da troca.',obstacles:3,range:395},
+ {name:'Olho da Tempestade',enemy:'ORÁCULO',hero:'nyra',hp:236,time:76,speed:188,fire:1.52,damage:28,bullets:1,color:'#eea6ff',desc:'Antecipe feitiços e puna a longa preparação dos ataques.',obstacles:3,hazards:true,range:530},
+ {name:'Coração de Ferro',enemy:'BASTIÃO',hero:'orun',hp:312,time:85,speed:165,fire:1.62,damage:24,bullets:1,color:'#acb0ff',desc:'Um tanque resistente: não desperdice habilidades.',obstacles:4,hazards:true,range:365},
+ {name:'Último Ritual',enemy:'ARQUISIGILO',hero:'nyra',hp:342,time:95,speed:216,fire:1.22,damage:29,bullets:1,color:'#f582d9',desc:'O último duelo exige posicionamento, leitura e combos.',obstacles:4,hazards:true,boss:true,range:520}
 ];
 let W=900,H=560,dpr=1,mode='menu',selected=0,unlocked=1,bests=[0,0,0,0,0], player=null,enemy=null,obstacles=[],bullets=[],particles=[],waves=[],hazards=[],floaters=[],elapsed=0,last=0,sceneTime=0,shake=0,flash=0,starfield=[], soundOn=true,ac=null,aim={x:600,y:260,active:false}, keys=new Set(),joy={x:0,y:0,id:null}, firing=false, captureId=null, uiTimer=0, toastTimeout=null, touchAim={id:null,active:false,x:1,y:0,startX:0,startY:0},lastTouchDir={x:1,y:0},shotQueue=[];
 const TWO=Math.PI*2,clamp=(a,b,c)=>Math.max(b,Math.min(c,a)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),unit=(x,y)=>{let l=Math.hypot(x,y)||1;return {x:x/l,y:y/l}},lerp=(a,b,t)=>a+(b-a)*t;
 try{const s=JSON.parse(localStorage.getItem('sigils-progress-v1'));if(s&&Array.isArray(s.bests)){bests=s.bests.slice(0,5).map(n=>clamp(n|0,0,3));while(bests.length<5)bests.push(0);unlocked=clamp((s.unlocked|0)||1,1,5)}}catch(_){ }
 const save=()=>{try{localStorage.setItem('sigils-progress-v1',JSON.stringify({bests,unlocked}))}catch(_){}};
 
+
+const heroes={
+ lyria:{name:'LYRIA',role:'ATIRADORA',symbol:'⌁',color:'#78f4d9',hp:218,move:215,damage:26,attackTime:1.10,range:560,projectile:570,passive:'A cada 3 ataques certeiros, o próximo impacto causa +14 de dano.',summary:'Longo alcance, pressão constante. Frágil em combate próximo.'},
+ vexor:{name:'VEXOR',role:'DUELISTA',symbol:'⟠',color:'#ffb976',hp:248,move:248,damage:25,attackTime:.94,range:425,projectile:555,passive:'Após usar uma habilidade, seu próximo ataque ganha +13 de dano.',summary:'Movimento rápido, alterna ataques básicos e habilidades.'},
+ orun:{name:'ORUN',role:'GUARDIÃO',symbol:'⬡',color:'#a9b5ff',hp:290,move:188,damage:22,attackTime:1.30,range:380,projectile:435,passive:'A cada 3 ataques certeiros, recupera 13 de vida.',summary:'Resistente, ótimo para trocas longas. Pouca mobilidade.'},
+ nyra:{name:'NYRA',role:'MAGA',symbol:'✶',color:'#dfa0ff',hp:207,move:205,damage:29,attackTime:1.40,range:520,projectile:500,passive:'A cada 3 ataques certeiros, descarrega +19 de dano mágico.',summary:'Alta explosão de dano, ataques mais lentos e pouca vida.'}
+};
+let heroChoice='lyria';
+try{const h=localStorage.getItem('sigils-hero-v1');if(heroes[h])heroChoice=h}catch(_){}
+const chosenHero=()=>heroes[heroChoice];
+const selectedHeroText=()=>{const h=chosenHero();return h.name+' · '+h.role+' · '+h.hp+' PV · '+h.damage+' dano · '+(1/h.attackTime).toFixed(2)+' ataques/s';};
+const saveHero=()=>{try{localStorage.setItem('sigils-hero-v1',heroChoice)}catch(_){}};
 const skillDefs={
  dash:{name:'Investida',short:'Dash',icon:'➤',desc:'Esquiva veloz. Ideal contra chefes e rajadas.',cost:22,cd:4.2,unlock:0},
  pulse:{name:'Pulso Arcano',short:'Pulso',icon:'✳',desc:'Empurra inimigos e destrói projéteis próximos.',cost:35,cd:8,unlock:0},
