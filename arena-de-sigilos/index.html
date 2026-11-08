@@ -638,7 +638,7 @@ function enemyFire(){
 const castDirection=(which,aimSpec)=>{
  if(aimSpec&&aimSpec.dir)return unit(aimSpec.dir.x,aimSpec.dir.y);
  if(['lyria_step','vexor_lunge','orun_charge'].includes(which)){const movement=moveVec();if(Math.hypot(movement.x,movement.y)>.14)return unit(movement.x,movement.y);}
- return unit(enemy.x-player.x,enemy.y-player.y);
+ const target=refreshTarget();return target?unit(target.x-player.x,target.y-player.y):{x:1,y:0};
 };
 const groundTarget=(which,aimSpec)=>{
  const spell=skillDefs[which],range=spell.range;
@@ -647,7 +647,7 @@ const groundTarget=(which,aimSpec)=>{
   const step=clamp(aimSpec.distance??range,0,range);
   return {x:clamp(player.x+v.x*step,12,W-12),y:clamp(player.y+v.y*step,12,H-12)};
  }
- const vector=unit(enemy.x-player.x,enemy.y-player.y),step=Math.min(range,dist(enemy,player));
+ const aimAt=refreshTarget(),vector=aimAt?unit(aimAt.x-player.x,aimAt.y-player.y):{x:1,y:0},step=aimAt?Math.min(range,dist(aimAt,player)):range;
  return {x:clamp(player.x+vector.x*step,12,W-12),y:clamp(player.y+vector.y*step,12,H-12)};
 };
 function segmentPointDistance(px,py,ax,ay,bx,by){
@@ -670,7 +670,7 @@ function launchLineSkill(which,dir,damage,level,color,clearShots=false){
   type:'line',which,x:player.x+dir.x*origin,y:player.y+dir.y*origin,
   vx:dir.x*speed,vy:dir.y*speed,travelled:0,range:def.range,
   radius:def.radius+2*(level-1),size:which==='lyria_pierce'?8:11,
-  damage,color,clearShots,life:def.range/speed+.10,
+  damage,color,clearShots,life:def.range/speed+.10,team:0,source:player,
   trail:[]
  });
  burst(player.x+dir.x*origin,player.y+dir.y*origin,color,11,75);
@@ -683,7 +683,7 @@ function launchAreaSkill(which,target,radius,damage,color,slow=0,stun=0){
  abilityShots.push({
   type:'area',which,x:startX,y:startY,fromX:startX,fromY:startY,
   tx:target.x,ty:target.y,t:0,duration,damage,radius,color,
-  slow,stun,life:duration+.12,size:which==='lyria_rain'?8:10,
+  slow,stun,life:duration+.12,size:which==='lyria_rain'?8:10,team:0,source:player,
   trail:[]
  });
  if(which==='lyria_rain'){
@@ -691,7 +691,7 @@ function launchAreaSkill(which,target,radius,damage,color,slow=0,stun=0){
    abilityShots.push({
     type:'area',which,x:startX+i*8,y:startY+6,fromX:startX+i*8,fromY:startY+6,
     tx:clamp(target.x+i*radius*.45,12,W-12),ty:clamp(target.y+12*i,12,H-12),
-    t:0,duration:duration+Math.abs(i)*.10,damage:0,radius:14,color,
+    t:0,duration:duration+Math.abs(i)*.10,damage:0,radius:14,color,team:0,source:player,
     slow:0,stun:0,life:duration+.25,size:6,decorative:true,trail:[]
    });
   }
@@ -704,35 +704,40 @@ function heroDash(dir,range,level,which,damage=0,width=0,stun=0){
  player.dash=duration;player.invuln=Math.max(player.invuln,which==='lyria_step'?.20:.12+.02*(level-1));
  player.dashVx=dir.x*(range/duration);
  player.dashVy=dir.y*(range/duration);
- player.dashSkill={which,damage,width,stun,hit:false,color:chosenHero().color};
+ player.dashSkill={which,damage,width,stun,hitTargets:new Set(),color:chosenHero().color};
  addWave(player.x,player.y,32,.26,chosenHero().color,2.4);
  emitFragments(player.x,player.y,chosenHero().color,8,100,.27,'dash');
 }
-function skillRadiusDamage(point,radius,damage,color,slow=0,stun=0){
- addWave(point.x,point.y,radius,.48,color,4.5);
- burst(point.x,point.y,color,26,160);
- emitFragments(point.x,point.y,color,12,160,.45,'burst');
- const hit=dist(point,enemy)<=radius+enemy.r;
- if(hit&&mode==='playing'){
-  if(slow>0)enemy.slowTimer=Math.max(enemy.slowTimer,slow);
-  if(stun>0)enemy.stun=Math.max(enemy.stun,stun);
-  damageEnemy(damage);
+function skillRadiusDamage(point,radius,damage,color,slow=0,stun=0,team=0,source=player){
+ addWave(point.x,point.y,radius,.48,color,4.5);burst(point.x,point.y,color,19,125);
+ emitFragments(point.x,point.y,color,10,135,.38,'burst');
+ let didHit=false;
+ for(const target of living(team===0?1:0)){
+  if(dist(point,target)>radius+target.r)continue;
+  didHit=true;
+  if(slow>0)target.slowTimer=Math.max(target.slowTimer,slow);
+  if(stun>0){target.stun=Math.max(target.stun,stun);target.casting=null}
+  damageUnit(target,damage,source);
  }
- return hit;
+ return didHit;
 }
 function ability(which,aimSpec=null){
- if(mode!=='playing'||!player||!skillDefs[which]||!heroSkillIds(player.heroId).includes(which))return false;
+ if(mode!=='playing'||!player||player.hp<=0||!skillDefs[which]||!heroSkillIds(player.heroId).includes(which))return false;
  if(player.casting||player.dash>0)return false;
  const def=skillDefs[which],cost=skillCost(which);
  if(player.cool[which]>.01||player.energy<cost){tone(170,.04,'sine',.015);return false}
  const dir=castDirection(which,aimSpec),target=def.aim==='area'?groundTarget(which,aimSpec):null;
  const duration=skillCastTime(which);
  player.energy-=cost;player.cool[which]=skillCooldown(which);
- player.casting={which,level:skillLevel(which),dir,target,remaining:duration,duration};
- player.angle=Math.atan2(dir.y,dir.x);
- player.attackAnim=Math.max(player.attackAnim,.18);
- addWave(player.x,player.y,player.r+17,.21,chosenHero().color,2);
- tone(330,.07,'sine',.028);
+ const cast={which,level:skillLevel(which),dir,target,remaining:duration,duration};
+ player.angle=Math.atan2(dir.y,dir.x);player.attackAnim=Math.max(player.attackAnim,.18);
+ if(duration<=0){ // O golpe começa já, a animação continua após a ativação.
+  finishAbility(cast);
+ }else{
+  player.casting=cast;
+  addWave(player.x,player.y,player.r+17,.21,chosenHero().color,2);
+  tone(330,.07,'sine',.028);
+ }
  updateHud();
  return true;
 }
@@ -785,6 +790,25 @@ function finishAbility(c){
    addWave(player.x,player.y,51,.43,'#e3a9ff',4);
    emitFragments(player.x,player.y,'#edb4ff',11,100,.36,'shield');
    toast('VÉU ASTRAL');tone(620,.2,'sine');break;
+  case 'seris_tether':
+   launchLineSkill(which,dir,19+7*lvl,lvl,'#ffa8dd');toast('LAÇO LUMINOSO');break;
+  case 'seris_bloom':{
+   launchAreaSkill(which,target,spell.radius+6*(lvl-1),0,'#ffa9e2');
+   const shot=abilityShots[abilityShots.length-1];
+   if(shot){shot.effect='heal';shot.heal=27+12*lvl}
+   toast('FLOR RESTAURADORA');break;
+  }
+  case 'seris_aegis':
+   for(const u of living(0)){
+    if(dist(player,u)<spell.radius+u.r){
+     u.shield=Math.max(u.shield,1.0+.25*lvl);
+     healUnit(u,3+3*lvl,player);
+    }
+   }
+   addWave(player.x,player.y,spell.radius,.40,'#ffacd9',4);
+   emitFragments(player.x,player.y,'#ffacd9',16,110,.36,'shield');
+   toast('AURA DE PROTEÇÃO');break;
+
  }
  updateHud();
 }
