@@ -110,6 +110,36 @@ canvas {width:100%;height:100%;}
 .mobile-controls .aim-thumb{position:absolute;left:50%;top:50%;width:35px;height:35px;border-radius:50%;border:2px solid #f7e2a4;background:radial-gradient(circle at 35% 30%,#e4fff4,#239fa6 70%);box-shadow:0 0 15px #57e7db88;transform:translate(-50%,-50%)}
 .mobile-controls .skill-controls{gap:clamp(12px,1.7vw,18px)!important;}
 @media(max-width:690px) and (orientation:landscape){.mobile-controls .skill-controls{gap:9px!important;}}
+
+/* V1.7: Arsenal e preparação de cada duelo */
+.overlay.arsenal-open{grid-template-columns:minmax(0,570px) minmax(160px,230px);gap:10px}
+.overlay.arsenal-open .modal{width:100%;max-height:100%;padding:12px 14px;scrollbar-width:thin}
+.arsenal-head{position:sticky;top:-12px;z-index:2;background:#0d1c2df5;padding:7px 0 9px;display:flex;justify-content:space-between;gap:7px;align-items:center;border-bottom:1px solid #ffffff22}
+.arsenal-head strong{font-size:13px;letter-spacing:.08em;color:#94f5e5}
+.arsenal-head .coin{font-weight:900;color:#ffda88;font-size:13px}
+.arsenal-tabs{display:flex;gap:7px;margin:10px 0}
+.arsenal-tabs button{flex:1;padding:8px;border-radius:9px;background:#172d45;border:1px solid #5f8ca755;color:#bdd5e8;font-size:11px;font-weight:800}
+.arsenal-tabs button.active{border-color:#78ece1;background:#246274;color:white}
+.arsenal-info{font-size:11px;line-height:1.4;color:#a7c0d5;margin:5px 0 10px}
+.arsenal-slots{display:flex;gap:7px;margin:9px 0 11px}
+.arsenal-slots button{flex:1;min-width:0;min-height:43px;padding:5px 4px;background:#14283d;border:1px solid #6a91a760;border-radius:9px;color:#e2f7fa;font-size:11px;font-weight:800}
+.arsenal-slots button small{display:block;font-size:9px;color:#94b6cb;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arsenal-slots button.selected{border-color:#ffe69c;box-shadow:0 0 0 1px #dcb65eaa;background:#493e2a}
+.arsenal-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;text-align:left}
+.arsenal-card{min-width:0;background:linear-gradient(125deg,#1b3148,#0b1c30);border:1px solid #698ba64b;border-radius:11px;padding:9px;display:flex;flex-direction:column;gap:5px}
+.arsenal-card.locked{opacity:.6}
+.arsenal-card .card-title{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:900;gap:3px}
+.arsenal-card .card-icon{font-size:20px;color:#79ebe0;margin-right:3px}
+.arsenal-card .card-rank{color:#f6cd81;font-size:10px;white-space:nowrap}
+.arsenal-card .card-desc{font-size:10px;line-height:1.35;color:#b4c6da;min-height:26px}
+.arsenal-card .card-action{display:flex;gap:5px;margin-top:auto}
+.arsenal-card button{min-height:30px;flex:1;border-radius:7px;background:#1b5264;border:1px solid #6fd9da75;font-size:10px;font-weight:800;padding:5px 3px}
+.arsenal-card button:disabled{opacity:.36;cursor:default}
+.arsenal-card button.upgrade{background:#51402b;border-color:#ddad6170}
+.loadout-preview{font-size:10px;line-height:1.4;color:#a9cada;padding:7px 9px;background:#081a29aa;border:1px solid #6ea1a42f;border-radius:9px;margin:9px 0}
+.battle-hint{font-size:11px;color:#ead092;padding:8px 10px;background:#aa77331d;border:1px solid #bb93454f;border-radius:8px;margin:8px auto;line-height:1.4;max-width:430px}
+@media(max-height:490px){.overlay.arsenal-open .modal{padding:8px 11px}.arsenal-head{top:-8px}.arsenal-card{padding:6px}.arsenal-card .card-desc{min-height:0}.arsenal-slots button{min-height:38px}}
+@media(max-width:550px){.arsenal-cards{grid-template-columns:1fr}.arsenal-card{padding:7px}}
 </style>
 </head>
 <body>
@@ -158,6 +188,39 @@ let W=900,H=560,dpr=1,mode='menu',selected=0,unlocked=1,bests=[0,0,0,0,0], playe
 const TWO=Math.PI*2,clamp=(a,b,c)=>Math.max(b,Math.min(c,a)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),unit=(x,y)=>{let l=Math.hypot(x,y)||1;return {x:x/l,y:y/l}},lerp=(a,b,t)=>a+(b-a)*t;
 try{const s=JSON.parse(localStorage.getItem('sigils-progress-v1'));if(s&&Array.isArray(s.bests)){bests=s.bests.slice(0,5).map(n=>clamp(n|0,0,3));while(bests.length<5)bests.push(0);unlocked=clamp((s.unlocked|0)||1,1,5)}}catch(_){ }
 const save=()=>{try{localStorage.setItem('sigils-progress-v1',JSON.stringify({bests,unlocked}))}catch(_){}};
+
+const skillDefs={
+ dash:{name:'Investida',short:'Dash',icon:'➤',desc:'Esquiva veloz. Ideal contra chefes e rajadas.',cost:22,cd:4.2,unlock:0},
+ pulse:{name:'Pulso Arcano',short:'Pulso',icon:'✳',desc:'Empurra inimigos e destrói projéteis próximos.',cost:35,cd:8,unlock:0},
+ shield:{name:'Escudo',short:'Escudo',icon:'◇',desc:'Bloqueia dano por alguns instantes.',cost:30,cd:10.5,unlock:0},
+ frost:{name:'Geada',short:'Geada',icon:'❄',desc:'Diminui a velocidade do rival; ótimo contra Zéfiro (fase 2).',cost:34,cd:8.5,unlock:1},
+ arc:{name:'Raio',short:'Raio',icon:'ϟ',desc:'Dano elétrico e dissipa projéteis; ótimo no Oráculo (fase 3).',cost:38,cd:9,unlock:2},
+ nova:{name:'Nova',short:'Nova',icon:'✺',desc:'Explosão ampla contra grupos de tiros; ótima no Bastião (fase 4).',cost:45,cd:10.5,unlock:3}
+};
+const itemDefs={
+ lens:{name:'Lente Astral',icon:'◈',desc:'Aumenta o dano dos disparos básicos.',unlock:0},
+ ward:{name:'Couraça Rúnica',icon:'⬡',desc:'Aumenta a vida máxima em cada duelo.',unlock:0},
+ stride:{name:'Botas do Vento',icon:'➤',desc:'Mais velocidade para desviar de tiros.',unlock:1},
+ cell:{name:'Capacitor',icon:'ϟ',desc:'Recupera energia mais rapidamente.',unlock:2},
+ prism:{name:'Prisma',icon:'◇',desc:'Faz um disparo ricochetear uma vez nos pilares.',unlock:3},
+ core:{name:'Núcleo Ágil',icon:'✦',desc:'Reduz a recarga de todas as habilidades.',unlock:4}
+};
+let arsenal={credits:45,skillLevels:{},itemLevels:{},skills:['dash','pulse','shield'],items:['lens','ward']},arsenalTab='skills',skillSlot=0,itemSlot=0;
+try{const saved=JSON.parse(localStorage.getItem('sigils-arsenal-v2'));if(saved&&typeof saved==='object'){
+ arsenal.credits=clamp(Number(saved.credits)||0,0,100000);
+ if(saved.skillLevels&&typeof saved.skillLevels==='object')for(const id of Object.keys(skillDefs))arsenal.skillLevels[id]=clamp(Number(saved.skillLevels[id])||1,1,3);
+ if(saved.itemLevels&&typeof saved.itemLevels==='object')for(const id of Object.keys(itemDefs))arsenal.itemLevels[id]=clamp(Number(saved.itemLevels[id])||1,1,3);
+ if(Array.isArray(saved.skills)&&saved.skills.length===3&&new Set(saved.skills).size===3&&saved.skills.every(id=>skillDefs[id]&&(!skillDefs[id].unlock||bests[skillDefs[id].unlock-1]>0)))arsenal.skills=saved.skills.slice();
+ if(Array.isArray(saved.items)&&saved.items.length===2&&new Set(saved.items).size===2&&saved.items.every(id=>itemDefs[id]&&(!itemDefs[id].unlock||bests[itemDefs[id].unlock-1]>0)))arsenal.items=saved.items.slice();
+}else arsenal.credits+=bests.reduce((sum,n)=>sum+n*14,0);}catch(_){}
+const skillLevel=id=>arsenal.skillLevels[id]||1;
+const itemLevel=id=>arsenal.itemLevels[id]||1;
+const equippedItem=id=>arsenal.items.includes(id);
+const acquired=def=>!def.unlock||bests[def.unlock-1]>0;
+const skillCooldown=id=>Math.max(1,skillDefs[id].cd-.48*(skillLevel(id)-1))*(equippedItem('core')?1-.075*itemLevel('core'):1);
+const skillCost=id=>skillDefs[id].cost;
+const saveArsenal=()=>{try{localStorage.setItem('sigils-arsenal-v2',JSON.stringify(arsenal))}catch(_){}};
+const loadoutLine=()=>arsenal.skills.map(id=>skillDefs[id].short).join(' · ')+' | '+arsenal.items.map(id=>itemDefs[id].name).join(' + ');
 function resize(){const oldW=W||0,oldH=H||0;const r=stage.getBoundingClientRect();W=r.width;H=r.height;if(oldW&&oldH&&player&&enemy&&(Math.abs(oldW-W)>5||Math.abs(oldH-H)>5)){for(const o of [player,enemy,...obstacles,...bullets,...particles,...hazards,...waves,...floaters]){if(typeof o.x==='number')o.x*=W/oldW;if(typeof o.y==='number')o.y*=H/oldH}if(player)wallCollision(player);if(enemy)wallCollision(enemy)}dpr=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);makeStars();if(mode==='menu')draw(0)}
 function makeStars(){starfield=Array.from({length:65},()=>({x:Math.random()*W,y:Math.random()*H,r:rnd(.4,1.6),phase:rnd(0,7)}))}
 function tone(freq=440,dur=.07,type='sine',gain=.045){if(!soundOn)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();let t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);o.frequency.exponentialRampToValueAtTime(Math.max(60,freq*.63),t+dur);g.gain.setValueAtTime(gain,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+dur+.02)}catch(_){}}
