@@ -356,7 +356,7 @@ function createUnit(heroId,team,index,controlled=false){
   hp,maxHp:hp,damage:Math.round(h.damage*(controlled?1:.70)*(team===1?1+selected*.05:1)),
   speed:h.move*(team===1?1+selected*.006:1),range:unitRange({heroId}),vx:0,vy:0,angle:team===0?0:Math.PI,
   energy:100,maxEnergy:100,shoot:rnd(.25,.95),windup:0,windupTarget:null,
-  cool:Object.fromEntries(h.skills.map(id=>[id:rnd(1.7,3.4)])),casting:null,aiGoal:null,focusTime:0,
+  cool:Object.fromEntries(h.skills.map(id=>[id,rnd(1.7,3.4)])),casting:null,aiGoal:null,focusTime:0,
   hit:0,shield:0,barrier:0,invuln:0,dash:0,dashVx:0,dashVy:0,dashSkill:null,
   stun:0,slowTimer:0,marked:0,markBonus:0,empowered:false,hitCombo:0,attackAnim:0,
   dodgeCooldown:rnd(2.8,5),actionClock:0,special:rnd(6,9),healBonus:0
