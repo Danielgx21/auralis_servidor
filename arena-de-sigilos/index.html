@@ -302,7 +302,7 @@ function showMenu(){
  'Escudo e Núcleo Ágil ajudam contra os ataques do Arquisigilo.'
  ][selected];
  $('modalContent').innerHTML='<div class="eyebrow">CÍRCULO '+String(selected+1).padStart(2,'0')+' / 05 · <span style="color:#ffdc8c">✦ '+arsenal.credits+' FRAGMENTOS</span></div>'+
- '<h2>'+m.name+'</h2><p>'+m.desc+' Enfrente <b style="color:'+m.color+'">'+m.enemy+'</b> e tente ganhar as três estrelas.</p>'+
+ '<h2>'+m.name+'</h2><p>'+m.desc+' Enfrente <b style="color:'+m.color+'">'+m.enemy+'</b> ('+m.hp+' PV, '+m.damage+' dano, '+m.fire.toFixed(1)+'s/ataque) e tente ganhar as três estrelas.</p>'+
  '<div class="result-objectives"><div><span>★</span> Derrote o rival</div><div><span>★</span> Termine com pelo menos 75% da vida</div><div><span>★</span> Vença em até '+m.time+' segundos</div></div>'+
  '<div class="battle-hint">💡 '+recommend+'</div><div class="loadout-preview"><span class="menu-hero">CAMPEÃO: '+selectedHeroText()+'</span><br>Kit: '+loadoutLine()+'</div>'+
  '<div class="actions"><button class="primary" id="startGame">INICIAR X1 ✦</button><button class="secondary" id="openHeroes">◇ PERSONAGENS</button><button class="secondary" id="openArsenal">⚒ ARSENAL</button></div>'+
@@ -322,7 +322,7 @@ function showHeroSelect(){
  '<button data-hero="'+id+'" class="hero-choice '+(id===heroChoice?'chosen':'')+'">'+
  '<span class="hero-mark" style="color:'+h.color+'">'+h.symbol+'</span>'+
  '<strong>'+h.name+'</strong><small>'+h.role+'</small>'+
- '<b>'+h.hp+' PV · '+h.damage+' dano · '+h.attackTime.toFixed(2)+'s/ataque</b>'+
+ '<b>'+h.hp+' PV · '+h.damage+' dano · '+h.attackTime.toFixed(2)+'s/ataque · alcance '+h.range+'</b>'+
  '<em>'+h.summary+'</em></button>').join('')+'</div>'+
  '<div class="hero-preview"><strong>'+c.name+' · PASSIVA</strong><div>'+c.passive+'</div></div>'+
  '<div class="actions" style="margin-top:9px"><button class="primary" id="heroConfirm">CONFIRMAR '+c.name+'</button></div>';
@@ -415,7 +415,7 @@ function updateHud(){const m=missions[selected];$('playerHeroName').textContent=
   const h=chosenHero(),progress=1-clamp(player.shoot/h.attackTime,0,1);
   btn.classList.toggle('basic-ready',player.shoot<=.02);btn.classList.toggle('basic-wait',player.shoot>.02);
   btn.querySelector('b').textContent=player.shoot<=.02?'✦':'◔';
-  btn.querySelector('small').textContent=player.shoot<=.02?'ATIRAR':player.shoot.toFixed(1)+'s';
+  btn.querySelector('small').textContent=player.shoot<=.02?'ATIRAR':shotQueue.length?'PRONTO':' '+player.shoot.toFixed(1)+'s';
   btn.style.setProperty('--attack-progress',Math.round(progress*100)+'%');
  }
  $('phasePips').innerHTML=missions.map((x,i)=>`<i class="${i===selected?'on':''}"></i>`).join('')}
@@ -450,7 +450,7 @@ function queueSingleShot(dir){
  // Um clique é uma ordem de ataque. No máximo uma ordem fica armazenada.
  shotQueue.length=0;
  if(player.shoot<=.005)shootPlayer(d);
- else if(player.shoot<.22)shotQueue.push(d);
+ else shotQueue.push(d);
 }
 function onBasicHit(damage){
  player.hitCombo++;
@@ -657,6 +657,11 @@ function drawEntity(o,isPlayer,t){
   circle(r*.48,-r*.48,r*.13,'#ffffff',.9);
  }
  ctx.restore();
+ if(!isPlayer&&missions[selected].boss){
+  ctx.save();ctx.translate(o.x,o.y);ring(0,0,r+14,'#fa7ed6',.62+Math.sin(t*4)*.15,2.5);
+  for(let i=0;i<6;i++){const a=i*TWO/6+t*.45;polygon(Math.cos(a)*(r+16),Math.sin(a)*(r+16),5,3,'#fba2ed',a,true,.83)}
+  ctx.restore();
+ }
  if(o.barrier>0||o.shield>0){
   const protective=isPlayer?'#afbeff':'#ffd4a8';
   ring(o.x,o.y,r+18,protective,.5+Math.sin(t*7)*.12,3);
