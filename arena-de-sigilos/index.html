@@ -97,18 +97,22 @@ canvas {width:100%;height:100%;}
  .overlay .modal p {margin-bottom:4px;font-size:10px;}
  .mission-shelf {height:100%;}
 }
-/* V1.2: controle flutuante em toda metade esquerda, tiro com mira por arraste */
+/* V1.3: joystick e mira flutuantes, cada um em sua metade da tela */
 .mobile-controls{inset:0!important;bottom:0!important;padding:0!important;justify-content:flex-end;align-items:stretch}
 .mobile-controls .joy{position:absolute;left:0;top:0;transform:translate(-50%,-50%);opacity:0;pointer-events:none;transition:opacity .10s ease;z-index:1}
 .mobile-controls .joy.active{opacity:.96}
 .mobile-controls .skill-controls{position:absolute;right:max(15px,env(safe-area-inset-right));bottom:max(11px,env(safe-area-inset-bottom));z-index:2}
 .skill-btn.fire.aiming{border-color:#fff5bd;box-shadow:0 0 24px #88fff380,inset 0 0 19px #0bf7dd66;}
 .skill-btn.fire.aiming b{color:#fff9c8}
+.mobile-controls .aim-pad{position:absolute;left:0;top:0;width:94px;height:94px;border-radius:50%;border:2px solid #f9e9a988;background:radial-gradient(circle,#213f5366,#0613215c 67%,#06111a21);box-shadow:0 0 18px #83ffe142;transform:translate(-50%,-50%);opacity:0;pointer-events:none;z-index:1;transition:opacity .08s ease}
+.mobile-controls .aim-pad.active{opacity:.93}
+.mobile-controls .aim-pad:after{content:'';position:absolute;inset:16px;border-radius:50%;border:1px dashed #a8f7e67b}
+.mobile-controls .aim-thumb{position:absolute;left:50%;top:50%;width:35px;height:35px;border-radius:50%;border:2px solid #f7e2a4;background:radial-gradient(circle at 35% 30%,#e4fff4,#239fa6 70%);box-shadow:0 0 15px #57e7db88;transform:translate(-50%,-50%)}
 </style>
 </head>
 <body>
 <div class="app">
-  <header class="topbar"><div class="brand"><div class="brand-icon"><svg viewBox="0 0 32 32" fill="none"><path d="M16 2 28 16 16 30 4 16 16 2Z" stroke="#6BE8DF" stroke-width="2"/><path d="M16 7 23 16 16 25 9 16 16 7Z" stroke="#ECDE9B" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="#6BE8DF"/></svg></div><div><h1>ARENA DE SIGILOS</h1><small>PROTÓTIPO // EDIÇÃO ZERO</small></div></div><div class="build">5 MISSÕES · V1.2 · CONTROLES LIVRES</div></header>
+  <header class="topbar"><div class="brand"><div class="brand-icon"><svg viewBox="0 0 32 32" fill="none"><path d="M16 2 28 16 16 30 4 16 16 2Z" stroke="#6BE8DF" stroke-width="2"/><path d="M16 7 23 16 16 25 9 16 16 7Z" stroke="#ECDE9B" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="#6BE8DF"/></svg></div><div><h1>ARENA DE SIGILOS</h1><small>PROTÓTIPO // EDIÇÃO ZERO</small></div></div><div class="build">5 MISSÕES · V1.3 · CONTROLES LIVRES</div></header>
   <div class="arena-grid">
     <section>
       <div class="stage" id="stage">
@@ -121,13 +125,13 @@ canvas {width:100%;height:100%;}
         <div class="objective-tag" id="objectiveTag">Derrote o rival e conquiste suas estrelas</div>
         <div class="top-buttons"><button class="icon-btn" id="fullscreenBtn" title="Entrar ou sair da tela cheia" aria-label="Tela cheia">⛶</button><button class="icon-btn" id="muteBtn" title="Ativar/desativar som" aria-label="Ativar ou desativar som">♪</button><button class="icon-btn" id="pauseBtn" title="Pausar" aria-label="Pausar">Ⅱ</button></div>
         <div class="toast" id="toast"></div>
-        <div class="mobile-controls" id="mobileControls"><div class="joy" id="joy"><div class="joy-knob" id="joyKnob"></div></div><div class="skill-controls"><button class="skill-btn" id="dashBtn" aria-label="Investida"><b>➤</b><small>Dash</small><span class="cd-text" hidden></span></button><button class="skill-btn" id="pulseBtn" aria-label="Pulso"><b>✳</b><small>Pulso</small><span class="cd-text" hidden></span></button><button class="skill-btn" id="shieldBtn" aria-label="Escudo"><b>◇</b><small>Escudo</small><span class="cd-text" hidden></span></button><button class="skill-btn fire" id="fireBtn" aria-label="Atirar"><b>✦</b><small>ATIRAR</small></button></div></div>
+        <div class="mobile-controls" id="mobileControls"><div class="joy" id="joy"><div class="joy-knob" id="joyKnob"></div></div><div class="aim-pad" id="aimPad"><div class="aim-thumb" id="aimThumb"></div></div><div class="skill-controls"><button class="skill-btn" id="dashBtn" aria-label="Investida"><b>➤</b><small>Dash</small><span class="cd-text" hidden></span></button><button class="skill-btn" id="pulseBtn" aria-label="Pulso"><b>✳</b><small>Pulso</small><span class="cd-text" hidden></span></button><button class="skill-btn" id="shieldBtn" aria-label="Escudo"><b>◇</b><small>Escudo</small><span class="cd-text" hidden></span></button><button class="skill-btn fire" id="fireBtn" aria-label="Atirar"><b>✦</b><small>ATIRAR</small></button></div></div>
         <div class="phase-pips" id="phasePips"><i class="on"></i><i></i><i></i><i></i><i></i></div>
         <div class="overlay" id="overlay"><div class="modal" id="modalContent"></div><aside class="mission-shelf" id="missionShelf"><h3>ESCOLHER FASE · 3 ESTRELAS</h3><div id="missions"></div></aside></div><div class="rotate-prompt" id="rotatePrompt"><div class="rotate-symbol">⤵</div><strong>Gire o celular</strong><p>A Arena de Sigilos agora foi feita para jogar na horizontal, ocupando a tela inteira.</p><button type="button" id="rotateFullscreen">ATIVAR TELA CHEIA</button></div>
       </div>
       <div class="tip">WASD para mover · Mouse para mirar · Clique ou Espaço para atirar · 1 / 2 / 3 para habilidades</div>
     </section>
-    <aside class="side"><section class="panel"><h3>Campanha · 3 estrelas</h3><div id="retiredMissions"></div></section><section class="panel"><h3>Arsenal de sigilos</h3><div class="guide"><div class="guide-item"><span class="key">CLICK</span><span><strong style="color:#dceeff">Disparo astral</strong><br>Atire em movimento</span></div><div class="guide-item"><span class="key">1 / Q</span><span><strong style="color:#dceeff">Investida</strong><br>Esquiva rápida e invulnerável</span></div><div class="guide-item"><span class="key">2 / E</span><span><strong style="color:#dceeff">Pulso</strong><br>Dano e empurrão próximos</span></div><div class="guide-item"><span class="key">3 / R</span><span><strong style="color:#dceeff">Escudo</strong><br>Proteção por 2 segundos</span></div></div><hr style="border:0;border-top:1px solid var(--line);margin:15px 0"><p class="info-note">A zona brilhante no centro recupera sua energia mais rápido. Use os pilares como cobertura. No celular, a mira é automática.</p></section><section class="panel"><span class="effect-title">DESAFIO DE VERDADE</span><p class="info-note" style="margin-top:10px">Cada fase oferece ★ por vencer, ★ por preservar a vida e ★ por vencer antes do tempo-alvo. Suas melhores notas ficam salvas neste navegador.</p></section></aside>
+    <aside class="side"><section class="panel"><h3>Campanha · 3 estrelas</h3><div id="retiredMissions"></div></section><section class="panel"><h3>Arsenal de sigilos</h3><div class="guide"><div class="guide-item"><span class="key">CLICK</span><span><strong style="color:#dceeff">Disparo astral</strong><br>Atire em movimento</span></div><div class="guide-item"><span class="key">1 / Q</span><span><strong style="color:#dceeff">Investida</strong><br>Esquiva rápida e invulnerável</span></div><div class="guide-item"><span class="key">2 / E</span><span><strong style="color:#dceeff">Pulso</strong><br>Dano e empurrão próximos</span></div><div class="guide-item"><span class="key">3 / R</span><span><strong style="color:#dceeff">Escudo</strong><br>Proteção por 2 segundos</span></div></div><hr style="border:0;border-top:1px solid var(--line);margin:15px 0"><p class="info-note">A zona brilhante no centro recupera sua energia mais rápido. Use os pilares como cobertura. No celular, toque e arraste no lado direito para mirar.</p></section><section class="panel"><span class="effect-title">DESAFIO DE VERDADE</span><p class="info-note" style="margin-top:10px">Cada fase oferece ★ por vencer, ★ por preservar a vida e ★ por vencer antes do tempo-alvo. Suas melhores notas ficam salvas neste navegador.</p></section></aside>
   </div><div class="footer"><span>Projeto experimental · Feito em Canvas 2D, sem imagens externas</span><span>Desktop + celular · Funciona sem internet depois de salvo</span></div>
 </div>
 <script>
@@ -164,12 +168,12 @@ function positionPillars(n){const pts=n===2?[[.34,.43],[.66,.57]]:n===3?[[.29,.3
  // Keep mobile corridors open.
  if(W<500){obstacles=obstacles.map((o,i)=>({...o,r:15,x:clamp(o.x,31,W-31)}))}
 }
-function reset(level){selected=level;const m=missions[level];elapsed=0;sceneTime=0;shake=0;flash=0;bullets=[];particles=[];waves=[];hazards=[];floaters=[];keys.clear();firing=false;touchAim.active=false;touchAim.id=null;joy.x=0;joy.y=0;joy.id=null;$('joy').classList.remove('active');$('fireBtn').classList.remove('aiming');const portrait=W/H<.87;
+function reset(level){selected=level;const m=missions[level];elapsed=0;sceneTime=0;shake=0;flash=0;bullets=[];particles=[];waves=[];hazards=[];floaters=[];keys.clear();firing=false;touchAim.active=false;touchAim.id=null;firePointer=null;fireTouch=false;joy.x=0;joy.y=0;joy.id=null;$('joy').classList.remove('active');$('fireBtn').classList.remove('aiming');$('aimPad').classList.remove('active');const portrait=W/H<.87;
  player={x:portrait?W*.5:W*.24,y:portrait?H*.72:H*.56,r:15,hp:140,maxHp:140,energy:100,maxEnergy:100,vx:0,vy:0,angle:0,hit:0,shield:0,invuln:0,dash:0,dashVx:0,dashVy:0,cool:{dash:0,pulse:0,shield:0},shoot:0};
  enemy={x:portrait?W*.5:W*.76,y:portrait?H*.26:H*.44,r:m.boss?21:17,hp:m.hp,maxHp:m.hp,speed:m.speed,vx:0,vy:0,shoot:1.5,moveAngle:0,change:0,hit:0,burst:0,special:5.5,angle:0,stun:0};
  positionPillars(m.obstacles);mode='playing';$('overlay').classList.add('hidden');updateHud();renderMissions();toast('DUEL0 INICIADO'.replace('0','O'));tone(510,.12,'triangle');
 }
-function showMenu(){mode='menu';$('missionShelf').hidden=false;$('overlay').classList.add('picker-open');$('overlay').classList.remove('hidden');const m=missions[selected];$('modalContent').innerHTML=`<div class="eyebrow">CÍRCULO ${String(selected+1).padStart(2,'0')} / 05</div><h2>${m.name}</h2><p>${m.desc} Enfrente <b style="color:${m.color}">${m.enemy}</b> e tente ganhar as três estrelas.</p><div class="result-objectives"><div><span>★</span> Derrote o rival</div><div><span>★</span> Termine com pelo menos 75% da vida</div><div><span>★</span> Vença em até ${m.time} segundos</div></div><div class="actions"><button class="primary" id="startGame">INICIAR DUELO ✦</button></div><p style="margin:14px auto 0;font-size:11px">${matchMedia('(pointer:coarse)').matches?'Toque em qualquer lugar à esquerda para mover. Segure ATIRAR e deslize para mirar.':'WASD para mover, mouse para mirar e clique para disparar. Use 1, 2 e 3 para habilidades.'}</p>`;$('startGame').onclick=()=>{enterImmersive();reset(selected)};updateHud();renderMissions()}
+function showMenu(){mode='menu';$('missionShelf').hidden=false;$('overlay').classList.add('picker-open');$('overlay').classList.remove('hidden');const m=missions[selected];$('modalContent').innerHTML=`<div class="eyebrow">CÍRCULO ${String(selected+1).padStart(2,'0')} / 05</div><h2>${m.name}</h2><p>${m.desc} Enfrente <b style="color:${m.color}">${m.enemy}</b> e tente ganhar as três estrelas.</p><div class="result-objectives"><div><span>★</span> Derrote o rival</div><div><span>★</span> Termine com pelo menos 75% da vida</div><div><span>★</span> Vença em até ${m.time} segundos</div></div><div class="actions"><button class="primary" id="startGame">INICIAR DUELO ✦</button></div><p style="margin:14px auto 0;font-size:11px">${matchMedia('(pointer:coarse)').matches?'Toque à esquerda para mover; toque à direita para atirar e arraste para mirar.':'WASD para mover, mouse para mirar e clique para disparar. Use 1, 2 e 3 para habilidades.'}</p>`;$('startGame').onclick=()=>{enterImmersive();reset(selected)};updateHud();renderMissions()}
 function showPause(){if(mode==='playing'){mode='paused';$('missionShelf').hidden=true;$('overlay').classList.remove('picker-open');$('overlay').classList.remove('hidden');$('modalContent').innerHTML='<div class="eyebrow">TEMPO CONGELADO</div><h2>Duelo pausado</h2><p>Seu rival não vai a lugar nenhum.</p><div class="actions"><button class="primary" id="resume">CONTINUAR</button><button class="secondary" id="retry">RECOMEÇAR</button><button class="secondary" id="menu">MISSÕES</button></div>';$('resume').onclick=resume;$('retry').onclick=()=>reset(selected);$('menu').onclick=showMenu;firing=false;keys.clear()}else if(mode==='paused')resume()}
 function resume(){mode='playing';$('overlay').classList.add('hidden');last=performance.now()}
 function endGame(win){if(mode!=='playing')return;mode=win?'won':'lost';$('missionShelf').hidden=true;$('overlay').classList.remove('picker-open');firing=false;keys.clear();if(win){for(let i=0;i<38;i++)spawnPart(rnd(W*.14,W*.85),rnd(H*.19,H*.8),rnd(0,TWO),rnd(50,185),rnd(.3,1),'#f7ce78',rnd(2,5));tone(730,.18,'triangle',.075);setTimeout(()=>tone(1010,.2,'sine',.04),125)}else tone(150,.35,'sawtooth',.04);
@@ -278,15 +282,31 @@ document.addEventListener('fullscreenchange',()=>{$('fullscreenBtn').textContent
 window.addEventListener('orientationchange',()=>setTimeout(resize,120));
 $('pauseBtn').onclick=showPause;$('muteBtn').onclick=()=>{soundOn=!soundOn;$('muteBtn').textContent=soundOn?'♪':'♪̸';if(soundOn)tone(600,.05)};
 let fireTouch=false,firePointer=null;
-const fireBtn=$('fireBtn');
-function updateTouchAim(e){if(firePointer!==e.pointerId)return;const dx=e.clientX-touchAim.startX,dy=e.clientY-touchAim.startY;
- if(Math.hypot(dx,dy)>12){const v=unit(dx,dy);touchAim.x=v.x;touchAim.y=v.y;touchAim.active=true;fireBtn.classList.add('aiming');}
+const fireBtn=$('fireBtn'),aimPad=$('aimPad'),aimThumb=$('aimThumb');
+function updateTouchAim(e){
+ if(firePointer!==e.pointerId)return;
+ const dx=e.clientX-touchAim.startX,dy=e.clientY-touchAim.startY;
+ const dist=Math.hypot(dx,dy),radius=28;
+ const maxX=dist>0?dx/dist*Math.min(dist,radius):0, maxY=dist>0?dy/dist*Math.min(dist,radius):0;
+ aimThumb.style.transform=`translate(calc(-50% + ${maxX}px),calc(-50% + ${maxY}px))`;
+ if(dist>12){const v=unit(dx,dy);touchAim.x=v.x;touchAim.y=v.y;touchAim.active=true;fireBtn.classList.add('aiming');}
 }
-function endFireTouch(e){if(firePointer!==e.pointerId)return;firePointer=null;fireTouch=false;firing=false;touchAim.active=false;touchAim.id=null;fireBtn.classList.remove('aiming');}
-fireBtn.addEventListener('pointerdown',e=>{if(mode!=='playing'||firePointer!==null)return;e.preventDefault();fireTouch=true;firing=true;firePointer=e.pointerId;
+function endFireTouch(e){
+ if(firePointer!==e.pointerId)return;
+ firePointer=null;fireTouch=false;firing=false;touchAim.active=false;touchAim.id=null;
+ fireBtn.classList.remove('aiming');aimPad.classList.remove('active');aimThumb.style.transform='translate(-50%,-50%)';
+}
+function beginFireTouch(e,captureElement){
+ if(mode!=='playing'||firePointer!==null)return;
+ e.preventDefault();fireTouch=true;firing=true;firePointer=e.pointerId;
  touchAim={id:e.pointerId,active:false,x:1,y:0,startX:e.clientX,startY:e.clientY};
- try{fireBtn.setPointerCapture(e.pointerId)}catch(_){};
-});
+ const r=stage.getBoundingClientRect(),half=47;
+ aimPad.style.left=clamp(e.clientX-r.left,half,Math.max(half,r.width-half))+'px';
+ aimPad.style.top=clamp(e.clientY-r.top,half,Math.max(half,r.height-half))+'px';
+ aimPad.classList.add('active');aimThumb.style.transform='translate(-50%,-50%)';
+ try{captureElement.setPointerCapture(e.pointerId)}catch(_){};
+}
+fireBtn.addEventListener('pointerdown',e=>beginFireTouch(e,fireBtn));
 fireBtn.addEventListener('pointermove',updateTouchAim);
 for(const ev of ['pointerup','pointercancel','lostpointercapture'])fireBtn.addEventListener(ev,endFireTouch);
 [['dashBtn','dash'],['pulseBtn','pulse'],['shieldBtn','shield']].forEach(([id,which])=>$(id).addEventListener('pointerdown',e=>{e.preventDefault();ability(which)}));
@@ -301,9 +321,14 @@ function resetJoy(e){if(e&&joy.id!==e.pointerId)return;
  joy.x=joy.y=0;joy.id=null;joyel.classList.remove('active');$('joyKnob').style.transform='translate(-50%,-50%)';
 }
 stage.addEventListener('pointerdown',e=>{
- if(mode!=='playing'||e.pointerType==='mouse'||joy.id!==null)return;
- const r=stage.getBoundingClientRect();if(e.clientX>r.left+r.width*.5)return;
+ if(mode!=='playing'||e.pointerType==='mouse')return;
+ const r=stage.getBoundingClientRect();
  if(e.target.closest('button'))return;
+ if(e.clientX>=r.left+r.width*.5){
+   beginFireTouch(e,stage); // Tiro e mira flutuante em qualquer ponto da metade direita.
+   return;
+ }
+ if(joy.id!==null)return;
  e.preventDefault();joy.id=e.pointerId;joyStartX=e.clientX;joyStartY=e.clientY;
  const size=joyel.offsetWidth, half=size/2+4;
  joyel.style.left=clamp(e.clientX-r.left,half,Math.max(half,r.width*.5-half))+'px';
@@ -312,8 +337,8 @@ stage.addEventListener('pointerdown',e=>{
  try{stage.setPointerCapture(e.pointerId)}catch(_){};
  joystickMove(e);
 });
-stage.addEventListener('pointermove',joystickMove);
-for(const ev of ['pointerup','pointercancel','lostpointercapture'])stage.addEventListener(ev,resetJoy);
+stage.addEventListener('pointermove',e=>{joystickMove(e);updateTouchAim(e)});
+for(const ev of ['pointerup','pointercancel','lostpointercapture'])stage.addEventListener(ev,e=>{resetJoy(e);endFireTouch(e)});
 window.addEventListener('resize',resize);if(window.ResizeObserver)new ResizeObserver(resize).observe(stage);
 resize();renderMissions();showMenu();last=performance.now();requestAnimationFrame(loop);
 })();
