@@ -367,53 +367,52 @@ function showArsenal(tab=arsenalTab){
  renderArsenal();renderMissions();
 }
 function renderArsenal(){
- const el=$('modalContent'),scroll=el.scrollTop;
- const isSkill=arsenalTab==='skills',defs=isSkill?skillDefs:itemDefs,slots=isSkill?arsenal.skills:arsenal.items,active=isSkill?skillSlot:itemSlot;
- const equipSlots=slots.map((id,i)=>'<button class="'+(active===i?'selected':'')+'" data-action="slot" data-index="'+i+'">POS '+(i+1)+'<small>'+defs[id].name+'</small></button>').join('');
- const cards=Object.entries(defs).map(([id,d])=>{
-  const unlockedNow=acquired(d),lvl=isSkill?skillLevel(id):itemLevel(id),equipped=slots.includes(id);
-  const cost=lvl===1?(isSkill?50:38):(isSkill?90:72);
-  const upgrade=unlockedNow&&lvl<3?'<button class="upgrade" data-action="upgrade" data-id="'+id+'" '+(arsenal.credits<cost?'disabled':'')+'>↑ '+cost+' ✦</button>':'';
-  const equip=unlockedNow?'<button data-action="equip" data-id="'+id+'">'+(equipped?'EM USO':'EQUIPAR')+'</button>':'';
-  const locktext=unlockedNow?'':'<span style="color:#c89ba2;font-size:10px">Desbloqueia ao vencer a fase '+d.unlock+'</span>';
-  const itemStat={
-   lens:'+'+(2*lvl)+' de dano por tiro',
-   ward:'+'+(10+10*lvl)+' de vida máxima',
-   stride:'+'+Math.round(5.5*lvl)+'% de velocidade',
-   cell:'+'+(18*lvl)+'% de recuperação de energia',
-   prism:'1 ricochete · +'+(2*lvl)+' de dano refletido',
-   core:'-'+(7.5*lvl)+'% de recarga das habilidades'
-  };
-  const stat=isSkill?'Recarga '+skillCooldown(id).toFixed(1)+'s · '+d.cost+' energia · '+(d.aim==='self'?'uso imediato':d.aim==='area'?'mira de área':'mira direcional'):itemStat[id];
-  return '<article class="arsenal-card '+(unlockedNow?'':'locked')+'"><div class="card-title"><span><span class="card-icon">'+d.icon+'</span> '+d.name+'</span><span class="card-rank">'+(unlockedNow?'Nv. '+lvl+'/3':'🔒')+'</span></div>'+
-  '<div class="card-desc">'+d.desc+'<div style="color:#ffe0a1;margin-top:4px">'+(unlockedNow?stat:'')+'</div></div>'+locktext+(unlockedNow?'<div class="card-action">'+equip+upgrade+'</div>':'')+'</article>';
+ const el=$('modalContent'),scroll=el.scrollTop,isSkill=arsenalTab==='skills';
+ const defs=isSkill?skillDefs:itemDefs,ids=isSkill?heroSkillIds():Object.keys(itemDefs);
+ const slots=arsenal.items;
+ const itemBonus=id=>{
+  const lvl=itemLevel(id);
+  return {lens:'+'+2*lvl+' dano básico',ward:'+'+(10+10*lvl)+' PV',
+   stride:'+'+(5.5*lvl).toFixed(1)+'% movimento',cell:'+'+18*lvl+'% energia',
+   prism:'1 ricochete · +'+2*lvl+' dano',core:'-'+(7.5*lvl).toFixed(1)+'% recarga'}[id];
+ };
+ const fixed=isSkill?heroSkillIds().map((id,i)=>'<div class="fixed-skill">PODER '+(i+1)+'<small>'+skillDefs[id].name+'</small><span>FIXO</span></div>').join(''):
+  slots.map((id,i)=>'<button data-action="slot" data-index="'+i+'" class="'+(itemSlot===i?'selected':'')+'">ITEM '+(i+1)+'<small>'+itemDefs[id].name+'</small></button>').join('');
+ const cards=ids.map(id=>{
+  const d=defs[id],unlocked=isSkill||acquired(d),level=isSkill?skillLevel(id):itemLevel(id);
+  const cost=level===1?(isSkill?50:38):(isSkill?90:72);
+  const upgrade=unlocked&&level<3?'<button class="upgrade" data-action="upgrade" data-id="'+id+'" '+(arsenal.credits<cost?'disabled':'')+'>EVOLUIR '+cost+' ✦</button>':'';
+  const equip=!isSkill&&unlocked?'<button data-action="equip" data-id="'+id+'">'+(slots.includes(id)?'EM USO':'EQUIPAR')+'</button>':'';
+  const detail=isSkill?'Recarga '+skillCooldown(id).toFixed(1)+'s · '+d.cost+' energia · '+(d.aim==='self'?'instantânea':d.aim==='area'?'mira em área':'mira direcional'):itemBonus(id);
+  return '<article class="arsenal-card '+(unlocked?'':'locked')+'"><div class="card-title"><span><span class="card-icon">'+d.icon+'</span> '+d.name+'</span><span class="card-rank">'+(unlocked?'Nv. '+level+'/3':'🔒')+'</span></div>'+
+   '<div class="card-desc">'+d.desc+'<div style="color:#ffe0a1;margin-top:4px">'+(unlocked?detail:'')+'</div></div>'+
+   (isSkill?'<div class="fixed-label">EXCLUSIVA DE '+chosenHero().name+' · NÃO EQUIPÁVEL</div>':'')+
+   (!unlocked?'<span style="color:#c89ba2;font-size:10px">Libera ao vencer a fase '+d.unlock+'</span>':'<div class="card-action">'+equip+upgrade+'</div>')+'</article>';
  }).join('');
  el.innerHTML='<div class="arsenal-head"><strong>⚒ ARSENAL</strong><span class="coin">✦ '+arsenal.credits+' FRAGMENTOS</span><button class="secondary" data-action="back" style="padding:7px 9px">VOLTAR</button></div>'+
- '<div class="arsenal-tabs"><button data-action="tab" data-tab="skills" class="'+(isSkill?'active':'')+'">HABILIDADES</button><button data-action="tab" data-tab="items" class="'+(!isSkill?'active':'')+'">EQUIPAMENTOS</button></div>'+
- '<div class="arsenal-info">'+(isSkill?'Escolha qual dos 3 botões vai receber a habilidade. Setas e áreas permitem segurar para mirar; poderes ao redor do corpo são instantâneos. Melhore cada habilidade até o nível 3.':'Escolha um dos 2 espaços de equipamentos. Cada item modifica uma característica real do combate.')+'</div>'+
- '<div class="arsenal-slots">'+equipSlots+'</div><div class="arsenal-cards">'+cards+'</div>'+
- '<div class="arsenal-info" style="margin-top:11px">Você ganha fragmentos ao vencer fases e bônus por novas estrelas. Novos poderes e itens são liberados gratuitamente ao progredir.</div>';
+ '<div class="arsenal-tabs"><button data-action="tab" data-tab="items" class="'+(!isSkill?'active':'')+'">EQUIPAMENTOS</button><button data-action="tab" data-tab="skills" class="'+(isSkill?'active':'')+'">EVOLUIR PODERES</button></div>'+
+ '<div class="arsenal-info">'+(isSkill?'As habilidades de '+chosenHero().name+' são fixas. Você pode evoluir seus níveis, mas não trocá-las nem mudar os botões.':'Escolha um dos dois espaços e equipe outro item. Os equipamentos são as únicas peças intercambiáveis.')+'</div>'+
+ '<div class="arsenal-slots">'+fixed+'</div><div class="arsenal-cards">'+cards+'</div>'+
+ '<div class="arsenal-info" style="margin-top:11px">Vença fases e melhore as estrelas para conquistar fragmentos. Evolução e itens são salvos no navegador.</div>';
  el.scrollTop=scroll;
  el.onclick=e=>{
   const b=e.target.closest('button[data-action]');if(!b||b.disabled)return;
   const action=b.dataset.action,id=b.dataset.id,slot=Number(b.dataset.index);
   if(action==='back'){showMenu();return}
   if(action==='tab'){arsenalTab=b.dataset.tab;renderArsenal();return}
-  if(action==='slot'){if(isSkill)skillSlot=slot;else itemSlot=slot;renderArsenal();return}
-  if(action==='equip'){
-   if(!acquired(defs[id]))return;
-   const target=isSkill?skillSlot:itemSlot,current=isSkill?arsenal.skills:arsenal.items,other=current.indexOf(id);
-   if(other===target){renderArsenal();return}
-   if(other>=0)[current[other],current[target]]=[current[target],current[other]];
-   else current[target]=id;
+  if(action==='slot'&&!isSkill){itemSlot=slot;renderArsenal();return}
+  if(action==='equip'&&!isSkill&&itemDefs[id]&&acquired(itemDefs[id])){
+   const other=slots.indexOf(id);
+   if(other===itemSlot){renderArsenal();return}
+   if(other>=0)[slots[other],slots[itemSlot]]=[slots[itemSlot],slots[other]];
+   else slots[itemSlot]=id;
    saveArsenal();renderArsenal();return;
   }
-  if(action==='upgrade'){
-   if(!acquired(defs[id]))return;
-   const levels=isSkill?arsenal.skillLevels:arsenal.itemLevels,lvl=isSkill?skillLevel(id):itemLevel(id);
-   const cost=lvl===1?(isSkill?50:38):(isSkill?90:72);
-   if(lvl>=3||arsenal.credits<cost)return;
-   arsenal.credits-=cost;levels[id]=lvl+1;saveArsenal();tone(750,.1,'triangle');renderArsenal();
+  if(action==='upgrade'&&defs[id]&&acquired(defs[id])&&(!isSkill||heroSkillIds().includes(id))){
+   const levels=isSkill?arsenal.skillLevels:arsenal.itemLevels,level=isSkill?skillLevel(id):itemLevel(id);
+   const cost=level===1?(isSkill?50:38):(isSkill?90:72);
+   if(level>=3||arsenal.credits<cost)return;
+   arsenal.credits-=cost;levels[id]=level+1;saveArsenal();tone(750,.1,'triangle');renderArsenal();
   }
  };
 }
