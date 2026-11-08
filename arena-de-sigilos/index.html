@@ -175,6 +175,8 @@ canvas {width:100%;height:100%;}
 .fixed-label{font-size:9px;font-weight:850;color:#82d9cc}
 
 /* V3.0 - duas equipes, barra de abates, proteção de leitura no celular */
+@media (min-height:511px){.objective-tag{top:max(91px,calc(env(safe-area-inset-top) + 85px));}}
+
 .hud .meter-title span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .team-score{position:absolute;z-index:7;top:max(59px,calc(env(safe-area-inset-top) + 53px));left:50%;transform:translateX(-50%);border:1px solid #83ada466;border-radius:12px;background:#081927cc;color:#e9fdff;padding:6px 11px;min-width:120px;text-align:center;font-size:11px;font-weight:900;letter-spacing:.05em;pointer-events:none;box-shadow:0 4px 18px #0014}
 .team-score .blue{color:#80f2e4}.team-score .red{color:#ff9cbd}.team-score small{display:block;color:#9ab5c6;font-size:8px;font-weight:650;margin-top:2px}
@@ -260,8 +262,8 @@ const skillDefs={
  nyra_rift:{name:'Círculo Rúnico',short:'Círculo',icon:'✳',desc:'Armadilha mágica em área, com lentidão e breve interrupção.',cost:41,cd:9.8,aim:'area',range:285,radius:71,cast:0.58},
  nyra_barrier:{name:'Véu Astral',short:'Véu',icon:'◇',desc:'Barreira imediata ao redor da maga, sem precisar mirar.',cost:30,cd:11.2,aim:'self',cast:0},
  seris_tether:{name:'Laço Luminoso',short:'Laço',icon:'✧',desc:'Projétil que desacelera o inimigo acertado.',cost:27,cd:6.9,aim:'direction',range:405,radius:20,cast:.24},
- seris_bloom:{name:'Flor Restauradora',short:'Flor',icon:'✿',desc:'Projétil de área que cura aliados próximos ao impacto.',cost:39,cd:10.6,aim:'area',range:285,radius:96,cast:.38},
- seris_aegis:{name:'Aura de Proteção',short:'Aura',icon:'◇',desc:'Protege aliados perto de Seris; ativação imediata.',cost:35,cd:11.2,aim:'self',radius:120,cast:0},
+ seris_bloom:{name:'Flor Restauradora',short:'Flor',icon:'✿',desc:'Cura numa área; toque rápido mira o aliado mais ferido, segurar permite escolher a região.',cost:39,cd:10.6,aim:'area',range:295,radius:104,cast:.38},
+ seris_aegis:{name:'Aura de Proteção',short:'Aura',icon:'◇',desc:'Protege aliados perto de Seris; ativação imediata.',cost:35,cd:11.2,aim:'self',radius:148,cast:0},
 };
 const itemDefs={
  lens:{name:'Lente Astral',icon:'◈',desc:'Aumenta o dano dos disparos básicos.',unlock:0},
@@ -424,7 +426,7 @@ function reset(level){
  joy.x=0;joy.y=0;joy.id=null;
  $('joy').classList.remove('active');$('fireBtn').classList.remove('aiming');$('aimPad').classList.remove('active');
  const heroIds=Object.keys(heroes),friends=[heroChoice,...heroIds.filter(id=>id!==heroChoice)];
- const foes=heroIds.slice(selected%heroIds.length).concat(heroIds.slice(0,selected%heroIds.length));
+ const leader=missions[level].hero,foes=[leader,...heroIds.filter(id=>id!==leader)];
  allies=friends.map((id,i)=>createUnit(id,0,i,i===0));
  enemies=foes.map((id,i)=>createUnit(id,1,i,false));
  player=allies[0];
@@ -556,7 +558,7 @@ function endGame(win){
  const c1=win?'★':'○',c2=win&&survived?'★':'○',c3=win&&elapsed<=m.time?'★':'○';
  $('overlay').classList.remove('hidden');
  $('modalContent').innerHTML=`<div class="eyebrow">${win?'BATALHA CONCLUÍDA':'EQUIPE ELIMINADA'}</div>
- <h2>${win?'VITÓRIA AZUL!':'DERROTA RUBRA'}</h2>${display}
+ <h2>${win?'VITÓRIA AZUL!':'DERROTA AZUL'}</h2>${display}
  <p>${win?`Sua equipe venceu o 5x5 em ${elapsed.toFixed(1)} segundos. ${player.hp>0?'Você sobreviveu!':'Seus aliados garantiram a vitória após sua queda.'}`:
  'A equipe rubra eliminou seus cinco campeões. Ajuste itens e estratégias para a próxima luta.'}</p>
  <div class="result-objectives">
@@ -696,6 +698,11 @@ const castDirection=(which,aimSpec)=>{
 };
 const groundTarget=(which,aimSpec)=>{
  const spell=skillDefs[which],range=spell.range;
+ if(which==='seris_bloom'&&!aimSpec?.dir){
+  const blue=living(0).filter(u=>dist(player,u)<=range+u.r);
+  const wounded=blue.sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0]||player;
+  return {x:wounded.x,y:wounded.y};
+ }
  if(aimSpec&&aimSpec.dir){
   const v=unit(aimSpec.dir.x,aimSpec.dir.y);
   const step=clamp(aimSpec.distance??range,0,range);
@@ -849,7 +856,7 @@ function finishAbility(c){
   case 'seris_bloom':{
    launchAreaSkill(which,target,spell.radius+6*(lvl-1),0,'#ffa9e2');
    const shot=abilityShots[abilityShots.length-1];
-   if(shot){shot.effect='heal';shot.heal=27+12*lvl}
+   if(shot){shot.effect='heal';shot.heal=31+12*lvl}
    toast('FLOR RESTAURADORA');break;
   }
   case 'seris_aegis':
@@ -1040,7 +1047,7 @@ function resolveBotSkill(u,c){
   botLaunchLine(u,c,id==='nyra_bolt'?32:id==='lyria_pierce'?30:21);
  }else if(['lyria_rain','nyra_rift','vexor_mark','seris_bloom'].includes(id)){
   botLaunchArea(u,c,id==='seris_bloom'?0:id==='vexor_mark'?12:25,
-   id==='seris_bloom'?'heal':'',id==='seris_bloom'?42:0);
+   id==='seris_bloom'?'heal':'',id==='seris_bloom'?46:0);
  }else if(id==='orun_guard'||id==='nyra_barrier'){
   u.shield=Math.max(u.shield,1.15);
   if(id==='orun_guard')healUnit(u,14,u);
