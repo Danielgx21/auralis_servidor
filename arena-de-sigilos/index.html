@@ -317,7 +317,7 @@ function reset(level){
  enemy={
   heroId:m.hero,x:portrait?W*.5:W*.76,y:portrait?H*.26:H*.44,r:m.boss?23:missions[level].hero==='orun'?21:18,
   hp:m.hp,maxHp:m.hp,speed:m.speed,vx:0,vy:0,shoot:1.5,windup:0,
-  moveAngle:0,change:0,hit:0,burst:0,special:5.5,angle:0,stun:0,slowTimer:0,
+  moveAngle:0,change:0,hit:0,burst:0,special:5.5,angle:0,stun:0,slowTimer:0,marked:0,markBonus:0,
   shield:0,barrier:0,hitCombo:0,dodgeCooldown:2.4+Math.random()*2
  };
  positionPillars(m.obstacles);lastTouchDir=unit(enemy.x-player.x,enemy.y-player.y);
@@ -489,6 +489,7 @@ function onBasicHit(damage){
   if(heal>0){player.hp+=heal;hitText(player.x,player.y-27,'+'+heal,'#93f9b9')}
   addWave(player.x,player.y,37,.27,'#a8baff');
  }
+ if(id==='vexor'&&enemy.marked>0){damage+=enemy.markBonus||20;enemy.marked=0;enemy.markBonus=0;toast('VEXOR · MARCA DETONADA')}
  damageEnemy(damage);
 }
 function enemyFire(){
@@ -527,70 +528,104 @@ function segmentPointDistance(px,py,ax,ay,bx,by){
  const t=clamp(den?((px-ax)*dx+(py-ay)*dy)/den:0,0,1);
  return Math.hypot(px-(ax+dx*t),py-(ay+dy*t));
 }
+function skillTrace(which,dir,range,width,damage,color,clearShots=false){
+ const ax=player.x,ay=player.y,bx=ax+dir.x*range,by=ay+dir.y*range;
+ const hasHit=segmentPointDistance(enemy.x,enemy.y,ax,ay,bx,by)<=enemy.r+width;
+ for(let i=0;i<=8;i++){
+  const t=i/8,x=ax+dir.x*range*t,y=ay+dir.y*range*t;
+  burst(x,y,color,i===8?6:2,70);
+  if(i%2===0)addWave(x,y,Math.max(width,18),.23,color,1.5);
+ }
+ if(hasHit)damageEnemy(damage);
+ if(clearShots)for(const bullet of bullets){
+  if(bullet.side==='enemy'&&segmentPointDistance(bullet.x,bullet.y,ax,ay,bx,by)<=bullet.r+width)bullet.life=0;
+ }
+ return hasHit;
+}
+function heroDash(dir,range,level,invuln=.12){
+ const duration=.19+.015*(level-1);
+ player.dash=duration;player.invuln=Math.max(player.invuln,invuln+.025*(level-1));
+ player.dashVx=dir.x*(range/duration);
+ player.dashVy=dir.y*(range/duration);
+ addWave(player.x,player.y,28,.23,chosenHero().color,2.2);
+}
+function skillRadiusDamage(point,radius,damage,color,slow=0,stun=0){
+ const r=radius;
+ circle(point.x,point.y,r,color,.11);addWave(point.x,point.y,r,.40,color,4);
+ burst(point.x,point.y,color,24,138);
+ const hit=dist(point,enemy)<=r+enemy.r;
+ if(hit){
+  if(slow>0)enemy.slowTimer=Math.max(enemy.slowTimer,slow);
+  if(stun>0)enemy.stun=Math.max(enemy.stun,stun);
+  damageEnemy(damage);
+ }
+ return hit;
+}
 function ability(which,aimSpec=null){
  if(mode!=='playing'||!player||!skillDefs[which]||!heroSkillIds(player.heroId).includes(which))return false;
- const lvl=skillLevel(which),cost=skillCost(which),cd=skillCooldown(which);
+ const lvl=skillLevel(which),cost=skillCost(which),cd=skillCooldown(which),spell=skillDefs[which];
  if(player.cool[which]>.01||player.energy<cost){tone(170,.04,'sine',.015);return false}
- const direction=castDirection(which,aimSpec);
+ const dir=castDirection(which,aimSpec);
  player.energy-=cost;player.cool[which]=cd;
  if(player.heroId==='vexor')player.empowered=true;
- if(which==='dash'){
-  // O trajeto do dash corresponde à seta mostrada durante a mira.
-  player.dash=.17+.025*(lvl-1);player.invuln=.24+.055*(lvl-1);
-  player.dashVx=direction.x*(580+35*lvl);player.dashVy=direction.y*(580+35*lvl);
-  addWave(player.x,player.y,35,.27,'#85eafa');
-  tone(760,.16,'sawtooth',.045);toast('INVESTIDA NV. '+lvl);
- }else if(which==='pulse'){
-  // Área centrada no corpo: toca e ativa, sem seleção de direção.
-  const r=99+11*lvl;addWave(player.x,player.y,r,.38,'#d6a7fc',5);burst(player.x,player.y,'#d0b6ff',24,210);
-  if(dist(player,enemy)<=r+enemy.r){
-   damageEnemy(35+9*lvl);enemy.stun=.4+.09*lvl;
-   const uv=unit(enemy.x-player.x,enemy.y-player.y);
-   enemy.x+=uv.x*(34+8*lvl);enemy.y+=uv.y*(34+8*lvl);wallCollision(enemy);
+ let hit=false;
+ switch(which){
+  case 'lyria_pierce':
+   hit=skillTrace(which,dir,spell.range,spell.radius,36+12*lvl,'#8bfff1');
+   toast(hit?'FLECHA: ACERTO':'FLECHA: ERROU');tone(620,.16,'triangle',.048);break;
+  case 'lyria_step':
+   heroDash(dir,spell.range+10*(lvl-1),lvl,.17);
+   burst(player.x,player.y,'#84eadd',12,95);toast('PASSO DA CAÇADORA');tone(760,.09,'triangle');break;
+  case 'lyria_rain':{
+   const p=groundTarget(which,aimSpec);
+   hit=skillRadiusDamage(p,spell.radius+8*(lvl-1),26+10*lvl,'#b2f8dc',1.5);
+   toast(hit?'CHUVA: ALVO ATINGIDO':'CHUVA DE FLECHAS');tone(470,.20,'triangle');break;
   }
-  for(const b of bullets){if(b.side==='enemy'&&dist(player,b)<r)b.life=0}
-  tone(260,.28,'triangle',.06);toast('PULSO NV. '+lvl);
- }else if(which==='shield'){
-  // Proteção no próprio personagem: execução imediata.
-  player.shield=1.9+.45*lvl;
-  addWave(player.x,player.y,39,.35,'#a0b7ff');burst(player.x,player.y,'#a0b7ff',12,70);
-  tone(510,.3,'sine',.05);toast('ESCUDO NV. '+lvl);
- }else if(which==='frost'){
-  // Geada é uma área escolhida no chão. Pode falhar se o rival sair do círculo.
-  const p=groundTarget(which,aimSpec),radius=skillDefs.frost.radius+7*(lvl-1);
-  addWave(p.x,p.y,radius,.46,'#9fe9ff',5);burst(p.x,p.y,'#86ddfd',24,145);
-  if(Math.hypot(enemy.x-p.x,enemy.y-p.y)<=radius+enemy.r){
-   enemy.slowTimer=2.8+.75*lvl;damageEnemy(17+8*lvl);
-   toast('GEADA: ALVO LENTO');
-  }else toast('GEADA: ÁREA CONJURADA');
-  tone(630,.22,'sine',.05);
- }else if(which==='arc'){
-  // Raio atravessa uma linha reta; nem o dano nem a limpeza de projéteis são automáticos.
-  const startX=player.x,startY=player.y,length=skillDefs.arc.range;
-  const endX=startX+direction.x*length,endY=startY+direction.y*length;
-  const width=skillDefs.arc.radius+3*(lvl-1);
-  for(let i=0;i<9;i++){const t=i/8;burst(startX+direction.x*length*t,startY+direction.y*length*t,'#ffe48b',3,90)}
-  for(let i=0;i<5;i++){
-   const f=i/4;addWave(startX+(endX-startX)*f,startY+(endY-startY)*f,24,.26,'#ffe083',2.5);
+  case 'vexor_lunge':
+   hit=skillTrace(which,dir,spell.range+10*(lvl-1),spell.radius,24+9*lvl,'#ffcb8a');
+   heroDash(dir,spell.range+10*(lvl-1),lvl,.10);
+   toast(hit?'ESTOCADA: ACERTO':'ESTOCADA');tone(390,.12,'sawtooth');break;
+  case 'vexor_whirl':
+   hit=skillRadiusDamage(player,spell.radius+7*(lvl-1),34+10*lvl,'#ffc18a');
+   for(const b of bullets)if(b.side==='enemy'&&dist(b,player)<spell.radius)b.life=0;
+   toast(hit?'DANÇA: ACERTO':'DANÇA DAS LÂMINAS');tone(340,.18,'sawtooth');break;
+  case 'vexor_mark':{
+   const p=groundTarget(which,aimSpec);
+   hit=skillRadiusDamage(p,spell.radius+5*(lvl-1),14+4*lvl,'#ff9b8e');
+   if(hit){enemy.marked=4+.5*lvl;enemy.markBonus=12+8*lvl}
+   toast(hit?'MARCA APLICADA':'MARCA: ERROU');tone(560,.13,'sine');break;
   }
-  let hit=false,cleared=0;
-  if(segmentPointDistance(enemy.x,enemy.y,startX,startY,endX,endY)<=enemy.r+width){
-   damageEnemy(32+11*lvl);hit=true;
+  case 'orun_charge':
+   hit=skillTrace(which,dir,spell.range+8*(lvl-1),spell.radius,23+8*lvl,'#b2c7ff');
+   if(hit)enemy.stun=Math.max(enemy.stun,.35+.12*lvl);
+   heroDash(dir,spell.range+8*(lvl-1),lvl,.14);
+   toast(hit?'CARGA: ATORDOOU':'CARGA DE ESCUDO');tone(270,.17,'triangle');break;
+  case 'orun_guard':{
+   player.shield=Math.max(player.shield,1.5+.35*lvl);
+   const heal=Math.min(player.maxHp-player.hp,9+6*lvl);
+   if(heal>0){player.hp+=heal;hitText(player.x,player.y-27,'+'+heal,'#a9ffcc')}
+   addWave(player.x,player.y,48,.40,'#c2d4ff',4);burst(player.x,player.y,'#b0c6ff',16,95);
+   toast('MURALHA VIVA');tone(490,.21,'sine');break;
   }
-  for(const b of bullets){
-   if(b.side==='enemy'&&segmentPointDistance(b.x,b.y,startX,startY,endX,endY)<b.r+width){
-    b.life=0;cleared++;
-   }
+  case 'orun_quake':
+   hit=skillRadiusDamage(player,spell.radius+7*(lvl-1),28+8*lvl,'#b5bff9',0,.50+.12*lvl);
+   for(const b of bullets)if(b.side==='enemy'&&dist(b,player)<spell.radius)b.life=0;
+   toast(hit?'TREMOR: ATORDOOU':'TREMOR DE PEDRA');tone(230,.22,'sawtooth');break;
+  case 'nyra_bolt':
+   hit=skillTrace(which,dir,spell.range,spell.radius+2*(lvl-1),32+12*lvl,'#eeadff',true);
+   toast(hit?'LANÇA: ACERTO':'LANÇA ARCANA');tone(840,.17,'sawtooth');break;
+  case 'nyra_rift':{
+   const p=groundTarget(which,aimSpec);
+   hit=skillRadiusDamage(p,spell.radius+8*(lvl-1),23+9*lvl,'#e9a1ff',2+.4*lvl,.30+.06*lvl);
+   toast(hit?'CÍRCULO: APRISIONOU':'CÍRCULO RÚNICO');tone(670,.21,'sine');break;
   }
-  toast(hit?'RAIO: ACERTO DIRETO':cleared?'RAIO: PROJÉTEIS DISSIPADOS':'RAIO: ERROU');
-  tone(840,.20,'sawtooth',.042);
- }else if(which==='nova'){
-  // Nova é radial, sem mira: mira manual aqui atrapalharia o combate.
-  const r=125+13*lvl;addWave(player.x,player.y,r,.4,'#ffb7d8',6);
-  burst(player.x,player.y,'#ffc1e6',35,190);
-  if(dist(player,enemy)<r+enemy.r)damageEnemy(40+12*lvl);
-  for(const b of bullets){if(b.side==='enemy'&&dist(b,player)<r)b.life=0}
-  tone(280,.26,'triangle',.066);toast('NOVA NV. '+lvl);
+  case 'nyra_barrier':
+   player.shield=Math.max(player.shield,1.45+.35*lvl);
+   player.energy=clamp(player.energy+4+3*lvl,0,100);
+   addWave(player.x,player.y,48,.37,'#e3a9ff',4);
+   burst(player.x,player.y,'#edb4ff',14,85);
+   toast('VÉU ASTRAL');tone(620,.2,'sine');break;
+  default:return false;
  }
  updateHud();
  return true;
@@ -599,7 +634,7 @@ function damagePlayer(n){if(player.invuln>0)return;if(player.shield>0){burst(pla
 function damageEnemy(n){if(enemy.hp<=0)return;if(enemy.barrier>0)n=Math.round(n*.65);enemy.hp-=n;enemy.hit=.25;shake=3;hitText(enemy.x,enemy.y-20,n,'#ffe59c');burst(enemy.x,enemy.y,missions[selected].color,9,125);tone(280,.075,'triangle',.037);if(enemy.hp<=0){enemy.hp=0;burst(enemy.x,enemy.y,missions[selected].color,32,230);endGame(true)}}
 function tick(dt){sceneTime+=dt;shake=Math.max(0,shake-27*dt);flash=Math.max(0,flash-dt*2);for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=1-dt*2;p.vy*=1-dt*2;p.life-=dt}particles=particles.filter(p=>p.life>0);for(const w of waves)w.life-=dt;waves=waves.filter(w=>w.life>0);for(const f of floaters){f.y-=dt*25;f.life-=dt}floaters=floaters.filter(f=>f.life>0);
  if(mode!=='playing')return;
- elapsed+=dt;for(const k in player.cool)player.cool[k]=Math.max(0,player.cool[k]-dt);player.hit=Math.max(0,player.hit-dt);enemy.hit=Math.max(0,enemy.hit-dt);player.invuln=Math.max(0,player.invuln-dt);player.shield=Math.max(0,player.shield-dt);player.shoot=Math.max(0,player.shoot-dt);player.attackAnim=Math.max(0,player.attackAnim-dt);enemy.stun=Math.max(0,enemy.stun-dt);enemy.slowTimer=Math.max(0,enemy.slowTimer-dt);enemy.barrier=Math.max(0,enemy.barrier-dt);enemy.dodgeCooldown=Math.max(0,enemy.dodgeCooldown-dt);
+ elapsed+=dt;for(const k in player.cool)player.cool[k]=Math.max(0,player.cool[k]-dt);player.hit=Math.max(0,player.hit-dt);enemy.hit=Math.max(0,enemy.hit-dt);player.invuln=Math.max(0,player.invuln-dt);player.shield=Math.max(0,player.shield-dt);player.shoot=Math.max(0,player.shoot-dt);player.attackAnim=Math.max(0,player.attackAnim-dt);enemy.stun=Math.max(0,enemy.stun-dt);enemy.slowTimer=Math.max(0,enemy.slowTimer-dt);enemy.marked=Math.max(0,enemy.marked-dt);enemy.barrier=Math.max(0,enemy.barrier-dt);enemy.dodgeCooldown=Math.max(0,enemy.dodgeCooldown-dt);
  player.energy=clamp(player.energy+dt*(dist(player,{x:W*.5,y:H*.53})<72?31:14)*(equippedItem('cell')?1+.18*itemLevel('cell'):1),0,100);
  const m=moveVec(),speed=chosenHero().move*(equippedItem('stride')?1+.055*itemLevel('stride'):1);player.vx=m.x*speed;player.vy=m.y*speed;
  if(player.dash>0){player.dash-=dt;player.x+=player.dashVx*dt;player.y+=player.dashVy*dt;if(Math.random()<.85)spawnPart(player.x,player.y,rnd(0,TWO),rnd(20,90),.3,'#79f8e9',rnd(2,6))}
