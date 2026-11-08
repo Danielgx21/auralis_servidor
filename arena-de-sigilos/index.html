@@ -173,11 +173,21 @@ canvas {width:100%;height:100%;}
 .arsenal-slots .fixed-skill small{display:block;font-size:9px;color:#e0ebff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
 .arsenal-slots .fixed-skill span{font-size:9px;color:#f4d496}
 .fixed-label{font-size:9px;font-weight:850;color:#82d9cc}
+
+/* V3.0 - duas equipes, barra de abates, proteção de leitura no celular */
+.hud .meter-title span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.team-score{position:absolute;z-index:7;top:max(59px,calc(env(safe-area-inset-top) + 53px));left:50%;transform:translateX(-50%);border:1px solid #83ada466;border-radius:12px;background:#081927cc;color:#e9fdff;padding:6px 11px;min-width:120px;text-align:center;font-size:11px;font-weight:900;letter-spacing:.05em;pointer-events:none;box-shadow:0 4px 18px #0014}
+.team-score .blue{color:#80f2e4}.team-score .red{color:#ff9cbd}.team-score small{display:block;color:#9ab5c6;font-size:8px;font-weight:650;margin-top:2px}
+.teamfight-tip{font-size:10px;color:#bcece3;line-height:1.4;padding:6px;background:#0e2a37aa;border:1px solid #4ab9b74c;border-radius:9px;margin-top:7px}
+@media (max-height:510px) and (orientation:landscape){
+.team-score{top:max(41px,env(safe-area-inset-top) + 39px);padding:3px 7px;font-size:10px;min-width:104px}
+.objective-tag{top:max(72px,env(safe-area-inset-top) + 69px);max-width:240px;opacity:.8}
+}
 </style>
 </head>
 <body>
 <div class="app">
-  <header class="topbar"><div class="brand"><div class="brand-icon"><svg viewBox="0 0 32 32" fill="none"><path d="M16 2 28 16 16 30 4 16 16 2Z" stroke="#6BE8DF" stroke-width="2"/><path d="M16 7 23 16 16 25 9 16 16 7Z" stroke="#ECDE9B" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="#6BE8DF"/></svg></div><div><h1>ARENA DE SIGILOS</h1><small>PROTÓTIPO // EDIÇÃO ZERO</small></div></div><div class="build">5 MISSÕES · V2.1 · CAST E PROJÉTEIS</div></header>
+  <header class="topbar"><div class="brand"><div class="brand-icon"><svg viewBox="0 0 32 32" fill="none"><path d="M16 2 28 16 16 30 4 16 16 2Z" stroke="#6BE8DF" stroke-width="2"/><path d="M16 7 23 16 16 25 9 16 16 7Z" stroke="#ECDE9B" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="#6BE8DF"/></svg></div><div><h1>ARENA DE SIGILOS</h1><small>PROTÓTIPO // EDIÇÃO ZERO</small></div></div><div class="build">5 BATALHAS · V3.0 · TEAM FIGHTS 5×5</div></header>
   <div class="arena-grid">
     <section>
       <div class="stage" id="stage">
@@ -187,7 +197,7 @@ canvas {width:100%;height:100%;}
           <div class="round-center"><strong id="clock">00:00</strong><small id="levelLabel">MISSÃO 01</small></div>
           <div class="meter-wrap"><div class="meter-title"><span id="enemyName">RIVAL</span><span id="enemyHpText">—</span></div><div class="meter enemy"><i id="enemyHp"></i></div></div>
         </div>
-        <div class="objective-tag" id="objectiveTag">Derrote o rival e conquiste suas estrelas</div>
+        <div class="team-score" id="teamScore"><span class="blue">5 AZUL</span> × <span class="red">5 RUBRO</span><small>ELIMINE A EQUIPE RIVAL</small></div><div class="objective-tag" id="objectiveTag">5 contra 5 · Última equipe viva vence</div>
         <div class="top-buttons"><button class="icon-btn" id="fullscreenBtn" title="Entrar ou sair da tela cheia" aria-label="Tela cheia">⛶</button><button class="icon-btn" id="muteBtn" title="Ativar/desativar som" aria-label="Ativar ou desativar som">♪</button><button class="icon-btn" id="pauseBtn" title="Pausar" aria-label="Pausar">Ⅱ</button></div>
         <div class="toast" id="toast"></div>
         <div class="ability-cancel" id="abilityCancel">✕ CANCELAR</div><div class="mobile-controls" id="mobileControls"><div class="joy" id="joy"><div class="joy-knob" id="joyKnob"></div></div><div class="aim-pad" id="aimPad"><div class="aim-thumb" id="aimThumb"></div></div><div class="skill-controls"><button class="skill-btn" id="dashBtn" aria-label="Investida"><b>➤</b><small>Dash</small><span class="cd-text" hidden></span></button><button class="skill-btn" id="pulseBtn" aria-label="Pulso"><b>✳</b><small>Pulso</small><span class="cd-text" hidden></span></button><button class="skill-btn" id="shieldBtn" aria-label="Escudo"><b>◇</b><small>Escudo</small><span class="cd-text" hidden></span></button><button class="skill-btn fire" id="fireBtn" aria-label="Atirar"><b>✦</b><small>ATIRAR</small></button></div></div>
@@ -217,7 +227,7 @@ const missions=[
  {name:'Coração de Ferro',enemy:'BASTIÃO',hero:'orun',hp:319,time:88,speed:153,fire:1.65,damage:25,bullets:1,color:'#acb0ff',desc:'Um tanque resistente: não desperdice habilidades.',obstacles:4,hazards:true,range:380},
  {name:'Último Ritual',enemy:'ARQUISIGILO',hero:'nyra',hp:348,time:104,speed:189,fire:1.33,damage:28,bullets:1,color:'#f582d9',desc:'O último duelo exige posicionamento, leitura e combos.',obstacles:4,hazards:true,boss:true,range:505}
 ];
-let W=900,H=560,dpr=1,mode='menu',selected=0,unlocked=1,bests=[0,0,0,0,0], player=null,enemy=null,obstacles=[],bullets=[],abilityShots=[],abilityVisuals=[],particles=[],waves=[],hazards=[],floaters=[],elapsed=0,last=0,sceneTime=0,shake=0,flash=0,starfield=[], soundOn=true,ac=null,aim={x:600,y:260,active:false}, keys=new Set(),joy={x:0,y:0,id:null}, firing=false, captureId=null, uiTimer=0, toastTimeout=null, touchAim={id:null,active:false,x:1,y:0,startX:0,startY:0},lastTouchDir={x:1,y:0},shotQueue=[];
+let W=900,H=560,dpr=1,mode='menu',selected=0,unlocked=1,bests=[0,0,0,0,0], player=null,enemy=null,allies=[],enemies=[],teamKills={ally:0,enemy:0},obstacles=[],bullets=[],abilityShots=[],abilityVisuals=[],particles=[],waves=[],hazards=[],floaters=[],elapsed=0,last=0,sceneTime=0,shake=0,flash=0,starfield=[], soundOn=true,ac=null,aim={x:600,y:260,active:false}, keys=new Set(),joy={x:0,y:0,id:null}, firing=false, captureId=null, uiTimer=0, toastTimeout=null, touchAim={id:null,active:false,x:1,y:0,startX:0,startY:0},lastTouchDir={x:1,y:0},shotQueue=[];
 const TWO=Math.PI*2,clamp=(a,b,c)=>Math.max(b,Math.min(c,a)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),unit=(x,y)=>{let l=Math.hypot(x,y)||1;return {x:x/l,y:y/l}},lerp=(a,b,t)=>a+(b-a)*t;
 try{const s=JSON.parse(localStorage.getItem('sigils-progress-v1'));if(s&&Array.isArray(s.bests)){bests=s.bests.slice(0,5).map(n=>clamp(n|0,0,3));while(bests.length<5)bests.push(0);unlocked=clamp((s.unlocked|0)||1,1,5)}}catch(_){ }
 const save=()=>{try{localStorage.setItem('sigils-progress-v1',JSON.stringify({bests,unlocked}))}catch(_){}};
@@ -228,6 +238,7 @@ const heroes={
  vexor:{name:'VEXOR',role:'DUELISTA',symbol:'⟠',color:'#ffb976',hp:254,move:204,damage:25,attackTime:1.00,range:425,projectile:555,skills:['vexor_lunge','vexor_whirl','vexor_mark'],passive:'Após usar uma habilidade, seu próximo ataque ganha +13 de dano.',summary:'Combos de lâminas, investida e marca para executar o alvo.'},
  orun:{name:'ORUN',role:'GUARDIÃO',symbol:'⬡',color:'#a9b5ff',hp:304,move:174,damage:23,attackTime:1.23,range:380,projectile:435,skills:['orun_charge','orun_guard','orun_quake'],passive:'A cada 3 ataques certeiros, recupera 15 de vida.',summary:'Proteção, controle próximo e choque de escudo.'},
  nyra:{name:'NYRA',role:'MAGA',symbol:'✶',color:'#dfa0ff',hp:216,move:183,damage:28,attackTime:1.37,range:520,projectile:500,skills:['nyra_bolt','nyra_rift','nyra_barrier'],passive:'A cada 3 ataques certeiros, descarrega +19 de dano mágico.',summary:'Magia de longo alcance, aprisionamento e proteção arcana.'}
+ seris:{name:'SERIS',role:'SUPORTE',symbol:'✿',color:'#ffa7dc',hp:235,move:182,damage:17,attackTime:1.26,range:430,projectile:490,skills:['seris_tether','seris_bloom','seris_aegis'],passive:'Seus ataques enfraquecem o alvo; cura aliados feridos ao usar habilidades.',summary:'Suporte ranged que cura, protege e atrapalha investidas.'},
 };
 let heroChoice='lyria';
 try{const h=localStorage.getItem('sigils-hero-v1');if(heroes[h])heroChoice=h}catch(_){}
@@ -237,17 +248,20 @@ const selectedHeroText=()=>{const h=chosenHero();return h.name+' · '+h.role+' �
 const saveHero=()=>{try{localStorage.setItem('sigils-hero-v1',heroChoice)}catch(_){}};
 const skillDefs={
  lyria_pierce:{name:'Flecha Perfurante',short:'Flecha',icon:'➳',desc:'Disparo poderoso em linha reta, atravessa a rota indicada e exige precisão.',cost:31,cd:7,aim:'direction',range:500,radius:17,cast:0.38},
- lyria_step:{name:'Passo da Caçadora',short:'Passo',icon:'➤',desc:'Salto rápido para reposicionamento, na direção escolhida.',cost:23,cd:7.5,aim:'direction',range:145,cast:0.16},
+ lyria_step:{name:'Passo da Caçadora',short:'Passo',icon:'➤',desc:'Salto rápido para reposicionamento, na direção escolhida.',cost:23,cd:7.5,aim:'direction',range:145,cast:0},
  lyria_rain:{name:'Chuva de Flechas',short:'Chuva',icon:'☄',desc:'Dispara várias flechas numa área escolhida. Ideal para impedir avanço.',cost:44,cd:11.5,aim:'area',range:300,radius:82,cast:0.53},
- vexor_lunge:{name:'Estocada Sombria',short:'Estocada',icon:'⤏',desc:'Avanço com lâminas que fere adversários na trajetória.',cost:28,cd:6.6,aim:'direction',range:157,radius:29,cast:0.2},
- vexor_whirl:{name:'Dança das Lâminas',short:'Dança',icon:'✹',desc:'Golpe circular instantâneo ao redor do corpo. Ideal para trocas próximas.',cost:36,cd:8.3,aim:'self',radius:100,cast:0.32},
+ vexor_lunge:{name:'Estocada Sombria',short:'Estocada',icon:'⤏',desc:'Avanço com lâminas que fere adversários na trajetória.',cost:28,cd:6.6,aim:'direction',range:157,radius:29,cast:0},
+ vexor_whirl:{name:'Dança das Lâminas',short:'Dança',icon:'✹',desc:'Golpe circular instantâneo ao redor do corpo. Ideal para trocas próximas.',cost:36,cd:8.3,aim:'self',radius:100,cast:0},
  vexor_mark:{name:'Marca da Caça',short:'Marca',icon:'◎',desc:'Marca uma área; acertar o alvo fortalece o próximo ataque básico.',cost:37,cd:10.9,aim:'area',range:247,radius:60,cast:0.39},
  orun_charge:{name:'Carga de Escudo',short:'Carga',icon:'⬟',desc:'Investida curta que fere e atordoa na linha de avanço.',cost:30,cd:7.7,aim:'direction',range:138,radius:42,cast:0.27},
- orun_guard:{name:'Muralha Viva',short:'Muralha',icon:'⬡',desc:'Escudo instantâneo no próprio corpo, com pequena recuperação de vida.',cost:33,cd:11.3,aim:'self',cast:0.18},
+ orun_guard:{name:'Muralha Viva',short:'Muralha',icon:'⬡',desc:'Escudo instantâneo no próprio corpo, com pequena recuperação de vida.',cost:33,cd:11.3,aim:'self',cast:0},
  orun_quake:{name:'Tremor de Pedra',short:'Tremor',icon:'◉',desc:'Abalo circular em volta do corpo que interrompe ataques próximos.',cost:41,cd:10.7,aim:'self',radius:128,cast:0.48},
  nyra_bolt:{name:'Lança Arcana',short:'Lança',icon:'ϟ',desc:'Raio concentrado em linha reta: acerta e dissipa disparos na trajetória.',cost:34,cd:7.3,aim:'direction',range:480,radius:19,cast:0.44},
  nyra_rift:{name:'Círculo Rúnico',short:'Círculo',icon:'✳',desc:'Armadilha mágica em área, com lentidão e breve interrupção.',cost:41,cd:9.8,aim:'area',range:285,radius:71,cast:0.58},
- nyra_barrier:{name:'Véu Astral',short:'Véu',icon:'◇',desc:'Barreira imediata ao redor da maga, sem precisar mirar.',cost:30,cd:11.2,aim:'self',cast:0.19}
+ nyra_barrier:{name:'Véu Astral',short:'Véu',icon:'◇',desc:'Barreira imediata ao redor da maga, sem precisar mirar.',cost:30,cd:11.2,aim:'self',cast:0}
+ seris_tether:{name:'Laço Luminoso',short:'Laço',icon:'✧',desc:'Projétil que desacelera o inimigo acertado.',cost:27,cd:6.9,aim:'direction',range:405,radius:20,cast:.24},
+ seris_bloom:{name:'Flor Restauradora',short:'Flor',icon:'✿',desc:'Projétil de área que cura aliados próximos ao impacto.',cost:39,cd:10.6,aim:'area',range:285,radius:96,cast:.38},
+ seris_aegis:{name:'Aura de Proteção',short:'Aura',icon:'◇',desc:'Protege aliados perto de Seris; ativação imediata.',cost:35,cd:11.2,aim:'self',radius:120,cast:0},
 };
 const itemDefs={
  lens:{name:'Lente Astral',icon:'◈',desc:'Aumenta o dano dos disparos básicos.',unlock:0},
@@ -282,7 +296,7 @@ const itemLevel=id=>arsenal.itemLevels[id]||1;
 const equippedItem=id=>arsenal.items.includes(id);
 const acquired=def=>!def.unlock||bests[def.unlock-1]>0;
 const skillCooldown=id=>Math.max(1,skillDefs[id].cd-.45*(skillLevel(id)-1))*(equippedItem('core')?1-.06*itemLevel('core'):1);
-const skillCastTime=id=>Math.max(.11,skillDefs[id].cast-.025*(skillLevel(id)-1));
+const skillCastTime=id=>skillDefs[id].cast<=0?0:Math.max(.10,skillDefs[id].cast-.02*(skillLevel(id)-1));
 const skillCost=id=>skillDefs[id].cost;
 const skillAimKind=id=>(skillDefs[id]&&skillDefs[id].aim)||'self';
 const saveArsenal=()=>{try{localStorage.setItem('sigils-arsenal-v3',JSON.stringify(arsenal))}catch(_){}};
