@@ -816,47 +816,41 @@ function drawAimGuide(t){
 function drawSkillGuide(t){
  if(mode!=='playing'||!skillTouch||!skillTouch.active||!player)return;
  const which=skillTouch.which,spell=skillDefs[which],lvl=skillLevel(which);
- const castSpec=skillTouch.dragged?{dir:skillTouch.dir,distance:skillTouch.distance}:null;
- const color=which==='frost'?'#8de4ff':which==='arc'?'#ffe38a':'#74f6e0';
+ if(!spell||spell.aim==='self')return;
+ const manual=skillTouch.dragged?{dir:skillTouch.dir,distance:skillTouch.distance}:null;
+ const category=spell.aim,color=chosenHero().color;
  ctx.save();ctx.shadowBlur=8;ctx.shadowColor=color;
- if(which==='frost'){
-  const radius=spell.radius+7*(lvl-1),p=groundTarget(which,castSpec);
-  ring(player.x,player.y,spell.range,'#8bd8f0',.24,1.4);
-  circle(p.x,p.y,radius,'#9de1ff',.13);
-  ring(p.x,p.y,radius,color,.89,3);
-  ring(p.x,p.y,radius*.75,color,.4,1.3);
-  ctx.setLineDash([7,7]);
-  line(player.x,player.y,p.x,p.y,color,1.6,.6);
-  ctx.setLineDash([]);
-  circle(p.x,p.y,5,'#ffffff',.95);
-  ring(p.x,p.y,10,'#ffffff',.72,1.5);
+ if(category==='area'){
+  const p=groundTarget(which,manual),rad=spell.radius+7*(lvl-1);
+  ring(player.x,player.y,spell.range,color,.19,1.4);
+  circle(p.x,p.y,rad,color,.14);
+  ring(p.x,p.y,rad,color,.87,3);
+  ring(p.x,p.y,rad*.68,color,.43,1.6);
+  ctx.setLineDash([8,8]);line(player.x,player.y,p.x,p.y,color,1.6,.6);
+  ctx.setLineDash([]);ring(p.x,p.y,10,'#efffff',.88,1.9);circle(p.x,p.y,3,'#ffffff',.97);
  }else{
-  const dir=castDirection(which,castSpec);
-  const len=which==='dash'?(.17+.025*(lvl-1))*(580+35*lvl):spell.range;
-  const startX=player.x,startY=player.y,
-        ex=startX+dir.x*len,ey=startY+dir.y*len;
-  if(which==='arc'){
-   const radius=spell.radius+3*(lvl-1),px=-dir.y*radius,py=dir.x*radius;
+  const dir=castDirection(which,manual),len=spell.range;
+  const ax=player.x,ay=player.y,bx=ax+dir.x*len,by=ay+dir.y*len;
+  const isDash=['lyria_step','vexor_lunge','orun_charge'].includes(which);
+  if(!isDash){
+   const rad=spell.radius||20,px=-dir.y*rad,py=dir.x*rad;
    ctx.beginPath();
-   ctx.moveTo(startX+px,startY+py);ctx.lineTo(ex+px,ey+py);
-   ctx.lineTo(ex-px,ey-py);ctx.lineTo(startX-px,startY-py);ctx.closePath();
-   ctx.fillStyle='rgba(255,220,138,.12)';ctx.fill();
-   ctx.strokeStyle='rgba(255,230,164,.5)';ctx.lineWidth=1.5;ctx.stroke();
+   ctx.moveTo(ax+px,ay+py);ctx.lineTo(bx+px,by+py);
+   ctx.lineTo(bx-px,by-py);ctx.lineTo(ax-px,ay-py);ctx.closePath();
+   ctx.fillStyle=heroChoice==='nyra'?'rgba(224,164,255,.14)':'rgba(146,243,220,.14)';
+   ctx.fill();ctx.strokeStyle=color;ctx.globalAlpha=.55;ctx.lineWidth=1.4;ctx.stroke();ctx.globalAlpha=1;
   }
   ctx.setLineDash([10,8]);
-  line(startX+dir.x*(player.r+4),startY+dir.y*(player.r+4),ex,ey,color,3,.9);
+  line(ax+dir.x*(player.r+4),ay+dir.y*(player.r+4),bx,by,color,3,.91);
   ctx.setLineDash([]);
-  ring(ex,ey,which==='arc'?spell.radius+2:15,color,.83,2.3);
-  const left={x:ex-dir.x*15-dir.y*10,y:ey-dir.y*15+dir.x*10};
-  const right={x:ex-dir.x*15+dir.y*10,y:ey-dir.y*15-dir.x*10};
-  line(left.x,left.y,ex,ey,color,2.4,.9);
-  line(right.x,right.y,ex,ey,color,2.4,.9);
+  const radius=isDash?15:spell.radius||20;
+  ring(bx,by,radius,color,.85,2.3);
+  line(bx-dir.x*15-dir.y*10,by-dir.y*15+dir.x*10,bx,by,color,2.5,.95);
+  line(bx-dir.x*15+dir.y*10,by-dir.y*15-dir.x*10,bx,by,color,2.5,.95);
  }
- ctx.shadowBlur=0;
- ctx.font='800 11px system-ui';ctx.textAlign='center';
- ctx.fillStyle='#f4fbff';ctx.shadowColor='#000';ctx.shadowBlur=6;
- const label=which==='frost'?'GEADA · ÁREA':which==='arc'?'RAIO · LINHA':'INVESTIDA · DIREÇÃO';
- ctx.fillText(label,clamp(player.x,90,W-90),clamp(player.y-55,58,H-30));
+ ctx.shadowBlur=0;ctx.font='800 11px system-ui';ctx.textAlign='center';ctx.fillStyle='#f4fbff';
+ ctx.shadowColor='#000';ctx.shadowBlur=6;
+ ctx.fillText(spell.name.toUpperCase()+' · '+(category==='area'?'ÁREA':'DIREÇÃO'),clamp(player.x,115,W-115),clamp(player.y-61,60,H-32));
  ctx.restore();
 }
 function drawProjectiles(){
