@@ -1072,13 +1072,13 @@ function moveBot(u,dt,target){
  const desired=melee?46:(u.heroId==='seris'?238:u.heroId==='nyra'?217:222);
  let inward=d>desired+18?1:d<desired-20?-1:0;
  if(!melee&&u.hp/u.maxHp<.33)inward=Math.min(inward,0);
- const strafe=melee?.12:.37,side=u.team===0?1:-1;
+ const strafe=melee?0.12:0.37,side=u.team===0?1:-1;
  let mx=dirX*inward-dirY*strafe*side;
  let my=dirY*inward+dirX*strafe*side;
  const m=Math.hypot(mx,my);if(m>1){mx/=m;my/=m}
  // A conjuração diminui deslocamento, mas não para o personagem sem necessidade.
- const factor=u.casting?.36:u.windup>0?.45:1;
- const speed=u.speed*(u.slowTimer>0?.62:1)*factor;
+ const factor=u.casting?0.36:(u.windup>0?0.45:1);
+ const speed=u.speed*(u.slowTimer>0?0.62:1)*factor;
  u.vx=lerp(u.vx,mx*speed,clamp(dt*5,0,1));
  u.vy=lerp(u.vy,my*speed,clamp(dt*5,0,1));
  u.x+=u.vx*dt;u.y+=u.vy*dt;
