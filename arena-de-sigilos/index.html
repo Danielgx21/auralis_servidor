@@ -144,7 +144,7 @@ canvas {width:100%;height:100%;}
 </head>
 <body>
 <div class="app">
-  <header class="topbar"><div class="brand"><div class="brand-icon"><svg viewBox="0 0 32 32" fill="none"><path d="M16 2 28 16 16 30 4 16 16 2Z" stroke="#6BE8DF" stroke-width="2"/><path d="M16 7 23 16 16 25 9 16 16 7Z" stroke="#ECDE9B" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="#6BE8DF"/></svg></div><div><h1>ARENA DE SIGILOS</h1><small>PROTÓTIPO // EDIÇÃO ZERO</small></div></div><div class="build">5 MISSÕES · V1.6 · MIRA POR PRESSÃO</div></header>
+  <header class="topbar"><div class="brand"><div class="brand-icon"><svg viewBox="0 0 32 32" fill="none"><path d="M16 2 28 16 16 30 4 16 16 2Z" stroke="#6BE8DF" stroke-width="2"/><path d="M16 7 23 16 16 25 9 16 16 7Z" stroke="#ECDE9B" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="#6BE8DF"/></svg></div><div><h1>ARENA DE SIGILOS</h1><small>PROTÓTIPO // EDIÇÃO ZERO</small></div></div><div class="build">5 MISSÕES · V1.7 · ARSENAL</div></header>
   <div class="arena-grid">
     <section>
       <div class="stage" id="stage">
@@ -336,11 +336,50 @@ function targetDirection(){if(touchAim.active&&touchAim.dragged)return{x:touchAi
 function shootPlayer(dir){if(mode!=='playing'||player.shoot>0)return;player.angle=Math.atan2(dir.y,dir.x);const speed=500,damage=12+(equippedItem('lens')?2*itemLevel('lens'):0);bullets.push({x:player.x+dir.x*23,y:player.y+dir.y*23,vx:dir.x*speed,vy:dir.y*speed,r:6,life:1.6,side:'player',damage,bounces:equippedItem('prism')?1:0,color:'#74f1e3',trail:[]});player.shoot=.16;burst(player.x+dir.x*24,player.y+dir.y*24,'#7ef4eb',6,65);tone(390,.046,'triangle',.028)}
 function queueSingleShot(dir){if(mode!=='playing'||!player)return;const d=unit(dir.x,dir.y);shotQueue.push(d);if(shotQueue.length>12)shotQueue.shift();if(player.shoot<=0)shootPlayer(shotQueue.shift())}
 function enemyFire(){const m=missions[selected], base=Math.atan2(player.y+player.vy*.2-enemy.y,player.x+player.vx*.2-enemy.x),spread=m.bullets>1?.15:0;for(let i=0;i<m.bullets;i++){let a=base+(i-(m.bullets-1)/2)*spread;const sp=185+selected*10;bullets.push({x:enemy.x+Math.cos(a)*23,y:enemy.y+Math.sin(a)*23,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:m.boss?6.5:5.7,life:2.7,side:'enemy',damage:m.damage,color:m.color,trail:[]})}burst(enemy.x,enemy.y,m.color,6,85);tone(165,.07,'sawtooth',.022)}
-function ability(which){if(mode!=='playing'||!player)return;const costs={dash:22,pulse:35,shield:30},cds={dash:4.2,pulse:8,shield:10.5};if(player.cool[which]>.01 || player.energy<costs[which]){tone(170,.04,'sine',.01);return}player.energy-=costs[which];player.cool[which]=cds[which];
- if(which==='dash'){let m=moveVec();if(Math.hypot(m.x,m.y)<.05)m=targetDirection();player.dash=.18;player.invuln=.24;player.dashVx=m.x*600;player.dashVy=m.y*600;addWave(player.x,player.y,35,.27,'#85eafa');tone(760,.16,'sawtooth',.045);toast('INVESTIDA')}
- if(which==='pulse'){let r=106;addWave(player.x,player.y,r,.38,'#d6a7fc',5);burst(player.x,player.y,'#d0b6ff',24,210);let d=dist(player,enemy);if(d<=r+enemy.r){damageEnemy(43);enemy.stun=.45;const uv=unit(enemy.x-player.x,enemy.y-player.y);enemy.x+=uv.x*44;enemy.y+=uv.y*44;wallCollision(enemy)}for(let b of bullets){if(b.side==='enemy'&&dist(player,b)<r)b.life=0}tone(260,.28,'triangle',.06);toast('PULSO ARCANO')}
- if(which==='shield'){player.shield=2.2;addWave(player.x,player.y,39,.35,'#a0b7ff');burst(player.x,player.y,'#a0b7ff',12,70);tone(510,.3,'sine',.05);toast('ESCUDO ATIVADO')}
- updateHud()
+
+function ability(which){
+ if(mode!=='playing'||!player||!skillDefs[which]||!arsenal.skills.includes(which))return;
+ const lvl=skillLevel(which),cost=skillCost(which),cd=skillCooldown(which);
+ if(player.cool[which]>.01||player.energy<cost){tone(170,.04,'sine',.01);return}
+ if(['frost','arc'].includes(which)&&dist(player,enemy)>490){toast('FORA DE ALCANCE');return}
+ player.energy-=cost;player.cool[which]=cd;
+ if(which==='dash'){
+  let m=moveVec();if(Math.hypot(m.x,m.y)<.05)m=targetDirection();
+  player.dash=.17+.025*(lvl-1);player.invuln=.24+.055*(lvl-1);
+  player.dashVx=m.x*(580+35*lvl);player.dashVy=m.y*(580+35*lvl);
+  addWave(player.x,player.y,35,.27,'#85eafa');tone(760,.16,'sawtooth',.045);toast('INVESTIDA NV. '+lvl);
+ }else if(which==='pulse'){
+  const r=99+11*lvl;addWave(player.x,player.y,r,.38,'#d6a7fc',5);burst(player.x,player.y,'#d0b6ff',24,210);
+  if(dist(player,enemy)<=r+enemy.r){
+   damageEnemy(35+9*lvl);enemy.stun=.4+.09*lvl;
+   const uv=unit(enemy.x-player.x,enemy.y-player.y);enemy.x+=uv.x*(34+8*lvl);enemy.y+=uv.y*(34+8*lvl);wallCollision(enemy);
+  }
+  for(const b of bullets){if(b.side==='enemy'&&dist(player,b)<r)b.life=0}
+  tone(260,.28,'triangle',.06);toast('PULSO NV. '+lvl);
+ }else if(which==='shield'){
+  player.shield=1.9+.45*lvl;
+  addWave(player.x,player.y,39,.35,'#a0b7ff');burst(player.x,player.y,'#a0b7ff',12,70);
+  tone(510,.3,'sine',.05);toast('ESCUDO NV. '+lvl);
+ }else if(which==='frost'){
+  line(player.x,player.y,enemy.x,enemy.y,'#92e7ff',4,.96);
+  addWave(enemy.x,enemy.y,65,.5,'#9fe9ff',4);burst(enemy.x,enemy.y,'#86ddfd',23,125);
+  enemy.slowTimer=2.8+.75*lvl;
+  damageEnemy(17+8*lvl);tone(630,.22,'sine',.05);toast('GEADA: ALVO LENTO');
+ }else if(which==='arc'){
+  line(player.x,player.y,enemy.x,enemy.y,'#ffe27b',4.5,.95);
+  addWave(enemy.x,enemy.y,63,.34,'#ffe083',4);burst(enemy.x,enemy.y,'#fff09e',18,180);
+  damageEnemy(32+11*lvl);
+  let cleared=0;
+  for(const b of bullets){if(b.side==='enemy'&&(dist(b,player)<140+15*lvl||dist(b,enemy)<145+15*lvl)){b.life=0;cleared++}}
+  if(cleared)burst(player.x,player.y,'#efdf97',Math.min(24,cleared*3),115);
+  tone(840,.2,'sawtooth',.042);toast('RAIO: RAJADA DISSIPADA');
+ }else if(which==='nova'){
+  const r=125+13*lvl;addWave(player.x,player.y,r,.4,'#ffb7d8',6);burst(player.x,player.y,'#ffc1e6',35,190);
+  if(dist(player,enemy)<r+enemy.r)damageEnemy(40+12*lvl);
+  for(const b of bullets){if(b.side==='enemy'&&dist(b,player)<r)b.life=0}
+  tone(280,.26,'triangle',.066);toast('NOVA NV. '+lvl);
+ }
+ updateHud();
 }
 function damagePlayer(n){if(player.invuln>0)return;if(player.shield>0){burst(player.x,player.y,'#9bbaff',6,100);tone(520,.05,'sine',.027);return}player.hp-=n;player.hit=.28;shake=6;hitText(player.x,player.y-21,n,'#ff889d');burst(player.x,player.y,'#ff7e9b',10,130);tone(130,.12,'sawtooth',.06);if(player.hp<=0){player.hp=0;endGame(false)}}
 function damageEnemy(n){if(enemy.hp<=0)return;enemy.hp-=n;enemy.hit=.25;shake=3;hitText(enemy.x,enemy.y-20,n,'#ffe59c');burst(enemy.x,enemy.y,missions[selected].color,9,125);tone(280,.075,'triangle',.037);if(enemy.hp<=0){enemy.hp=0;burst(enemy.x,enemy.y,missions[selected].color,32,230);endGame(true)}}
@@ -429,7 +468,7 @@ canvas.addEventListener('pointermove',e=>{if(e.pointerType==='mouse'){aim={...po
 canvas.addEventListener('pointerdown',e=>{if(mode==='playing'&&e.pointerType==='mouse'){e.preventDefault();aim={...pointInCanvas(e),active:true};queueSingleShot(targetDirection());canvas.setPointerCapture(e.pointerId)}});
 canvas.addEventListener('pointerup',()=>{});canvas.addEventListener('pointercancel',()=>{});
 
-window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' ','q','e','r','1','2','3','escape'].includes(k))e.preventDefault();if(k==='escape'){showPause();return}if(mode!=='playing')return;keys.add(k);if(!e.repeat){if(k==='q'||k==='1')ability('dash');if(k==='e'||k==='2')ability('pulse');if(k==='r'||k==='3')ability('shield');if(k===' ')queueSingleShot(targetDirection())}});
+window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' ','q','e','r','1','2','3','escape'].includes(k))e.preventDefault();if(k==='escape'){showPause();return}if(mode!=='playing')return;keys.add(k);if(!e.repeat){if(k==='q'||k==='1')ability(arsenal.skills[0]);if(k==='e'||k==='2')ability(arsenal.skills[1]);if(k==='r'||k==='3')ability(arsenal.skills[2]);if(k===' ')queueSingleShot(targetDirection())}});
 window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{if(mode==='playing')showPause();keys.clear();shotQueue.length=0});
 $('fullscreenBtn').onclick=()=>{if(document.fullscreenElement&&document.exitFullscreen){document.exitFullscreen()}else enterImmersive()};
 $('rotateFullscreen').onclick=enterImmersive;
@@ -482,7 +521,7 @@ function beginFireTouch(e,captureElement){
 fireBtn.addEventListener('pointerdown',e=>beginFireTouch(e,fireBtn));
 fireBtn.addEventListener('pointermove',updateTouchAim);
 for(const ev of ['pointerup','pointercancel','lostpointercapture'])fireBtn.addEventListener(ev,endFireTouch);
-[['dashBtn','dash'],['pulseBtn','pulse'],['shieldBtn','shield']].forEach(([id,which])=>$(id).addEventListener('pointerdown',e=>{e.preventDefault();ability(which)}));
+['dashBtn','pulseBtn','shieldBtn'].forEach((id,i)=>$(id).addEventListener('pointerdown',e=>{e.preventDefault();ability(arsenal.skills[i])}));
 const joyel=$('joy');let joyStartX=0,joyStartY=0;
 function joystickMove(e){if(joy.id!==e.pointerId)return;
  const r=joyel.getBoundingClientRect(),dx=e.clientX-joyStartX,dy=e.clientY-joyStartY;
