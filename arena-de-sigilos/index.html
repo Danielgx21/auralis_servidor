@@ -238,7 +238,72 @@ function reset(level){selected=level;const m=missions[level];elapsed=0;sceneTime
  enemy={x:portrait?W*.5:W*.76,y:portrait?H*.26:H*.44,r:m.boss?21:17,hp:m.hp,maxHp:m.hp,speed:m.speed,vx:0,vy:0,shoot:1.5,moveAngle:0,change:0,hit:0,burst:0,special:5.5,angle:0,stun:0};
  positionPillars(m.obstacles);lastTouchDir=unit(enemy.x-player.x,enemy.y-player.y);mode='playing';$('overlay').classList.add('hidden');updateHud();renderMissions();toast('DUEL0 INICIADO'.replace('0','O'));tone(510,.12,'triangle');
 }
-function showMenu(){mode='menu';$('missionShelf').hidden=false;$('overlay').classList.add('picker-open');$('overlay').classList.remove('hidden');const m=missions[selected];$('modalContent').innerHTML=`<div class="eyebrow">CÍRCULO ${String(selected+1).padStart(2,'0')} / 05</div><h2>${m.name}</h2><p>${m.desc} Enfrente <b style="color:${m.color}">${m.enemy}</b> e tente ganhar as três estrelas.</p><div class="result-objectives"><div><span>★</span> Derrote o rival</div><div><span>★</span> Termine com pelo menos 75% da vida</div><div><span>★</span> Vença em até ${m.time} segundos</div></div><div class="actions"><button class="primary" id="startGame">INICIAR DUELO ✦</button></div><p style="margin:14px auto 0;font-size:11px">${matchMedia('(pointer:coarse)').matches?'Esquerda: mover. Direita: toques rápidos atiram no rival; segure por um instante para mostrar a mira, arraste e solte.':'WASD para mover, mouse para mirar e clique para disparar. Use 1, 2 e 3 para habilidades.'}</p>`;$('startGame').onclick=()=>{enterImmersive();reset(selected)};updateHud();renderMissions()}
+
+function showMenu(){
+ mode='menu';$('missionShelf').hidden=false;$('overlay').classList.add('picker-open');$('overlay').classList.remove('arsenal-open','hidden');
+ const m=missions[selected],recommend=[
+ 'Treine a Investida para evitar os primeiros tiros.',
+ 'Geada e Botas do Vento ajudam contra a velocidade de Zéfiro.',
+ 'Raio e Capacitor ajudam a neutralizar rajadas do Oráculo.',
+ 'Nova e Prisma são úteis entre os pilares do Bastião.',
+ 'Escudo e Núcleo Ágil ajudam contra os ataques do Arquisigilo.'
+ ][selected];
+ $('modalContent').innerHTML='<div class="eyebrow">CÍRCULO '+String(selected+1).padStart(2,'0')+' / 05 · <span style="color:#ffdc8c">✦ '+arsenal.credits+' FRAGMENTOS</span></div>'+
+ '<h2>'+m.name+'</h2><p>'+m.desc+' Enfrente <b style="color:'+m.color+'">'+m.enemy+'</b> e tente ganhar as três estrelas.</p>'+
+ '<div class="result-objectives"><div><span>★</span> Derrote o rival</div><div><span>★</span> Termine com pelo menos 75% da vida</div><div><span>★</span> Vença em até '+m.time+' segundos</div></div>'+
+ '<div class="battle-hint">💡 '+recommend+'</div><div class="loadout-preview">Equipado: '+loadoutLine()+'</div>'+
+ '<div class="actions"><button class="primary" id="startGame">INICIAR DUELO ✦</button><button class="secondary" id="openArsenal">⚒ ARSENAL</button></div>'+
+ '<p style="margin:9px auto 0;font-size:10px">Ganhe fragmentos e novas habilidades ao completar missões. Rejogue para melhorar suas estrelas.</p>';
+ $('startGame').onclick=()=>{enterImmersive();reset(selected)};
+ $('openArsenal').onclick=()=>showArsenal('skills');
+ updateHud();renderMissions();
+}
+function showArsenal(tab=arsenalTab){
+ mode='menu';arsenalTab=tab;$('missionShelf').hidden=false;$('overlay').classList.add('picker-open','arsenal-open');$('overlay').classList.remove('hidden');
+ renderArsenal();renderMissions();
+}
+function renderArsenal(){
+ const el=$('modalContent'),scroll=el.scrollTop;
+ const isSkill=arsenalTab==='skills',defs=isSkill?skillDefs:itemDefs,slots=isSkill?arsenal.skills:arsenal.items,active=isSkill?skillSlot:itemSlot;
+ const equipSlots=slots.map((id,i)=>'<button class="'+(active===i?'selected':'')+'" data-action="slot" data-index="'+i+'">POS '+(i+1)+'<small>'+defs[id].name+'</small></button>').join('');
+ const cards=Object.entries(defs).map(([id,d])=>{
+  const unlockedNow=acquired(d),lvl=isSkill?skillLevel(id):itemLevel(id),equipped=slots.includes(id);
+  const cost=lvl===1?(isSkill?50:38):(isSkill?90:72);
+  const upgrade=unlockedNow&&lvl<3?'<button class="upgrade" data-action="upgrade" data-id="'+id+'" '+(arsenal.credits<cost?'disabled':'')+'>↑ '+cost+' ✦</button>':'';
+  const equip=unlockedNow?'<button data-action="equip" data-id="'+id+'">'+(equipped?'EM USO':'EQUIPAR')+'</button>':'';
+  const locktext=unlockedNow?'':'<span style="color:#c89ba2;font-size:10px">Desbloqueia ao vencer a fase '+d.unlock+'</span>';
+  return '<article class="arsenal-card '+(unlockedNow?'':'locked')+'"><div class="card-title"><span><span class="card-icon">'+d.icon+'</span> '+d.name+'</span><span class="card-rank">'+(unlockedNow?'Nv. '+lvl+'/3':'🔒')+'</span></div>'+
+  '<div class="card-desc">'+d.desc+'</div>'+locktext+(unlockedNow?'<div class="card-action">'+equip+upgrade+'</div>':'')+'</article>';
+ }).join('');
+ el.innerHTML='<div class="arsenal-head"><strong>⚒ ARSENAL</strong><span class="coin">✦ '+arsenal.credits+' FRAGMENTOS</span><button class="secondary" data-action="back" style="padding:7px 9px">VOLTAR</button></div>'+
+ '<div class="arsenal-tabs"><button data-action="tab" data-tab="skills" class="'+(isSkill?'active':'')+'">HABILIDADES</button><button data-action="tab" data-tab="items" class="'+(!isSkill?'active':'')+'">EQUIPAMENTOS</button></div>'+
+ '<div class="arsenal-info">'+(isSkill?'Escolha qual dos 3 botões de poder vai receber a habilidade. Elas ficam mais fortes ao melhorar de nível.':'Escolha um dos 2 espaços de equipamentos. Cada item modifica uma característica real do combate.')+'</div>'+
+ '<div class="arsenal-slots">'+equipSlots+'</div><div class="arsenal-cards">'+cards+'</div>'+
+ '<div class="arsenal-info" style="margin-top:11px">Você ganha fragmentos ao vencer fases e bônus por novas estrelas. Novos poderes e itens são liberados gratuitamente ao progredir.</div>';
+ el.scrollTop=scroll;
+ el.onclick=e=>{
+  const b=e.target.closest('button[data-action]');if(!b||b.disabled)return;
+  const action=b.dataset.action,id=b.dataset.id,slot=Number(b.dataset.index);
+  if(action==='back'){showMenu();return}
+  if(action==='tab'){arsenalTab=b.dataset.tab;renderArsenal();return}
+  if(action==='slot'){if(isSkill)skillSlot=slot;else itemSlot=slot;renderArsenal();return}
+  if(action==='equip'){
+   if(!acquired(defs[id]))return;
+   const target=isSkill?skillSlot:itemSlot,current=isSkill?arsenal.skills:arsenal.items,other=current.indexOf(id);
+   if(other===target){renderArsenal();return}
+   if(other>=0)[current[other],current[target]]=[current[target],current[other]];
+   else current[target]=id;
+   saveArsenal();renderArsenal();return;
+  }
+  if(action==='upgrade'){
+   if(!acquired(defs[id]))return;
+   const levels=isSkill?arsenal.skillLevels:arsenal.itemLevels,lvl=isSkill?skillLevel(id):itemLevel(id);
+   const cost=lvl===1?(isSkill?50:38):(isSkill?90:72);
+   if(lvl>=3||arsenal.credits<cost)return;
+   arsenal.credits-=cost;levels[id]=lvl+1;saveArsenal();tone(750,.1,'triangle');renderArsenal();
+  }
+ };
+}
 function showPause(){if(mode==='playing'){mode='paused';$('missionShelf').hidden=true;$('overlay').classList.remove('picker-open');$('overlay').classList.remove('hidden');$('modalContent').innerHTML='<div class="eyebrow">TEMPO CONGELADO</div><h2>Duelo pausado</h2><p>Seu rival não vai a lugar nenhum.</p><div class="actions"><button class="primary" id="resume">CONTINUAR</button><button class="secondary" id="retry">RECOMEÇAR</button><button class="secondary" id="menu">MISSÕES</button></div>';$('resume').onclick=resume;$('retry').onclick=()=>reset(selected);$('menu').onclick=showMenu;firing=false;keys.clear()}else if(mode==='paused')resume()}
 function resume(){mode='playing';$('overlay').classList.add('hidden');last=performance.now()}
 function endGame(win){if(mode!=='playing')return;mode=win?'won':'lost';$('missionShelf').hidden=true;$('overlay').classList.remove('picker-open');firing=false;keys.clear();if(win){for(let i=0;i<38;i++)spawnPart(rnd(W*.14,W*.85),rnd(H*.19,H*.8),rnd(0,TWO),rnd(50,185),rnd(.3,1),'#f7ce78',rnd(2,5));tone(730,.18,'triangle',.075);setTimeout(()=>tone(1010,.2,'sine',.04),125)}else tone(150,.35,'sawtooth',.04);
