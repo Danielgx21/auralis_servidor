@@ -237,7 +237,7 @@ const heroes={
  lyria:{name:'LYRIA',role:'ATIRADORA',symbol:'⌁',color:'#78f4d9',hp:226,move:187,damage:24,attackTime:1.10,range:560,projectile:570,skills:['lyria_pierce','lyria_step','lyria_rain'],passive:'A cada 3 ataques certeiros, o próximo impacto causa +14 de dano.',summary:'Longo alcance, flechas de precisão e chuva de projéteis.'},
  vexor:{name:'VEXOR',role:'DUELISTA',symbol:'⟠',color:'#ffb976',hp:254,move:204,damage:25,attackTime:1.00,range:425,projectile:555,skills:['vexor_lunge','vexor_whirl','vexor_mark'],passive:'Após usar uma habilidade, seu próximo ataque ganha +13 de dano.',summary:'Combos de lâminas, investida e marca para executar o alvo.'},
  orun:{name:'ORUN',role:'GUARDIÃO',symbol:'⬡',color:'#a9b5ff',hp:304,move:174,damage:23,attackTime:1.23,range:380,projectile:435,skills:['orun_charge','orun_guard','orun_quake'],passive:'A cada 3 ataques certeiros, recupera 15 de vida.',summary:'Proteção, controle próximo e choque de escudo.'},
- nyra:{name:'NYRA',role:'MAGA',symbol:'✶',color:'#dfa0ff',hp:216,move:183,damage:28,attackTime:1.37,range:520,projectile:500,skills:['nyra_bolt','nyra_rift','nyra_barrier'],passive:'A cada 3 ataques certeiros, descarrega +19 de dano mágico.',summary:'Magia de longo alcance, aprisionamento e proteção arcana.'}
+ nyra:{name:'NYRA',role:'MAGA',symbol:'✶',color:'#dfa0ff',hp:216,move:183,damage:28,attackTime:1.37,range:520,projectile:500,skills:['nyra_bolt','nyra_rift','nyra_barrier'],passive:'A cada 3 ataques certeiros, descarrega +19 de dano mágico.',summary:'Magia de longo alcance, aprisionamento e proteção arcana.'},
  seris:{name:'SERIS',role:'SUPORTE',symbol:'✿',color:'#ffa7dc',hp:235,move:182,damage:17,attackTime:1.26,range:430,projectile:490,skills:['seris_tether','seris_bloom','seris_aegis'],passive:'Seus ataques enfraquecem o alvo; cura aliados feridos ao usar habilidades.',summary:'Suporte ranged que cura, protege e atrapalha investidas.'},
 };
 let heroChoice='lyria';
@@ -258,7 +258,7 @@ const skillDefs={
  orun_quake:{name:'Tremor de Pedra',short:'Tremor',icon:'◉',desc:'Abalo circular em volta do corpo que interrompe ataques próximos.',cost:41,cd:10.7,aim:'self',radius:128,cast:0.48},
  nyra_bolt:{name:'Lança Arcana',short:'Lança',icon:'ϟ',desc:'Raio concentrado em linha reta: acerta e dissipa disparos na trajetória.',cost:34,cd:7.3,aim:'direction',range:480,radius:19,cast:0.44},
  nyra_rift:{name:'Círculo Rúnico',short:'Círculo',icon:'✳',desc:'Armadilha mágica em área, com lentidão e breve interrupção.',cost:41,cd:9.8,aim:'area',range:285,radius:71,cast:0.58},
- nyra_barrier:{name:'Véu Astral',short:'Véu',icon:'◇',desc:'Barreira imediata ao redor da maga, sem precisar mirar.',cost:30,cd:11.2,aim:'self',cast:0}
+ nyra_barrier:{name:'Véu Astral',short:'Véu',icon:'◇',desc:'Barreira imediata ao redor da maga, sem precisar mirar.',cost:30,cd:11.2,aim:'self',cast:0},
  seris_tether:{name:'Laço Luminoso',short:'Laço',icon:'✧',desc:'Projétil que desacelera o inimigo acertado.',cost:27,cd:6.9,aim:'direction',range:405,radius:20,cast:.24},
  seris_bloom:{name:'Flor Restauradora',short:'Flor',icon:'✿',desc:'Projétil de área que cura aliados próximos ao impacto.',cost:39,cd:10.6,aim:'area',range:285,radius:96,cast:.38},
  seris_aegis:{name:'Aura de Proteção',short:'Aura',icon:'◇',desc:'Protege aliados perto de Seris; ativação imediata.',cost:35,cd:11.2,aim:'self',radius:120,cast:0},
