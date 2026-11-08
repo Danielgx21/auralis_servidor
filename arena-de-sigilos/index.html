@@ -272,8 +272,17 @@ function renderArsenal(){
   const upgrade=unlockedNow&&lvl<3?'<button class="upgrade" data-action="upgrade" data-id="'+id+'" '+(arsenal.credits<cost?'disabled':'')+'>↑ '+cost+' ✦</button>':'';
   const equip=unlockedNow?'<button data-action="equip" data-id="'+id+'">'+(equipped?'EM USO':'EQUIPAR')+'</button>':'';
   const locktext=unlockedNow?'':'<span style="color:#c89ba2;font-size:10px">Desbloqueia ao vencer a fase '+d.unlock+'</span>';
+  const itemStat={
+   lens:'+'+(2*lvl)+' de dano por tiro',
+   ward:'+'+(10+10*lvl)+' de vida máxima',
+   stride:'+'+Math.round(5.5*lvl)+'% de velocidade',
+   cell:'+'+(18*lvl)+'% de recuperação de energia',
+   prism:'1 ricochete · +'+(2*lvl)+' de dano refletido',
+   core:'-'+(7.5*lvl)+'% de recarga das habilidades'
+  };
+  const stat=isSkill?'Recarga '+skillCooldown(id).toFixed(1)+'s · '+d.cost+' energia':itemStat[id];
   return '<article class="arsenal-card '+(unlockedNow?'':'locked')+'"><div class="card-title"><span><span class="card-icon">'+d.icon+'</span> '+d.name+'</span><span class="card-rank">'+(unlockedNow?'Nv. '+lvl+'/3':'🔒')+'</span></div>'+
-  '<div class="card-desc">'+d.desc+'</div>'+locktext+(unlockedNow?'<div class="card-action">'+equip+upgrade+'</div>':'')+'</article>';
+  '<div class="card-desc">'+d.desc+'<div style="color:#ffe0a1;margin-top:4px">'+(unlockedNow?stat:'')+'</div></div>'+locktext+(unlockedNow?'<div class="card-action">'+equip+upgrade+'</div>':'')+'</article>';
  }).join('');
  el.innerHTML='<div class="arsenal-head"><strong>⚒ ARSENAL</strong><span class="coin">✦ '+arsenal.credits+' FRAGMENTOS</span><button class="secondary" data-action="back" style="padding:7px 9px">VOLTAR</button></div>'+
  '<div class="arsenal-tabs"><button data-action="tab" data-tab="skills" class="'+(isSkill?'active':'')+'">HABILIDADES</button><button data-action="tab" data-tab="items" class="'+(!isSkill?'active':'')+'">EQUIPAMENTOS</button></div>'+
