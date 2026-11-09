@@ -41,10 +41,13 @@ const JUNGLE_LINKS=[
 // Espinha dorsal de duas selvas organizadas; cada trecho possui hitbox física.
 // Não atravessam nenhuma das três pistas de tropas.
 const WALL_SEEDS=[
- [[660,940],[820,875]],[[1010,680],[1130,750]],
- [[1060,1150],[1210,1080]],[[1320,610],[1420,650]],
- [[1710,910],[1890,850]],[[1960,610],[2150,550]],
- [[1230,910],[1360,850]]
+ // Barreira geométrica contínua nos agrupamentos da selva. A rotação de
+ // 180° gera a segunda jungle, abrindo clareiras para ganks e objetivos.
+ [[620,875],[810,760]],[[900,530],[1080,615]],
+ [[1100,715],[1250,785]],[[950,1115],[1090,1075]],
+ [[1150,1280],[1300,1200]],[[1370,530],[1510,585]],
+ [[1620,850],[1800,820]],[[1880,550],[2070,590]],
+ [[1250,855],[1390,880]],[[740,1300],[920,1270]]
 ];
 const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1};
 const ITEMS=[
@@ -262,7 +265,7 @@ function buildMap(){
  // Barricadas e passagens da selva: cada parede é um segmento FÍSICO verdadeiro.
  for(let i=0;i<WALL_SEEDS.length;i++)for(let side=0;side<2;side++){
   const [p,q]=WALL_SEEDS[i].map(([x,y])=>side===0?({x,y}):rotateHalf({x,y}));
-  const x=(p.x+q.x)/2,y=(p.y+q.y)/2,halfWidth=23;
+  const x=(p.x+q.x)/2,y=(p.y+q.y)/2,halfWidth=32;
   state.walls.push({kind:'wall',id:'barrier-'+i+'-'+side,side,
    ax:p.x,ay:p.y,bx:q.x,by:q.y,x,y,halfWidth,
    r:Math.hypot(q.x-p.x,q.y-p.y)/2+halfWidth,solid:true});
@@ -277,6 +280,19 @@ function buildMap(){
   const closeTower=state.structures.some(k=>dist(o,k)<r+k.r+45);
   if(!closeRoute&&!closeWall&&!closeCamp&&!closeTower)
    state.obstacles.push({kind:'rock',x:o.x,y:o.y,r,solid:true});
+ }
+ // Pórticos sólidos da base: dois hexágonos físicos por saída. O corredor
+ // entre eles tem 168 unidades: comporta campeões e formações de tropas.
+ // A renderização lê estes MESMOS obstáculos em vez de pintar portões falsos.
+ for(let side=0;side<2;side++)for(let lane=0;lane<3;lane++){
+  const gate=BASE_GATE[side][lane],t=side===0?.018:.982;
+  const ahead=pathPos(lane,t),dx=ahead.x-gate.x,dy=ahead.y-gate.y;
+  const perpendicular=norm(-dy,dx);
+  for(const sign of [-1,1]){
+   const x=gate.x+perpendicular.x*84*sign;
+   const y=gate.y+perpendicular.y*84*sign;
+   state.obstacles.push({kind:'gate',side,lane,x,y,r:22,solid:true});
+  }
  }
  rebuildSolidIndex();
 }
