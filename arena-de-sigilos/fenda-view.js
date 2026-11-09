@@ -22,7 +22,7 @@ stage.appendChild(shop);
 const mm=$('fendaMinimap'),mc=mm.getContext('2d');
 let vw=900,vh=460,dpr=1,terrain=null,last=performance.now(),hudCountdown=0,endedShown=false;
 const keys=new Set(),joy={ptr:null,x:0,y:0,sx:0,sy:0},pointers={aa:null,skill:null};
-let aimPreview=null;
+let aimPreview=null,desktopScheme='wasd',clickDestination=null;
 const clamp=E.clamp,dist=E.dist,TAU=E.TAU;
 function resize(){
  const r=stage.getBoundingClientRect();vw=Math.max(320,r.width);vh=Math.max(220,r.height);
@@ -351,13 +351,13 @@ function chooseHero(){
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
  '<div class="teamfight-tip">5×5 com aliados e inimigos de IA · 3 rotas · torres · ondas de tropas · ouro e XP · loja · recall · objetivos astrais · minimapa.</div>'+
  '<div class="actions" style="margin-top:10px"><button class="primary" id="playFenda">▶ JOGAR FENDA 5×5</button><button class="secondary" id="playClassic">MODO ARENA RÁPIDA</button></div>'+
- '<p style="font-size:10px;margin:9px 0 0">Celular: joystick e Q/W/E/R. PC: setas para mover, Espaço atacar, Q/W/E/R habilidades, B retorno, P loja. WASD também move; 1/2/3/4 também usam habilidades.</p>';
+ '<p style="font-size:10px;margin:9px 0 0">Celular: joystick e Q/W/E/R. PC: WASD mover, Espaço AA, 1/2/3/4 habilidades, B retorno e P loja. TAB troca para setas + Q/W/E/R.</p>';
  for(const b of $('modalContent').querySelectorAll('[data-hero]'))b.onclick=()=>{C.setHeroChoice(b.dataset.hero);chooseHero()};
  $('playFenda').onclick=startGame;
  $('playClassic').onclick=()=>{S.mode='classic';stage.classList.remove('fenda-on');C.showClassic()};
 }
 function startGame(){
- E.start(C.getHeroChoice());endedShown=false;stage.classList.add('fenda-on');cv.style.display='block';
+ E.start(C.getHeroChoice());endedShown=false;clickDestination=null;stage.classList.add('fenda-on');cv.style.display='block';
  shop.classList.remove('open');$('overlay').classList.add('hidden');$('missionShelf').hidden=true;
  resize();drawTerrain();last=performance.now();hudCountdown=0;hudUpdate();
  if(stage.requestFullscreen&&!document.fullscreenElement){
@@ -437,7 +437,15 @@ function aaStart(e){
 }
 function aaEnd(e){if(pointers.aa===e.pointerId)pointers.aa=null}
 function worldDown(e){
- if(S.mode!=='playing'||S.showPause||S.shopOpen||e.pointerType==='mouse')return;
+ if(S.mode!=='playing'||S.showPause||S.shopOpen)return;
+ if(e.pointerType==='mouse'){
+  const rect=cv.getBoundingClientRect();
+  if(e.button===2){
+   clickDestination={x:clamp(S.camera.x+e.clientX-rect.left,15,E.W-15),
+    y:clamp(S.camera.y+e.clientY-rect.top,15,E.H-15)};
+  }else if(e.button===0)E.autoAttack(S.hero);
+  e.preventDefault();return;
+ }
  const rect=cv.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;
  if(x<vw*.47&&joy.ptr===null){
   joy.ptr=e.pointerId;joy.sx=x;joy.sy=y;joy.x=joy.y=0;
@@ -460,28 +468,46 @@ function worldEnd(e){
 }
 function keyDown(e){
  if(S.mode!=='playing'||S.showPause||S.shopOpen)return;
- const k=e.key.toLowerCase();keys.add(k);
+ const k=e.key.toLowerCase();
+ if(k==='tab'){
+  e.preventDefault();desktopScheme=desktopScheme==='wasd'?'arrows':'wasd';
+  keys.clear();clickDestination=null;
+  E.announce(desktopScheme==='wasd'?'PC: WASD + HABILIDADES 1/2/3/4':'PC: SETAS + HABILIDADES Q/W/E/R',2.5);
+  return;
+ }
+ keys.add(k);
  if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();
  if(e.repeat)return;
  if(k===' '){E.autoAttack(S.hero);return}
- // Teclas numéricas são sempre alternativas às habilidades no computador.
- const keyToSlot={q:0,e:2,r:3,'1':0,'2':1,'3':2,'4':3};
- if(k==='w'&&!keys.has('shift')){ /* W é movimento no WASD; tecla 2 lança o segundo poder. */ }
- if(keyToSlot[k]!=null){
+ const slots=desktopScheme==='wasd'?
+  {'1':0,'2':1,'3':2,'4':3,q:0,e:2,r:3}:
+  {'1':0,'2':1,'3':2,'4':3,q:0,w:1,e:2,r:3};
+ const i=slots[k];
+ if(i!==undefined){
   const kit=C.heroes[S.hero.id].skills.concat([C.heroes[S.hero.id].ultimate]);
-  E.cast(S.hero,kit[keyToSlot[k]]);return;
+  E.cast(S.hero,kit[i]);return;
  }
  if(k==='b')E.recall();
- if(k==='p')toggleShop();
- if(k==='escape')pause();
+ else if(k==='p')toggleShop();
+ else if(k==='escape')pause();
 }
 function movement(){
  let x=joy.x,y=joy.y;
- if(keys.has('w')||keys.has('arrowup'))y--;
- if(keys.has('s')||keys.has('arrowdown'))y++;
- if(keys.has('a')||keys.has('arrowleft'))x--;
- if(keys.has('d')||keys.has('arrowright'))x++;
- const len=Math.hypot(x,y);return len>1?{x:x/len,y:y/len}:{x,y};
+ if(keys.has('arrowup')||desktopScheme==='wasd'&&keys.has('w'))y--;
+ if(keys.has('arrowdown')||desktopScheme==='wasd'&&keys.has('s'))y++;
+ if(keys.has('arrowleft')||desktopScheme==='wasd'&&keys.has('a'))x--;
+ if(keys.has('arrowright')||desktopScheme==='wasd'&&keys.has('d'))x++;
+ let len=Math.hypot(x,y);
+ if(len>.08){
+  clickDestination=null;
+  return len>1?{x:x/len,y:y/len}:{x,y};
+ }
+ if(clickDestination&&S.hero&&S.hero.hp>0){
+  const dx=clickDestination.x-S.hero.x,dy=clickDestination.y-S.hero.y,d=Math.hypot(dx,dy);
+  if(d<17){clickDestination=null;return{x:0,y:0}}
+  return{x:dx/d,y:dy/d};
+ }
+ return{x:0,y:0};
 }
 function loop(now){
  const dt=clamp((now-last)/1000,0,.05);last=now;
@@ -503,6 +529,7 @@ for(const [i,id] of ['dashBtn','pulseBtn','shieldBtn','ultBtn'].entries()){
 $('fireBtn').addEventListener('pointerdown',aaStart);
 for(const type of ['pointerup','pointercancel','lostpointercapture'])$('fireBtn').addEventListener(type,aaEnd);
 cv.addEventListener('pointerdown',worldDown);
+cv.addEventListener('contextmenu',e=>e.preventDefault());
 cv.addEventListener('pointermove',worldMove);
 for(const type of ['pointerup','pointercancel','lostpointercapture'])cv.addEventListener(type,worldEnd);
 window.addEventListener('keydown',keyDown);
