@@ -38,16 +38,17 @@ const JUNGLE_LINKS=[
  {lane:0,t:.35,x:805,y:910},{lane:1,t:.35,x:1300,y:1160},
  {lane:1,t:.65,x:2000,y:1340},{lane:2,t:.65,x:2495,y:1590}
 ];
-// Espinha dorsal de duas selvas organizadas; cada trecho possui hitbox física.
-// Não atravessam nenhuma das três pistas de tropas.
-const WALL_SEEDS=[
- // Barreira geométrica contínua nos agrupamentos da selva. A rotação de
- // 180° gera a segunda jungle, abrindo clareiras para ganks e objetivos.
- [[620,875],[810,760]],[[900,530],[1080,615]],
- [[1100,715],[1250,785]],[[950,1115],[1090,1075]],
- [[1150,1280],[1300,1200]],[[1370,530],[1510,585]],
- [[1620,850],[1800,820]],[[1880,550],[2070,590]],
- [[1250,855],[1390,880]],[[740,1300],[920,1270]]
+// Separadores FÍSICOS de lanes: trechos largos, entrecortados somente por
+// passagens de gank planejadas. Não são avenidas pintadas no terreno.
+// Cada segmento usa a mesma curva pela qual os minions transitam, só que
+// deslocado para o lado da selva. A rotação de 180° preserva equilíbrio.
+const WALL_RIBBONS=[
+ {name:'superior',lane:0,sign:1,offset:212,spans:[
+  [.075,.185],[.255,.375],[.44,.56],[.625,.755],[.825,.92]]},
+ {name:'central-norte',lane:1,sign:-1,offset:215,spans:[
+  [.13,.27],[.33,.45]]},
+ {name:'central-sul',lane:1,sign:1,offset:215,spans:[
+  [.13,.27],[.33,.45]]}
 ];
 const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1};
 const ITEMS=[
@@ -241,7 +242,9 @@ function buildMap(){
   state.structures.push({kind:'core',side,x:home.x,y:home.y,maxHp:1850,hp:1850,
    r:46,atk:53,range:375,attackCd:0,id:'core'+side});
   for(let lane=0;lane<3;lane++)for(let tier=0;tier<3;tier++){
-   const t=(side===0?[.42,.26,.10]:[.58,.74,.90])[tier];
+   // T1 externa distante do centro; T2 e T3 recuam progressivamente à base.
+   // Espaço central neutro suficiente para combate antes do alcance das torres.
+   const t=(side===0?[.27,.16,.05]:[.73,.84,.95])[tier];
    const p=pathPos(lane,t),a=pathPos(lane,Math.max(0,t-.004)),b=pathPos(lane,Math.min(1,t+.004));
    const direction=norm(b.x-a.x,b.y-a.y);
    const sign=lane===0?1:lane===2?-1:side===0?1:-1;
@@ -262,13 +265,56 @@ function buildMap(){
   {id:'titan',x:1740,y:1770,kind:'boss',name:'Titã do Abismo',color:'#dfb1fa',hp:1500,unlock:110}
  ];
  state.camps=camps.map(o=>({...o,maxHp:o.hp,respawn:0}));
- // Barricadas e passagens da selva: cada parede é um segmento FÍSICO verdadeiro.
- for(let i=0;i<WALL_SEEDS.length;i++)for(let side=0;side<2;side++){
-  const [p,q]=WALL_SEEDS[i].map(([x,y])=>side===0?({x,y}):rotateHalf({x,y}));
-  const x=(p.x+q.x)/2,y=(p.y+q.y)/2,halfWidth=32;
-  state.walls.push({kind:'wall',id:'barrier-'+i+'-'+side,side,
-   ax:p.x,ay:p.y,bx:q.x,by:q.y,x,y,halfWidth,
-   r:Math.hypot(q.x-p.x,q.y-p.y)/2+halfWidth,solid:true});
+ // Paredes da jungle formam COSTAS CONTÍNUAS de cada lane, com três
+ // ou mais entradas por setor. Toda a separação é uma hitbox real.
+ // Fragmentos contíguos possuem a mesma identificação 'chain' para que
+ // o desenho fique liso sem dezenas de ícones nas emendas.
+ const wallHalf=36;
+ function wallPoint(cfg,t){
+  const p=pathPos(cfg.lane,t),
+   a=pathPos(cfg.lane,clamp(t-.003,0,1)),
+   b=pathPos(cfg.lane,clamp(t+.003,0,1));
+  const dir=norm(b.x-a.x,b.y-a.y);
+  return{x:p.x-dir.y*cfg.sign*cfg.offset,y:p.y+dir.x*cfg.sign*cfg.offset};
+ }
+ function segmentDistance(obj,a,b){
+  const vx=b.x-a.x,vy=b.y-a.y;
+  const u=clamp(((obj.x-a.x)*vx+(obj.y-a.y)*vy)/Math.max(1,vx*vx+vy*vy),0,1);
+  return Math.hypot(obj.x-a.x-u*vx,obj.y-a.y-u*vy);
+ }
+ function freeSegment(a,b,cfg){
+  const mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+  const pts=[a,b,mid];
+  for(const p of pts){
+   if(p.x<90||p.y<90||p.x>W-90||p.y>H-90)return false;
+   if([0,1,2].some(l=>routeProjection(l,p).distance<LANE_HALF_WIDTH+62))return false;
+   if(HOME.some(home=>dist(home,p)<255))return false;
+  }
+  if(state.camps.some(o=>segmentDistance(o,a,b)<(o.kind==='boss'?38:o.kind==='buff'?28:23)+wallHalf+31))return false;
+  if(state.structures.some(o=>segmentDistance(o,a,b)<o.r+wallHalf+44))return false;
+  if(state.obstacles.some(o=>segmentDistance(o,a,b)<(o.r||22)+wallHalf+20))return false;
+  return true;
+ }
+ for(const cfg of WALL_RIBBONS){
+  for(let spanId=0;spanId<cfg.spans.length;spanId++){
+   const [first,last]=cfg.spans[spanId],parts=Math.ceil((last-first)*ROUTE_TOTALS[cfg.lane]/78);
+   let chain=0,previousWasWall=false;
+   for(let i=0;i<parts;i++){
+    const a=wallPoint(cfg,first+(last-first)*i/parts),
+     b=wallPoint(cfg,first+(last-first)*(i+1)/parts);
+    if(!freeSegment(a,b,cfg)){previousWasWall=false;continue}
+    if(!previousWasWall)chain++;
+    previousWasWall=true;
+    for(let side=0;side<2;side++){
+     const p=side===0?a:rotateHalf(a),q=side===0?b:rotateHalf(b);
+     state.walls.push({kind:'wall',side,ax:p.x,ay:p.y,bx:q.x,by:q.y,
+      x:(p.x+q.x)/2,y:(p.y+q.y)/2,
+      halfWidth:wallHalf,r:dist(p,q)/2+wallHalf,solid:true,
+      chain:cfg.name+'-'+spanId+'-'+chain+'-'+side,
+      id:'barrier-'+cfg.name+'-'+spanId+'-'+chain+'-'+i+'-'+side});
+    }
+   }
+  }
  }
  // Pilares hexagonais, simétricos e separados das lanes.
  const pillarSeeds=[{x:700,y:1080},{x:1020,y:890},{x:1450,y:1020},{x:1830,y:750}];
