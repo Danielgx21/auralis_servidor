@@ -284,7 +284,8 @@ function makeHero(id,side,controlled=false){
  cooldowns:Object.fromEntries([...h.skills,h.ultimate].map(k=>[k,0])),
  stun:0,slow:0,shield:0,guard:0,invuln:0,marked:0,attackAnim:0,
  vision:350,death:0,respawn:0,recall:0,lastDamage:0,focus:null,
- aiTimer:rando(.6,1.8),visionCd:0,jungleGoal:null,gankUntil:0,kills:0,deaths:0,cs:0,dash:null,commandTarget:null,
+ aiTimer:rando(.6,1.8),visionCd:0,jungleGoal:null,gankUntil:0,kills:0,deaths:0,assists:0,
+ recentDamagers:[],dash:null,commandTarget:null,
  healthRegen:1.3,homeBuff:0,botLane:roles[id],cs:0,focusTarget:null,focusUntil:0,isRanged:!['vexor','orun'].includes(id)};
 }
 function createMinion(side,lane,type=0,slot=0){
@@ -359,10 +360,23 @@ function onDeath(victim,source){
  if(victim.kind==='hero'){
   victim.commandTarget=null;
   victim.deaths++;victim.respawn=8+Math.round(victim.level*1.4);
-  if(source&&(source.side===0||source.side===1)&&source.side!==victim.side){
-   state.kills[source.side]++;
-   if(source.kind==='hero'){source.kills++;source.gold+=210;xpGain(source,90);}
+  // Participação real na eliminação: dano recente de campeões em até 10s.
+  const recent=(victim.recentDamagers||[]).filter(e=>
+   state.time-e.time<=10&&e.hero?.kind==='hero'&&e.hero.side!==victim.side);
+  let killer=source?.kind==='hero'&&source.side!==victim.side?source:null;
+  if(!killer&&recent.length){
+   const latest=recent.reduce((a,b)=>a.time>b.time?a:b);
+   killer=latest.hero;
   }
+  const winningSide=killer?.side??(source?.side!==victim.side?source?.side:null);
+  if(winningSide===0||winningSide===1)state.kills[winningSide]++;
+  if(killer){killer.kills++;killer.gold+=210;xpGain(killer,90);}
+  for(const assist of new Set(recent.map(e=>e.hero))){
+   if(assist===killer||assist.hp<=0)continue;
+   assist.assists=(assist.assists||0)+1;
+   assist.gold+=65;xpGain(assist,42);
+  }
+  victim.recentDamagers=[];
   if(victim.controlled)announce('VOCÊ FOI ELIMINADO · RESSURGINDO...',3);
  }else if(victim.kind==='minion'){
   if(source&&source.side!==victim.side){
@@ -413,6 +427,12 @@ function damage(victim,amount,source=null){
  const dmg=Math.max(1,Math.round(raw));
  if(state.camps.includes(victim)){damageCreep(victim,dmg,source);return dmg}
  victim.hp=Math.max(0,victim.hp-dmg);victim.lastDamage=state.time;
+ if(victim.kind==='hero'&&source?.kind==='hero'&&source.side!==victim.side){
+  // Registra todos os campeões que contribuíram, não apenas o último golpe.
+  victim.recentDamagers=(victim.recentDamagers||[]).filter(e=>
+   state.time-e.time<=10&&e.hero!==source);
+  victim.recentDamagers.push({hero:source,time:state.time});
+ }
  if(victim.kind==='tower'||victim.kind==='core'){
   addEffect(victim.x,victim.y,victim.side===0?'#7cf9d9':'#ffd696',victim.r+10,.29);
   if(source&&source.controlled){
@@ -854,7 +874,7 @@ function respawn(u){
  u.hp=u.maxHp;u.mana=maxMana(u);u.shield=0;u.shieldUntil=0;
  if(!u.controlled)botShop(u);u.guard=0;u.casting=null;
  u.attackCd=0;u.stun=0;u.slow=0;u.dash=null;u.recall=0;u.attackPending=null;u.attackAnim=0;u.skillFlash=0;
- u.death=0;u.respawn=0;u.focus=null;u.aiTimer=.5;
+ u.death=0;u.respawn=0;u.focus=null;u.aiTimer=.5;u.recentDamagers=[];
  addEffect(u.x,u.y,u.side===0?'#82f0e1':'#f8aac3',85,.62);
 }
 function botShop(u){
