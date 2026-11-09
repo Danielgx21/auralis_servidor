@@ -372,7 +372,7 @@ function onDeath(victim,source){
   if(winningSide===0||winningSide===1)state.kills[winningSide]++;
   if(killer){killer.kills++;killer.gold+=210;xpGain(killer,90);}
   for(const assist of new Set(recent.map(e=>e.hero))){
-   if(assist===killer||assist.hp<=0)continue;
+   if(assist===killer)continue; // O aliado eliminado durante a luta ainda recebe assistencia.
    assist.assists=(assist.assists||0)+1;
    assist.gold+=65;xpGain(assist,42);
   }
