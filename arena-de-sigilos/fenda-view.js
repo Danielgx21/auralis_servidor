@@ -537,21 +537,34 @@ function drawAim(){
 }
 function drawFog(){
  if(S.mode!=='playing'&&S.mode!=='ended')return;
+ // Visão de equipe como no MOBA: campeões, tropas, torres e sentinelas
+ // revelam áreas inteiras, com bordas suavizadas (sem quadrados na lane).
  const x=S.camera.x,y=S.camera.y,scaleX=fogCanvas.width/vw,scaleY=fogCanvas.height/vh;
- if(fogAt<0||S.time-fogAt>.17||Math.abs(x-fogCamX)>9||Math.abs(y-fogCamY)>9){
+ if(fogAt<0||S.time-fogAt>.12||Math.abs(x-fogCamX)>5||Math.abs(y-fogCamY)>5){
   fogAt=S.time;fogCamX=x;fogCamY=y;
   fogContext.setTransform(scaleX,0,0,scaleY,-x*scaleX,-y*scaleY);
-  fogContext.clearRect(x-5,y-5,vw+10,vh+10);
+  fogContext.globalCompositeOperation='source-over';
+  fogContext.clearRect(x-6,y-6,vw+12,vh+12);
   const cell=E.VISION_CELL;
   const x0=Math.max(0,Math.floor(x/cell)),x1=Math.min(E.VISION_COLS-1,Math.ceil((x+vw)/cell));
   const y0=Math.max(0,Math.floor(y/cell)),y1=Math.min(E.VISION_ROWS-1,Math.ceil((y+vh)/cell));
   for(let cy=y0;cy<=y1;cy++)for(let cx=x0;cx<=x1;cx++){
-   const px=(cx+.5)*cell,py=(cy+.5)*cell;
-   if(E.isPointVisible(0,{x:px,y:py}))continue;
    const discovered=S.seen[0]?.[cy*E.VISION_COLS+cx];
-   fogContext.fillStyle=discovered?'rgba(3,17,27,.66)':'rgba(2,11,24,.92)';
+   fogContext.fillStyle=discovered?'rgba(3,17,27,.63)':'rgba(2,11,24,.90)';
    fogContext.fillRect(cx*cell-1,cy*cell-1,cell+2,cell+2);
   }
+  fogContext.globalCompositeOperation='destination-out';
+  for(const src of S.sight[0]||[]){
+   const r=src.r||250;
+   if(src.x+r<x||src.x-r>x+vw||src.y+r<y||src.y-r>y+vh)continue;
+   const gradient=fogContext.createRadialGradient(src.x,src.y,0,src.x,src.y,r);
+   gradient.addColorStop(0,'rgba(0,0,0,1)');
+   gradient.addColorStop(.80,'rgba(0,0,0,1)');
+   gradient.addColorStop(1,'rgba(0,0,0,.03)');
+   fogContext.fillStyle=gradient;
+   fogContext.beginPath();fogContext.arc(src.x,src.y,r,0,TAU);fogContext.fill();
+  }
+  fogContext.globalCompositeOperation='source-over';
  }
  ctx.drawImage(fogCanvas,x,y,vw,vh);
 }
