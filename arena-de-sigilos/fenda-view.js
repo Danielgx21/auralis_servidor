@@ -512,6 +512,18 @@ function drawAim(){
   circle(S.hero.x,S.hero.y,r,null,'#a3e8d14a',1.5);
   if(target)circle(target.x,target.y,target.r+11,null,'#e7e2beaa',2.2);
  }
+ if(wardAim&&S.hero&&S.hero.hp>0){
+  const point=wardPoint(wardAim),hero=S.hero;
+  ctx.save();ctx.globalAlpha=.84;
+  circle(hero.x,hero.y,E.WARD_RANGE,null,'#98f5c364',1.6);
+  ctx.setLineDash([6,9]);ctx.strokeStyle='#b5ffdbb9';ctx.lineWidth=1.6;
+  ctx.beginPath();ctx.moveTo(hero.x,hero.y);ctx.lineTo(point.x,point.y);ctx.stroke();
+  ctx.setLineDash([]);
+  circle(point.x,point.y,29,'#72e9b51f','#b9ffe0',2);
+  circle(point.x,point.y,8,'#bdffe6');
+  ctx.globalAlpha=.21;circle(point.x,point.y,295,'#7decb719');
+  ctx.restore();
+ }
  if(aimPreview&&S.hero&&S.hero.hp>0){
   const def=E.skillDef(aimPreview.id),aim=aimData(aimPreview),u=S.hero;
   ctx.save();ctx.globalAlpha=.76;ctx.strokeStyle=def.ultimate?'#f8dea0':C.heroes[u.id].color;ctx.lineWidth=2;
@@ -762,7 +774,7 @@ function pause(){
  S.showPause=!S.showPause;
  if(S.showPause){
   S.shopOpen=false;shop.classList.remove('open');
-  joy.x=joy.y=0;joy.ptr=null;keys.clear();pointers.aa=null;pointers.skill=null;aimPreview=null;
+  joy.x=joy.y=0;joy.ptr=null;keys.clear();pointers.aa=null;pointers.skill=null;wardAim=null;cameraPeek=null;aimPreview=null;
  }
  if(!S.showPause){$('overlay').classList.add('hidden');return}
  $('overlay').classList.remove('hidden','picker-open','hero-open','arsenal-open');$('missionShelf').hidden=true;
@@ -899,13 +911,42 @@ function worldEnd(e){
  if(joy.ptr!==e.pointerId)return;joy.ptr=null;joy.x=joy.y=0;
  $('joy').classList.remove('active');$('joyKnob').style.transform='translate(-50%,-50%)';
 }
-function deployWard(){
+function wardPoint(p){
+ const h=S.hero,dx=p.x-p.sx,dy=p.y-p.sy,dragDist=Math.hypot(dx,dy);
+ const angle=h.facing||-.68;
+ if(dragDist<10)return{x:h.x+Math.cos(angle)*175,y:h.y+Math.sin(angle)*175};
+ const distWard=clamp(dragDist*2.65,40,E.WARD_RANGE-5),dir=E.norm(dx,dy);
+ return{x:clamp(h.x+dir.x*distWard,35,E.W-35),
+        y:clamp(h.y+dir.y*distWard,35,E.H-35)};
+}
+function deployWard(point=null){
  if(S.mode!=='playing'||S.showPause||S.shopOpen||!S.hero)return;
- const hero=S.hero,angle=hero.facing||-.68;
- const x=hero.x+Math.cos(angle)*230,y=hero.y+Math.sin(angle)*230;
- const result=E.placeWard(hero,x,y);
+ const h=S.hero,angle=h.facing||-.68;
+ const pos=point||{x:h.x+Math.cos(angle)*175,y:h.y+Math.sin(angle)*175};
+ const result=E.placeWard(h,pos.x,pos.y);
  if(!result.ok)warn(result.reason);
  hudUpdate();
+}
+function wardStart(e){
+ if(S.mode!=='playing'||S.showPause||S.shopOpen||!S.hero||S.hero.hp<=0||
+   S.hero.visionCd>0)return;
+ e.preventDefault();e.stopPropagation();
+ wardAim={ptr:e.pointerId,sx:e.clientX,sy:e.clientY,x:e.clientX,y:e.clientY};
+ try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_){}
+}
+function wardMove(e){
+ if(!wardAim||wardAim.ptr!==e.pointerId)return;
+ wardAim.x=e.clientX;wardAim.y=e.clientY;
+ e.preventDefault();
+}
+function wardEnd(e){
+ if(!wardAim||wardAim.ptr!==e.pointerId)return;
+ const p=wardAim;
+ if(e.type==='pointerup'){
+  p.x=e.clientX;p.y=e.clientY;
+  deployWard(wardPoint(p));
+ }
+ wardAim=null;
 }
 function keyDown(e){
  if(S.mode!=='playing')return;
@@ -1001,7 +1042,10 @@ window.addEventListener('keydown',keyDown);
 window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
 window.addEventListener('blur',()=>{keys.clear();joy.ptr=null;joy.x=joy.y=0});
 $('fendaShopBtn').onclick=toggleShop;$('fendaShopClose').onclick=toggleShop;
-$('fendaWardBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();deployWard()});
+$('fendaWardBtn').addEventListener('pointerdown',wardStart);
+$('fendaWardBtn').addEventListener('pointermove',wardMove);
+for(const type of ['pointerup','pointercancel','lostpointercapture'])
+ $('fendaWardBtn').addEventListener(type,wardEnd);
 $('fendaRecallBtn').onclick=()=>E.recall();$('fendaPauseBtn').onclick=pause;
 $('fendaTowerBtn').addEventListener('pointerdown',e=>{
  e.preventDefault();e.stopPropagation();
@@ -1011,15 +1055,37 @@ $('fendaTowerBtn').addEventListener('pointerdown',e=>{
  else if(!r.attacked)warn('TORRE SELECIONADA · AGUARDE O PRÓXIMO AA');
  hudUpdate();
 });
-mm.addEventListener('pointerdown',e=>{
- if(S.mode!=='playing')return;
- const r=mm.getBoundingClientRect();
- S.marker={x:clamp((e.clientX-r.left)/r.width*E.W,0,E.W),y:clamp((e.clientY-r.top)/r.height*E.H,0,E.H),
-  until:S.time+15};
- E.announce('MARCADOR DEFINIDO NO MAPA',1.2);e.preventDefault();
-});
+function minimapPoint(e){
+ const rect=mm.getBoundingClientRect();
+ return{x:clamp(((e.clientX-rect.left)/rect.width*mm.width-7)/206*E.W,0,E.W),
+  y:clamp(((e.clientY-rect.top)/rect.height*mm.height-7)/138*E.H,0,E.H)};
+}
+function minimapStart(e){
+ if(S.mode!=='playing'||S.shopOpen||S.showPause)return;
+ e.preventDefault();e.stopPropagation();
+ cameraPeek={...minimapPoint(e),ptr:e.pointerId};
+ cameraPeekUntil=S.time+2.2;
+ try{mm.setPointerCapture(e.pointerId)}catch(_){}
+}
+function minimapMove(e){
+ if(!cameraPeek||cameraPeek.ptr!==e.pointerId)return;
+ const point=minimapPoint(e);cameraPeek.x=point.x;cameraPeek.y=point.y;
+ cameraPeekUntil=S.time+2.2;e.preventDefault();
+}
+function minimapEnd(e){
+ if(!cameraPeek||cameraPeek.ptr!==e.pointerId)return;
+ if(e.type==='pointerup'){
+  const point=minimapPoint(e);cameraPeek.x=point.x;cameraPeek.y=point.y;
+  cameraPeek.ptr=null;cameraPeekUntil=S.time+1.9;
+ }else{cameraPeek=null;cameraPeekUntil=0}
+}
+mm.addEventListener('pointerdown',minimapStart);
+mm.addEventListener('pointermove',minimapMove);
+for(const type of ['pointerup','pointercancel','lostpointercapture'])
+ mm.addEventListener(type,minimapEnd);
+mm.addEventListener('dblclick',()=>{cameraPeek=null;cameraPeekUntil=0});
 window.addEventListener('resize',resize);
 if(window.ResizeObserver)new ResizeObserver(resize).observe(stage);
-window.FendaView={chooseHero,startGame,pause,view,resize,toggleShop,hudUpdate,pickAttackTarget,issueRightClick,movement};
+window.FendaView={chooseHero,startGame,pause,view,resize,toggleShop,hudUpdate,pickAttackTarget,issueRightClick,movement,minimapPoint,wardPoint,wardStart,wardMove,wardEnd,minimapStart,minimapMove,minimapEnd};
 resize();chooseHero();requestAnimationFrame(loop);
 })();
