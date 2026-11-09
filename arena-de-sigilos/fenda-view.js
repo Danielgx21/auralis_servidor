@@ -482,15 +482,15 @@ function drawFog(){
  if(S.mode!=='playing'&&S.mode!=='ended')return;
  // Visão de equipe como no MOBA: campeões, tropas, torres e sentinelas
  // revelam áreas inteiras, com bordas suavizadas (sem quadrados na lane).
- const x=S.camera.x,y=S.camera.y,scaleX=fogCanvas.width/vw,scaleY=fogCanvas.height/vh;
+ const x=S.camera.x,y=S.camera.y,scaleX=fogCanvas.width/worldVW,scaleY=fogCanvas.height/worldVH;
  if(fogAt<0||S.time-fogAt>.12||Math.abs(x-fogCamX)>5||Math.abs(y-fogCamY)>5){
   fogAt=S.time;fogCamX=x;fogCamY=y;
   fogContext.setTransform(scaleX,0,0,scaleY,-x*scaleX,-y*scaleY);
   fogContext.globalCompositeOperation='source-over';
-  fogContext.clearRect(x-6,y-6,vw+12,vh+12);
+  fogContext.clearRect(x-6,y-6,worldVW+12,worldVH+12);
   const cell=E.VISION_CELL;
-  const x0=Math.max(0,Math.floor(x/cell)),x1=Math.min(E.VISION_COLS-1,Math.ceil((x+vw)/cell));
-  const y0=Math.max(0,Math.floor(y/cell)),y1=Math.min(E.VISION_ROWS-1,Math.ceil((y+vh)/cell));
+  const x0=Math.max(0,Math.floor(x/cell)),x1=Math.min(E.VISION_COLS-1,Math.ceil((x+worldVW)/cell));
+  const y0=Math.max(0,Math.floor(y/cell)),y1=Math.min(E.VISION_ROWS-1,Math.ceil((y+worldVH)/cell));
   for(let cy=y0;cy<=y1;cy++)for(let cx=x0;cx<=x1;cx++){
    const discovered=S.seen[0]?.[cy*E.VISION_COLS+cx];
    fogContext.fillStyle=discovered?'rgba(3,17,27,.63)':'rgba(2,11,24,.90)';
@@ -499,7 +499,7 @@ function drawFog(){
   fogContext.globalCompositeOperation='destination-out';
   for(const src of S.sight[0]||[]){
    const r=src.r||250;
-   if(src.x+r<x||src.x-r>x+vw||src.y+r<y||src.y-r>y+vh)continue;
+   if(src.x+r<x||src.x-r>x+worldVW||src.y+r<y||src.y-r>y+worldVH)continue;
    const gradient=fogContext.createRadialGradient(src.x,src.y,0,src.x,src.y,r);
    gradient.addColorStop(0,'rgba(0,0,0,1)');
    gradient.addColorStop(.80,'rgba(0,0,0,1)');
@@ -509,7 +509,7 @@ function drawFog(){
   }
   fogContext.globalCompositeOperation='source-over';
  }
- ctx.drawImage(fogCanvas,x,y,vw,vh);
+ ctx.drawImage(fogCanvas,x,y,worldVW,worldVH);
 }
 function drawWards(t){
  for(const ward of S.wards){
@@ -529,8 +529,10 @@ function view(dt){
  if(h){
   const observing=cameraPeek&&(cameraPeek.ptr!==null||S.time<cameraPeekUntil);
   const focus=observing?cameraPeek:h;
-  const wantX=clamp(focus.x-vw*.5,0,Math.max(0,E.W-vw));
-  const wantY=clamp(focus.y-vh*.56,0,Math.max(0,E.H-vh));
+  // O campeão fica perto do centro sem ficar encoberto pelos controles.
+  // Pan tático temporário via minimapa não altera o zoom da batalha.
+  const wantX=clamp(focus.x-worldVW*.47,0,Math.max(0,E.W-worldVW));
+  const wantY=clamp(focus.y-worldVH*.53,0,Math.max(0,E.H-worldVH));
   const snap=h.cameraSnapAt&&S.time-h.cameraSnapAt<.23&&!observing;
   if(snap){S.camera.x=wantX;S.camera.y=wantY;}
   else{
@@ -540,7 +542,8 @@ function view(dt){
   if(cameraPeek&&cameraPeek.ptr===null&&S.time>=cameraPeekUntil)cameraPeek=null;
  }
  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,vw,vh);
- ctx.save();ctx.translate(-S.camera.x,-S.camera.y);ctx.drawImage(terrain,0,0);
+ ctx.save();ctx.scale(cameraZoom,cameraZoom);
+ ctx.translate(-S.camera.x,-S.camera.y);ctx.drawImage(terrain,0,0);
  drawFog();
  drawWards(S.time);
  for(const o of S.camps)if(E.isPointVisible(0,o))drawCreep(o,S.time);
@@ -551,8 +554,10 @@ function view(dt){
  minimap();
 }
 function minimap(){
- mc.fillStyle='#09242e';mc.fillRect(0,0,mm.width,mm.height);
- mc.save();mc.translate(7,7);mc.scale(206/E.W,138/E.H);mc.lineCap='round';mc.lineJoin='round';
+ mc.fillStyle='#102a29';mc.fillRect(0,0,mm.width,mm.height);
+ const scale=Math.min((mm.width-14)/E.W,(mm.height-14)/E.H);
+ const ox=(mm.width-E.W*scale)/2,oy=(mm.height-E.H*scale)/2;
+ mc.save();mc.translate(ox,oy);mc.scale(scale,scale);mc.lineCap='round';mc.lineJoin='round';
  // Minimapa fiel à geometria jogável: só as três rotas, sem caminhos de selva.
  for(const path of E.ROUTE_PATHS){
   mc.beginPath();path.forEach((p,i)=>i?mc.lineTo(p.x,p.y):mc.moveTo(p.x,p.y));
@@ -589,7 +594,7 @@ function minimap(){
   mc.beginPath();mc.arc(u.x,u.y,u.kind==='hero'?23:10,0,TAU);mc.fill();}
  if(S.hero){mc.strokeStyle='#fff4c5';mc.lineWidth=18;mc.beginPath();mc.arc(S.hero.x,S.hero.y,44,0,TAU);mc.stroke();}
  if(S.marker){mc.fillStyle='#ffe1a3';mc.beginPath();mc.arc(S.marker.x,S.marker.y,34,0,TAU);mc.fill();}
- mc.strokeStyle='#ffffff';mc.lineWidth=13;mc.strokeRect(S.camera.x,S.camera.y,vw,vh);mc.restore();
+ mc.strokeStyle='#f6e9be';mc.lineWidth=17;mc.strokeRect(S.camera.x,S.camera.y,worldVW,worldVH);mc.restore();
 }
 function hudUpdate(){
  const h=S.hero;if(!h)return;
@@ -788,7 +793,7 @@ function aimData(p){
  let length=Math.min(def.range||120,Math.hypot(dx,dy));
  if(p.dragged){
   dx=p.x-p.sx;dy=p.y-p.sy;
-  length=clamp(Math.hypot(dx,dy)*3.2,0,def.range||120);
+  length=clamp(Math.hypot(dx,dy)*3.2/cameraZoom,0,def.range||120);
  }
  const unit=E.norm(dx,dy);
  return{x:unit.x,y:unit.y,distance:length,center:{x:h.x+unit.x*length,y:h.y+unit.y*length}};
@@ -822,7 +827,7 @@ function skillEnd(e){
 }
 function selectTowerAt(clientX,clientY){
  const r=cv.getBoundingClientRect();
- const x=S.camera.x+clientX-r.left,y=S.camera.y+clientY-r.top;
+ const x=S.camera.x+(clientX-r.left)/cameraZoom,y=S.camera.y+(clientY-r.top)/cameraZoom;
  const candidate=S.structures.filter(t=>t.side!==S.hero.side&&t.hp>0&&
   (t.kind==='tower'||t.kind==='core')&&Math.hypot(t.x-x,t.y-y)<=t.r+24)
   .sort((a,b)=>Math.hypot(a.x-x,a.y-y)-Math.hypot(b.x-x,b.y-y))[0];
@@ -844,7 +849,7 @@ function aaEnd(e){if(pointers.aa===e.pointerId)pointers.aa=null}
 function pickAttackTarget(clientX,clientY){
  if(!S.hero)return null;
  const rect=cv.getBoundingClientRect();
- const wx=S.camera.x+clientX-rect.left,wy=S.camera.y+clientY-rect.top;
+ const wx=S.camera.x+(clientX-rect.left)/cameraZoom,wy=S.camera.y+(clientY-rect.top)/cameraZoom;
  const candidates=[
   ...S.units.filter(u=>u.hp>0&&u.side!==S.hero.side&&
    (u.kind==='hero'||u.kind==='minion')&&E.visibleTo(S.hero.side,u)),
@@ -871,8 +876,8 @@ function issueRightClick(clientX,clientY){
  }else{
   E.clearAttackCommand(S.hero);
   const rect=cv.getBoundingClientRect();
-  clickDestination={x:clamp(S.camera.x+clientX-rect.left,15,E.W-15),
-   y:clamp(S.camera.y+clientY-rect.top,15,E.H-15)};
+  clickDestination={x:clamp(S.camera.x+(clientX-rect.left)/cameraZoom,15,E.W-15),
+   y:clamp(S.camera.y+(clientY-rect.top)/cameraZoom,15,E.H-15)};
  }
 }
 function worldDown(e){
@@ -907,7 +912,7 @@ function wardPoint(p){
  const h=S.hero,dx=p.x-p.sx,dy=p.y-p.sy,dragDist=Math.hypot(dx,dy);
  const angle=h.facing||-.68;
  if(dragDist<10)return{x:h.x+Math.cos(angle)*175,y:h.y+Math.sin(angle)*175};
- const distWard=clamp(dragDist*2.65,40,E.WARD_RANGE-5),dir=E.norm(dx,dy);
+ const distWard=clamp(dragDist*2.65/cameraZoom,40,E.WARD_RANGE-5),dir=E.norm(dx,dy);
  return{x:clamp(h.x+dir.x*distWard,35,E.W-35),
         y:clamp(h.y+dir.y*distWard,35,E.H-35)};
 }
@@ -1075,8 +1080,10 @@ $('fendaTowerBtn').addEventListener('pointerdown',e=>{
 });
 function minimapPoint(e){
  const rect=mm.getBoundingClientRect();
- return{x:clamp(((e.clientX-rect.left)/rect.width*mm.width-7)/206*E.W,0,E.W),
-  y:clamp(((e.clientY-rect.top)/rect.height*mm.height-7)/138*E.H,0,E.H)};
+ const scale=Math.min((mm.width-14)/E.W,(mm.height-14)/E.H);
+ const ox=(mm.width-E.W*scale)/2,oy=(mm.height-E.H*scale)/2;
+ return{x:clamp(((e.clientX-rect.left)/rect.width*mm.width-ox)/scale,0,E.W),
+  y:clamp(((e.clientY-rect.top)/rect.height*mm.height-oy)/scale,0,E.H)};
 }
 function minimapStart(e){
  if(S.mode!=='playing'||S.shopOpen||S.showPause)return;
