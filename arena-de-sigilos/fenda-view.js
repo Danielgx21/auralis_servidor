@@ -231,6 +231,14 @@ function drawFX(t){
  }
  for(const f of S.effects){
   if(!visible(f.x,f.y,f.r+8))continue;
+  if(f.kind==='damageNumber'){
+   const progress=1-f.life/f.maxLife;
+   ctx.save();ctx.globalAlpha=clamp(f.life/f.maxLife,0,1);
+   ctx.textAlign='center';ctx.font='900 20px system-ui';
+   ctx.fillStyle=f.color||'#ffe2a4';ctx.shadowColor='#020e15';ctx.shadowBlur=6;
+   ctx.fillText('-'+f.value,f.x,f.y-progress*33);
+   ctx.restore();continue;
+  }
   ctx.save();ctx.globalAlpha=clamp(f.life/f.maxLife,0,1)*.77;
   const r=f.kind==='hit'?f.r:f.r*(1-f.life/f.maxLife*.7);
   circle(f.x,f.y,r,f.kind==='blast'?f.color+'22':null,f.color,2.8);
