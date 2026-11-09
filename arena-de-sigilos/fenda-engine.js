@@ -84,14 +84,14 @@ function makeHero(id,side,controlled=false){
  aiTimer:rando(.6,1.8),kills:0,deaths:0,cs:0,dash:null,
  healthRegen:1.3,homeBuff:0,botLane:roles[id],cs:0,isRanged:!['vexor','orun'].includes(id)};
 }
-function createMinion(side,lane,type=0){
+function createMinion(side,lane,type=0,slot=0){
  const p=pathPos(lane,side===0?.007:.993),ranged=type===1,siege=type===2;
  const wavePower=1+Math.min(1.45,state.time/680);
  let hp=Math.round((siege?380:ranged?130:190)*wavePower);
  return{uid:++state.seq,kind:'minion',id:siege?'siege':ranged?'caster':'guard',side,lane,
  x:p.x+rando(-20,20),y:p.y+rando(-16,16),r:siege?19:ranged?12:14,
  hp,maxHp:hp,atk:Math.round((siege?31:ranged?17:15)*wavePower),
- speed:siege?59:ranged?74:83,attackCd:rando(.1,.5),ranged,site:type,
+ speed:siege?59:ranged?74:83,attackCd:rando(.1,.5),ranged,site:type,slot,
  pathIndex:side===0?0:PATHS[lane].length-1,focus:null,
  stun:0,slow:0,shield:0,invuln:0,attackAnim:0,death:0,lastDamage:0};
 }
@@ -223,9 +223,34 @@ function enemyCreep(u,range=Infinity){
  return state.camps.filter(c=>c.hp>0&&(!c.unlock||state.time>=c.unlock)&&dist(u,c)<range+27)
    .sort((a,b)=>dist(u,a)-dist(u,b))[0]||null;
 }
+function laneCleared(side,lane){
+ return state.structures.every(t=>t.kind!=='tower'||t.side!==side||t.lane!==lane||t.hp<=0);
+}
+function structureExposed(t){
+ if(t.kind==='core')return [0,1,2].some(lane=>laneCleared(t.side,lane));
+ if(t.kind!=='tower')return true;
+ return state.structures.every(o=>o.kind!=='tower'||o.side!==t.side||o.lane!==t.lane||
+  o.tier>=t.tier||o.hp<=0);
+}
+// Tropas priorizam objetivos de sua rota quando os minions inimigos não estão no alcance.
+function laneTarget(u,range){
+ const side=1-u.side,lane=u.lane;
+ const nearby=(v)=>v&&v.hp>0&&dist(u,v)<=range+v.r;
+ const minions=living(side,'minion')
+  .filter(v=>v.lane===lane&&nearby(v)).sort((a,b)=>dist(u,a)-dist(u,b));
+ if(minions.length)return minions[0];
+ const structures=state.structures.filter(t=>t.side===side&&t.hp>0&&
+   (t.kind==='core'&&laneCleared(side,lane)||t.kind==='tower'&&t.lane===lane&&structureExposed(t))&&nearby(t))
+  .sort((a,b)=>(a.kind==='tower'?0:1)-(b.kind==='tower'?0:1)||dist(u,a)-dist(u,b));
+ if(structures.length)return structures[0];
+ const attackers=living(side,'hero').filter(nearby)
+  .sort((a,b)=>dist(u,a)-dist(u,b));
+ if(attackers.length)return attackers[0];
+ return living(side,'minion').filter(nearby).sort((a,b)=>dist(u,a)-dist(u,b))[0]||null;
+}
 function findAA(u){
  if(!u||u.hp<=0)return null;
- const range=attackRange(u),target=nearestEnemy(u,range,true);
+ const range=attackRange(u),target=u.kind==='minion'?laneTarget(u,range):nearestEnemy(u,range,true);
  if(target)return target;
  if(u.controlled)return enemyCreep(u,range);
  return null;
@@ -279,14 +304,23 @@ function moveToward(u,p,dt,speedFactor=1){
 }
 function moveMinion(m,dt){
  if(m.stun>0)return;
- const enemy=nearestEnemy(m,m.ranged?m.r+155:75,true);
+ m.senseTimer=(m.senseTimer||0)-dt;
+ if(m.senseTimer<=0||!m.aiEnemy||m.aiEnemy.hp<=0||dist(m,m.aiEnemy)>360){
+  m.aiEnemy=laneTarget(m,m.ranged?235:145);
+  m.senseTimer=.14+(m.uid%6)*.017;
+ }
+ const enemy=m.aiEnemy;
  if(enemy){
   if(dist(m,enemy)>attackRange(m)+enemy.r)moveToward(m,enemy,dt);
   return;
  }
  const points=PATHS[m.lane],next=m.pathIndex+(m.side===0?1:-1);
  if(next>=0&&next<points.length){
-  if(moveToward(m,points[next],dt))m.pathIndex=next;
+  const previous=points[m.pathIndex],dest=points[next];
+  const facing=norm(dest.x-previous.x,dest.y-previous.y);
+  const offset=(m.slot-1.5)*14;
+  const target={x:dest.x-facing.y*offset,y:dest.y+facing.x*offset};
+  if(moveToward(m,target,dt))m.pathIndex=next;
  }else moveToward(m,HOME[1-m.side],dt);
 }
 function respawn(u){
@@ -562,11 +596,11 @@ function tickUnit(u,dt){
 function makeWave(){
  state.wave++;
  for(let side=0;side<2;side++)for(let lane=0;lane<3;lane++){
-  for(let i=0;i<4;i++)state.units.push(createMinion(side,lane,i<2?0:1));
-  if(state.wave%3===0||state.time>550)state.units.push(createMinion(side,lane,2));
+  for(let i=0;i<4;i++)state.units.push(createMinion(side,lane,i<2?0:1,i));
+  if(state.wave%3===0||state.time>550)state.units.push(createMinion(side,lane,2,2));
   // Tropas de cerco mais fortes após uma rota perder todos os obeliscos.
   if(state.time>480&&state.structures.filter(t=>t.kind==='tower'&&t.side===1-side&&t.lane===lane).every(t=>t.hp<=0))
-   state.units.push(createMinion(side,lane,2));
+   state.units.push(createMinion(side,lane,2,2));
  }
  if(state.wave===1)announce('AS SENTINELAS RÚNICAS PARTIRAM PARA AS ROTAS',3);
 }
