@@ -78,3 +78,10 @@
 #fendaHUD #fendaWardBtn.available{box-shadow:0 0 12px #8dedc744,0 4px 12px #020b16a6}
 @media(max-height:510px){#fendaObjectives{top:49px;font-size:8px;padding:3px 6px;max-width:52%}}
 @media(max-height:360px){#fendaHUD #fendaWardBtn{width:36px;height:35px;bottom:65px;right:52px;font-size:16px}}
+
+/* 4.8 — controles de desktop: clique direito no alvo substitui o botão AA.
+   Em aparelhos touch, o botão grande e o atalho de torre continuam disponíveis. */
+@media (hover: hover) and (pointer: fine) {
+ .stage.fenda-on #fireBtn,
+ .stage.fenda-on #fendaTowerBtn { display:none !important; pointer-events:none !important; }
+}
