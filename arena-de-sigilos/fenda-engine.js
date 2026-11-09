@@ -51,11 +51,13 @@ function buildMap(){
   const base=HOME[side];
   state.structures.push({kind:'core',side,x:base.x,y:base.y,maxHp:1850,hp:1850,r:56,atk:53,range:220,attackCd:0,id:'core'+side});
   for(let lane=0;lane<3;lane++){
-   const fractions=side===0?[.16,.35,.50]:[.84,.65,.50];
+   // tier 1: externa, mais próxima do meio; tier 2: intermediária; tier 3: interna.
+   // A ordem física precisa acompanhar a ordem de vulnerabilidade das torres.
+   const fractions=side===0?[.40,.26,.12]:[.60,.74,.88];
    for(let i=0;i<fractions.length;i++){
     let p=pathPos(lane,fractions[i]),d=side===0?1:-1;
     // Torres da mesma equipe não ocupam exatamente o mesmo centro.
-    p={x:p.x+d*(i===2?40:0),y:p.y+(lane===1?30:lane===0?23:-23)};
+    p={x:p.x+d*(lane===1?18:0),y:p.y+(lane===1?20:lane===0?22:-22)};
     state.structures.push({kind:'tower',side,lane,tier:i+1,x:p.x,y:p.y,
       r:27,hp:side===0?880:880,maxHp:880,atk:58,range:205,attackCd:0,
       id:'tower'+side+'-'+lane+'-'+i});
