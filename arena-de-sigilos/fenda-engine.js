@@ -28,7 +28,7 @@ const ITEMS=[
  {id:'lens',name:'Lente Astral',price:430,stat:'+13 dano',desc:'Ataques básicos mais fortes',icon:'◈'},
  {id:'ward',name:'Couraça Rúnica',price:510,stat:'+85 vida',desc:'Resistência nas trocas',icon:'⬡'},
  {id:'stride',name:'Botas do Vento',price:480,stat:'+17% velocidade',desc:'Movimento e reposicionamento',icon:'➤'},
- {id:'cell',name:'Catalisador Astral',price:500,stat:'+30 energia',desc:'Mais magias por luta',icon:'ϟ'},
+ {id:'cell',name:'Catalisador Astral',price:500,stat:'+85 mana máxima',desc:'Reserva maior para habilidades',icon:'ϟ'},
  {id:'prism',name:'Prisma do Eco',price:680,stat:'+16 poder',desc:'Dano extra das habilidades',icon:'◇'},
  {id:'core',name:'Núcleo Ágil',price:620,stat:'-15% recarga',desc:'Habilidades disponíveis mais cedo',icon:'✦'}
 ];
