@@ -368,7 +368,7 @@ assert.ok(css.includes('touch-action:none;user-select:none'),
  'Minimapa não libera arraste touch');
 // 5.4: placa de mana no mundo, K/D/A e farm sempre visiveis.
 assert.ok(view.includes('function manaBar(x,y,r,mana,max,width=55)')&&
- view.includes('manaBar(x,y,r,u.mana,E.maxMana(u),55)'),
+ view.includes('manaBar(x,y,barRadius,u.mana,E.maxMana(u),44)'),
  'A mana deve ser desenhada abaixo da barra de vida de cada campeao');
 assert.ok(view.includes("$('fendaPlayerStats').textContent='K/D/A '")&&
  view.includes("+' · FARM '+h.cs"),
