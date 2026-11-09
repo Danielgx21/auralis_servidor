@@ -132,7 +132,7 @@ assert.ok(terrainSource.includes("image.src='art/'+file+'?v=5.2'"),
 assert.ok(terrainSource.includes("g.drawImage(art.fountain,-106,-106,212,212)"),
  'Fonte deve manter proporção 1:1 e ser renderizada em tamanho adequado');
 assert.ok(terrainSource.includes("g.fillRect(0,0,E.W,E.H)")&&
- terrainSource.includes("const paving=artPattern(g,'stone')"),
+ terrainSource.includes("const p=artPattern(g,'stone')"),
  'Chão e lane precisam usar imagens nítidas em escala original');
 assert.ok(!terrainSource.includes('sceneryAtlas') &&
  !terrainSource.includes('g.scale(2.15,2.15)') &&
