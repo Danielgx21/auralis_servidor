@@ -451,7 +451,9 @@ function autoAttack(u){
  const attackFactor=u.kind!=='hero'?1:u.id==='vexor'?1.15:u.id==='lyria'?1.10:
   u.id==='orun'?1.06:u.id==='nyra'?.96:1.04;
  u.attackCd=u.kind==='hero'?(hData(u.id).attackTime*attackFactor+Math.max(0,5-u.level)*.018):u.id==='siege'?2.15:u.ranged?1.5:1.25;
- u.attackAnim=.23;
+ u.attackAnim=u.kind==='hero'?.39:.29;
+ u.attackTotal=u.attackAnim;
+ u.attackWindup=u.kind==='hero'?(u.isRanged?.15:.13):.11;
  let damageVal=attackDamage(u)+(u.homeBuff>state.time?4:0);
  // Minions limpam ondas de forma consistente, sem congestionamentos infinitos.
  if(u.kind==='minion'&&target.kind==='minion')damageVal=Math.round(damageVal*1.25);
@@ -467,9 +469,18 @@ function autoAttack(u){
  if(target.kind==='tower'||target.kind==='core')
   damageVal=Math.round(damageVal*(u.kind==='hero'?1.60:u.id==='siege'?1.45:1.0));
  if(u.controlled&&(target.kind==='tower'||target.kind==='core'))u.focusUntil=state.time+5;
+ u.facing=Math.atan2(target.y-u.y,target.x-u.x);
+ u.attackPending={target,damage:damageVal,time:u.attackWindup};
+ return true;
+}
+function finishAttack(u,shot){
+ if(!shot||!shot.target||shot.target.hp<=0||u.hp<=0||u.stun>0)return false;
+ const t=shot.target;
+ u.attackHit=.20;
  if(attackRange(u)<=75){
-  damage(target,damageVal,u);addEffect(target.x,target.y,u.side===0?'#84ead9':'#f7a3b0',25,.24);
- }else missile(u,target,damageVal,'aa',u.kind==='hero'?530:380);
+  damage(t,shot.damage,u);
+  addEffect(t.x,t.y,u.side===0?'#84ead9':'#f7a3b0',27,.28,'hit');
+ }else missile(u,t,shot.damage,'aa',u.kind==='hero'?530:380);
  return true;
 }
 function chooseEnemyForStructure(t){
@@ -579,7 +590,12 @@ function movePhysical(u,dx,dy,obstacles=nearSolids(u.x,u.y,(u.r||18)+Math.hypot(
   u.y=clamp(u.y+dy/pieces,30,H-30);
   pushOutsideSolids(u,obstacles);
  }
- return Math.hypot(u.x-x0,u.y-y0)>.2;
+ const moved=Math.hypot(u.x-x0,u.y-y0);
+ if(moved>.25){
+  u.walkPhase=((u.walkPhase||0)+moved*.14)%TAU;
+  u.walkUntil=state.time+.14;
+ }
+ return moved>.2;
 }
 // IA contorna obstáculos grandes em vez de tentar atravessá-los eternamente.
 function steerAround(u,dir,goal,solids){
@@ -682,7 +698,7 @@ function respawn(u){
  u.x=home.x+d.x*104+rando(-10,10);u.y=home.y+d.y*104+rando(-10,10);
  u.hp=u.maxHp;u.energy=maxEnergy(u);u.shield=0;u.shieldUntil=0;
  if(!u.controlled)botShop(u);u.guard=0;u.casting=null;
- u.attackCd=0;u.stun=0;u.slow=0;u.dash=null;u.recall=0;
+ u.attackCd=0;u.stun=0;u.slow=0;u.dash=null;u.recall=0;u.attackPending=null;u.attackAnim=0;u.skillFlash=0;
  u.death=0;u.respawn=0;u.focus=null;u.aiTimer=.5;
  addEffect(u.x,u.y,u.side===0?'#82f0e1':'#f8aac3',85,.62);
 }
@@ -976,9 +992,11 @@ function cast(u,id,aim=null,autoTarget=null){
 function releaseSkill(u,c){
  if(!u||u.hp<=0)return;
  const id=c.id,def=skillDef(id),power=spellPower(u),enemy=1-u.side,lv=c.level;
+ u.skillFlash=.42;
  const slow=(target,seconds)=>{target.slow=Math.max(target.slow,seconds)};
  if(['lyria_step','vexor_lunge','orun_charge','vexor_ult'].includes(id)){
   const dashLength=def.range+lv*7,duration=id==='vexor_ult'?.25:.18;
+  u.skillFlash=.35;
   u.dash={vx:c.dir.x*dashLength/duration,vy:c.dir.y*dashLength/duration,t:duration,
    hit:new Set(),radius:def.radius||25,dmg:Math.round((id==='vexor_ult'?85:id==='orun_charge'?31:id==='vexor_lunge'?36:0)*power),
    stun:id==='orun_charge'?.36:id==='vexor_ult'?.26:0};
@@ -1119,7 +1137,20 @@ function tickUnit(u,dt){
  u.invuln=Math.max(0,u.invuln-dt);
  if(u.shield>0&&state.time>=(u.shieldUntil||0))u.shield=0;
  u.guard=Math.max(0,u.guard-dt*.02);
- u.attackCd=Math.max(0,u.attackCd-dt);u.attackAnim=Math.max(0,(u.attackAnim||0)-dt);
+ u.attackCd=Math.max(0,u.attackCd-dt);
+ u.attackAnim=Math.max(0,(u.attackAnim||0)-dt);
+ u.attackHit=Math.max(0,(u.attackHit||0)-dt);
+ u.skillFlash=Math.max(0,(u.skillFlash||0)-dt);
+ if(u.attackPending){
+  if(u.stun>0){u.attackPending=null}
+  else{
+   u.attackPending.time-=dt;
+   if(u.attackPending.time<=0){
+    const shot=u.attackPending;u.attackPending=null;
+    finishAttack(u,shot);
+   }
+  }
+ }
  if(u.kind==='hero')for(const id in u.cooldowns)u.cooldowns[id]=Math.max(0,u.cooldowns[id]-dt);
  if(u.kind==='hero'){
   u.visionCd=Math.max(0,(u.visionCd||0)-dt);
