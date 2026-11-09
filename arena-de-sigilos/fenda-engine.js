@@ -8,8 +8,8 @@ const MOBA_WALK_SCALE=.55;
 // Largura de rota proporcional ao personagem: ~6 diâmetros por corredor.
 const LANE_HALF_WIDTH=108,LANE_MINION_SPREAD=26;
 const JUNGLE_LINKS=[
- {lane:0,t:.55,x:870,y:610},{lane:1,t:.35,x:930,y:1320},
- {lane:1,t:.67,x:1730,y:620},{lane:2,t:.43,x:1700,y:1310}
+ {lane:0,t:.55,x:870,y:610},{lane:1,t:.35,x:1070,y:1320},
+ {lane:1,t:.67,x:1850,y:830},{lane:2,t:.43,x:1700,y:1310}
 ];
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const norm=(x,y)=>{const n=Math.hypot(x,y)||1;return{x:x/n,y:y/n}};
@@ -178,8 +178,8 @@ function placeWard(hero,x,y){
 function buildMap(){
  state.structures=[];state.camps=[];state.obstacles=[];
  state.brushes=[
-  {id:'veil-n',x:865,y:445,r:118},{id:'reed-n',x:1205,y:840,r:95},
-  {id:'veil-s',x:820,y:1180,r:114},{id:'reed-s',x:1510,y:1400,r:105},
+  {id:'veil-n',x:865,y:445,r:118},{id:'reed-n',x:1190,y:815,r:86},
+  {id:'veil-s',x:735,y:1090,r:105},{id:'reed-s',x:1510,y:1400,r:105},
   {id:'thicket-n',x:1920,y:670,r:112},{id:'thicket-s',x:1900,y:1190,r:115}
  ];
  for(let side=0;side<2;side++){
@@ -195,7 +195,7 @@ function buildMap(){
     const before=pathPos(lane,Math.max(0,t-.004)),after=pathPos(lane,Math.min(1,t+.004));
     const tangent=norm(after.x-before.x,after.y-before.y);
     const normal={x:-tangent.y,y:tangent.x};
-    const recess=side===0?-22:22,lateral=(side===0?1:-1)*83;
+    const recess=side===0?-30:30,lateral=(side===0?1:-1)*138;
     const towerX=p.x+tangent.x*recess+normal.x*lateral;
     const towerY=p.y+tangent.y*recess+normal.y*lateral;
     state.structures.push({kind:'tower',side,lane,tier:i+1,
@@ -208,8 +208,8 @@ function buildMap(){
  state.camps=[
   {id:'veilA',x:870,y:610,kind:'buff',name:'Véu Azul',color:'#75caff',hp:630,maxHp:630,respawn:0,buff:'energy'},
   {id:'emberA',x:1700,y:1310,kind:'buff',name:'Brasa Rubra',color:'#ff9c74',hp:630,maxHp:630,respawn:0,buff:'damage'},
-  {id:'wolvesA',x:930,y:1320,kind:'camp',name:'Lobos Astrais',color:'#a7c2ef',hp:360,maxHp:360,respawn:0},
-  {id:'golemA',x:1730,y:620,kind:'camp',name:'Golem Sigilar',color:'#e5c58f',hp:450,maxHp:450,respawn:0},
+  {id:'wolvesA',x:1070,y:1320,kind:'camp',name:'Lobos Astrais',color:'#a7c2ef',hp:360,maxHp:360,respawn:0},
+  {id:'golemA',x:1850,y:830,kind:'camp',name:'Golem Sigilar',color:'#e5c58f',hp:450,maxHp:450,respawn:0},
   {id:'serpe',x:1570,y:1120,kind:'boss',name:'Serpe Astral',color:'#9bf6e9',hp:1030,maxHp:1030,respawn:0,unlock:55},
   {id:'titan',x:1170,y:650,kind:'boss',name:'Titã do Abismo',color:'#dfb1fa',hp:1500,maxHp:1500,respawn:0,unlock:110}
  ];
@@ -218,7 +218,7 @@ function buildMap(){
  let seed=14653;
  const rand=()=>{seed=seed*16807%2147483647;return (seed-1)/2147483646};
  const onRoad=(x,y,margin)=>{
-  for(const pts of PATHS)for(let i=0;i<pts.length-1;i++){
+  for(const pts of ROUTE_PATHS)for(let i=0;i<pts.length-1;i++){
    const a=pts[i],b=pts[i+1],vx=b.x-a.x,vy=b.y-a.y;
    const t=clamp(((x-a.x)*vx+(y-a.y)*vy)/(vx*vx+vy*vy),0,1);
    if(Math.hypot(a.x+vx*t-x,a.y+vy*t-y)<margin)return true;
@@ -237,6 +237,7 @@ function buildMap(){
   });
   if(onRoad(x,y,r+LANE_HALF_WIDTH+15)||onJunglePath||
      HOME.some(h=>Math.hypot(h.x-x,h.y-y)<210)||
+     state.structures.some(t=>Math.hypot(t.x-x,t.y-y)<r+t.r+53)||
      state.camps.some(c=>Math.hypot(c.x-x,c.y-y)<r+115)||
      state.obstacles.some(o=>Math.hypot(o.x-x,o.y-y)<r+o.r+25))continue;
   state.obstacles.push({kind:rand()>.35?'tree':'rock',x,y,r,solid:true});
@@ -258,7 +259,7 @@ function makeHero(id,side,controlled=false){
  cooldowns:Object.fromEntries([...h.skills,h.ultimate].map(k=>[k,0])),
  stun:0,slow:0,shield:0,guard:0,invuln:0,marked:0,attackAnim:0,
  vision:350,death:0,respawn:0,recall:0,lastDamage:0,focus:null,
- aiTimer:rando(.6,1.8),visionCd:0,jungleGoal:null,gankUntil:0,kills:0,deaths:0,cs:0,dash:null,
+ aiTimer:rando(.6,1.8),visionCd:0,jungleGoal:null,gankUntil:0,kills:0,deaths:0,cs:0,dash:null,commandTarget:null,
  healthRegen:1.3,homeBuff:0,botLane:roles[id],cs:0,focusTarget:null,focusUntil:0,isRanged:!['vexor','orun'].includes(id)};
 }
 function createMinion(side,lane,type=0,slot=0){
@@ -331,6 +332,7 @@ function onDeath(victim,source){
  victim.death=1;
  addEffect(victim.x,victim.y,victim.side===0?'#76e8dc':'#fe9ea8',52,.7,'burst');
  if(victim.kind==='hero'){
+  victim.commandTarget=null;
   victim.deaths++;victim.respawn=8+Math.round(victim.level*1.4);
   if(source&&(source.side===0||source.side===1)&&source.side!==victim.side){
    state.kills[source.side]++;
@@ -478,9 +480,38 @@ function laneTarget(u,range){
  if(attackers.length)return attackers[0];
  return living(side,'minion').filter(v=>nearby(v)&&visibleTo(u.side,v)).sort((a,b)=>dist(u,a)-dist(u,b))[0]||null;
 }
+
+function isAttackCommandValid(hero,target){
+ if(!hero||hero.kind!=='hero'||hero.hp<=0||!target||target.hp<=0||target.side===hero.side)return false;
+ if(target.kind==='tower'||target.kind==='core')return structureExposed(target);
+ if(target.kind==='hero'||target.kind==='minion')return visibleTo(hero.side,target);
+ if(state.camps.includes(target))return (!target.unlock||state.time>=target.unlock)&&isPointVisible(hero.side,target);
+ return false;
+}
+function commandAttack(hero,target){
+ if(!hero||!hero.controlled||hero.hp<=0||state.mode!=='playing')return{ok:false,reason:'CAMPEÃO INDISPONÍVEL'};
+ if(target?.side===hero.side)return{ok:false,reason:'ALVO ALIADO'};
+ if((target?.kind==='tower'||target?.kind==='core')&&target.hp>0&&!structureExposed(target))
+  return{ok:false,reason:'ESTRUTURA PROTEGIDA: DESTRUA OS OBELISCOS ANTERIORES'};
+ if(!isAttackCommandValid(hero,target))return{ok:false,reason:'ALVO INDISPONÍVEL OU OCULTO'};
+ hero.commandTarget=target;
+ hero.focusTarget=target;hero.focusUntil=Infinity;
+ hero.recall=0;
+ return{ok:true,target};
+}
+function clearAttackCommand(hero){
+ if(!hero)return;
+ hero.commandTarget=null;
+ hero.focusTarget=null;hero.focusUntil=0;
+}
 function findAA(u){
  if(!u||u.hp<=0)return null;
  const range=attackRange(u);
+ if(u.controlled&&u.commandTarget){
+  const t=u.commandTarget;
+  if(!isAttackCommandValid(u,t)){clearAttackCommand(u);}
+  else return dist(u,t)<=range+solidRadius(t)+2?t:null;
+ }
  if(u.kind==='hero'&&!u.controlled&&u.jungleGoal&&u.jungleGoal.hp>0&&
      (!u.jungleGoal.unlock||state.time>=u.jungleGoal.unlock)&&
      dist(u,u.jungleGoal)<=range+solidRadius(u.jungleGoal)+2)return u.jungleGoal;
@@ -539,7 +570,7 @@ function autoAttack(u){
  // sentinelas de cerco também possuem bônus contra estruturas.
  if(target.kind==='tower'||target.kind==='core')
   damageVal=Math.round(damageVal*(u.kind==='hero'?1.60:u.id==='siege'?1.45:1.0));
- if(u.controlled&&(target.kind==='tower'||target.kind==='core'))u.focusUntil=state.time+5;
+ if(u.controlled&&(target.kind==='tower'||target.kind==='core')&&!u.commandTarget)u.focusUntil=state.time+5;
  u.facing=Math.atan2(target.y-u.y,target.x-u.x);
  u.attackPending={target,damage:damageVal,time:u.attackWindup};
  return true;
@@ -1395,9 +1426,14 @@ function step(dt,movement={x:0,y:0}){
  if(hero&&hero.hp>0&&!hero.dash&&hero.stun<=0&&!hero.recall){
   const direction=norm(movement.x,movement.y),len=Math.min(1,Math.hypot(movement.x,movement.y));
   if(len>.06){
-   movePhysical(hero,direction.x*moveSpeed(hero)*dt*len*(hero.casting?.58:1),
-    direction.y*moveSpeed(hero)*dt*len*(hero.casting?.58:1));
-   hero.facing=Math.atan2(direction.y,direction.x);
+   const target=hero.commandTarget;
+   if(target&&isAttackCommandValid(hero,target)&&dist(hero,target)>attackRange(hero)+solidRadius(target)-7){
+    moveToward(hero,target,dt,hero.casting?.58:1);
+   }else{
+    movePhysical(hero,direction.x*moveSpeed(hero)*dt*len*(hero.casting?.58:1),
+     direction.y*moveSpeed(hero)*dt*len*(hero.casting?.58:1));
+    hero.facing=Math.atan2(direction.y,direction.x);
+   }
   }
  }
  if(state.time>=state.nextWave){
@@ -1441,6 +1477,6 @@ function recall(){
  return true;
 }
 window.FendaEngine={state,W,H,TAU,HOME,PATHS,SIDE,ITEMS,hData,skillDef,
- start,step,cast,autoAttack,focusTower,buyItem,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,
+ start,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,isAttackCommandValid,buyItem,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
 })();
