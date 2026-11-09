@@ -943,6 +943,63 @@ function finishAbility(c){
    emitFragments(player.x,player.y,'#ffacd9',16,110,.36,'shield');
    toast('AURA DE PROTEÇÃO');break;
 
+
+  case 'lyria_ult':{
+   // Uma salva de flechas viaja até a área; a explosão afeta todos os inimigos no círculo.
+   const radius=spell.radius+7*(lvl-1);
+   launchAreaSkill(which,target,radius,29+12*lvl,'#d9f5ad',1.65+.25*lvl);
+   const shot=abilityShots[abilityShots.length-1];
+   if(shot){shot.size=15;shot.duration+=.09;shot.life=shot.duration+.15}
+   addWave(player.x,player.y,75,.42,'#ffe5a2',3.2);
+   toast('ULTIMATE · ECLIPSE DE FLECHAS');tone(710,.34,'triangle',.07);
+   break;
+  }
+  case 'vexor_ult':
+   heroDash(dir,spell.range+13*(lvl-1),lvl,which,53+15*lvl,spell.radius,.24);
+   player.invuln=Math.max(player.invuln,.29);
+   addWave(player.x,player.y,71,.36,'#ffcf8b',5);
+   emitFragments(player.x,player.y,'#ffe1a8',21,180,.47,'dash');
+   toast('ULTIMATE · CAÇADA IMPLACÁVEL');tone(265,.30,'sawtooth',.076);
+   break;
+  case 'orun_ult':{
+   const rad=spell.radius+6*(lvl-1);
+   for(const friend of living(0)){
+    if(dist(player,friend)<=rad+friend.r){
+     friend.shield=Math.max(friend.shield,1.55+.2*lvl);
+     healUnit(friend,9+6*lvl,player);
+    }
+   }
+   skillRadiusDamage(player,rad,20+9*lvl,'#dadbff',0,.42+.1*lvl);
+   addWave(player.x,player.y,rad+15,.55,'#ffdf98',6);
+   emitFragments(player.x,player.y,'#c4d4ff',26,175,.5,'shield');
+   toast('ULTIMATE · BASTIÃO VIVO');tone(245,.35,'triangle',.079);
+   break;
+  }
+  case 'nyra_ult':{
+   const rad=spell.radius+9*(lvl-1);
+   launchAreaSkill(which,target,rad,30+16*lvl,'#e8b3ff',1.5+.25*lvl,.42+.12*lvl);
+   const shot=abilityShots[abilityShots.length-1];
+   if(shot){shot.size=18;shot.duration+=.13;shot.life=shot.duration+.14}
+   addWave(player.x,player.y,74,.44,'#f0c3ff',3);
+   toast('ULTIMATE · RUPTURA CELESTE');tone(865,.29,'sawtooth',.055);
+   break;
+  }
+  case 'seris_ult':{
+   const rad=spell.radius+8*(lvl-1);
+   for(const friend of living(0)){
+    if(dist(player,friend)<=rad+friend.r){
+     healUnit(friend,35+17*lvl,player);
+     friend.shield=Math.max(friend.shield,1.1+.16*lvl);
+     friend.slowTimer=0;
+     addWave(friend.x,friend.y,friend.r+19,.43,'#ffcae4',2.5);
+    }
+   }
+   addWave(player.x,player.y,rad,.68,'#ffe2ad',5);
+   emitFragments(player.x,player.y,'#ffe6c1',27,168,.65,'shield');
+   toast('ULTIMATE · AURORA VITAL');tone(870,.39,'sine',.072);
+   break;
+  }
+
  }
  updateHud();
 }
@@ -1378,8 +1435,9 @@ function tickDashContacts(u,fromX,fromY){
   if(segmentPointDistance(target.x,target.y,fromX,fromY,u.x,u.y)>target.r+u.r+d.width*.45)continue;
   d.hitTargets.add(target.id);
   if(d.stun>0){target.stun=Math.max(target.stun,d.stun);target.casting=null}
-  damageUnit(target,d.damage,u);
-  addWave(target.x,target.y,36,.29,d.color,3);
+  const execution=d.which==='vexor_ult'&&target.hp/target.maxHp<.46;
+  damageUnit(target,Math.round(d.damage*(execution?1.32:1)),u);
+  addWave(target.x,target.y,d.which==='vexor_ult'?61:36,.29,d.color,d.which==='vexor_ult'?5:3);
   emitFragments(target.x,target.y,d.color,7,105,.30,'burst');
  }
 }
@@ -1742,7 +1800,7 @@ function drawSkillGuide(t){
  const which=preview.which,spell=skillDefs[which],lvl=skillLevel(which);
  if(!spell||spell.aim==='self')return;
  const manual=preview.dir&&(player.casting||preview.dragged)?{dir:preview.dir,distance:preview.distance}:null;
- const category=spell.aim,color=chosenHero().color;
+ const category=spell.aim,color=spell.ultimate?'#ffe7aa':chosenHero().color;
  ctx.save();ctx.shadowBlur=8;ctx.shadowColor=color;
  if(category==='area'){
   const p=player.casting?.target||groundTarget(which,manual),rad=spell.radius+(which==='vexor_mark'?5:8)*(lvl-1);
@@ -1841,7 +1899,7 @@ function drawAbilityProjectiles(){
 function drawCastingOverlay(){
  if(!player||!player.casting||mode!=='playing')return;
  const c=player.casting,def=skillDefs[c.which],ratio=clamp(1-c.remaining/c.duration,0,1);
- const color=chosenHero().color,x=clamp(player.x,60,W-60),y=clamp(player.y+player.r+29,45,H-25),barWidth=106;
+ const color=def.ultimate?'#ffe2a4':chosenHero().color,x=clamp(player.x,60,W-60),y=clamp(player.y+player.r+29,45,H-25),barWidth=106;
  ctx.save();
  ring(player.x,player.y,player.r+11+ratio*5,color,.42+ratio*.45,2.5);
  ring(player.x,player.y,player.r+21,color,.16+ratio*.3,1.2);
