@@ -33,19 +33,21 @@ const mm=$('fendaMinimap'),mc=mm.getContext('2d');
 let vw=900,vh=460,dpr=1,terrain=null,last=performance.now(),hudCountdown=0,endedShown=false;
 // Imagens nítidas e independentes: nenhuma ampliação de atlas 112x112.
 const art={};
-for(const [key,file] of Object.entries({stone:'stone-paving.svg',
- fountain:'fountain.svg',grass:'grass-ground.svg',tree:'tree-canopy.svg',
- tower:'sigil-tower.svg',core:'nexus-spire.svg',
- rock:'rune-rock.svg',flower:'moonflower-bush.svg',inlay:'base-inlay.svg',
- painted:'painted-sprite-atlas.webp',world:'world-illustrated.webp',
- worldTech:'world-tech-5-7.webp',
- towerBlueTech:'tower-blue-tech.webp',towerRedTech:'tower-red-tech.webp',
- coreBlueTech:'nexus-blue-tech.webp',coreRedTech:'nexus-red-tech.webp',
- coverTech:'cover-block-tech.webp',generatorTech:'generator-tech.webp',
- stealthTech:'stealth-zone-tech.webp'})){
+// Somente imagens finais do mapa limpo; os assets antigos ficam fora do download.
+for(const [key,file] of Object.entries({
+ cleanWorld:'arena-tech-clean.webp',
+ cleanTowerBlue:'tower-tech-0.webp',
+ cleanTowerRed:'tower-tech-1.webp',
+ cleanCoreBlue:'nexus-tech-0.webp',
+ cleanCoreRed:'nexus-tech-1.webp',
+ cleanCover:'cover-tech-clean.webp',
+ cleanGenerator:'generator-tech-clean.webp',
+ stealthTech:'stealth-zone-tech.webp'
+})){
  const image=new Image();image.decoding='async';
- image.onload=()=>{terrain=null};image.onerror=()=>console.warn('Arte indisponível:',file);
- image.src='art/'+file+'?v=5.7';art[key]=image;
+ image.onload=()=>{terrain=null};
+ image.onerror=()=>console.warn('Arte indisponível:',file);
+ image.src='art/'+file+'?v=5.8';art[key]=image;
 }
 const artReady=key=>Boolean(art[key]?.complete&&art[key]?.naturalWidth);
 const artPattern=(g,key)=>artReady(key)?g.createPattern(art[key],'repeat'):null;
@@ -224,27 +226,27 @@ function drawTerrain(){
  // Versão industrial/tecnológica: fundo inteiro pré-renderizado como WebP real,
  // com os obstáculos físicos em sprites independentes nas coordenadas do motor.
  // Não desenhar novamente o piso por laços de Canvas.
- if(artReady('worldTech')){
+ if(artReady('cleanWorld')){
   g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
-  g.drawImage(art.worldTech,0,0,E.W,E.H);
+  // Uma única imagem do piso — sem torres e sem obstáculos já embutidos.
+  g.drawImage(art.cleanWorld,0,0,E.W,E.H);
   if(artReady('stealthTech')){
-   g.save();g.globalAlpha=.78;
+   g.save();g.globalAlpha=.34;
    for(const bush of S.brushes){
-    const d=bush.r*2.2;
-    g.drawImage(art.stealthTech,bush.x-d/2,bush.y-d/2,d,d);
+    const size=bush.r*1.85;
+    g.drawImage(art.stealthTech,bush.x-size/2,bush.y-size/2,size,size);
    }
    g.restore();
   }
-  // Os antigos "rock/tree" da física viram coberturas e geradores tecnológicos:
-  // cada sprite é desenhado exatamente onde existe a colisão real.
+  // Um objeto visível para cada objeto físico (sem cópias, sem peças falsas).
   for(const o of S.obstacles){
-   const sprite=o.kind==='rock'?'coverTech':'generatorTech';
-   const radius=o.r*2.95,xx=o.x-radius/2,yy=o.y-radius*.69;
-   if(artReady(sprite))g.drawImage(art[sprite],xx,yy,radius,radius);
+   const asset=o.kind==='rock'?'cleanCover':'cleanGenerator';
+   const span=o.r*2.20;
+   if(artReady(asset))g.drawImage(art[asset],
+    o.x-span/2,o.y-span*.58,span,span);
    else{
-    g.fillStyle='#2c5669';g.beginPath();
-    g.arc(o.x,o.y,o.r+2,0,TAU);g.fill();
-    g.strokeStyle='#67bbd0';g.lineWidth=3;g.stroke();
+    g.fillStyle='#284652';g.beginPath();g.arc(o.x,o.y,o.r,0,TAU);g.fill();
+    g.strokeStyle='#59b8cc';g.lineWidth=2;g.stroke();
    }
   }
   terrain=c;
@@ -411,7 +413,17 @@ function drawStructure(o,t){
   ctx.restore();
  }
  ctx.save();ctx.translate(x,y);
- if(o.kind==='core'&&artReady(o.side===0?'coreBlueTech':'coreRedTech')){
+ if(o.kind==='core'&&artReady(o.side===0?'cleanCoreBlue':'cleanCoreRed')){
+  const sprite=art[o.side===0?'cleanCoreBlue':'cleanCoreRed'];
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  ctx.drawImage(sprite,-66,-125,132,142);
+  bar(0,-124,0,o.hp,o.maxHp,o.side,98);
+ }else if(o.kind==='tower'&&artReady(o.side===0?'cleanTowerBlue':'cleanTowerRed')){
+  const sprite=art[o.side===0?'cleanTowerBlue':'cleanTowerRed'];
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  ctx.drawImage(sprite,-52,-109,104,115);
+  bar(0,-110,0,o.hp,o.maxHp,o.side,74);
+ }else if(o.kind==='core'&&artReady(o.side===0?'coreBlueTech':'coreRedTech')){
   const sprite=art[o.side===0?'coreBlueTech':'coreRedTech'];
   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
   // Arquivo de alta definição em proporção 1:1. A base da arte coincide com
@@ -917,7 +929,7 @@ function chooseHero(){
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice();
- $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 5.7</div><h2>FENDA DOS SIGILOS</h2>'+
+ $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 5.8</div><h2>FENDA DOS SIGILOS</h2>'+
  '<p>Rotas de curvas suaves, tropas em formação e torres nas laterais. IA de teamfight coordenada: iniciação, proteção, flanco e recuo.</p>'+
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
