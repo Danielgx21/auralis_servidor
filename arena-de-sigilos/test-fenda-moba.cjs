@@ -42,9 +42,9 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=5.8')&&
- html.includes('fenda-team-ai.js?v=5.8')&&
- html.includes('fenda-view.js?v=5.8'),'O site deve carregar todos os sistemas da 5.0.');
+assert.ok(html.includes('fenda-engine.js?v=5.9')&&
+ html.includes('fenda-team-ai.js?v=5.9')&&
+ html.includes('fenda-view.js?v=5.9'),'O site deve carregar todos os sistemas da 5.0.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -115,56 +115,48 @@ for(const camp of state.camps){
  assert.ok(Math.min(...[0,1,2].map(l=>E.routeProjection(l,camp).distance))>=170,
  'Monstro ocupando uma lane: '+camp.id);
 }
-// O cenário deve desenhar uma fonte menor, piso da base e passagens distintas;
- // não pode continuar com os círculos gigantes de pavimentação antiga.
+// Fenda 5.9: mapa do mesmo estilo da Teamfight, sem imagens pré-renderizadas.
 const terrainSource=read('fenda-view.js');
-assert.ok(terrainSource.includes('drawBasePaving(g)')&&terrainSource.includes('drawBaseDetails(g)'),
- 'Plataforma de base não foi desenhada');
-assert.ok(!terrainSource.includes("g.arc(base.x,base.y,176"),
- 'A rotatória antiga continua aparecendo no mapa');
-// Fenda 5.8: pisos sem objetos falsos, as únicas estruturas vêm do motor.
-assert.ok(terrainSource.includes("cleanWorld:'arena-tech-clean.webp'")&&
- terrainSource.includes("cleanTowerBlue:'tower-tech-0.webp'")&&
- terrainSource.includes("cleanTowerRed:'tower-tech-1.webp'")&&
- terrainSource.includes("cleanCoreBlue:'nexus-tech-0.webp'")&&
- terrainSource.includes("cleanCoreRed:'nexus-tech-1.webp'"),
- 'O jogo deve usar o novo pacote pré-renderizado de cenário e estruturas');
-assert.ok(terrainSource.includes("cleanCover:'cover-tech-clean.webp'")&&
- terrainSource.includes("cleanGenerator:'generator-tech-clean.webp'")&&
- terrainSource.includes("stealthTech:'stealth-zone-tech.webp'"),
- 'Coberturas, geradores e campos de camuflagem são recursos próprios');
-assert.ok(terrainSource.includes("image.src='art/'+file+'?v=5.8'"),
- 'Cache dos recursos da versão 5.8 não atualizado');
-assert.ok(terrainSource.includes("if(artReady('cleanWorld')){")&&
- terrainSource.includes("g.drawImage(art.cleanWorld,0,0,E.W,E.H);"),
- 'O mapa inteiro deve ser uma imagem pronta sem torres duplicadas');
-assert.ok(terrainSource.includes("const asset=o.kind==='rock'?'cleanCover':'cleanGenerator'")&&
- terrainSource.includes("o.x-span/2,o.y-span*.58,span,span"),
- 'A posição dos sprites deve corresponder exatamente à física');
-assert.ok(terrainSource.includes("g.globalAlpha=.34")&&
- terrainSource.includes("const size=bush.r*1.85"),
- 'Campos de camuflagem devem ser discretos, sem poluir a imagem');
-assert.ok(terrainSource.includes("ctx.drawImage(sprite,-52,-109,104,115)")&&
- terrainSource.includes("ctx.drawImage(sprite,-66,-125,132,142)"),
- 'Torre e Núcleo precisam ter sprites próprios bem dimensionados');
-assert.ok(terrainSource.includes("function drawHero(u,t){")&&
- terrainSource.includes("function drawMinion(u,t){"),
- 'Manter os personagens e tropas como eram');
-assert.ok(!terrainSource.includes("image.src='art/'+file+'?v=5.7'"),
- 'Não misturar nova direção artística com assets antigos em cache');
+assert.ok(terrainSource.includes('function drawTerrain(){')&&
+ terrainSource.includes('function techPolygon(g,x,y,r,sides=6')&&
+ terrainSource.includes('function techRoute(g,points)')&&
+ terrainSource.includes('function techObstacle(g,o)')&&
+ terrainSource.includes('function techBase(g,side)'),
+ 'Fenda deve usar formas nativas de Canvas, como a Arena Teamfight');
+assert.ok(terrainSource.includes('const pts=E.ROUTE_PATHS[lane]')&&
+ terrainSource.includes('techRoute(g,pts);')&&
+ terrainSource.includes("for(let lane=0;lane<3;lane++)"),
+ 'O mapa deve desenhar três lanes contínuas e coerentes com a física');
+assert.ok(terrainSource.includes("for(let side=0;side<2;side++)techBase(g,side);")&&
+ terrainSource.includes('const home=E.HOME[side],core=E.CORE[side]'),
+ 'Duas bases separadas e proporcionais ao mapa');
+assert.ok(terrainSource.includes('for(const o of S.obstacles)techObstacle(g,o);'),
+ 'Cada obstáculo do cenário deve ser um obstáculo verdadeiro do motor');
+assert.ok(terrainSource.includes('for(const camp of S.camps)')&&
+ terrainSource.includes('for(const b of S.brushes)'),
+ 'Os acampamentos e campos de camuflagem continuam representados');
+assert.ok(!terrainSource.includes('new Image(')&&
+ !terrainSource.includes('artReady(')&&
+ !terrainSource.includes('paintedSprite(')&&
+ !terrainSource.includes('drawImage(art.'),
+ 'Não carregar imagens de fundo nem estruturas prontas na versão Teamfight');
+assert.ok(terrainSource.includes('function drawHero(u,t){')&&
+ terrainSource.includes('function drawMinion(u,t){')&&
+ terrainSource.includes('function drawStructure(o,t){'),
+ 'Personagens, tropas e construções continuam independentes e interativos');
 E.start('lyria');
-assert.equal(state.obstacles.length,32,'Menos obstáculos, sem poluição visual');
+assert.equal(state.obstacles.length,32,'Cenário continua com 32 obstáculos físicos');
 for(let i=0;i<state.obstacles.length;i+=2){
  const a=state.obstacles[i],b=state.obstacles[i+1];
  assert.ok(Math.abs(a.x+b.x-E.W)<.001&&Math.abs(a.y+b.y-E.H)<.001,
-  'Obstáculos precisam ficar em pares simétricos');
- assert.equal(a.kind,b.kind,'Pares espelhados devem representar a mesma construção');
+  'Obstáculos devem continuar em pares simétricos');
+ assert.equal(a.kind,b.kind);
 }
-assert.equal(state.brushes.length,6,'Campos de camuflagem não podem se multiplicar');
+assert.equal(state.brushes.length,6);
 for(let i=0;i<6;i+=2){
  const a=state.brushes[i],b=state.brushes[i+1];
  assert.ok(Math.abs(a.x+b.x-E.W)<.001&&Math.abs(a.y+b.y-E.H)<.001&&a.r===b.r,
-  'Camuflagem espelhada não bate com a física');
+  'Campos devem continuar simétricos');
 }
 const sourceCss=read('fenda.css');
 assert.ok(sourceCss.includes('.stage.fenda-on .mobile-controls #joy'),
