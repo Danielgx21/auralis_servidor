@@ -776,8 +776,8 @@ function findJunglePath(u,goal){
  const total=NAV_COLS*NAV_ROWS;
  const from=(x,y)=>clamp(Math.floor(y/NAV_CELL),0,NAV_ROWS-1)*NAV_COLS+
    clamp(Math.floor(x/NAV_CELL),0,NAV_COLS-1);
- const point=idx=>({x:(idx%NAV_COLS+.5)*NAV_CELL,
-   y:(Math.floor(idx/NAV_COLS)+.5)*NAV_CELL});
+ const point=idx=>({x:clamp((idx%NAV_COLS+.5)*NAV_CELL,30,W-30),
+   y:clamp((Math.floor(idx/NAV_COLS)+.5)*NAV_CELL,30,H-30)});
  const cells=new Uint8Array(total),fromNode=new Int32Array(total).fill(-1),score=new Float32Array(total).fill(Infinity);
  const blocked=i=>{
   if(cells[i])return cells[i]===2;
@@ -839,7 +839,8 @@ function findJunglePath(u,goal){
  return result;
 }
 function moveViaJungle(u,goal,dt){
- const stale=!u.navPath||!u.navPath.length||u.navIndex>=u.navPath.length||
+ const stale=!u.navPath||
+  (u.navPath.length>0&&u.navIndex>=u.navPath.length&&dist(u,goal)>105)||
   state.time>(u.navUntil||0)||!u.navDestination||dist(u.navDestination,goal)>65;
  if(stale){
   u.navDestination={x:goal.x,y:goal.y};
