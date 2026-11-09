@@ -1,0 +1,592 @@
+(function(){
+'use strict';
+const C=window.SigilsCore;
+if(!C){console.error('Fenda: núcleo de campeões não carregado');return;}
+const W=2750,H=1900,TAU=Math.PI*2;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const norm=(x,y)=>{const n=Math.hypot(x,y)||1;return{x:x/n,y:y/n}};
+const SIDE=['#69e6e4','#ed829e'],HOME=[{x:205,y:1675},{x:2545,y:210}];
+const PATHS=[
+ [{x:230,y:1640},{x:235,y:1280},{x:235,y:790},{x:255,y:440},{x:435,y:248},{x:1090,y:245},{x:1770,y:245},{x:2470,y:235}],
+ [{x:240,y:1645},{x:640,y:1360},{x:1070,y:1060},{x:1540,y:725},{x:2040,y:385},{x:2475,y:235}],
+ [{x:240,y:1645},{x:780,y:1645},{x:1450,y:1645},{x:2050,y:1640},{x:2470,y:1510},{x:2480,y:1080},{x:2480,y:600},{x:2475,y:235}]
+];
+const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1};
+const ITEMS=[
+ {id:'lens',name:'Lente Astral',price:430,stat:'+13 dano',desc:'Ataques básicos mais fortes',icon:'◈'},
+ {id:'ward',name:'Couraça Rúnica',price:510,stat:'+85 vida',desc:'Resistência nas trocas',icon:'⬡'},
+ {id:'stride',name:'Botas do Vento',price:480,stat:'+17% velocidade',desc:'Movimento e reposicionamento',icon:'➤'},
+ {id:'cell',name:'Catalisador Astral',price:500,stat:'+30 energia',desc:'Mais magias por luta',icon:'ϟ'},
+ {id:'prism',name:'Prisma do Eco',price:680,stat:'+16 poder',desc:'Dano extra das habilidades',icon:'◇'},
+ {id:'core',name:'Núcleo Ágil',price:620,stat:'-15% recarga',desc:'Habilidades disponíveis mais cedo',icon:'✦'}
+];
+const state={mode:'menu',time:0,w:W,h:H,camera:{x:0,y:0},units:[],structures:[],projectiles:[],
+ effects:[],jungle:[],camps:[],hero:null,focused:null,kills:[0,0],wave:0,nextWave:4,
+ flash:0,score:0,marker:null,shopOpen:false,showPause:false,notice:'',noticeUntil:0,
+ nextObjectives:50,buffUntil:0,win:null,selectedHero:'lyria',seq:0,sounds:true};
+const rando=(a,b)=>a+Math.random()*(b-a),hData=id=>C.heroes[id],skillDef=id=>C.skills[id];
+const living=(side,kind)=>state.units.filter(u=>u.hp>0&&(side==null||u.side===side)&&(!kind||u.kind===kind));
+const maxEnergy=u=>100+(u.items||[]).filter(i=>i==='cell').length*30;
+const attackRange=u=>u.kind==='minion'?(u.ranged?150:34):u.kind==='creep'?45:
+ (u.id==='orun'?65:u.id==='vexor'?68:u.id==='lyria'?315:u.id==='nyra'?300:280);
+const moveSpeed=u=>u.speed*(1+(u.items||[]).filter(i=>i==='stride').length*.17)*(u.slow>0?.62:1);
+const attackDamage=u=>u.atk+(u.items||[]).filter(i=>i==='lens').length*13;
+const spellPower=u=>1+(u.items||[]).filter(i=>i==='prism').length*.19;
+const levelXp=level=>42+level*24;
+function pathPos(lane,t){
+ const pts=PATHS[lane];let total=0;
+ for(let j=0;j<pts.length-1;j++)total+=dist(pts[j],pts[j+1]);
+ let left=clamp(t,0,1)*total;
+ for(let j=0;j<pts.length-1;j++){
+  const d=dist(pts[j],pts[j+1]);
+  if(left<=d)return{x:pts[j].x+(pts[j+1].x-pts[j].x)*left/d,
+   y:pts[j].y+(pts[j+1].y-pts[j].y)*left/d};
+  left-=d;
+ }
+ return{...pts[pts.length-1]};
+}
+function buildMap(){
+ state.structures=[];state.camps=[];
+ for(let side=0;side<2;side++){
+  const base=HOME[side];
+  state.structures.push({kind:'core',side,x:base.x,y:base.y,maxHp:1850,hp:1850,r:56,atk:53,range:220,attackCd:0,id:'core'+side});
+  for(let lane=0;lane<3;lane++){
+   const fractions=side===0?[.16,.35,.50]:[.84,.65,.50];
+   for(let i=0;i<fractions.length;i++){
+    let p=pathPos(lane,fractions[i]),d=side===0?1:-1;
+    // Torres da mesma equipe não ocupam exatamente o mesmo centro.
+    p={x:p.x+d*(i===2?40:0),y:p.y+(lane===1?30:lane===0?23:-23)};
+    state.structures.push({kind:'tower',side,lane,tier:i+1,x:p.x,y:p.y,
+      r:27,hp:side===0?880:880,maxHp:880,atk:58,range:205,attackCd:0,
+      id:'tower'+side+'-'+lane+'-'+i});
+   }
+  }
+ }
+ state.camps=[
+  {id:'veilA',x:870,y:610,kind:'buff',name:'Véu Azul',color:'#75caff',hp:630,maxHp:630,respawn:0,buff:'energy'},
+  {id:'emberA',x:1700,y:1310,kind:'buff',name:'Brasa Rubra',color:'#ff9c74',hp:630,maxHp:630,respawn:0,buff:'damage'},
+  {id:'wolvesA',x:930,y:1320,kind:'camp',name:'Lobos Astrais',color:'#a7c2ef',hp:360,maxHp:360,respawn:0},
+  {id:'golemA',x:1730,y:620,kind:'camp',name:'Golem Sigilar',color:'#e5c58f',hp:450,maxHp:450,respawn:0},
+  {id:'serpe',x:1570,y:1120,kind:'boss',name:'Serpe Astral',color:'#9bf6e9',hp:1750,maxHp:1750,respawn:0,unlock:55},
+  {id:'titan',x:1170,y:650,kind:'boss',name:'Titã do Abismo',color:'#dfb1fa',hp:2300,maxHp:2300,respawn:0,unlock:110}
+ ];
+}
+function makeHero(id,side,controlled=false){
+ const h=hData(id),start=HOME[side],offset=side===0?1:-1;
+ return {uid:++state.seq,kind:'hero',id,side,controlled,x:start.x+rando(-35,35)*offset,
+ y:start.y+rando(-35,35)*offset,r:id==='orun'?23:19,speed:h.move*1.25,atk:h.damage*.82,
+ baseHp:h.hp*1.3,maxHp:Math.round(h.hp*1.3),hp:Math.round(h.hp*1.3),
+ energy:100,maxEnergy:100,level:1,xp:0,gold:controlled?550:350,items:[],
+ lane:roles[id],waypoint:side===0?0:PATHS[roles[id]].length-1,attackCd:0,casting:null,
+ cooldowns:Object.fromEntries([...h.skills,h.ultimate].map(k=>[k,0])),
+ stun:0,slow:0,shield:0,guard:0,invuln:0,marked:0,attackAnim:0,
+ vision:350,death:0,respawn:0,recall:0,lastDamage:0,focus:null,
+ aiTimer:rando(.6,1.8),kills:0,deaths:0,cs:0,dash:null,
+ healthRegen:1.3,homeBuff:0,botLane:roles[id],isRanged:!['vexor','orun'].includes(id)};
+}
+function createMinion(side,lane,type=0){
+ const p=pathPos(lane,side===0?.007:.993),ranged=type===1,siege=type===2;
+ const wavePower=1+Math.min(1.1,state.time/840);
+ let hp=Math.round((siege?380:ranged?130:190)*wavePower);
+ return{uid:++state.seq,kind:'minion',id:siege?'siege':ranged?'caster':'guard',side,lane,
+ x:p.x+rando(-20,20),y:p.y+rando(-16,16),r:siege?19:ranged?12:14,
+ hp,maxHp:hp,atk:Math.round((siege?31:ranged?17:15)*wavePower),
+ speed:siege?59:ranged?74:83,attackCd:rando(.1,.5),ranged,site:type,
+ pathIndex:side===0?0:PATHS[lane].length-1,focus:null,
+ stun:0,slow:0,shield:0,invuln:0,attackAnim:0,death:0,lastDamage:0};
+}
+function start(hero='lyria'){
+ state.mode='playing';state.time=0;state.units=[];state.projectiles=[];state.effects=[];
+ state.selectedHero=C.heroes[hero]?hero:'lyria';state.hero=null;state.structures=[];
+ state.kills=[0,0];state.win=null;state.marker=null;state.nextWave=4;state.wave=0;
+ state.shopOpen=false;state.showPause=false;state.buffUntil=0;state.score=0;state.seq=0;
+ buildMap();
+ const ids=Object.keys(C.heroes);
+ const blue=[state.selectedHero,...ids.filter(id=>id!==state.selectedHero)];
+ for(let i=0;i<5;i++){
+  const u=makeHero(blue[i],0,i===0);state.units.push(u);
+  if(i===0)state.hero=u;
+ }
+ // Enemy team has the same five roles, in different positions.
+ for(const id of ids)state.units.push(makeHero(id,1));
+ state.hero.lane=roles[state.hero.id];
+ state.camera={x:clamp(state.hero.x-400,0,W-800),y:clamp(state.hero.y-220,0,H-440)};
+ announce('FENDA DOS SIGILOS · DESTRUA O NÚCLEO RUBRO',3.3);
+ return state;
+}
+function announce(text,seconds=2.2){state.notice=text;state.noticeUntil=state.time+seconds}
+function addEffect(x,y,color,r=35,life=.42,kind='wave'){
+ state.effects.push({x,y,color,r,life,maxLife:life,kind});
+ if(state.effects.length>160)state.effects.splice(0,state.effects.length-160);
+}
+function xpGain(hero,amount){
+ if(!hero||hero.kind!=='hero'||hero.hp<=0)return;
+ hero.xp+=amount;
+ while(hero.level<12&&hero.xp>=levelXp(hero.level)){
+  hero.xp-=levelXp(hero.level);hero.level++;
+  hero.maxHp+=31;hero.hp=Math.min(hero.maxHp,hero.hp+28);
+  hero.atk+=3;hero.energy=Math.min(maxEnergy(hero),hero.energy+17);
+  if(hero.controlled)announce('NÍVEL '+hero.level+' · PODERES APRIMORADOS',2);
+  addEffect(hero.x,hero.y,'#f9d987',85,.58);
+ }
+}
+function grantNearbyXP(pos,team,amount){
+ for(const h of living(team,'hero'))if(dist(h,pos)<450)xpGain(h,amount);
+}
+function onDeath(victim,source){
+ victim.death=1;
+ addEffect(victim.x,victim.y,victim.side===0?'#76e8dc':'#fe9ea8',52,.7,'burst');
+ if(victim.kind==='hero'){
+  victim.deaths++;victim.respawn=8+Math.round(victim.level*1.4);
+  if(source&&source.side!==victim.side){
+   state.kills[source.side]++;
+   if(source.kind==='hero'){source.kills++;source.gold+=210;xpGain(source,90);}
+  }
+  if(victim.controlled)announce('VOCÊ FOI ELIMINADO · RESSURGINDO...',3);
+ }else if(victim.kind==='minion'){
+  if(source&&source.side!==victim.side){
+   const g=source.kind==='hero'?(victim.id==='siege'?80:34):0;
+   if(g){source.gold+=g;if(source.controlled)state.score+=g}
+   grantNearbyXP(victim,victim.side===0?1:0,victim.id==='siege'?28:15);
+  }
+ }else if(victim.kind==='creep'){
+  if(source&&source.kind==='hero'){
+   source.gold+=victim.boss?170:75;xpGain(source,victim.boss?95:38);
+   if(victim.boss){
+    for(const u of living(source.side,'hero')){u.guard=24;u.homeBuff=state.time+75;}
+    announce('OBJETIVO CONQUISTADO · BÊNÇÃO SIGILAR!',4);
+   }else if(victim.buff==='energy'){source.energy=maxEnergy(source);source.homeBuff=state.time+75;}
+   else if(victim.buff==='damage')source.homeBuff=state.time+75;
+  }
+ }
+}
+function damage(victim,amount,source=null){
+ if(!victim||victim.hp<=0||state.mode!=='playing')return 0;
+ if(victim.invuln>0)return 0;
+ let raw=Math.max(1,amount);
+ if(victim.shield>0){const absorbed=Math.min(victim.shield,raw);victim.shield-=absorbed;raw-=absorbed;}
+ if(victim.guard>0){const ab=Math.min(victim.guard,raw);victim.guard-=ab;raw-=ab;}
+ if(raw<=0){addEffect(victim.x,victim.y,'#a8d8fe',23,.22);return 0}
+ const dmg=Math.max(1,Math.round(raw));
+ victim.hp=Math.max(0,victim.hp-dmg);victim.lastDamage=state.time;
+ if(victim.recall)victim.recall=0;
+ if(victim.casting&&victim.kind==='hero'&&victim.stun>0)victim.casting=null;
+ addEffect(victim.x,victim.y,'#f4b5b9',12,.15,'hit');
+ if(victim.hp<=0){
+  if(victim.kind==='tower'||victim.kind==='core'){
+   addEffect(victim.x,victim.y,'#ffd894',105,.95,'burst');
+   if(victim.kind==='tower'){
+    announce('OBELISCO SIGILAR DESTRUÍDO',2.2);
+    if(source&&source.side!==victim.side){
+     for(const h of living(source.side,'hero')){h.gold+=125;xpGain(h,42);}
+    }
+   }else end(victim.side===1?0:1);
+  }else onDeath(victim,source);
+ }
+ return dmg;
+}
+function heal(target,amount){
+ if(!target||target.hp<=0)return 0;
+ const v=Math.max(0,Math.round(Math.min(amount,target.maxHp-target.hp)));
+ target.hp+=v;if(v)addEffect(target.x,target.y,'#97f6c0',24,.38);
+ return v;
+}
+function end(winner){
+ state.mode='ended';state.win=winner;
+ announce(winner===0?'VITÓRIA! NÚCLEO RUBRO DESTRUÍDO':'DERROTA! NÚCLEO AZUL DESTRUÍDO',100);
+ return winner;
+}
+function nearestEnemy(u,range=Infinity,includeStructures=false){
+ const team=u.side;
+ const targets=living(1-team).filter(e=>dist(u,e)<=range+e.r);
+ if(includeStructures)targets.push(...state.structures.filter(t=>t.side!==team&&t.hp>0&&dist(u,t)<=range+t.r));
+ targets.sort((a,b)=>{
+  let v=dist(u,a)-dist(u,b);
+  if(a.kind==='hero')v-=22;if(b.kind==='hero')v+=22;
+  if(a.kind==='minion')v+=10;if(b.kind==='minion')v-=10;
+  return v;
+ });
+ return targets[0]||null;
+}
+function enemyCreep(u,range=Infinity){
+ return state.camps.filter(c=>c.hp>0&&(!c.unlock||state.time>=c.unlock)&&dist(u,c)<range+27)
+   .sort((a,b)=>dist(u,a)-dist(u,b))[0]||null;
+}
+function findAA(u){
+ if(!u||u.hp<=0)return null;
+ const range=attackRange(u),target=nearestEnemy(u,range,true);
+ if(target)return target;
+ if(u.controlled)return enemyCreep(u,range);
+ return null;
+}
+function missile(source,target,damageValue,kind='aa',speed=410){
+ if(!source||!target)return;
+ state.projectiles.push({x:source.x,y:source.y,source,target,side:source.side,
+  damage:damageValue,speed,kind,r:kind==='skill'?9:5,life:7,color:source.side===0?'#8af4e2':'#ff91b0'});
+}
+function autoAttack(u){
+ if(u.hp<=0||u.attackCd>0||u.casting||u.stun>0)return false;
+ const target=findAA(u);if(!target)return false;
+ u.attackCd=u.kind==='hero'?(hData(u.id).attackTime+Math.max(0,5-u.level)*.018):u.id==='siege'?2.15:u.ranged?1.5:1.25;
+ u.attackAnim=.23;
+ const damageVal=attackDamage(u)+(u.homeBuff>state.time?4:0);
+ if(attackRange(u)<=75){
+  damage(target,damageVal,u);addEffect(target.x,target.y,u.side===0?'#84ead9':'#f7a3b0',25,.24);
+ }else missile(u,target,damageVal,'aa',u.kind==='hero'?530:380);
+ return true;
+}
+function chooseEnemyForStructure(t){
+ const enemies=living(1-t.side);
+ const inRange=enemies.filter(u=>dist(u,t)<t.range+u.r);
+ const minions=inRange.filter(u=>u.kind==='minion');
+ if(minions.length)minions.sort((a,b)=>dist(a,t)-dist(b,t));
+ const champions=inRange.filter(u=>u.kind==='hero').sort((a,b)=>dist(a,t)-dist(b,t));
+ return minions[0]||champions[0]||null;
+}
+function structureStep(dt){
+ for(const t of state.structures){
+  if(t.hp<=0)continue;
+  t.attackCd=Math.max(0,t.attackCd-dt);
+  if(t.attackCd>0)continue;
+  const target=chooseEnemyForStructure(t);
+  if(target){
+   const damageVal=t.kind==='core'?56:61;
+   missile(t,target,damageVal,t.kind==='core'?'core':'tower',470);
+   t.attackCd=t.kind==='core'?1.08:1.2;
+   addEffect(t.x,t.y,t.side===0?'#82e8ef':'#f3a4b6',t.r+12,.25);
+  }
+ }
+}
+function moveToward(u,p,dt,speedFactor=1){
+ const dx=p.x-u.x,dy=p.y-u.y,d=Math.hypot(dx,dy);
+ if(d<4)return true;
+ const step=Math.min(d,moveSpeed(u)*dt*speedFactor);
+ u.x=clamp(u.x+dx/d*step,36,W-36);
+ u.y=clamp(u.y+dy/d*step,36,H-36);
+ u.facing=Math.atan2(dy,dx);
+ return d<step+7;
+}
+function moveMinion(m,dt){
+ if(m.stun>0)return;
+ const enemy=nearestEnemy(m,m.ranged?m.r+155:75,true);
+ if(enemy){
+  if(dist(m,enemy)>attackRange(m)+enemy.r)moveToward(m,enemy,dt);
+  return;
+ }
+ const points=PATHS[m.lane],next=m.pathIndex+(m.side===0?1:-1);
+ if(next>=0&&next<points.length){
+  if(moveToward(m,points[next],dt))m.pathIndex=next;
+ }else moveToward(m,HOME[1-m.side],dt);
+}
+function respawn(u){
+ const home=HOME[u.side];
+ u.x=home.x+rando(-25,25);u.y=home.y+rando(-25,25);
+ u.hp=u.maxHp;u.energy=maxEnergy(u);u.shield=0;u.guard=0;u.casting=null;
+ u.attackCd=0;u.stun=0;u.slow=0;u.dash=null;u.recall=0;
+ u.death=0;u.respawn=0;u.focus=null;u.aiTimer=.5;
+ addEffect(u.x,u.y,u.side===0?'#82f0e1':'#f8aac3',85,.62);
+}
+function botHero(u,dt){
+ if(u.stun>0||u.casting||u.dash)return;
+ if(u.hp/u.maxHp<.25&&dist(u,HOME[u.side])>160){
+  u.aiRetreat=true;
+ }
+ if(u.aiRetreat){
+  const dest=HOME[u.side];
+  moveToward(u,dest,dt);
+  if(dist(u,dest)<120){u.aiRetreat=false;heal(u,u.maxHp*.55);u.energy=maxEnergy(u)}
+  return;
+ }
+ const foe=nearestEnemy(u,370);
+ if(foe){
+  const distance=dist(u,foe),ideal=attackRange(u);
+  if(distance>ideal*.85){
+   // Never dive a turret alone without minions.
+   const tower=state.structures.find(t=>t.side!==u.side&&t.kind==='tower'&&t.hp>0&&dist(u,t)<t.range+65);
+   const friendlyWave=living(u.side,'minion').some(m=>dist(m,u)<210);
+   if(!tower||friendlyWave)moveToward(u,foe,dt,.83);
+  }else if(u.isRanged&&distance<ideal*.43){
+   const away=norm(u.x-foe.x,u.y-foe.y);
+   moveToward(u,{x:u.x+away.x*130,y:u.y+away.y*130},dt,.76);
+  }
+  if(u.aiTimer<=0&&Math.random()<.17){
+   const skills=hData(u.id).skills.concat([hData(u.id).ultimate]);
+   const options=skills.filter(id=>u.cooldowns[id]<=0&&u.energy>=skillDef(id).cost&&
+    (id!==hData(u.id).ultimate||u.level>=5));
+   if(options.length){
+    const id=options[Math.floor(Math.random()*options.length)];
+    cast(u,id,null,foe);u.aiTimer=3.8;
+   }
+  }
+  return;
+ }
+ // Move along assigned lane, helping allied minion waves and towers.
+ const lane=roles[u.id]||0;
+ const points=PATHS[lane],fraction=u.side===0?.47:.53;
+ let anchor=pathPos(lane,fraction);
+ const friendlyFront=living(u.side,'minion').filter(m=>m.lane===lane).sort((a,b)=>dist(a,HOME[1-u.side])-dist(b,HOME[1-u.side]))[0];
+ if(friendlyFront)anchor={x:friendlyFront.x,y:friendlyFront.y};
+ const ownTower=state.structures.find(t=>t.side===u.side&&t.kind==='tower'&&t.lane===lane&&t.hp>0&&dist(t,u)<210);
+ if(ownTower&&!friendlyFront)anchor=ownTower;
+ moveToward(u,anchor,dt,.69);
+}
+function jungleStep(dt){
+ for(const c of state.camps){
+  if(c.hp<=0){
+   c.respawn=Math.max(0,c.respawn-dt);
+   if(c.respawn<=0){c.hp=c.maxHp;addEffect(c.x,c.y,c.color,55,.55)}
+   continue;
+  }
+  if(c.unlock&&state.time<c.unlock)continue;
+  if(!c.attackCd)c.attackCd=1;
+  c.attackCd-=dt;
+  if(c.attackCd<=0){
+   const heroesNear=living(null,'hero').filter(u=>dist(u,c)<100);
+   if(heroesNear.length){
+    const closest=heroesNear.sort((a,b)=>dist(a,c)-dist(b,c))[0];
+    damage(closest,c.kind==='boss'?24:12,c);
+   }
+   c.attackCd=c.kind==='boss'?1.7:2.3;
+  }
+ }
+}
+function damageCreep(c,amount,source){
+ if(!c||c.hp<=0||c.unlock&&state.time<c.unlock)return;
+ c.hp=Math.max(0,c.hp-amount);
+ addEffect(c.x,c.y,c.color,17,.21);
+ if(c.hp<=0){
+  c.respawn=c.kind==='boss'?125:78;
+  c.boss=c.kind==='boss';
+  c.kind='creep'; // Reward logic only needs kind / buff.
+  onDeath(c,source);
+  // Do not transform the camp permanently: keep its original classification.
+  c.kind=c.boss?'boss':c.buff?'buff':'camp';
+ }
+}
+function cast(u,id,aim=null,autoTarget=null){
+ if(!u||u.hp<=0||state.mode!=='playing')return false;
+ if(![...hData(u.id).skills,hData(u.id).ultimate].includes(id))return false;
+ const def=skillDef(id);
+ if(u.casting||u.dash||u.cooldowns[id]>0||u.energy<def.cost||u.stun>0)return false;
+ if(def.ultimate&&u.level<5)return false;
+ const target=autoTarget||((def.aim==='self')?u:nearestEnemy(u,def.range||350,true));
+ const dx=aim?.x??(target?target.x-u.x:1),dy=aim?.y??(target?target.y-u.y:0);
+ const dir=norm(dx,dy),range=def.range||140;
+ const travel=clamp(aim?.distance??(target?dist(u,target):range),0,range);
+ let center={x:u.x+dir.x*travel,y:u.y+dir.y*travel};
+ if(id==='seris_bloom'&&!aim){
+  const wounded=living(u.side,'hero').filter(h=>dist(h,u)<range).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
+  if(wounded)center={x:wounded.x,y:wounded.y};
+ }
+ const maxLv=id===hData(u.id).ultimate?Math.min(3,1+Math.floor((u.level-5)/3)):Math.min(5,1+Math.floor((u.level-1)/2));
+ const haste=(u.items||[]).filter(i=>i==='core').length*.15;
+ u.cooldowns[id]=def.cd*(1-haste)*(1-.045*(maxLv-1));
+ u.energy-=def.cost;
+ const c={id,dir,center,level:maxLv,time:Math.max(0,def.cast),total:Math.max(0,def.cast)};
+ if(c.time<=0)releaseSkill(u,c);else u.casting=c;
+ addEffect(u.x,u.y,hData(u.id).color,27,.24);
+ return true;
+}
+function releaseSkill(u,c){
+ if(!u||u.hp<=0)return;
+ const id=c.id,def=skillDef(id),power=spellPower(u),enemy=1-u.side,lv=c.level;
+ const slow=(target,seconds)=>{target.slow=Math.max(target.slow,seconds)};
+ if(['lyria_step','vexor_lunge','orun_charge','vexor_ult'].includes(id)){
+  const dashLength=def.range+lv*7,duration=id==='vexor_ult'?.25:.18;
+  u.dash={vx:c.dir.x*dashLength/duration,vy:c.dir.y*dashLength/duration,t:duration,
+   hit:new Set(),radius:def.radius||25,dmg:Math.round((id==='vexor_ult'?85:id==='orun_charge'?31:id==='vexor_lunge'?36:0)*power),
+   stun:id==='orun_charge'?.36:id==='vexor_ult'?.26:0};
+  u.invuln=id==='lyria_step'?.19:.10;
+  addEffect(u.x,u.y,hData(u.id).color,57,.42);
+  return;
+ }
+ if(['lyria_pierce','nyra_bolt','seris_tether'].includes(id)){
+  const d=id==='lyria_pierce'?42:id==='nyra_bolt'?44:24;
+  state.projectiles.push({x:u.x+c.dir.x*23,y:u.y+c.dir.y*23,source:u,side:u.side,
+   vx:c.dir.x*555,vy:c.dir.y*555,range:def.range,travel:0,
+   damage:Math.round((d+lv*8)*power),r:def.radius||15,life:2,
+   kind:'skillline',color:hData(u.id).color,stun:0,slow:id==='seris_tether'?1.6:0});
+  return;
+ }
+ if(def.aim==='area'){
+  const isHealing=id==='seris_bloom';
+  const aoeDamage=id==='lyria_ult'?85:id==='nyra_ult'?97:id==='lyria_rain'?43:
+   id==='nyra_rift'?54:id==='vexor_mark'?40:0;
+  const range=def.radius+(def.ultimate?15:0);
+  state.projectiles.push({x:u.x,y:u.y,source:u,side:u.side,tx:c.center.x,ty:c.center.y,
+   speed:780,damage:Math.round((aoeDamage+lv*9)*power),r:9,aoe:range,
+   kind:isHealing?'healarea':'damagearea',heal:isHealing?55+lv*13:0,
+   color:hData(u.id).color,stun:id==='nyra_ult'?.62:id==='nyra_rift'?.32:0,
+   slow:id==='lyria_rain'||id==='lyria_ult'?1.5:id==='nyra_rift'?1.3:0,
+   mark:id==='vexor_mark',life:2.5});
+  addEffect(c.center.x,c.center.y,hData(u.id).color,range,1.05,'telegraph');
+  return;
+ }
+ const r=def.radius||120;
+ if(id==='seris_ult'||id==='seris_aegis'||id==='orun_ult'||id==='orun_guard'||id==='nyra_barrier'){
+  for(const friend of living(u.side,'hero')){
+   if(dist(friend,u)<r+friend.r||friend===u){
+    if(id==='seris_ult')heal(friend,75+lv*20);
+    if(id==='orun_ult')heal(friend,25+lv*8);
+    if(id==='orun_guard')heal(friend,13+lv*7);
+    friend.shield+=id==='orun_ult'?95:id==='seris_ult'?90:id==='seris_aegis'?40:60;
+   }
+  }
+  if(id==='orun_ult')aoe(u.x,u.y,r,Math.round(65*power),u,.55);
+  addEffect(u.x,u.y,hData(u.id).color,r,.69);
+  return;
+ }
+ if(id==='vexor_whirl'||id==='orun_quake'){
+  aoe(u.x,u.y,r,Math.round((id==='orun_quake'?53:60)*power),u,id==='orun_quake'?.33:0);
+  addEffect(u.x,u.y,hData(u.id).color,r,.54);
+ }
+}
+function aoe(x,y,r,damageVal,source,stun=0,slow=0){
+ let hits=0;
+ for(const t of living(1-source.side)){
+  if(Math.hypot(t.x-x,t.y-y)<r+t.r){
+   hits++;damage(t,damageVal,source);
+   t.stun=Math.max(t.stun,stun);t.slow=Math.max(t.slow,slow);
+  }
+ }
+ for(const c of state.camps){
+  if(c.hp>0&&(!c.unlock||state.time>=c.unlock)&&Math.hypot(c.x-x,c.y-y)<r+30)damageCreep(c,damageVal,source);
+ }
+ return hits;
+}
+function tickProjectiles(dt){
+ const arr=state.projectiles;
+ for(const p of arr){
+  if(p.life<=0)continue;
+  p.life-=dt;
+  if(p.kind==='aa'||p.kind==='tower'||p.kind==='core'){
+   if(p.target.hp<=0){p.life=0;continue}
+   const dx=p.target.x-p.x,dy=p.target.y-p.y,d=Math.hypot(dx,dy)||1,step=p.speed*dt;
+   if(d<=step+p.target.r+4){
+    p.x=p.target.x;p.y=p.target.y;p.life=0;damage(p.target,p.damage,p.source);
+   }else{p.x+=dx/d*step;p.y+=dy/d*step}
+  }else if(p.kind==='skillline'){
+   const px=p.x,py=p.y;
+   p.x+=p.vx*dt;p.y+=p.vy*dt;p.travel+=Math.hypot(p.x-px,p.y-py);
+   const foe=living(1-p.side).find(u=>Math.hypot(u.x-p.x,u.y-p.y)<u.r+p.r);
+   const creep=state.camps.find(c=>c.hp>0&&(!c.unlock||state.time>=c.unlock)&&dist(c,p)<p.r+26);
+   if(foe){damage(foe,p.damage,p.source);foe.stun=Math.max(foe.stun,p.stun||0);foe.slow=Math.max(foe.slow,p.slow||0);p.life=0;}
+   else if(creep){damageCreep(creep,p.damage,p.source);p.life=0}
+   else if(p.travel>p.range)p.life=0;
+  }else{
+   const dx=p.tx-p.x,dy=p.ty-p.y,d=Math.hypot(dx,dy)||1,step=p.speed*dt;
+   if(d<=step+7){
+    p.x=p.tx;p.y=p.ty;p.life=0;
+    addEffect(p.x,p.y,p.color,p.aoe,.46,'blast');
+    if(p.kind==='healarea'){
+     for(const friend of living(p.side,'hero'))if(dist(friend,p)<p.aoe+friend.r)heal(friend,p.heal);
+    }else{
+     aoe(p.x,p.y,p.aoe,p.damage,p.source,p.stun,p.slow);
+     if(p.mark){
+      for(const u of living(1-p.side,'hero'))if(dist(u,p)<p.aoe+u.r)u.marked=4;
+     }
+    }
+   }else{p.x+=dx/d*step;p.y+=dy/d*step}
+  }
+ }
+ state.projectiles=arr.filter(p=>p.life>0);
+}
+function tickUnit(u,dt){
+ if(u.hp<=0){
+  if(u.kind==='hero'){u.respawn-=dt;if(u.respawn<=0)respawn(u)}
+  return;
+ }
+ u.stun=Math.max(0,u.stun-dt);u.slow=Math.max(0,u.slow-dt);
+ u.invuln=Math.max(0,u.invuln-dt);u.shield=Math.max(0,u.shield-dt*.01);
+ u.guard=Math.max(0,u.guard-dt*.02);
+ u.attackCd=Math.max(0,u.attackCd-dt);u.attackAnim=Math.max(0,(u.attackAnim||0)-dt);
+ if(u.kind==='hero'){
+  u.energy=clamp(u.energy+dt*(u.homeBuff>state.time?19:12),0,maxEnergy(u));
+  u.aiTimer-=dt;
+  u.hp=Math.min(u.maxHp,u.hp+dt*(dist(u,HOME[u.side])<150?24:1.15));
+  if(u.recall>0){
+   if(u.controlled){u.recall-=dt;if(u.recall<=0){u.x=HOME[u.side].x;u.y=HOME[u.side].y;u.hp=u.maxHp;u.energy=maxEnergy(u);announce('RETORNO AO SANTUÁRIO',1.6)}}
+  }
+  if(u.casting){
+   if(u.stun>0){u.casting=null;return}
+   u.casting.time-=dt;
+   if(u.casting.time<=0){const castData=u.casting;u.casting=null;releaseSkill(u,castData)}
+  }
+  if(u.dash){
+   const d=u.dash,ox=u.x,oy=u.y,step=Math.min(dt,d.t);
+   u.x=clamp(u.x+d.vx*step,30,W-30);u.y=clamp(u.y+d.vy*step,30,H-30);
+   for(const target of living(1-u.side)){
+    if(d.hit.has(target.uid))continue;
+    const hit=Math.hypot(target.x-u.x,target.y-u.y)<target.r+u.r+d.radius*.5;
+    if(hit){d.hit.add(target.uid);damage(target,d.dmg,u);target.stun=Math.max(target.stun,d.stun)}
+   }
+   d.t-=dt;if(d.t<=0)u.dash=null;
+   addEffect(ox,oy,hData(u.id).color,21,.21);
+   return;
+  }
+ }
+ if(u.stun>0)return;
+ if(u.kind==='minion')moveMinion(u,dt);
+ else if(u.kind==='hero'&&!u.controlled)botHero(u,dt);
+ if(!u.casting&&!(u.kind==='hero'&&u.controlled)&&u.attackCd<=0)autoAttack(u);
+}
+function makeWave(){
+ state.wave++;
+ for(let side=0;side<2;side++)for(let lane=0;lane<3;lane++){
+  for(let i=0;i<4;i++)state.units.push(createMinion(side,lane,i<2?0:1));
+  if(state.wave%3===0)state.units.push(createMinion(side,lane,2));
+ }
+ if(state.wave===1)announce('AS SENTINELAS RÚNICAS PARTIRAM PARA AS ROTAS',3);
+}
+function step(dt,movement={x:0,y:0}){
+ if(state.mode!=='playing'||state.showPause)return;
+ dt=clamp(dt,0,.05);state.time+=dt;
+ const hero=state.hero;
+ if(hero&&hero.hp>0&&!hero.dash&&hero.stun<=0&&!hero.recall){
+  const direction=norm(movement.x,movement.y),len=Math.min(1,Math.hypot(movement.x,movement.y));
+  if(len>.06){
+   hero.x=clamp(hero.x+direction.x*moveSpeed(hero)*dt*len*(hero.casting?.58:1),30,W-30);
+   hero.y=clamp(hero.y+direction.y*moveSpeed(hero)*dt*len*(hero.casting?.58:1),30,H-30);
+   hero.facing=Math.atan2(direction.y,direction.x);
+  }
+ }
+ if(state.time>=state.nextWave){
+  makeWave();state.nextWave=state.time+15;
+ }
+ for(const u of state.units){tickUnit(u,dt);if(state.mode!=='playing')break}
+ if(state.mode!=='playing')return;
+ structureStep(dt);jungleStep(dt);tickProjectiles(dt);
+ for(const f of state.effects)f.life-=dt;state.effects=state.effects.filter(f=>f.life>0);
+ // Remove dead minions after a brief visible impact; keep heroes for respawn.
+ state.units=state.units.filter(u=>u.kind==='hero'||u.hp>0||u.death<.22);
+ for(const u of state.units)if(u.hp<=0&&u.kind==='minion')u.death+=dt;
+ if(state.units.length>240)state.units=state.units.filter(u=>u.kind==='hero'||u.hp>0);
+}
+function buyItem(id){
+ const hero=state.hero,item=ITEMS.find(x=>x.id===id);
+ if(!hero||!item||state.mode!=='playing')return{ok:false,reason:'Partida indisponível'};
+ if(hero.hp<=0)return{ok:false,reason:'Aguarde ressurgir'};
+ if(dist(hero,HOME[0])>240)return{ok:false,reason:'Compras apenas no santuário (base)'};
+ if(hero.items.includes(id))return{ok:false,reason:'Você já possui esse equipamento'};
+ if(hero.items.length>=6)return{ok:false,reason:'Inventário completo (6 itens)'};
+ if(hero.gold<item.price)return{ok:false,reason:'Ouro insuficiente'};
+ hero.gold-=item.price;hero.items.push(id);
+ if(id==='ward'){hero.maxHp+=85;hero.hp+=85;}
+ if(id==='cell'){hero.energy+=30;hero.maxEnergy=maxEnergy(hero);}
+ addEffect(hero.x,hero.y,'#fbe1a1',58,.44);
+ announce(item.name.toUpperCase()+' EQUIPADO',1.6);
+ return{ok:true};
+}
+function recall(){
+ const p=state.hero;
+ if(state.mode!=='playing'||!p||p.hp<=0)return false;
+ if(dist(p,HOME[0])<125){announce('VOCÊ JÁ ESTÁ NA BASE',1.3);return false}
+ if(p.casting||p.stun>0||p.dash)return false;
+ p.recall=3.2;announce('CANALIZANDO RETORNO · 3s',1.6);
+ addEffect(p.x,p.y,'#c5ecfa',70,3.2,'recall');
+ return true;
+}
+window.FendaEngine={state,W,H,TAU,HOME,PATHS,SIDE,ITEMS,hData,skillDef,
+ start,step,cast,autoAttack,buyItem,recall,damage,heal,announce,makeWave,
+ living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect};
+})();
