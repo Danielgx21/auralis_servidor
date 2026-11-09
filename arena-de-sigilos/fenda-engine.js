@@ -156,8 +156,8 @@ function buildMap(){
   {id:'emberA',x:1700,y:1310,kind:'buff',name:'Brasa Rubra',color:'#ff9c74',hp:630,maxHp:630,respawn:0,buff:'damage'},
   {id:'wolvesA',x:930,y:1320,kind:'camp',name:'Lobos Astrais',color:'#a7c2ef',hp:360,maxHp:360,respawn:0},
   {id:'golemA',x:1730,y:620,kind:'camp',name:'Golem Sigilar',color:'#e5c58f',hp:450,maxHp:450,respawn:0},
-  {id:'serpe',x:1570,y:1120,kind:'boss',name:'Serpe Astral',color:'#9bf6e9',hp:1750,maxHp:1750,respawn:0,unlock:55},
-  {id:'titan',x:1170,y:650,kind:'boss',name:'Titã do Abismo',color:'#dfb1fa',hp:2300,maxHp:2300,respawn:0,unlock:110}
+  {id:'serpe',x:1570,y:1120,kind:'boss',name:'Serpe Astral',color:'#9bf6e9',hp:1030,maxHp:1030,respawn:0,unlock:55},
+  {id:'titan',x:1170,y:650,kind:'boss',name:'Titã do Abismo',color:'#dfb1fa',hp:1500,maxHp:1500,respawn:0,unlock:110}
  ];
  // Pedras e árvores antigas são obstáculos reais, não apenas desenhos decorativos.
  // A floresta mantém corredores navegáveis entre as três rotas e os campos.
@@ -458,7 +458,7 @@ function autoAttack(u){
  // Minions limpam ondas de forma consistente, sem congestionamentos infinitos.
  if(u.kind==='minion'&&target.kind==='minion')damageVal=Math.round(damageVal*1.25);
  if(target.kind==='boss'||target.kind==='buff'||target.kind==='camp'){
-  damageVal=Math.round(damageVal*(u.kind==='hero'?1.52:1.0));
+  damageVal=Math.round(damageVal*(u.kind==='hero'?(target.kind==='boss'?2.10:1.52):1.0));
  }
  if(u.kind==='minion'&&state.teamBuffs[u.side].titan>state.time&&
     (target.kind==='tower'||target.kind==='core'))damageVal=Math.round(damageVal*1.28);
@@ -793,7 +793,7 @@ function botJungler(u,dt){
  const boss=openBoss();
  const healthy=living(u.side,'hero').filter(h=>h.hp/h.maxHp>.53);
  const supports=healthy.filter(h=>!h.jungler&&dist(h,boss||u)<880);
- const contest=boss&&healthy.length>=3&&supports.length>=1&&u.level>=3;
+ const contest=boss&&healthy.length>=3&&u.level>=3;
  if(contest&&(!u.jungleGoal||u.jungleGoal.kind!=='boss'))u.jungleGoal=boss;
  if(!u.jungleGoal){
   if((u.gankUntil||0)>state.time)return false;
@@ -827,8 +827,8 @@ function botJungler(u,dt){
 function botSupportBoss(u,dt){
  if(u.controlled||u.jungler||!['orun','seris','nyra'].includes(u.id))return false;
  const boss=state.camps.find(c=>c.kind==='boss'&&c.hp>0&&c.hp<c.maxHp*.92&&
-   c.aggroTarget&&c.aggroTarget.side===u.side&&dist(c,u)<770);
- if(!boss||u.hp/u.maxHp<.52||
+   c.aggroTarget&&c.aggroTarget.side===u.side&&dist(c,u)<1150);
+ if(!boss||u.hp/u.maxHp<.52||u.level<2||
   living(1-u.side,'hero').some(e=>visibleTo(u.side,e)&&dist(e,u)<190)){
   if(u.jungleGoal&&u.jungleGoal.kind==='boss')u.jungleGoal=null;
   return false;
@@ -936,13 +936,13 @@ function jungleStep(dt){
   if(target&&dist(target,c)<155+(c.kind==='boss'?45:0)){
    c.aggroUntil=state.time+4;
    if(c.attackCd<=0){
-    const damageValue=c.kind==='boss'?(c.id==='titan'?32:25):c.kind==='buff'?15:11;
+    const damageValue=c.kind==='boss'?(c.id==='titan'?27:19):c.kind==='buff'?15:11;
     damage(target,damageValue,c);
     addEffect(target.x,target.y,c.color,20,.25,'hit');
-    c.attackCd=c.kind==='boss'?1.65:2.25;
+    c.attackCd=c.kind==='boss'?1.95:2.25;
    }
   }else if(c.hp<c.maxHp){
-   c.hp=Math.min(c.maxHp,c.hp+dt*4.5); // Reinicia lentamente caso o caçador abandone o campo.
+   c.hp=Math.min(c.maxHp,c.hp+dt*2.4); // Reinicia lentamente caso o caçador abandone o campo.
   }
  }
 }
