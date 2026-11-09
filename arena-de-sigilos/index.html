@@ -1294,8 +1294,8 @@ function tickBot(u,dt){
  if(u.windup>0){
   u.windup=Math.max(0,u.windup-dt);
   if(u.windup<=0&&u.stun<=0){
-   const locked=u.windupTarget&&u.windupTarget.hp>0?u.windupTarget:target;
-   botBasicAttack(u,locked);
+   const locked=u.windupTarget&&u.windupTarget.hp>0?u.windupTarget:null;
+   if(locked)botBasicAttack(u,locked); // Não transfere um ataque já iniciado para outro alvo.
    u.windupTarget=null;u.shoot=heroes[u.heroId].attackTime*(u.team===1?1.07:1.02);
   }
  }
@@ -1813,8 +1813,25 @@ function drawProjectiles(){
  }
 }
 function drawParticles(){ctx.save();ctx.globalCompositeOperation='lighter';for(const p of particles){circle(p.x,p.y,p.size*(p.life/p.max),p.color,clamp(p.life/p.max,0,1)*.9)}ctx.restore();for(const w of waves){let p=1-w.life/w.full;ring(w.x,w.y,w.max*p,w.color,1-p,w.lineWidth*(1-p*.65))}ctx.save();ctx.font='900 14px system-ui';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=5;for(const f of floaters){ctx.globalAlpha=clamp(f.life/.7,0,1);ctx.fillStyle=f.color;ctx.fillText(f.txt,f.x,f.y)}ctx.restore()}
+function drawTeamFocus(t){
+ const focus=teamPlans[0]?.focus;
+ if(!focus||focus.hp<=0||mode!=='playing')return;
+ ctx.save();
+ const pulse=.58+.15*Math.sin(t*5),r=focus.r+19;
+ ring(focus.x,focus.y,r,'#94f5e3',pulse,2.1,0,TWO);
+ for(let i=0;i<4;i++){
+  const angle=i*TWO/4+t*.15;
+  line(focus.x+Math.cos(angle)*r*.93,focus.y+Math.sin(angle)*r*.93,
+   focus.x+Math.cos(angle)*(r+8),focus.y+Math.sin(angle)*(r+8),'#aafdf0',2,pulse);
+ }
+ ctx.font='900 8px system-ui';ctx.textAlign='center';
+ ctx.fillStyle='#c7fff3';ctx.shadowBlur=4;ctx.shadowColor='#061b28';
+ ctx.fillText('FOCO',focus.x,focus.y-r-8);
+ ctx.restore();
+}
 function draw(t){ctx.save();ctx.clearRect(0,0,W,H);if(shake>0&&mode==='playing')ctx.translate(rnd(-shake,shake),rnd(-shake,shake));drawBackground(t);drawPillars(t);if(mode!=='menu'&&player&&enemy){drawHazards(t);drawEnemyWindup(t);drawProjectiles();drawAbilityProjectiles();
  for(const u of [...allies,...enemies].filter(u=>u.hp>0).sort((a,b)=>a.y-b.y))drawEntity(u,u.team===0,t);
+ drawTeamFocus(t);
  if(player.hp>0){drawAimGuide(t);drawSkillGuide(t);drawCastingOverlay()}
  drawParticles()}else{ // attract mode
  const cx=W*.36,cy=H*.53,ex=W*.68,ey=H*.48;drawEntity({heroId:heroChoice,x:cx,y:cy,r:18,angle:Math.atan2(ey-cy,ex-cx),hit:0,shield:0,invuln:0},true,t);drawEntity({heroId:missions[selected].hero,x:ex,y:ey,r:19,angle:Math.atan2(cy-ey,cx-ex),hp:1,maxHp:1,hit:0},false,t);for(let i=0;i<6;i++){const p=(t*.24+i/6)%1,cx1=lerp(cx,ex,p),cy1=lerp(cy,ey,p);circle(cx1,cy1,3,'#83f5e6',.15+.4*Math.sin(p*Math.PI))}
