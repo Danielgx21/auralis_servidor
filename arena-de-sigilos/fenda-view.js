@@ -31,6 +31,26 @@ shop.innerHTML='<div class="fenda-shop-head"><strong>⚒ ARSENAL DO SANTUÁRIO</
 stage.appendChild(shop);
 const mm=$('fendaMinimap'),mc=mm.getContext('2d');
 let vw=900,vh=460,dpr=1,terrain=null,last=performance.now(),hudCountdown=0,endedShown=false;
+// A câmera usa pixels de tela separados de metros do mundo. Não reduzir o herói
+// para tentar encaixar 3 torres no mesmo enquadramento.
+let cameraZoom=1.30,worldVW=vw/cameraZoom,worldVH=vh/cameraZoom;
+const spritePaths={
+ ground:'grass-ground.svg',fountain:'fountain.svg',inlay:'base-inlay.svg',
+ bush:'moonflower-bush.svg',rock:'rune-rock.svg',
+ tower:'sigil-tower.svg',core:'nexus-spire.svg'
+};
+const sprites={};
+for(const [key,file] of Object.entries(spritePaths)){
+ const img=document.createElement('img');sprites[key]=img;
+ img.onload=()=>{terrain=null};
+ img.onerror=()=>{img.failed=true};
+ img.src='art/'+file;
+}
+const hasSprite=key=>sprites[key]?.complete&&sprites[key].naturalWidth>0;
+function drawSprite(g,key,x,y,w,h,alpha=1){
+ if(!hasSprite(key))return false;
+ g.save();g.globalAlpha*=alpha;g.drawImage(sprites[key],x-w/2,y-h/2,w,h);g.restore();return true;
+}
 // Fenda 6.1: mapa 100% Canvas no estilo da Arena Teamfight.
  // Somente três rotas; paredes/obstáculos provêm das hitboxes do motor.
 const fogCanvas=document.createElement('canvas'),fogContext=fogCanvas.getContext('2d');
@@ -49,6 +69,9 @@ function resize(){
  const r=stage.getBoundingClientRect();vw=Math.max(320,r.width);vh=Math.max(220,r.height);
  dpr=Math.min(window.devicePixelRatio||1,1.65);
  cv.width=Math.round(vw*dpr);cv.height=Math.round(vh*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
+ cameraZoom=vw>=1250?1.22:vw>=750?1.32:1.20;
+ if(vh<385)cameraZoom=Math.min(cameraZoom,1.20);
+ worldVW=vw/cameraZoom;worldVH=vh/cameraZoom;
  fogCanvas.width=Math.ceil(vw*.64);fogCanvas.height=Math.ceil(vh*.64);fogAt=-1;
 }
 function circle(x,y,r,fill,stroke='',w=1){
@@ -77,125 +100,141 @@ function techRing(g,x,y,r,color,width=2){
 function techBase(g,side){
  const home=E.HOME[side],core=E.CORE[side],color=E.SIDE[side];
  g.save();
- // Praça de nascimento geométrica, nunca cobre os acessos às três lanes.
- techPolygon(g,home.x,home.y,135,8,Math.PI/8);
- g.fillStyle='#102a3d';g.fill();g.strokeStyle='#6b9bad';g.lineWidth=5;g.stroke();
- techPolygon(g,home.x,home.y,113,8,Math.PI/8);
- g.fillStyle='#1b4154';g.fill();g.strokeStyle='#a5c5bd';g.lineWidth=2;g.stroke();
- techRing(g,home.x,home.y,82,color,3);
- techRing(g,home.x,home.y,63,color+'50',1.6);
- techPolygon(g,home.x,home.y,31,6,Math.PI/6);
- g.fillStyle='#113344';g.fill();g.strokeStyle=color;g.lineWidth=2.7;g.stroke();
- techPolygon(g,home.x,home.y,15,4,Math.PI/4);
- g.fillStyle=color;g.fill();
- // Plataforma do Núcleo, sem desenhá-lo duas vezes: o objeto é renderizado
- // dinamicamente por drawStructure() e pode ser destruído durante a partida.
- techPolygon(g,core.x,core.y,67,8,Math.PI/8);
- g.fillStyle='#102d40';g.fill();g.strokeStyle='#416f84';g.lineWidth=4.5;g.stroke();
- techRing(g,core.x,core.y,51,color,2);
+ // O santuário é uma praça construída, independente da pista. O portão
+ // superior, o central e o inferior estão separados desde o fim da base.
+ g.translate(home.x,home.y);if(side===1)g.rotate(Math.PI);
+ const outline=[[-178,170],[-180,-175],[-70,-305],[235,-350],[418,-175],[405,100],[257,220],[-35,225]];
+ g.beginPath();outline.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();
+ g.fillStyle='#203941';g.fill();g.lineJoin='round';g.strokeStyle='#111f27';g.lineWidth=28;g.stroke();
+ g.strokeStyle='#7b9991';g.lineWidth=12;g.stroke();
+ g.strokeStyle='#d0c297';g.lineWidth=3;g.stroke();
+ // Pedra polida, canteiros e círculos ornamentais: arquitetura do Teamfight.
+ g.save();g.clip();
+ const tiles=60;
+ for(let y=-355;y<260;y+=tiles)for(let x=-230;x<460;x+=tiles){
+  g.fillStyle=(Math.floor(x/tiles)+Math.floor(y/tiles))%2?'#4d6764':'#556d68';
+  g.fillRect(x,y,tiles-3,tiles-3);
+ }
  g.restore();
+ drawSprite(g,'inlay',0,0,318,318,.90);
+ drawSprite(g,'fountain',0,0,194,194);
+ if(!hasSprite('fountain')){
+  techRing(g,0,0,92,color,7);techRing(g,0,0,62,'#badad0',4);
+  techPolygon(g,0,0,47,8,Math.PI/8);g.fillStyle='#164658';g.fill();
+ }
+ g.restore();
+ // Plataforma do núcleo é separada da fonte e não tampa corredores.
+ drawSprite(g,'inlay',core.x,core.y,160,160,.80);
+ techRing(g,core.x,core.y,56,color+'88',3);
 }
 function techWall(g,w){
- // A geometria pintada é EXATAMENTE o segmento físico verificado pelo motor.
- const x0=w.ax,y0=w.ay,x1=w.bx,y1=w.by,half=w.halfWidth;
+ // Barricada rochosa alta. Uma única espinha de colisão corresponde à faixa
+ // escura no chão; rochas decorativas não fingem ser novas paredes.
+ const dx=w.bx-w.ax,dy=w.by-w.ay,len=Math.hypot(dx,dy);
  g.save();g.lineCap='round';g.lineJoin='round';
- g.beginPath();g.moveTo(x0+3,y0+6);g.lineTo(x1+3,y1+6);
- g.strokeStyle='#03152294';g.lineWidth=half*2+14;g.stroke();
- g.beginPath();g.moveTo(x0,y0);g.lineTo(x1,y1);
- g.strokeStyle='#7393a1';g.lineWidth=half*2+7;g.stroke();
- g.strokeStyle='#223d52';g.lineWidth=half*2+1;g.stroke();
- g.strokeStyle='#426476';g.lineWidth=half*1.20;g.stroke();
- g.strokeStyle='#7cbdc5aa';g.lineWidth=2;g.stroke();
- for(const p of [{x:x0,y:y0},{x:x1,y:y1}]){
-  techPolygon(g,p.x,p.y,half+6,6,Math.PI/6);
-  g.fillStyle='#193447';g.fill();g.strokeStyle='#6d91a2';g.lineWidth=2;g.stroke();
-  techPolygon(g,p.x,p.y,half*.45,4,Math.PI/4);
-  g.fillStyle='#4dabb7';g.fill();
-  techPolygon(g,p.x,p.y,half*.19,4,Math.PI/4);
-  g.fillStyle='#c3f0d9';g.fill();
+ g.beginPath();g.moveTo(w.ax+5,w.ay+9);g.lineTo(w.bx+5,w.by+9);
+ g.strokeStyle='#091b20b8';g.lineWidth=w.halfWidth*2+15;g.stroke();
+ g.beginPath();g.moveTo(w.ax,w.ay);g.lineTo(w.bx,w.by);
+ g.strokeStyle='#263e40';g.lineWidth=w.halfWidth*2+5;g.stroke();
+ g.strokeStyle='#667f78';g.lineWidth=w.halfWidth*2-4;g.stroke();
+ const n=Math.max(2,Math.round(len/51));
+ for(let i=0;i<=n;i++){
+  const t=i/n,x=w.ax+dx*t,y=w.ay+dy*t;
+  const shift=Math.sin(i*7.1)*3.4;
+  if(!drawSprite(g,'rock',x-dy/len*shift,y+dx/len*shift,60,56,.99)){
+   techPolygon(g,x,y,27,7,i*.5);g.fillStyle='#425f60';g.fill();g.strokeStyle='#8ca9a0';g.lineWidth=3;g.stroke();
+  }
  }
  g.restore();
 }
 function techObstacle(g,o){
- const r=o.r,color='#6bc9cb',x=o.x,y=o.y;
- g.save();g.translate(x,y);
- g.shadowColor='#2f9cba66';g.shadowBlur=10;
- techPolygon(g,3,5,r+4,6,Math.PI/6);
- g.fillStyle='#081b2e';g.fill();g.shadowBlur=0;
- techPolygon(g,0,0,r,6,Math.PI/6);
- g.fillStyle=o.kind==='rock'?'#1a4054':'#25475c';
- g.fill();g.strokeStyle='#59869c';g.lineWidth=3;g.stroke();
- techPolygon(g,0,0,r*.73,6,Math.PI/6);
- g.fillStyle='#254c60';g.fill();g.strokeStyle='#6a9eab';g.lineWidth=1.6;g.stroke();
- if(o.kind==='tree'){
-  techPolygon(g,0,-2,r*.37,4,Math.PI/4);
-  g.fillStyle='#3e8791';g.fill();g.strokeStyle=color;g.lineWidth=2;g.stroke();
-  techRing(g,0,-2,r*.16,'#a1f9e7',2);
- }else{
-  techPolygon(g,0,0,r*.34,6);
-  g.fillStyle='#173447';g.fill();g.strokeStyle=color;g.lineWidth=2;g.stroke();
-  techPolygon(g,0,0,r*.14,4,Math.PI/4);
-  g.fillStyle='#85e9e4';g.fill();
- }
- g.restore();
+ if(drawSprite(g,'rock',o.x,o.y,o.r*2.6,o.r*2.4))return;
+ g.save();techPolygon(g,o.x,o.y,o.r,7);g.fillStyle='#4e6e68';g.fill();
+ g.strokeStyle='#879e93';g.lineWidth=3;g.stroke();g.restore();
 }
 function drawTerrain(){
  const c=document.createElement('canvas');c.width=E.W;c.height=E.H;
  const g=c.getContext('2d');
- // Fundo da arena clássica: azul-marinho, profundidade discreta e grade sutil.
- const bg=g.createRadialGradient(E.W*.5,E.H*.50,50,E.W*.5,E.H*.50,1850);
- bg.addColorStop(0,'#1c4152');bg.addColorStop(.52,'#102b3b');bg.addColorStop(1,'#081a2b');
- g.fillStyle=bg;g.fillRect(0,0,E.W,E.H);
- g.save();g.strokeStyle='#91c7d512';g.lineWidth=1;
- for(let x=48;x<E.W;x+=96){g.beginPath();g.moveTo(x,0);g.lineTo(x,E.H);g.stroke();}
- for(let y=48;y<E.H;y+=96){g.beginPath();g.moveTo(0,y);g.lineTo(E.W,y);g.stroke();}
- g.restore();
- // Somente as três faixas jogáveis da Rift. Nenhuma estrada extra na selva.
+ g.fillStyle='#193833';g.fillRect(0,0,E.W,E.H);
+ if(hasSprite('ground')){
+  const p=g.createPattern(sprites.ground,'repeat');
+  if(p){g.fillStyle=p;g.fillRect(0,0,E.W,E.H);}
+ }
+ // A água cruza a mid perpendicularmente e organiza visualmente a jungle;
+ // é atravessável, como no Wild Rift, nunca vira uma quarta rota.
+ const river=[{x:980,y:20},{x:1100,y:400},{x:1300,y:785},{x:1635,y:1230},
+              {x:1835,y:1580},{x:2080,y:2010},{x:2310,y:2480}];
  g.lineCap='round';g.lineJoin='round';
+ for(const [width,color] of [[224,'#102d33a8'],[180,'#385956'],[146,'#244954'],[113,'#2d6370']]){
+  techRoute(g,river);g.strokeStyle=color;g.lineWidth=width;g.stroke();
+ }
+ // Clareiras isoladas para monstros: não desenhar caminhos de jungle como lanes.
+ for(const camp of S.camps){
+  const r=camp.kind==='boss'?126:99;
+  g.save();g.translate(camp.x,camp.y);g.rotate((camp.x+camp.y)*.0001);
+  g.fillStyle='#40594a';g.beginPath();g.ellipse(0,0,r*1.12,r*.75,0,0,TAU);g.fill();
+  g.strokeStyle='#79867a6c';g.lineWidth=9;g.stroke();g.restore();
+ }
+ // ÚNICAS três rotas pavimentadas, bem separadas e com largura constante.
  for(let lane=0;lane<3;lane++){
   const pts=E.ROUTE_PATHS[lane];
-  for(const [width,color] of [
-   [242,'#132d3d'],[231,'#5c8593'],[221,'#25465a'],[210,'#385569']
-  ]){
+  for(const [width,color] of [[255,'#18332f'],[235,'#233d3a'],[221,'#7c8880'],[212,'#626e68']]){
    techRoute(g,pts);g.lineWidth=width;g.strokeStyle=color;g.stroke();
   }
-  // Detalhe de sinalização muito discreto, poucas marcas por rota.
-  for(const t of [.20,.45,.70,.89]){
+  // Lajotas discretas no sentido do fluxo, não linhas geométricas contínuas.
+  for(let t=.025;t<.99;t+=.026){
    const p=E.pathPos(lane,t),a=E.pathPos(lane,Math.max(0,t-.004)),
-      b=E.pathPos(lane,Math.min(1,t+.004));
-   const angle=Math.atan2(b.y-a.y,b.x-a.x);
-   g.save();g.translate(p.x,p.y);g.rotate(angle+Math.PI/4);
-   g.strokeStyle='#b5dbc37d';g.lineWidth=1.7;
-   g.strokeRect(-9,-9,18,18);g.restore();
+    b=E.pathPos(lane,Math.min(1,t+.004)),angle=Math.atan2(b.y-a.y,b.x-a.x);
+   g.save();g.translate(p.x,p.y);g.rotate(angle);
+   g.fillStyle=(Math.round(t*100)%3===0)?'#a4b3a533':'#233f3c31';
+   g.fillRect(-13,-68,26,136);
+   g.restore();
   }
  }
- // Acampamentos no chão da selva, não vias adicionais.
- for(const camp of S.camps){
-  const r=camp.kind==='boss'?53:39;
-  techRing(g,camp.x,camp.y,r,'#5c9daa8c',2);
-  techPolygon(g,camp.x,camp.y,r*.65,6,Math.PI/6);
-  g.fillStyle='#1a3b4c';g.fill();g.strokeStyle='#74b6bf76';g.lineWidth=1.5;g.stroke();
-  techPolygon(g,camp.x,camp.y,r*.20,4,Math.PI/4);
-  g.fillStyle='#6ad4c558';g.fill();
+ // Três passagens curtas da PRAÇA até os três portões de saída, sem
+ // sobreposição de rotas em cima do núcleo.
+ const gateways=[[{x:445,y:1840},{x:440,y:1360}],
+                 [{x:600,y:1910},{x:760,y:1750}],
+                 [{x:635,y:2240},{x:1020,y:2180}]];
+ for(const side of [0,1]){
+  const rot=p=>side===0?p:{x:E.W-p.x,y:E.H-p.y};
+  for(const pair of gateways){
+   const pts=pair.map(rot);
+   for(const [w,col] of [[178,'#263e3a'],[150,'#667872']]){
+    techRoute(g,pts);g.strokeStyle=col;g.lineWidth=w;g.stroke();
+   }
+  }
  }
- for(let side=0;side<2;side++)techBase(g,side);
- // Os campos de camuflagem permanecem baixos e não tapam corredores.
+ // Plantas e pedras distribuídas simetricamente, longe dos corredores,
+ // das torres e dos monstros. Elementos baixos não têm hitbox enganosa.
+ let seed=21177;
+ const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
+ for(let i=0;i<175;i++){
+  const blue={x:150+random()*1510,y:120+random()*1210};
+  for(const p of [blue,{x:E.W-blue.x,y:E.H-blue.y}]){
+   if([0,1,2].some(l=>E.routeProjection(l,p).distance<E.LANE_HALF_WIDTH+58))continue;
+   if(S.structures.some(t=>dist(t,p)<t.r+98))continue;
+   if(S.camps.some(t=>dist(t,p)<125))continue;
+   if(E.HOME.some(h=>dist(h,p)<230))continue;
+   if(S.walls.some(w=>E.pointToWall(p,w)<w.halfWidth+35))continue;
+   const r=23+random()*23;
+   drawSprite(g,'bush',p.x,p.y,r*2.3,r*1.8,.63);
+  }
+ }
  for(const b of S.brushes){
-  g.beginPath();g.arc(b.x,b.y,b.r,0,TAU);
-  g.fillStyle='#4f9a8818';g.fill();
-  g.strokeStyle='#67b3a54c';g.lineWidth=1.7;g.stroke();
-  for(let i=0;i<5;i++){
-   const a=TAU*i/5,px=b.x+Math.cos(a)*b.r*.60,py=b.y+Math.sin(a)*b.r*.60;
-   techPolygon(g,px,py,7,6,Math.PI/6);
-   g.fillStyle='#70b5a75b';g.fill();
-  }
+  // Arbustos de camuflagem são visíveis como moitas, não círculos invisíveis.
+  drawSprite(g,'bush',b.x-b.r*.38,b.y,b.r*2,b.r*1.7,.95);
+  drawSprite(g,'bush',b.x+b.r*.38,b.y+9,b.r*2,b.r*1.7,.93);
  }
- // Primeiro as paredes CONTÍNUAS que bloqueiam fisicamente; depois pilares isolados.
  for(const w of S.walls)techWall(g,w);
  for(const o of S.obstacles)techObstacle(g,o);
+ for(let side=0;side<2;side++)techBase(g,side);
  terrain=c;
 }
-function visible(x,y,r=70){return x+r>S.camera.x&&y+r>S.camera.y&&x-r<S.camera.x+vw&&y-r<S.camera.y+vh}
+function visible(x,y,r=70){
+ return x+r>S.camera.x&&y+r>S.camera.y&&
+  x-r<S.camera.x+worldVW&&y-r<S.camera.y+worldVH;
+}
 function bar(x,y,r,hp,max,side,width=46){
  const pct=clamp(hp/max,0,1);ctx.fillStyle='#00141ce5';ctx.fillRect(x-width/2,y-r-20,width,6);
  ctx.fillStyle=side===0?'#79ebc9':'#fb89a3';ctx.fillRect(x-width/2,y-r-20,width*pct,6);
@@ -209,37 +248,32 @@ function manaBar(x,y,r,mana,max,width=55){
  ctx.strokeStyle='#c8d9f180';ctx.lineWidth=.7;ctx.strokeRect(left,top,width,5);
 }
 function drawStructure(o,t){
- if(!visible(o.x,o.y,120))return;
+ if(!visible(o.x,o.y,115))return;
  const col=E.SIDE[o.side],isCore=o.kind==='core';
  if(o.kind==='tower'&&o.hp<=0)return;
- const r=isCore?44:28;
  if(o.side!==S.hero?.side&&o.hp>0&&S.hero?.hp>0&&dist(S.hero,o)<o.range+135){
-  ctx.save();ctx.globalAlpha=.24;
-  circle(o.x,o.y,o.range,null,'#e9a0a6',1.6);
+  ctx.save();ctx.globalAlpha=.18;
+  circle(o.x,o.y,o.range,null,'#e9a0a6',1.5);
   ctx.restore();
  }
  ctx.save();ctx.translate(o.x,o.y);
- // Plataformas e cristais no mesmo estilo geométrico da Arena Teamfight.
- ctx.shadowColor=o.side===0?'#50cbd6a0':'#ed6e96a0';ctx.shadowBlur=16;
- techPolygon(ctx,0,4,r+8,8,Math.PI/8);
- ctx.fillStyle='#0c2030';ctx.fill();
- ctx.shadowBlur=0;
- techPolygon(ctx,0,0,r+3,8,Math.PI/8);
- ctx.fillStyle='#203d51';ctx.fill();ctx.strokeStyle='#668fa2';ctx.lineWidth=3;ctx.stroke();
- techRing(ctx,0,0,r*.77,col,2.5);
- const top=isCore?-86:-61;
- ctx.beginPath();
- ctx.moveTo(0,top);ctx.lineTo(r*.44,-r*.8);
- ctx.lineTo(r*.27,-5);ctx.lineTo(-r*.27,-5);ctx.lineTo(-r*.44,-r*.8);
- ctx.closePath();
- ctx.fillStyle=o.side===0?'#2e8796':'#8d405c';
- ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=2.8;ctx.stroke();
- ctx.beginPath();
- ctx.moveTo(0,top+5);ctx.lineTo(r*.19,-r*.91);
- ctx.lineTo(0,-11);ctx.lineTo(-r*.19,-r*.91);ctx.closePath();
- ctx.fillStyle=col;ctx.fill();
- techRing(ctx,0,-r*.61,r*.16,'#d8ffff',1.8);
- bar(0,top-4,0,o.hp,o.maxHp,o.side,isCore?96:72);
+ // Torre = construção legível, não um ícone de UI gigantesco.
+ if(isCore){
+  ctx.shadowColor=col;ctx.shadowBlur=20;
+  if(!drawSprite(ctx,'core',0,-34,118,133)){
+   techPolygon(ctx,0,0,48,7);ctx.fillStyle=col;ctx.fill();
+  }
+  ctx.shadowBlur=0;
+  bar(0,-128,0,o.hp,o.maxHp,o.side,89);
+ }else{
+  ctx.shadowColor=col;ctx.shadowBlur=9;
+  if(!drawSprite(ctx,'tower',0,-26,77,96)){
+   techPolygon(ctx,0,-20,32,7);ctx.fillStyle='#3e6768';ctx.fill();
+   techPolygon(ctx,0,-44,16,5);ctx.fillStyle=col;ctx.fill();
+  }
+  ctx.shadowBlur=0;
+  bar(0,-85,0,o.hp,o.maxHp,o.side,65);
+ }
  ctx.restore();
 }
 function drawMinion(u,t){
