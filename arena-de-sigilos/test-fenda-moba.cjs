@@ -24,9 +24,9 @@ assert.equal(state.structures.filter(u=>u.kind==='tower').length,18);
 assert.equal(E.LANE_HALF_WIDTH*2,216);
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=4.7')&&
- html.includes('fenda-team-ai.js?v=4.7')&&
- html.includes('fenda-view.js?v=4.7'),'O site deve carregar todos os sistemas da 4.7.');
+assert.ok(html.includes('fenda-engine.js?v=4.8')&&
+ html.includes('fenda-team-ai.js?v=4.8')&&
+ html.includes('fenda-view.js?v=4.8'),'O site deve carregar todos os sistemas da 4.8.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -56,6 +56,47 @@ const startingHp=tower.hp;
 assert.equal(E.focusTower(controlled,tower).ok,true,'Não consegue selecionar torre');
 for(let i=0;i<12;i++)E.step(.05,{x:0,y:0});
 assert.ok(tower.hp<startingHp,'Ataque básico não causa dano à torre');
+// Controle de mouse no PC: clique direito seleciona alvo e AA é repetido após perseguir.
+const view=read('fenda-view.js'),css=read('fenda.css');
+assert.ok(view.includes('if(e.button===2)issueRightClick(e.clientX,e.clientY)'),
+ 'Clique direito deve emitir uma ordem de ataque ou deslocamento.');
+assert.ok(view.includes('E.autoAttack(S.hero);')&&
+ view.includes('pickAttackTarget(clientX,clientY)'), 'Sem comando de ataque por alvo');
+assert.ok(!view.includes('else if(e.button===0&&!selectTowerAt'),
+ 'Clique esquerdo não deve atacar automaticamente no PC');
+assert.ok(css.includes('.stage.fenda-on #fireBtn')&&css.includes('pointer: fine'),
+ 'O botão AA deve estar oculto para mouse, sem afetar controles touch');
+E.start('lyria');
+const player=state.hero;
+const target=state.units.find(u=>u.kind==='hero'&&u.side===1);
+state.units=[player,target];player.x=800;player.y=900;
+target.x=1145;target.y=900;target.stun=100;
+E.refreshVision(true);
+const command=E.commandAttack(player,target);
+assert.equal(command.ok,true,'O comando deve aceitar um inimigo visível, mesmo fora de alcance');
+const initialEnemyHp=target.hp,initialPlayerX=player.x;
+for(let frame=0;frame<150&&target.hp===initialEnemyHp;frame++){
+ const enemy=player.commandTarget;
+ const d=enemy?distance(player,enemy):0;
+ const move=enemy&&d>E.attackRange(player)+enemy.r-5?
+  E.norm(enemy.x-player.x,enemy.y-player.y):{x:0,y:0};
+ E.step(.05,move);
+ if(player.commandTarget&&E.isAttackCommandValid(player,player.commandTarget)&&
+    distance(player,target)<=E.attackRange(player)+target.r+2)E.autoAttack(player);
+}
+assert.ok(player.x>initialPlayerX,'O jogador não perseguiu o alvo');
+assert.ok(target.hp<initialEnemyHp,'O AA automático não atingiu o alvo após persegui-lo');
+E.clearAttackCommand(player);
+assert.equal(player.commandTarget,null,'Comando de ataque não cancelado');
+// Espaçamento e posicionamento estrutural: a torre deve permanecer fora da pista.
+E.start('lyria');
+for(const t of state.structures.filter(o=>o.kind==='tower')){
+ assert.ok(E.routeProjection(t.lane,t).distance>=119,'Torre sobre a rota: '+t.id);
+}
+for(const camp of state.camps){
+ assert.ok(Math.min(...[0,1,2].map(l=>E.routeProjection(l,camp).distance))>=170,
+ 'Monstro ocupando uma lane: '+camp.id);
+}
 // Contexto neutro e composição completa: avaliar engage.
 E.start('lyria');
 const allies=state.units.filter(u=>u.kind==='hero'&&u.side===0);
