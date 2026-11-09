@@ -5,6 +5,7 @@ if(!C){console.error('Fenda: núcleo de campeões não carregado');return;}
 const W=2750,H=1900,TAU=Math.PI*2;
 // Um deslocamento base-a-base deve durar ~27–30 s, não 11–13 s como na v4.1.
 const MOBA_WALK_SCALE=.55;
+const LANE_HALF_WIDTH=97,LANE_MINION_SPREAD=24;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const norm=(x,y)=>{const n=Math.hypot(x,y)||1;return{x:x/n,y:y/n}};
 const SIDE=['#69e6e4','#ed829e'],HOME=[{x:205,y:1675},{x:2545,y:210}];
@@ -136,17 +137,16 @@ function buildMap(){
  ];
  for(let side=0;side<2;side++){
   const base=HOME[side];
-  state.structures.push({kind:'core',side,x:base.x,y:base.y,maxHp:1850,hp:1850,r:56,atk:53,range:220,attackCd:0,id:'core'+side});
+  state.structures.push({kind:'core',side,x:base.x,y:base.y,maxHp:1850,hp:1850,r:56,atk:53,range:375,attackCd:0,id:'core'+side});
   for(let lane=0;lane<3;lane++){
    // tier 1: externa, mais próxima do meio; tier 2: intermediária; tier 3: interna.
    // A ordem física precisa acompanhar a ordem de vulnerabilidade das torres.
-   const fractions=side===0?[.40,.26,.12]:[.60,.74,.88];
+   const fractions=side===0?[.37,.23,.095]:[.63,.77,.905];
    for(let i=0;i<fractions.length;i++){
-    let p=pathPos(lane,fractions[i]),d=side===0?1:-1;
-    // Torres da mesma equipe não ocupam exatamente o mesmo centro.
-    p={x:p.x+d*(lane===1?18:0),y:p.y+(lane===1?20:lane===0?22:-22)};
+    // Torre alinhada ao centro real da rota, com passagem pelas laterais.
+    const p=pathPos(lane,fractions[i]);
     state.structures.push({kind:'tower',side,lane,tier:i+1,x:p.x,y:p.y,
-      r:27,hp:side===0?880:880,maxHp:880,atk:58,range:205,attackCd:0,
+      r:27,hp:880,maxHp:880,atk:58,range:360,attackCd:0,
       id:'tower'+side+'-'+lane+'-'+i});
    }
   }
@@ -174,7 +174,7 @@ function buildMap(){
  for(let attempt=0;attempt<900&&state.obstacles.length<48;attempt++){
   const x=140+rand()*(W-280),y=135+rand()*(H-270);
   const r=22+rand()*21;
-  if(onRoad(x,y,r+90)||HOME.some(h=>Math.hypot(h.x-x,h.y-y)<210)||
+  if(onRoad(x,y,r+LANE_HALF_WIDTH+15)||HOME.some(h=>Math.hypot(h.x-x,h.y-y)<210)||
      state.camps.some(c=>Math.hypot(c.x-x,c.y-y)<r+115)||
      state.obstacles.some(o=>Math.hypot(o.x-x,o.y-y)<r+o.r+25))continue;
   state.obstacles.push({kind:rand()>.35?'tree':'rock',x,y,r,solid:true});
@@ -688,7 +688,7 @@ function moveMinion(m,dt){
  if(next>=0&&next<points.length){
   const previous=points[m.pathIndex],dest=points[next];
   const facing=norm(dest.x-previous.x,dest.y-previous.y);
-  const offset=(m.slot-1.5)*14;
+  const offset=(m.slot-1.5)*LANE_MINION_SPREAD;
   const target={x:dest.x-facing.y*offset,y:dest.y+facing.x*offset};
   if(moveToward(m,target,dt))m.pathIndex=next;
  }else moveToward(m,HOME[1-m.side],dt);
@@ -1349,6 +1349,6 @@ function recall(){
  return true;
 }
 window.FendaEngine={state,W,H,TAU,HOME,PATHS,SIDE,ITEMS,hData,skillDef,
- start,step,cast,autoAttack,focusTower,buyItem,recall,damage,heal,announce,makeWave,
+ start,step,cast,autoAttack,focusTower,buyItem,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
 })();
