@@ -13,7 +13,7 @@ hud.innerHTML='<div class="fenda-meta"><div id="fendaTopScore">✦ AZUL 0 × 0 R
 '<div class="fenda-actions"><button id="fendaShopBtn">⚒ LOJA</button><button id="fendaRecallBtn">⌂ RETORNO</button><button id="fendaPauseBtn">Ⅱ</button></div>'+
 '<button id="fendaTowerBtn" title="Priorizar obelisco no AA" aria-label="Atacar torre ou núcleo com o ataque básico">⬡<small>TORRE</small></button>'+
 '<canvas id="fendaMinimap" width="220" height="152" aria-label="Minimapa tático"></canvas>'+
-'<div id="fendaInfo">3 ROTAS · DESTRUA O NÚCLEO INIMIGO</div><div id="fendaNotice"></div>'+
+'<div id="fendaInfo">3 ROTAS · DESTRUA O NÚCLEO INIMIGO</div><div id="fendaObjectives">SERPE · TITÃ</div><div id="fendaNotice"></div>'+
 '<button id="fendaWardBtn" aria-label="Colocar sentinela de visão" title="Coloca visão à frente do campeão · Tecla V">◉<small>VISÃO</small><em id="fendaWardCD"></em></button>';
 stage.appendChild(hud);
 const shop=document.createElement('div');shop.id='fendaShop';
@@ -378,6 +378,26 @@ function minimap(){
  mc.save();mc.translate(7,7);mc.scale(206/E.W,138/E.H);mc.lineCap='round';mc.lineJoin='round';
  for(const path of E.PATHS){mc.beginPath();path.forEach((p,i)=>i?mc.lineTo(p.x,p.y):mc.moveTo(p.x,p.y));
   mc.strokeStyle='#95aaa0';mc.lineWidth=48;mc.stroke();}
+ // Sem visão não aparecem inimigos nem objetivo; mapa explorado fica escurecido.
+ const step=E.VISION_CELL*3;
+ for(let y=0;y<E.H;y+=step)for(let x=0;x<E.W;x+=step){
+  const px=x+step*.5,py=y+step*.5;
+  if(E.isPointVisible(0,{x:px,y:py}))continue;
+  const ix=Math.min(E.VISION_COLS-1,Math.floor(px/E.VISION_CELL));
+  const iy=Math.min(E.VISION_ROWS-1,Math.floor(py/E.VISION_CELL));
+  const discovered=S.seen[0]?.[iy*E.VISION_COLS+ix];
+  mc.fillStyle=discovered?'#061827a8':'#03101de6';
+  mc.fillRect(x,y,step+2,step+2);
+ }
+ for(const camp of S.camps){
+  if(camp.kind!=='boss'||camp.hp<=0||camp.unlock&&S.time<camp.unlock||
+      !E.isPointVisible(0,camp))continue;
+  mc.fillStyle=camp.color;mc.beginPath();mc.arc(camp.x,camp.y,43,0,TAU);mc.fill();
+ }
+ for(const ward of S.wards){
+  if(ward.side!==0)continue;
+  mc.fillStyle='#e1ffd9';mc.beginPath();mc.arc(ward.x,ward.y,28,0,TAU);mc.fill();
+ }
  for(const o of S.structures){if(o.hp<=0)continue;mc.fillStyle=E.SIDE[o.side];
   mc.fillRect(o.x-20,o.y-20,o.kind==='core'?40:28,o.kind==='core'?40:28);}
  for(const u of S.units){if(u.hp<=0||u.side===1&&!E.visibleTo(0,u))continue;mc.fillStyle=u.side===0?'#5cece3':'#ff7e9e';
@@ -396,7 +416,20 @@ function hudUpdate(){
  $('fendaHP').style.width=(h.hp/h.maxHp*100)+'%';
  $('fendaMana').style.width=(h.energy/(100+h.items.filter(i=>i==='cell').length*30)*100)+'%';
  $('fendaXP').style.width=(h.level<12?h.xp/(42+h.level*24)*100:100)+'%';
- const towers=S.structures.filter(s=>s.kind==='tower'&&s.hp>0);
+ const towerList=S.structures.filter(s=>s.kind==='tower'&&s.hp>0);
+ const bossStatus=id=>{
+  const c=S.camps.find(o=>o.id===id);
+  if(!c)return '—';
+  if(S.time<c.unlock)return Math.ceil(c.unlock-S.time)+'s';
+  if(c.hp<=0)return Math.ceil(c.respawn)+'s';
+  return 'DISPONÍVEL';
+ };
+ const blueBuff=S.teamBuffs[0],buffNames=[];
+ if(blueBuff.serpe>S.time)buffNames.push('SERPE '+Math.ceil(blueBuff.serpe-S.time)+'s');
+ if(blueBuff.titan>S.time)buffNames.push('TITÃ '+Math.ceil(blueBuff.titan-S.time)+'s');
+ $('fendaObjectives').textContent='SERPE '+bossStatus('serpe')+' · TITÃ '+bossStatus('titan')+
+   (buffNames.length?' · BÊNÇÃO '+buffNames.join(' / '):'');
+ const towers=towerList;
  $('fendaInfo').textContent='OBELISCOS · AZUL '+towers.filter(t=>t.side===0).length+
    ' / RUBRO '+towers.filter(t=>t.side===1).length+' · '+h.cs+' tropas';
  $('fendaNotice').style.display=S.time<S.noticeUntil?'block':'none';$('fendaNotice').textContent=S.notice;
@@ -423,6 +456,11 @@ function hudUpdate(){
  towerBtn.disabled=h.hp<=0||targetTowers.length===0;
  towerBtn.classList.toggle('available',targetTowers.length>0&&h.hp>0);
  towerBtn.classList.toggle('focused',!!h.focusTarget&&h.focusUntil>S.time&&h.focusTarget.hp>0);
+ const wardBtn=$('fendaWardBtn');
+ wardBtn.disabled=h.hp<=0||h.visionCd>0;
+ wardBtn.classList.toggle('available',h.hp>0&&h.visionCd<=0);
+ $('fendaWardCD').textContent=h.visionCd>0?Math.ceil(h.visionCd)+'s':'';
+
 }
 function shopRender(){
  const h=S.hero;if(!h)return;
@@ -450,12 +488,12 @@ function chooseHero(){
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice();
  $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 4.3</div><h2>FENDA DOS SIGILOS</h2>'+
- '<p>Três rotas, tropas, obeliscos, selva e Núcleos Sigilares. Ataque os obeliscos com o botão TORRE próximo ao AA; abra uma rota para atingir o Núcleo.</p>'+
+ '<p>Três rotas, tropas, obeliscos e grandes objetivos na selva. Explore a névoa, esconda-se nas moitas, instale sentinelas de visão e derrube os Núcleos.</p>'+
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
- '<div class="teamfight-tip">5×5 com aliados e inimigos de IA · 3 rotas · torres · ondas de tropas · ouro e XP · loja · recall · objetivos astrais · minimapa.</div>'+
+ '<div class="teamfight-tip">5×5 com IA · 3 rotas · névoa de guerra · moitas · visão (V) · jungle e ganks · buffs da Serpe e do Titã · loja · ouro e XP.</div>'+
  '<div class="actions" style="margin-top:10px"><button class="primary" id="playFenda">▶ JOGAR FENDA 5×5</button><button class="secondary" id="playClassic">MODO ARENA RÁPIDA</button></div>'+
- '<p style="font-size:10px;margin:9px 0 0">Celular: joystick e Q/W/E/R. PC: clique direito para andar, Q/W/E/R habilidades, Espaço AA. B retorno, P loja. TAB alterna para WASD + 1/2/3/4.</p>';
+ '<p style="font-size:10px;margin:9px 0 0">Celular: joystick e Q/W/E/R. PC: clique direito para andar, Q/W/E/R habilidades, Espaço AA. B retorno, P loja, V sentinela de visão. TAB alterna para WASD + 1/2/3/4.</p>';
  for(const b of $('modalContent').querySelectorAll('[data-hero]'))b.onclick=()=>{C.setHeroChoice(b.dataset.hero);chooseHero()};
  $('playFenda').onclick=startGame;
  $('playClassic').onclick=()=>{S.mode='classic';stage.classList.remove('fenda-on');C.showClassic()};
@@ -590,6 +628,14 @@ function worldEnd(e){
  if(joy.ptr!==e.pointerId)return;joy.ptr=null;joy.x=joy.y=0;
  $('joy').classList.remove('active');$('joyKnob').style.transform='translate(-50%,-50%)';
 }
+function deployWard(){
+ if(S.mode!=='playing'||S.showPause||S.shopOpen||!S.hero)return;
+ const hero=S.hero,angle=hero.facing||-.68;
+ const x=hero.x+Math.cos(angle)*230,y=hero.y+Math.sin(angle)*230;
+ const result=E.placeWard(hero,x,y);
+ if(!result.ok)warn(result.reason);
+ hudUpdate();
+}
 function keyDown(e){
  if(S.mode!=='playing')return;
  const k=e.key.toLowerCase();
@@ -614,7 +660,8 @@ function keyDown(e){
   const kit=C.heroes[S.hero.id].skills.concat([C.heroes[S.hero.id].ultimate]);
   if(!E.cast(S.hero,kit[i]))warn('HABILIDADE INDISPONÍVEL OU EM RECARGA');return;
  }
- if(k==='b'){if(!E.recall())warn('RETORNO INDISPONÍVEL');}
+ if(k==='v')deployWard();
+ else if(k==='b'){if(!E.recall())warn('RETORNO INDISPONÍVEL');}
  else if(k==='p')toggleShop();
  else if(k==='escape')pause();
 }
@@ -663,6 +710,7 @@ window.addEventListener('keydown',keyDown);
 window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
 window.addEventListener('blur',()=>{keys.clear();joy.ptr=null;joy.x=joy.y=0});
 $('fendaShopBtn').onclick=toggleShop;$('fendaShopClose').onclick=toggleShop;
+$('fendaWardBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();deployWard()});
 $('fendaRecallBtn').onclick=()=>E.recall();$('fendaPauseBtn').onclick=pause;
 $('fendaTowerBtn').addEventListener('pointerdown',e=>{
  e.preventDefault();e.stopPropagation();
