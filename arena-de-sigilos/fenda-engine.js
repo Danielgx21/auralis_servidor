@@ -23,7 +23,9 @@ const ITEMS=[
  {id:'core',name:'Núcleo Ágil',price:620,stat:'-15% recarga',desc:'Habilidades disponíveis mais cedo',icon:'✦'}
 ];
 const state={mode:'menu',time:0,w:W,h:H,camera:{x:0,y:0},units:[],structures:[],projectiles:[],
- effects:[],jungle:[],camps:[],obstacles:[],hero:null,focused:null,kills:[0,0],wave:0,nextWave:4,
+ effects:[],jungle:[],camps:[],obstacles:[],wards:[],brushes:[],sight:[[],[]],seen:[null,null],
+ visionUpdate:-1,teamBuffs:[{serpe:0,titan:0},{serpe:0,titan:0}],
+ hero:null,focused:null,kills:[0,0],wave:0,nextWave:4,
  flash:0,score:0,marker:null,shopOpen:false,showPause:false,notice:'',noticeUntil:0,
  nextObjectives:50,buffUntil:0,win:null,selectedHero:'lyria',seq:0,sounds:true};
 const rando=(a,b)=>a+Math.random()*(b-a),hData=id=>C.heroes[id],skillDef=id=>C.skills[id];
@@ -47,8 +49,91 @@ function pathPos(lane,t){
  }
  return{...pts[pts.length-1]};
 }
+
+const VISION_CELL=65,VISION_COLS=Math.ceil(W/VISION_CELL),VISION_ROWS=Math.ceil(H/VISION_CELL);
+function brushAt(pos){
+ if(!pos)return null;
+ return state.brushes.find(b=>Math.hypot(pos.x-b.x,pos.y-b.y)<b.r)||null;
+}
+function createSightSource(x,y,r,ward=false){
+ return{x,y,r,ward};
+}
+function refreshVision(force=false){
+ if(!force&&state.visionUpdate>=0&&state.time-state.visionUpdate<.20)return;
+ state.visionUpdate=state.time;
+ for(let team=0;team<2;team++){
+  const sight=[];
+  for(const u of state.units){
+   if(u.hp<=0||u.side!==team)continue;
+   sight.push(createSightSource(u.x,u.y,u.kind==='hero'?u.vision||350:u.id==='siege'?235:210));
+  }
+  for(const obj of state.structures)
+   if(obj.hp>0&&obj.side===team)sight.push(createSightSource(obj.x,obj.y,obj.kind==='core'?300:250));
+  for(const ward of state.wards)if(ward.side===team)sight.push(createSightSource(ward.x,ward.y,ward.r,true));
+  state.sight[team]=sight;
+  const memory=state.seen[team];
+  if(!memory)continue;
+  for(const src of sight){
+   const x0=Math.max(0,Math.floor((src.x-src.r)/VISION_CELL)),x1=Math.min(VISION_COLS-1,Math.ceil((src.x+src.r)/VISION_CELL));
+   const y0=Math.max(0,Math.floor((src.y-src.r)/VISION_CELL)),y1=Math.min(VISION_ROWS-1,Math.ceil((src.y+src.r)/VISION_CELL));
+   for(let iy=y0;iy<=y1;iy++)for(let ix=x0;ix<=x1;ix++){
+    const x=(ix+.5)*VISION_CELL,y=(iy+.5)*VISION_CELL;
+    if((x-src.x)**2+(y-src.y)**2<(src.r+VISION_CELL*.5)**2)memory[iy*VISION_COLS+ix]=1;
+   }
+  }
+ }
+}
+function isPointVisible(team,pos){
+ if(!pos)return false;
+ const sources=state.sight[team]||[];
+ for(const src of sources){
+  const dx=pos.x-src.x,dy=pos.y-src.y;
+  if(dx*dx+dy*dy<=src.r*src.r)return true;
+ }
+ return false;
+}
+function visibleTo(team,object){
+ if(!object)return false;
+ if(object.side===team)return true;
+ if(object.kind==='core'||object.kind==='tower')return true; // Estruturas são conhecidas no mapa.
+ if(object.revealUntil&&object.revealUntil[team]>state.time)return true;
+ if(!isPointVisible(team,object))return false;
+ const brush=brushAt(object);
+ if(!brush)return true;
+ for(const src of state.sight[team]||[]){
+  const dx=src.x-object.x,dy=src.y-object.y;
+  if(dx*dx+dy*dy>src.r*src.r)continue;
+  const near=dx*dx+dy*dy<105*105;
+  if(src.ward||near||Math.hypot(src.x-brush.x,src.y-brush.y)<brush.r)return true;
+ }
+ return false;
+}
+function placeWard(hero,x,y){
+ if(state.mode!=='playing'||!hero||hero.hp<=0||hero.kind!=='hero')return{ok:false,reason:'CAMPEÃO INDISPONÍVEL'};
+ if(hero.visionCd>0)return{ok:false,reason:'VISÃO EM RECARGA'};
+ const pos={x:clamp(x,35,W-35),y:clamp(y,35,H-35)};
+ if(dist(hero,pos)>465)return{ok:false,reason:'LOCAL MUITO DISTANTE'};
+ state.wards=state.wards.filter(w=>w.until>state.time);
+ const existing=state.wards.filter(w=>w.side===hero.side);
+ if(existing.length>=3){
+  const oldest=existing.sort((a,b)=>a.until-b.until)[0];
+  state.wards=state.wards.filter(w=>w!==oldest);
+ }
+ hero.visionCd=48;
+ const ward={uid:++state.seq,side:hero.side,x:pos.x,y:pos.y,r:380,until:state.time+85,kind:'ward'};
+ state.wards.push(ward);refreshVision(true);
+ addEffect(ward.x,ward.y,hero.side===0?'#8ef1d4':'#f5a6bb',48,.55,'blast');
+ if(hero.controlled)announce('SENTINELA DE VISÃO INSTALADA · 85s',2);
+ return{ok:true,ward};
+}
+
 function buildMap(){
  state.structures=[];state.camps=[];state.obstacles=[];
+ state.brushes=[
+  {id:'veil-n',x:865,y:445,r:118},{id:'reed-n',x:1205,y:840,r:95},
+  {id:'veil-s',x:820,y:1180,r:114},{id:'reed-s',x:1510,y:1400,r:105},
+  {id:'thicket-n',x:1920,y:670,r:112},{id:'thicket-s',x:1900,y:1190,r:115}
+ ];
  for(let side=0;side<2;side++){
   const base=HOME[side];
   state.structures.push({kind:'core',side,x:base.x,y:base.y,maxHp:1850,hp:1850,r:56,atk:53,range:220,attackCd:0,id:'core'+side});
@@ -111,7 +196,7 @@ function makeHero(id,side,controlled=false){
  cooldowns:Object.fromEntries([...h.skills,h.ultimate].map(k=>[k,0])),
  stun:0,slow:0,shield:0,guard:0,invuln:0,marked:0,attackAnim:0,
  vision:350,death:0,respawn:0,recall:0,lastDamage:0,focus:null,
- aiTimer:rando(.6,1.8),kills:0,deaths:0,cs:0,dash:null,
+ aiTimer:rando(.6,1.8),visionCd:0,jungleGoal:null,gankUntil:0,kills:0,deaths:0,cs:0,dash:null,
  healthRegen:1.3,homeBuff:0,botLane:roles[id],cs:0,focusTarget:null,focusUntil:0,isRanged:!['vexor','orun'].includes(id)};
 }
 function createMinion(side,lane,type=0,slot=0){
@@ -130,6 +215,8 @@ function start(hero='lyria'){
  state.selectedHero=C.heroes[hero]?hero:'lyria';state.hero=null;state.structures=[];
  state.kills=[0,0];state.win=null;state.marker=null;state.nextWave=5;state.wave=0;
  state.shopOpen=false;state.showPause=false;state.buffUntil=0;state.score=0;state.seq=0;
+ state.wards=[];state.sight=[[],[]];state.seen=[new Uint8Array(VISION_COLS*VISION_ROWS),new Uint8Array(VISION_COLS*VISION_ROWS)];
+ state.visionUpdate=-1;state.teamBuffs=[{serpe:0,titan:0},{serpe:0,titan:0}];
  buildMap();
  const ids=Object.keys(C.heroes);
  const blue=[state.selectedHero,...ids.filter(id=>id!==state.selectedHero)];
@@ -263,7 +350,7 @@ function end(winner){
 }
 function nearestEnemy(u,range=Infinity,includeStructures=false){
  const team=u.side;
- const targets=living(1-team).filter(e=>dist(u,e)<=range+e.r);
+ const targets=living(1-team).filter(e=>dist(u,e)<=range+e.r&&visibleTo(team,e));
  if(includeStructures)targets.push(...state.structures.filter(t=>t.side!==team&&t.hp>0&&structureExposed(t)&&dist(u,t)<=range+t.r));
  targets.sort((a,b)=>{
   let v=dist(u,a)-dist(u,b);
@@ -291,16 +378,16 @@ function laneTarget(u,range){
  const side=1-u.side,lane=u.lane;
  const nearby=(v)=>v&&v.hp>0&&dist(u,v)<=range+v.r;
  const minions=living(side,'minion')
-  .filter(v=>v.lane===lane&&nearby(v)).sort((a,b)=>dist(u,a)-dist(u,b));
+  .filter(v=>v.lane===lane&&nearby(v)&&visibleTo(u.side,v)).sort((a,b)=>dist(u,a)-dist(u,b));
  if(minions.length)return minions[0];
  const structures=state.structures.filter(t=>t.side===side&&t.hp>0&&
    (t.kind==='core'&&laneCleared(side,lane)||t.kind==='tower'&&t.lane===lane&&structureExposed(t))&&nearby(t))
   .sort((a,b)=>(a.kind==='tower'?0:1)-(b.kind==='tower'?0:1)||dist(u,a)-dist(u,b));
  if(structures.length)return structures[0];
- const attackers=living(side,'hero').filter(nearby)
+ const attackers=living(side,'hero').filter(v=>nearby(v)&&visibleTo(u.side,v))
   .sort((a,b)=>dist(u,a)-dist(u,b));
  if(attackers.length)return attackers[0];
- return living(side,'minion').filter(nearby).sort((a,b)=>dist(u,a)-dist(u,b))[0]||null;
+ return living(side,'minion').filter(v=>nearby(v)&&visibleTo(u.side,v)).sort((a,b)=>dist(u,a)-dist(u,b))[0]||null;
 }
 function findAA(u){
  if(!u||u.hp<=0)return null;
@@ -361,7 +448,7 @@ function chooseEnemyForStructure(t){
      dist(t,aggro)<t.range+aggro.r)return aggro;
  t.aggroTarget=null;
  const enemies=living(1-t.side);
- const inRange=enemies.filter(u=>dist(u,t)<t.range+u.r);
+ const inRange=enemies.filter(u=>dist(u,t)<t.range+u.r&&visibleTo(t.side,u));
  const minions=inRange.filter(u=>u.kind==='minion');
  if(minions.length)minions.sort((a,b)=>dist(a,t)-dist(b,t));
  const champions=inRange.filter(u=>u.kind==='hero').sort((a,b)=>dist(a,t)-dist(b,t));
@@ -953,6 +1040,8 @@ function makeWave(){
 function step(dt,movement={x:0,y:0}){
  if(state.mode!=='playing'||state.showPause)return;
  dt=clamp(dt,0,.05);state.time+=dt;
+ state.wards=state.wards.filter(w=>w.until>state.time);
+ refreshVision();
  const hero=state.hero;
  if(hero&&hero.recall>0&&Math.hypot(movement.x,movement.y)>.07){
   hero.recall=0;announce('RETORNO CANCELADO: MOVIMENTO',1.2);
@@ -971,6 +1060,7 @@ function step(dt,movement={x:0,y:0}){
  for(const u of state.units){tickUnit(u,dt);if(state.mode!=='playing')break}
  if(state.mode!=='playing')return;
  separateUnits();
+ refreshVision(true);
  structureStep(dt);jungleStep(dt);tickProjectiles(dt);
  for(const f of state.effects)f.life-=dt;state.effects=state.effects.filter(f=>f.life>0);
  // Remove dead minions after a brief visible impact; keep heroes for respawn.
@@ -1004,5 +1094,5 @@ function recall(){
 }
 window.FendaEngine={state,W,H,TAU,HOME,PATHS,SIDE,ITEMS,hData,skillDef,
  start,step,cast,autoAttack,focusTower,buyItem,recall,damage,heal,announce,makeWave,
- living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,pushOutsideSolids,separateUnits,solidBodies};
+ living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
 })();
