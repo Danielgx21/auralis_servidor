@@ -691,7 +691,7 @@ function moveMinion(m,dt){
  }else moveToward(m,HOME[1-m.side],dt);
 }
 function respawn(u){
- u.jungleGoal=null;u.gankUntil=0;
+ u.jungleGoal=null;u.gankUntil=0;u.navPath=null;
  const home=HOME[u.side];
  const mid=pathPos(1,.11),dir=norm(mid.x-HOME[0].x,mid.y-HOME[0].y);
  const d=u.side===0?dir:{x:-dir.x,y:-dir.y};
@@ -769,12 +769,96 @@ function openBoss(){
  if(serpe&&serpe.hp>0&&state.time>=Math.max(serpe.unlock||0,108))return serpe;
  return null;
 }
+// Busca de caminhos A* em grade ampla para junglers e assistentes.
+// O desvio local resolve encontros curtos; a grade resolve obstáculos longos sem travar.
+const NAV_CELL=76,NAV_COLS=Math.ceil(W/NAV_CELL),NAV_ROWS=Math.ceil(H/NAV_CELL);
+function findJunglePath(u,goal){
+ const total=NAV_COLS*NAV_ROWS;
+ const from=(x,y)=>clamp(Math.floor(y/NAV_CELL),0,NAV_ROWS-1)*NAV_COLS+
+   clamp(Math.floor(x/NAV_CELL),0,NAV_COLS-1);
+ const point=idx=>({x:(idx%NAV_COLS+.5)*NAV_CELL,
+   y:(Math.floor(idx/NAV_COLS)+.5)*NAV_CELL});
+ const cells=new Uint8Array(total),fromNode=new Int32Array(total).fill(-1),score=new Float32Array(total).fill(Infinity);
+ const blocked=i=>{
+  if(cells[i])return cells[i]===2;
+  const pos=point(i),hit=nearSolids(pos.x,pos.y,100).some(o=>
+   dist(pos,o)<solidRadius(o)+u.r+7);
+  cells[i]=hit?2:1;return hit;
+ };
+ const start=from(u.x,u.y),rawGoal=from(goal.x,goal.y);
+ let destination=rawGoal;
+ if(blocked(destination)){
+  const gp=point(rawGoal);
+  let closest=Infinity,option=-1;
+  const iy=Math.floor(rawGoal/NAV_COLS),ix=rawGoal%NAV_COLS;
+  for(let r=1;r<=4;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
+   const x=ix+dx,y=iy+dy;
+   if(x<0||x>=NAV_COLS||y<0||y>=NAV_ROWS)continue;
+   const idx=y*NAV_COLS+x;
+   if(blocked(idx))continue;
+   const d=dist(point(idx),gp);
+   if(d<closest){closest=d;option=idx}
+  }
+  if(option<0)return[];
+  destination=option;
+ }
+ const open=[start],closed=new Uint8Array(total);
+ score[start]=0;fromNode[start]=start;
+ const heuristic=i=>dist(point(i),point(destination))/NAV_CELL;
+ const shifts=[[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]];
+ let iterations=0;
+ while(open.length&&iterations++<total*3){
+  let best=0,bestValue=Infinity;
+  for(let i=0;i<open.length;i++){
+   const node=open[i],value=score[node]+heuristic(node);
+   if(value<bestValue){bestValue=value;best=i}
+  }
+  const current=open.splice(best,1)[0];
+  if(current===destination)break;
+  if(closed[current])continue;
+  closed[current]=1;
+  const x=current%NAV_COLS,y=Math.floor(current/NAV_COLS);
+  for(const [dx,dy] of shifts){
+   const nx=x+dx,ny=y+dy;
+   if(nx<0||ny<0||nx>=NAV_COLS||ny>=NAV_ROWS)continue;
+   const next=ny*NAV_COLS+nx;
+   if(closed[next]||blocked(next))continue;
+   if(dx&&dy&&(blocked(y*NAV_COLS+nx)||blocked(ny*NAV_COLS+x)))continue;
+   const cost=score[current]+(dx&&dy?1.4142:1);
+   if(cost<score[next]){
+    score[next]=cost;fromNode[next]=current;open.push(next);
+   }
+  }
+ }
+ if(fromNode[destination]<0)return[];
+ const result=[];
+ let current=destination,limit=total;
+ while(current!==start&&limit-->0){result.push(point(current));current=fromNode[current];if(current<0)break;}
+ result.reverse();
+ if(result.length>1&&dist(u,result[0])<40)result.shift();
+ return result;
+}
+function moveViaJungle(u,goal,dt){
+ const stale=!u.navPath||!u.navPath.length||u.navIndex>=u.navPath.length||
+  state.time>(u.navUntil||0)||!u.navDestination||dist(u.navDestination,goal)>65;
+ if(stale){
+  u.navDestination={x:goal.x,y:goal.y};
+  u.navPath=findJunglePath(u,goal);
+  u.navIndex=0;u.navUntil=state.time+5;
+ }
+ let point=u.navPath[u.navIndex];
+ while(point&&dist(u,point)<24){u.navIndex++;point=u.navPath[u.navIndex]}
+ if(!point)point=goal;
+ moveToward(u,point,dt,.91);
+}
 function approachCreep(u,c,dt){
  if(!c||c.hp<=0)return false;
  const d=dist(u,c),range=attackRange(u)+solidRadius(c)-4;
  if(d>range){
-  const n=norm(c.x-u.x,c.y-u.y),approach=Math.max(8,range-9);
-  moveToward(u,{x:c.x-n.x*approach,y:c.y-n.y*approach},dt,.94);
+  const base=HOME[u.side],n=norm(c.x-base.x,c.y-base.y);
+  const approach=Math.max(12,range-13);
+  const goal={x:c.x-n.x*approach,y:c.y-n.y*approach};
+  moveViaJungle(u,goal,dt);
  }else{
   u.facing=Math.atan2(c.y-u.y,c.x-u.x);
   if(u.attackCd<=0&&!u.casting)autoAttack(u);
