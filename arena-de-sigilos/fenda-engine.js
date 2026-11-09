@@ -27,7 +27,7 @@ const state={mode:'menu',time:0,w:W,h:H,camera:{x:0,y:0},units:[],structures:[],
 const rando=(a,b)=>a+Math.random()*(b-a),hData=id=>C.heroes[id],skillDef=id=>C.skills[id];
 const living=(side,kind)=>state.units.filter(u=>u.hp>0&&(side==null||u.side===side)&&(!kind||u.kind===kind));
 const maxEnergy=u=>100+(u.items||[]).filter(i=>i==='cell').length*30;
-const attackRange=u=>u.kind==='minion'?(u.ranged?150:34):u.kind==='creep'?45:
+const attackRange=u=>u.kind==='minion'?(u.id==='siege'?235:u.ranged?150:34):u.kind==='creep'?45:
  (u.id==='orun'?65:u.id==='vexor'?68:u.id==='lyria'?315:u.id==='nyra'?300:280);
 const moveSpeed=u=>u.speed*(1+(u.items||[]).filter(i=>i==='stride').length*.17)*(u.slow>0?.62:1);
 const attackDamage=u=>u.atk+(u.items||[]).filter(i=>i==='lens').length*13;
@@ -87,7 +87,7 @@ function makeHero(id,side,controlled=false){
  healthRegen:1.3,homeBuff:0,botLane:roles[id],cs:0,isRanged:!['vexor','orun'].includes(id)};
 }
 function createMinion(side,lane,type=0,slot=0){
- const p=pathPos(lane,side===0?.007:.993),ranged=type===1,siege=type===2;
+ const p=pathPos(lane,side===0?.007:.993),ranged=type>=1,siege=type===2;
  const wavePower=1+Math.min(1.45,state.time/680);
  let hp=Math.round((siege?380:ranged?130:190)*wavePower);
  return{uid:++state.seq,kind:'minion',id:siege?'siege':ranged?'caster':'guard',side,lane,
@@ -207,6 +207,13 @@ function damage(victim,amount,source=null){
  }
  return dmg;
 }
+function grantShield(target,amount,seconds=3){
+ if(!target||target.hp<=0)return 0;
+ target.shield=Math.max(target.shield||0,Math.round(amount));
+ target.shieldUntil=Math.max(target.shieldUntil||0,state.time+seconds);
+ addEffect(target.x,target.y,'#9ec5fa',target.r+11,.34);
+ return target.shield;
+}
 function heal(target,amount){
  if(!target||target.hp<=0)return 0;
  const v=Math.max(0,Math.round(Math.min(amount,target.maxHp-target.hp)));
@@ -221,7 +228,7 @@ function end(winner){
 function nearestEnemy(u,range=Infinity,includeStructures=false){
  const team=u.side;
  const targets=living(1-team).filter(e=>dist(u,e)<=range+e.r);
- if(includeStructures)targets.push(...state.structures.filter(t=>t.side!==team&&t.hp>0&&dist(u,t)<=range+t.r));
+ if(includeStructures)targets.push(...state.structures.filter(t=>t.side!==team&&t.hp>0&&structureExposed(t)&&dist(u,t)<=range+t.r));
  targets.sort((a,b)=>{
   let v=dist(u,a)-dist(u,b);
   if(a.kind==='hero')v-=22;if(b.kind==='hero')v+=22;
@@ -274,6 +281,7 @@ function missile(source,target,damageValue,kind='aa',speed=410){
 function autoAttack(u){
  if(u.hp<=0||u.attackCd>0||u.casting||u.stun>0)return false;
  const target=findAA(u);if(!target)return false;
+ if(u.recall>0){u.recall=0;if(u.controlled)announce('RETORNO CANCELADO: ATAQUE',1.2)}
  u.attackCd=u.kind==='hero'?(hData(u.id).attackTime+Math.max(0,5-u.level)*.018):u.id==='siege'?2.15:u.ranged?1.5:1.25;
  u.attackAnim=.23;
  const damageVal=attackDamage(u)+(u.homeBuff>state.time?4:0);
@@ -341,7 +349,7 @@ function moveMinion(m,dt){
 function respawn(u){
  const home=HOME[u.side];
  u.x=home.x+rando(-25,25);u.y=home.y+rando(-25,25);
- u.hp=u.maxHp;u.energy=maxEnergy(u);u.shield=0;
+ u.hp=u.maxHp;u.energy=maxEnergy(u);u.shield=0;u.shieldUntil=0;
  if(!u.controlled)botShop(u);u.guard=0;u.casting=null;
  u.attackCd=0;u.stun=0;u.slow=0;u.dash=null;u.recall=0;
  u.death=0;u.respawn=0;u.focus=null;u.aiTimer=.5;
@@ -515,9 +523,10 @@ function cast(u,id,aim=null,autoTarget=null){
  const def=skillDef(id);
  if(u.casting||u.dash||u.cooldowns[id]>0||u.energy<def.cost||u.stun>0)return false;
  if(def.ultimate&&u.level<5)return false;
- const target=autoTarget||((def.aim==='self')?u:nearestEnemy(u,def.range||350,true));
+ const target=autoTarget||((def.aim==='self')?u:nearestEnemy(u,def.range||350,false));
  const dx=aim?.x??(target?target.x-u.x:1),dy=aim?.y??(target?target.y-u.y:0);
- const dir=norm(dx,dy),range=def.range||140;
+ const dir=norm(id==='lyria_step'&&!aim&&target&&target.kind==='hero'&&dist(u,target)<100?-dx:dx,
+  id==='lyria_step'&&!aim&&target&&target.kind==='hero'&&dist(u,target)<100?-dy:dy),range=def.range||140;
  const travel=clamp(aim?.distance??(target?dist(u,target):range),0,range);
  let center={x:u.x+dir.x*travel,y:u.y+dir.y*travel};
  if(id==='seris_bloom'&&!aim){
@@ -528,6 +537,7 @@ function cast(u,id,aim=null,autoTarget=null){
  const haste=(u.items||[]).filter(i=>i==='core').length*.15;
  u.cooldowns[id]=def.cd*(1-haste)*(1-.045*(maxLv-1));
  u.energy-=def.cost;
+ if(u.recall>0){u.recall=0;if(u.controlled)announce('RETORNO CANCELADO: HABILIDADE',1.2)}
  const c={id,dir,center,level:maxLv,time:Math.max(0,def.cast),total:Math.max(0,def.cast)};
  if(c.time<=0)releaseSkill(u,c);else u.casting=c;
  addEffect(u.x,u.y,hData(u.id).color,27,.24);
@@ -575,7 +585,8 @@ function releaseSkill(u,c){
     if(id==='seris_ult')heal(friend,75+lv*20);
     if(id==='orun_ult')heal(friend,25+lv*8);
     if(id==='orun_guard')heal(friend,13+lv*7);
-    friend.shield+=id==='orun_ult'?95:id==='seris_ult'?90:id==='seris_aegis'?40:60;
+    grantShield(friend,id==='orun_ult'?95:id==='seris_ult'?90:id==='seris_aegis'?40:60,
+      id==='orun_ult'||id==='seris_ult'?4.2:2.9);
    }
   }
   if(id==='orun_ult')aoe(u.x,u.y,r,Math.round(65*power),u,.55);
@@ -643,7 +654,8 @@ function tickUnit(u,dt){
   return;
  }
  u.stun=Math.max(0,u.stun-dt);u.slow=Math.max(0,u.slow-dt);
- u.invuln=Math.max(0,u.invuln-dt);u.shield=Math.max(0,u.shield-dt*.01);
+ u.invuln=Math.max(0,u.invuln-dt);
+ if(u.shield>0&&state.time>=(u.shieldUntil||0))u.shield=0;
  u.guard=Math.max(0,u.guard-dt*.02);
  u.attackCd=Math.max(0,u.attackCd-dt);u.attackAnim=Math.max(0,(u.attackAnim||0)-dt);
  if(u.kind==='hero')for(const id in u.cooldowns)u.cooldowns[id]=Math.max(0,u.cooldowns[id]-dt);
@@ -693,6 +705,9 @@ function step(dt,movement={x:0,y:0}){
  if(state.mode!=='playing'||state.showPause)return;
  dt=clamp(dt,0,.05);state.time+=dt;
  const hero=state.hero;
+ if(hero&&hero.recall>0&&Math.hypot(movement.x,movement.y)>.07){
+  hero.recall=0;announce('RETORNO CANCELADO: MOVIMENTO',1.2);
+ }
  if(hero&&hero.hp>0&&!hero.dash&&hero.stun<=0&&!hero.recall){
   const direction=norm(movement.x,movement.y),len=Math.min(1,Math.hypot(movement.x,movement.y));
   if(len>.06){
