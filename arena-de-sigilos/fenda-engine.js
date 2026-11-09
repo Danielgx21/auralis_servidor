@@ -6,24 +6,26 @@ const W=3300,H=2500,TAU=Math.PI*2;
 // Um deslocamento base-a-base deve durar ~27–30 s, não 11–13 s como na v4.1.
 const MOBA_WALK_SCALE=.55;
 // Largura de rota proporcional ao personagem: ~6 diâmetros por corredor.
-const LANE_HALF_WIDTH=108,LANE_MINION_SPREAD=26;
-// Fenda 6.2 — arena expandida, três portões de saída distintos e torres distribuídas.
-// Top e bot são simétricas por rotação de 180 graus; a mid mantém diagonal própria.
+const LANE_HALF_WIDTH=98,LANE_MINION_SPREAD=26;
+// Fenda 6.3: desenho 100% procedural de três lanes realmente independentes.
+// Cada trajeto começa fora do santuário e termina na outra base. Simetria rotacional.
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const norm=(x,y)=>{const n=Math.hypot(x,y)||1;return{x:x/n,y:y/n}};
 const SIDE=['#69e6e4','#ed829e'];
-const HOME=[{x:230,y:2230},{x:3070,y:270}];
-const CORE=[{x:470,y:2040},{x:2830,y:460}];
-// Portões ficam na borda externa do santuário, não amontoados junto ao núcleo.
-// O avanço faz uma ampla curva pela borda (top/bot), preservando o corredor central.
+const HOME=[{x:250,y:2245},{x:3050,y:255}];
+const CORE=[{x:485,y:2035},{x:2815,y:465}];
+// Portão TOP: borda NORTE da base; MID: borda LESTE; BOT: borda SUL.
+// Uma rota só começa ao sair da praça. Nenhuma pista cruza a praça da fonte.
 const TOP_PATH=[
- {x:440,y:1360},{x:440,y:1000},{x:465,y:780},{x:540,y:560},
- {x:770,y:385},{x:1180,y:335},{x:1600,y:325},
- {x:1970,y:320},{x:2280,y:320}
+ {x:345,y:1740},{x:344,y:1430},{x:352,y:1050},
+ {x:380,y:690},{x:540,y:415},{x:860,y:280},
+ {x:1290,y:230},{x:1810,y:230},{x:2260,y:240},
+ {x:2570,y:180}
 ];
+// Corredor central diagonal com simetria exata em relação ao meio do campo.
 const MID_PATH=[
- {x:760,y:1750},{x:960,y:1590},{x:1220,y:1430},
- {x:1650,y:1250},{x:2080,y:1060},{x:2350,y:865},{x:2540,y:750}
+ {x:730,y:1950},{x:990,y:1750},{x:1300,y:1530},
+ {x:1650,y:1250},{x:2000,y:970},{x:2310,y:750},{x:2570,y:550}
 ];
 const rotateHalf=p=>({x:W-p.x,y:H-p.y});
 const PATHS=[TOP_PATH,MID_PATH,TOP_PATH.slice().reverse().map(rotateHalf)];
@@ -33,8 +35,8 @@ const BASE_GATE=[
 ];
 // Apenas atalhos de navegação para a IA, nunca desenhados como rotas.
 const JUNGLE_LINKS=[
- {lane:0,t:.40,x:830,y:965},{lane:1,t:.37,x:1290,y:1070},
- {lane:1,t:.63,x:2010,y:1430},{lane:2,t:.60,x:2470,y:1535}
+ {lane:0,t:.35,x:805,y:910},{lane:1,t:.35,x:1300,y:1160},
+ {lane:1,t:.65,x:2000,y:1340},{lane:2,t:.65,x:2495,y:1590}
 ];
 // Espinha dorsal de duas selvas organizadas; cada trecho possui hitbox física.
 // Não atravessam nenhuma das três pistas de tropas.
@@ -222,7 +224,7 @@ function placeWard(hero,x,y){
 function buildMap(){
  state.structures=[];state.camps=[];state.obstacles=[];state.walls=[];
  // Selva sem estradas extras: áreas de visão compartilhadas em pares simétricos.
- const bushes=[{x:710,y:1250},{x:950,y:1060},{x:1500,y:875},{x:1910,y:710}];
+ const bushes=[{x:690,y:1300},{x:960,y:1060},{x:1480,y:880},{x:1920,y:650}];
  state.brushes=[];
  for(let i=0;i<bushes.length;i++){
   const p=bushes[i],mirror=rotateHalf(p),r=69+(i%2)*8;
@@ -236,11 +238,11 @@ function buildMap(){
   state.structures.push({kind:'core',side,x:home.x,y:home.y,maxHp:1850,hp:1850,
    r:46,atk:53,range:375,attackCd:0,id:'core'+side});
   for(let lane=0;lane<3;lane++)for(let tier=0;tier<3;tier++){
-   const t=(side===0?[.40,.25,.09]:[.60,.75,.91])[tier];
+   const t=(side===0?[.42,.26,.10]:[.58,.74,.90])[tier];
    const p=pathPos(lane,t),a=pathPos(lane,Math.max(0,t-.004)),b=pathPos(lane,Math.min(1,t+.004));
    const direction=norm(b.x-a.x,b.y-a.y);
    const sign=lane===0?1:lane===2?-1:side===0?1:-1;
-   const offset=130;
+   const offset=94;
    const x=p.x-direction.y*offset*sign,y=p.y+direction.x*offset*sign;
    state.structures.push({kind:'tower',side,lane,tier:tier+1,x,y,
     r:27,hp:880,maxHp:880,atk:58,range:230,attackCd:0,
