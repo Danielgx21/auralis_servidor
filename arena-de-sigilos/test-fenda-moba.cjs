@@ -42,9 +42,9 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=5.3')&&
- html.includes('fenda-team-ai.js?v=5.3')&&
- html.includes('fenda-view.js?v=5.3'),'O site deve carregar todos os sistemas da 5.0.');
+assert.ok(html.includes('fenda-engine.js?v=5.4')&&
+ html.includes('fenda-team-ai.js?v=5.4')&&
+ html.includes('fenda-view.js?v=5.4'),'O site deve carregar todos os sistemas da 5.0.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -207,6 +207,53 @@ assert.ok(view.includes('wardPoint(wardAim)')&&view.includes('wardStart')&&
  view.includes('wardEnd'),'Sentinela não permite segurar e posicionar');
 assert.ok(css.includes('touch-action:none;user-select:none'),
  'Minimapa não libera arraste touch');
+// 5.4: placa de mana no mundo, K/D/A e farm sempre visiveis.
+assert.ok(view.includes('function manaBar(x,y,r,mana,max,width=55)')&&
+ view.includes('manaBar(x,y,r,u.mana,E.maxMana(u),55)'),
+ 'A mana deve ser desenhada abaixo da barra de vida de cada campeao');
+assert.ok(view.includes("$('fendaPlayerStats').textContent='K/D/A '")&&
+ view.includes("+' · FARM '+h.cs"),
+ 'K/D/A e farm devem ficar permanentemente visiveis na HUD');
+assert.ok(view.includes('function scoreTeam(side)')&&
+ view.includes('scoreboardItems(u)')&&
+ view.includes('function renderScoreboard()'),
+ 'Placar detalhado deve listar ambos os times com os itens');
+assert.ok(view.includes('fendaScoreboardTeams')&&
+ view.includes('scoreRoles={orun:')&&
+ view.includes("scoreboardVisible"),
+ 'Placar de TAB precisa mostrar cinco funcoes e equipes');
+assert.ok(view.includes("if(k==='tab')")&&
+ view.includes('setScoreboardVisible(true,true)')&&
+ view.includes("if(k==='f2')"),
+ 'TAB abre o placar no PC, F2 alterna o controle');
+assert.ok(view.includes("$('fendaScoreBtn').addEventListener('click'")&&
+ view.includes("$('fendaScoreClose').addEventListener('click'"),
+ 'Placar deve abrir e fechar por toque no celular');
+assert.ok(css.includes('#fendaScoreboard{')&&
+ css.includes('.fenda-scoreboard-teams')&&
+ css.includes('.fenda-scoreboard-player.is-self'),
+ 'Placar necessita layout responsivo e destaque do jogador');
+E.start('lyria');
+const scoreboardBlue=state.units.filter(u=>u.kind==='hero'&&u.side===0);
+const scoreboardRed=state.units.filter(u=>u.kind==='hero'&&u.side===1);
+assert.equal(scoreboardBlue.length,5,'Placar azul deve ter cinco campeoes');
+assert.equal(scoreboardRed.length,5,'Placar rubro deve ter cinco campeoes');
+const killer=scoreboardBlue[0],helper=scoreboardBlue[1],victim=scoreboardRed[0];
+victim.hp=victim.maxHp;
+const originalGold=helper.gold;
+E.damage(victim,17,helper);
+assert.equal(victim.hp,victim.maxHp-17,'Dano do participante precisa ser contabilizado');
+E.damage(victim,victim.maxHp*2,killer);
+assert.equal(killer.kills,1,'O ultimo golpe deve contabilizar o abate');
+assert.equal(helper.assists,1,'O participante deve receber assistencia');
+assert.ok(helper.gold>originalGold,'Participante recebe o bonus de assistencia');
+assert.equal(state.kills[0],1,'Placar dos times deve refletir a eliminacao');
+E.start('lyria');
+const only=state.hero,enemy=state.units.find(u=>u.kind==='hero'&&u.side===1);
+E.damage(enemy,enemy.maxHp*2,only);
+assert.equal(only.kills,1,'Abate sem outro participante');
+assert.equal(only.assists,0,'Nao se recebe assistencia em propria eliminacao');
+assert.equal(enemy.deaths,1,'Morte aparece no placar adversario');
 // Contexto neutro e composição completa: avaliar engage.
 E.start('lyria');
 const allies=state.units.filter(u=>u.kind==='hero'&&u.side===0);
