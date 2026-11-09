@@ -519,8 +519,16 @@ function view(dt){
 function minimap(){
  mc.fillStyle='#09242e';mc.fillRect(0,0,mm.width,mm.height);
  mc.save();mc.translate(7,7);mc.scale(206/E.W,138/E.H);mc.lineCap='round';mc.lineJoin='round';
- for(const path of E.PATHS){mc.beginPath();path.forEach((p,i)=>i?mc.lineTo(p.x,p.y):mc.moveTo(p.x,p.y));
-  mc.strokeStyle='#95aaa0';mc.lineWidth=48;mc.stroke();}
+ // Minimapa fiel à geometria jogável: só as três rotas, sem caminhos de selva.
+ for(const path of E.ROUTE_PATHS){
+  mc.beginPath();path.forEach((p,i)=>i?mc.lineTo(p.x,p.y):mc.moveTo(p.x,p.y));
+  mc.strokeStyle='#9dc8c8';mc.lineWidth=65;mc.stroke();
+ }
+ // Barricadas realmente presentes na física, não ícones arbitrários.
+ for(const w of S.walls){
+  mc.beginPath();mc.moveTo(w.ax,w.ay);mc.lineTo(w.bx,w.by);
+  mc.strokeStyle='#577889';mc.lineWidth=w.halfWidth*2+5;mc.stroke();
+ }
  // Sem visão não aparecem inimigos nem objetivo; mapa explorado fica escurecido.
  const step=E.VISION_CELL*3;
  for(let y=0;y<E.H;y+=step)for(let x=0;x<E.W;x+=step){
