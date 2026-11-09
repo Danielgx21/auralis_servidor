@@ -11,6 +11,7 @@ const hud=document.createElement('div');hud.id='fendaHUD';
 hud.innerHTML='<div class="fenda-meta"><div id="fendaTopScore">✦ AZUL 0 × 0 RUBRO</div><div id="fendaGold">✦ 0 OURO</div><div id="fendaTime">00:00</div></div>'+
 '<div class="fenda-personal"><div class="fenda-name" id="fendaName">CAMPEÃO · NV 1</div><div class="fenda-bar"><i id="fendaHP"></i></div><div class="fenda-bar mana"><i id="fendaMana"></i></div><div class="fenda-bar xp"><i id="fendaXP"></i></div></div>'+
 '<div class="fenda-actions"><button id="fendaShopBtn">⚒ LOJA</button><button id="fendaRecallBtn">⌂ RETORNO</button><button id="fendaPauseBtn">Ⅱ</button></div>'+
+'<button id="fendaTowerBtn" title="Priorizar obelisco no AA" aria-label="Atacar torre ou núcleo com o ataque básico">⬡<small>TORRE</small></button>'+
 '<canvas id="fendaMinimap" width="220" height="152" aria-label="Minimapa tático"></canvas>'+
 '<div id="fendaInfo">3 ROTAS · DESTRUA O NÚCLEO INIMIGO</div><div id="fendaNotice"></div>';
 stage.appendChild(hud);
@@ -240,6 +241,10 @@ function drawFX(t){
  }
 }
 function drawAim(){
+ if(S.hero&&S.hero.focusTarget&&S.hero.focusUntil>S.time&&S.hero.focusTarget.hp>0){
+  const structure=S.hero.focusTarget;
+  ctx.save();circle(structure.x,structure.y,structure.r+16,null,'#f3e2a4a8',2.1);ctx.restore();
+ }
  if(pointers.aa&&S.hero&&S.hero.hp>0){
   const r=E.attackRange(S.hero),target=E.findAA(S.hero);
   circle(S.hero.x,S.hero.y,r,null,'#a3e8d14a',1.5);
@@ -324,6 +329,12 @@ function hudUpdate(){
  $('fireBtn').querySelector('b').textContent='➤';
  $('fireBtn').querySelector('small').textContent=h.hp<=0?'RESSURGIR':'ATACAR';
  $('fireBtn').classList.toggle('oncd',h.hp<=0);
+ const targetTowers=S.structures.filter(t=>t.side!==h.side&&t.hp>0&&
+  (t.kind==='tower'||t.kind==='core')&&dist(h,t)<=E.attackRange(h)+t.r+2);
+ const towerBtn=$('fendaTowerBtn');
+ towerBtn.disabled=h.hp<=0||targetTowers.length===0;
+ towerBtn.classList.toggle('available',targetTowers.length>0&&h.hp>0);
+ towerBtn.classList.toggle('focused',!!h.focusTarget&&h.focusUntil>S.time&&h.focusTarget.hp>0);
 }
 function shopRender(){
  const h=S.hero;if(!h)return;
@@ -440,6 +451,18 @@ function skillEnd(e){
  }
  pointers.skill=null;aimPreview=null;
 }
+function selectTowerAt(clientX,clientY){
+ const r=cv.getBoundingClientRect();
+ const x=S.camera.x+clientX-r.left,y=S.camera.y+clientY-r.top;
+ const candidate=S.structures.filter(t=>t.side!==S.hero.side&&t.hp>0&&
+  (t.kind==='tower'||t.kind==='core')&&Math.hypot(t.x-x,t.y-y)<=t.r+24)
+  .sort((a,b)=>Math.hypot(a.x-x,a.y-y)-Math.hypot(b.x-x,b.y-y))[0];
+ if(!candidate)return false;
+ const result=E.focusTower(S.hero,candidate);
+ if(!result.ok)warn(result.reason);
+ else E.announce(result.attacked?'OBELISCO SELECIONADO · AA INICIADO':'OBELISCO SELECIONADO · AA EM RECARGA',.9);
+ return true;
+}
 function aaStart(e){
  if(S.mode!=='playing'||S.shopOpen||S.showPause||!S.hero||S.hero.hp<=0)return;
  e.preventDefault();e.stopPropagation();
@@ -455,7 +478,7 @@ function worldDown(e){
   if(e.button===2){
    clickDestination={x:clamp(S.camera.x+e.clientX-rect.left,15,E.W-15),
     y:clamp(S.camera.y+e.clientY-rect.top,15,E.H-15)};
-  }else if(e.button===0)E.autoAttack(S.hero);
+  }else if(e.button===0&&!selectTowerAt(e.clientX,e.clientY))E.autoAttack(S.hero);
   e.preventDefault();return;
  }
  const rect=cv.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;
@@ -464,7 +487,7 @@ function worldDown(e){
   $('joy').style.left=clamp(x,45,vw*.46)+'px';$('joy').style.top=clamp(y,50,vh-50)+'px';
   $('joy').classList.add('active');
   e.preventDefault();try{cv.setPointerCapture(e.pointerId)}catch(_){}
- }else if(x>=vw*.47)E.autoAttack(S.hero);
+ }else if(x>=vw*.47&&!selectTowerAt(e.clientX,e.clientY))E.autoAttack(S.hero);
 }
 function worldMove(e){
  if(joy.ptr!==e.pointerId)return;
@@ -552,6 +575,14 @@ window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
 window.addEventListener('blur',()=>{keys.clear();joy.ptr=null;joy.x=joy.y=0});
 $('fendaShopBtn').onclick=toggleShop;$('fendaShopClose').onclick=toggleShop;
 $('fendaRecallBtn').onclick=()=>E.recall();$('fendaPauseBtn').onclick=pause;
+$('fendaTowerBtn').addEventListener('pointerdown',e=>{
+ e.preventDefault();e.stopPropagation();
+ if(S.mode!=='playing'||S.shopOpen||S.showPause||!S.hero||S.hero.hp<=0)return;
+ const r=E.focusTower(S.hero);
+ if(!r.ok)warn(r.reason);
+ else if(!r.attacked)warn('TORRE SELECIONADA · AGUARDE O PRÓXIMO AA');
+ hudUpdate();
+});
 mm.addEventListener('pointerdown',e=>{
  if(S.mode!=='playing')return;
  const r=mm.getBoundingClientRect();
