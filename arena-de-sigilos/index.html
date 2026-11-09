@@ -185,6 +185,63 @@ canvas {width:100%;height:100%;}
 .team-score{top:max(41px,env(safe-area-inset-top) + 39px);padding:3px 7px;font-size:10px;min-width:104px}
 .objective-tag{top:max(72px,env(safe-area-inset-top) + 69px);max-width:240px;opacity:.8}
 }
+
+/* v3.2 — controles radiais originais inspirados na ergonomia do Wild Rift */
+.mobile-controls{display:flex!important;pointer-events:none}
+.mobile-controls .skill-controls{
+ --aa-size:clamp(62px,18vh,82px);
+ --skill-size:clamp(42px,12.6vh,56px);
+ width:clamp(208px,39vw,278px)!important;
+ height:clamp(170px,51vh,236px)!important;
+ display:block!important;grid-template-columns:none!important;gap:0!important;
+ bottom:max(12px,env(safe-area-inset-bottom))!important;
+ right:max(12px,env(safe-area-inset-right))!important;
+ pointer-events:none;
+}
+.mobile-controls .skill-btn{
+ position:absolute!important;display:flex;pointer-events:auto;
+ width:var(--skill-size)!important;height:var(--skill-size)!important;
+ border-radius:50%!important;touch-action:none;
+ background:radial-gradient(circle at 33% 25%,#315a74,#102a40 60%,#081727)!important;
+ border:2px solid #83c6d0aa;
+ box-shadow:inset 0 2px 4px #ffffff2a,0 4px 13px #020b1dbb,0 0 8px #3a97a52a;
+ transition:filter .12s,box-shadow .12s,border-color .12s;
+}
+.mobile-controls .skill-btn b{font-size:clamp(17px,5.4vh,25px)!important;line-height:1.0}
+.mobile-controls .skill-btn small{
+ font-size:clamp(7px,1.95vh,9px);max-width:90%;overflow:hidden;white-space:nowrap;
+ text-overflow:ellipsis;color:#d0e6f0;line-height:1.05;margin-top:3px
+}
+.mobile-controls .skill-btn .cd-text[hidden]{display:none!important}
+.mobile-controls .skill-btn .cd-text{border-radius:50%;font-size:clamp(12px,3.8vh,17px)}
+.mobile-controls #dashBtn{right:calc(var(--aa-size) + 12px);bottom:4px}
+.mobile-controls #pulseBtn{right:calc(var(--aa-size) + var(--skill-size) * .65 + 18px);bottom:calc(var(--skill-size) + 11px)}
+.mobile-controls #shieldBtn{right:calc(var(--aa-size) + 12px);bottom:calc(var(--skill-size) * 2 + 16px)}
+.mobile-controls #ultBtn{
+ right:0;bottom:calc(var(--skill-size) * 2 + 17px);
+ width:calc(var(--skill-size) + 4px)!important;height:calc(var(--skill-size) + 4px)!important;
+ border:2px solid #f5cd7a;background:radial-gradient(circle at 34% 25%,#775c34,#32283d 60%,#0c182b)!important;
+ box-shadow:inset 0 2px 4px #ffefaf55,0 4px 16px #000b,0 0 12px #e6ad5c66;
+}
+.mobile-controls #ultBtn b{color:#ffe6a7!important;text-shadow:0 0 10px #f4bb64aa}
+.mobile-controls #ultBtn small{color:#ffe2a1}
+.mobile-controls #ultBtn:not(.oncd){animation:ultimate-pulse 2.7s ease-in-out infinite}
+@keyframes ultimate-pulse{50%{box-shadow:inset 0 2px 4px #ffefaf55,0 4px 16px #000b,0 0 18px #eec56d88}}
+.mobile-controls #fireBtn{
+ right:0;bottom:0;width:var(--aa-size)!important;height:var(--aa-size)!important;
+ background:radial-gradient(circle at 32% 25%,#24a5a5,#0b5f72 55%,#102438)!important;
+ border:3px solid #8cf4e1!important;
+ box-shadow:inset 0 1px 5px #ddfff477,0 0 16px #56e8df66,0 6px 17px #000c;
+}
+.mobile-controls #fireBtn b{font-size:clamp(26px,8vh,35px)!important;color:#e8fffa}
+.mobile-controls #fireBtn small{font-size:clamp(8px,2.1vh,11px)}
+.mobile-controls .skill-btn.oncd{filter:grayscale(.72);opacity:.74}
+@media(max-width:690px) and (orientation:landscape){
+ .mobile-controls .skill-controls{--aa-size:clamp(57px,18vh,73px);--skill-size:clamp(39px,12vh,49px);right:9px!important;bottom:7px!important}
+}
+@media(max-height:320px){
+ .mobile-controls .skill-controls{--aa-size:57px;--skill-size:38px;height:154px!important}
+}
 </style>
 </head>
 <body>
@@ -608,7 +665,7 @@ function updateHud(){
   });
   const btn=$('fireBtn'),h=chosenHero(),progress=1-clamp(player.shoot/h.attackTime,0,1);
   btn.classList.toggle('basic-ready',player.shoot<=.02);btn.classList.toggle('basic-wait',player.shoot>.02);
-  btn.querySelector('b').textContent=player.hp<=0?'✕':player.shoot<=.02?'✦':'◔';
+  btn.querySelector('b').textContent=player.hp<=0?'✕':'➤';
   btn.querySelector('small').textContent=player.hp<=0?'CAIU':player.casting?'CAST':player.shoot<=.02?'ATIRAR':shotQueue.length?'PRONTO':' '+player.shoot.toFixed(1)+'s';
   btn.style.setProperty('--attack-progress',Math.round(progress*100)+'%');
  }
@@ -1327,7 +1384,7 @@ function tickDashContacts(u,fromX,fromY){
  }
 }
 function tick(dt){
- sceneTime+=dt;shake=Math.max(0,shake-27*dt);flash=Math.max(0,flash-dt*2);
+ sceneTime+=dt;shake=Math.max(0,shake-27*dt);flash=Math.max(0,flash-dt*2);aaRangeFlash=Math.max(0,aaRangeFlash-dt);
  for(const p of particles){
   p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=1-dt*2;p.vy*=1-dt*2;p.life-=dt;
  }
@@ -1658,17 +1715,18 @@ function drawEnemyWindup(t){
  }
 }
 function drawAimGuide(t){
- if(!player||player.hp<=0||mode!=='playing'||!touchAim.active||player.casting||(skillTouch&&skillTouch.active))return;
+ if(!player||player.hp<=0||mode!=='playing'||(!touchAim.pressed&&aaRangeFlash<=0)||player.casting||(skillTouch&&skillTouch.active))return;
  const selected=findAutoTarget(player);
  const radius=unitRange(player);
+ const visibility=touchAim.pressed?1:clamp(aaRangeFlash/.20,0,1);
  ctx.save();
- ring(player.x,player.y,radius,'#69f1dc',.31,2);
+ ring(player.x,player.y,radius,'#7dcac2',.19*visibility,1.35);
  if(selected){
   const direction=unit(selected.x-player.x,selected.y-player.y);
   const sx=player.x+direction.x*(player.r+11),sy=player.y+direction.y*(player.r+11);
-  ctx.setLineDash([9,7]);line(sx,sy,selected.x,selected.y,'#b9fff6',2.5,.85);ctx.setLineDash([]);
-  ring(selected.x,selected.y,selected.r+11,'#b9fff6',.93,3);
-  circle(selected.x,selected.y,3,'#f0fffb',.95);
+  ctx.setLineDash([9,7]);line(sx,sy,selected.x,selected.y,'#a6dfd5',1.3,.36*visibility);ctx.setLineDash([]);
+  ring(selected.x,selected.y,selected.r+9,'#aeecdf',.57*visibility,2);
+  circle(selected.x,selected.y,2.6,'#ebfffb',.58*visibility);
  }else{
   ctx.font='800 10px system-ui';ctx.textAlign='center';ctx.fillStyle='#b9fff6';
   ctx.shadowColor='#000';ctx.shadowBlur=5;
@@ -1859,6 +1917,7 @@ $('pauseBtn').onclick=showPause;$('muteBtn').onclick=()=>{soundOn=!soundOn;$('mu
 let fireTouch=false,firePointer=null;
 const fireBtn=$('fireBtn'),aimPad=$('aimPad'),aimThumb=$('aimThumb');
 const AIM_HOLD_MS=220;
+let aaRangeFlash=0;
 function updateAimVector(){
  const dx=touchAim.currentX-touchAim.startX,dy=touchAim.currentY-touchAim.startY;
  const dist=Math.hypot(dx,dy),radius=28;
@@ -1882,15 +1941,17 @@ function endFireTouch(e){
  if(firePointer!==e.pointerId)return;
  // Um toque = um ataque básico automático, apenas se o alvo estiver em alcance.
  if(e.type==='pointerup')queueSingleShot(targetDirection());
+ aaRangeFlash=.20;
  firePointer=null;fireTouch=false;firing=false;touchAim.active=false;touchAim.pressed=false;touchAim.id=null;
  fireBtn.classList.remove('aiming');aimPad.classList.remove('active');aimThumb.style.transform='translate(-50%,-50%)';
 }
 function beginFireTouch(e,captureElement){
  if(mode!=='playing'||!player||player.hp<=0||firePointer!==null)return;
  e.preventDefault();fireTouch=true;firePointer=e.pointerId;
+ aaRangeFlash=.20;fireBtn.classList.add('aiming');
  // AA tem alvo travado, não skillshot. Segurar somente exibe o alcance.
  const initial=targetDirection();
- touchAim={id:e.pointerId,active:false,pressed:true,dragged:false,x:initial.x,y:initial.y,startX:e.clientX,startY:e.clientY,currentX:e.clientX,currentY:e.clientY,startTime:performance.now()};
+ touchAim={id:e.pointerId,active:true,pressed:true,dragged:false,x:initial.x,y:initial.y,startX:e.clientX,startY:e.clientY,currentX:e.clientX,currentY:e.clientY,startTime:performance.now()};
  const r=stage.getBoundingClientRect(),half=47;
  aimPad.style.left=clamp(e.clientX-r.left,half,Math.max(half,r.width-half))+'px';
  aimPad.style.top=clamp(e.clientY-r.top,half,Math.max(half,r.height-half))+'px';
