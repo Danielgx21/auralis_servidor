@@ -896,6 +896,7 @@ function tickUnit(u,dt){
   return;
  }
  u.stun=Math.max(0,u.stun-dt);u.slow=Math.max(0,u.slow-dt);
+ u.marked=Math.max(0,(u.marked||0)-dt);
  u.invuln=Math.max(0,u.invuln-dt);
  if(u.shield>0&&state.time>=(u.shieldUntil||0))u.shield=0;
  u.guard=Math.max(0,u.guard-dt*.02);
@@ -907,7 +908,11 @@ function tickUnit(u,dt){
   u.aiTimer-=dt;
   u.hp=Math.min(u.maxHp,u.hp+dt*(dist(u,HOME[u.side])<150?24:1.15));
   if(u.recall>0){
-   if(u.controlled){u.recall-=dt;if(u.recall<=0){u.x=HOME[u.side].x;u.y=HOME[u.side].y;u.hp=u.maxHp;u.energy=maxEnergy(u);announce('RETORNO AO SANTUÁRIO',1.6)}}
+   if(u.controlled){u.recall-=dt;if(u.recall<=0){const home=HOME[u.side];
+     const mid=pathPos(1,.11),out=norm(mid.x-HOME[0].x,mid.y-HOME[0].y);
+     const dir=u.side===0?out:{x:-out.x,y:-out.y};
+     u.x=home.x+dir.x*104;u.y=home.y+dir.y*104;
+     u.hp=u.maxHp;u.energy=maxEnergy(u);announce('RETORNO AO SANTUÁRIO',1.6)}}
   }
   if(u.casting){
    if(u.stun>0){u.casting=null;return}
@@ -920,7 +925,7 @@ function tickUnit(u,dt){
    for(const target of living(1-u.side)){
     if(d.hit.has(target.uid))continue;
     const hit=Math.hypot(target.x-u.x,target.y-u.y)<target.r+u.r+d.radius*.5;
-    if(hit){d.hit.add(target.uid);damage(target,d.dmg,u);target.stun=Math.max(target.stun,d.stun)}
+    if(hit){d.hit.add(target.uid);if(d.dmg>0)damage(target,d.dmg,u);target.stun=Math.max(target.stun,d.stun)}
    }
    d.t-=dt;if(d.t<=0)u.dash=null;
    addEffect(ox,oy,hData(u.id).color,21,.21);
