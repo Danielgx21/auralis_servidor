@@ -189,7 +189,7 @@ canvas {width:100%;height:100%;}
 </head>
 <body>
 <div class="app">
-  <header class="topbar"><div class="brand"><div class="brand-icon"><svg viewBox="0 0 32 32" fill="none"><path d="M16 2 28 16 16 30 4 16 16 2Z" stroke="#6BE8DF" stroke-width="2"/><path d="M16 7 23 16 16 25 9 16 16 7Z" stroke="#ECDE9B" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="#6BE8DF"/></svg></div><div><h1>ARENA DE SIGILOS</h1><small>PROTÓTIPO // EDIÇÃO ZERO</small></div></div><div class="build">5 BATALHAS · V3.1 · IA COLETIVA</div></header>
+  <header class="topbar"><div class="brand"><div class="brand-icon"><svg viewBox="0 0 32 32" fill="none"><path d="M16 2 28 16 16 30 4 16 16 2Z" stroke="#6BE8DF" stroke-width="2"/><path d="M16 7 23 16 16 25 9 16 16 7Z" stroke="#ECDE9B" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="#6BE8DF"/></svg></div><div><h1>ARENA DE SIGILOS</h1><small>PROTÓTIPO // EDIÇÃO ZERO</small></div></div><div class="build">5 BATALHAS · V3.2 · ULTIMATES</div></header>
   <div class="arena-grid">
     <section>
       <div class="stage" id="stage">
@@ -202,7 +202,7 @@ canvas {width:100%;height:100%;}
         <div class="team-score" id="teamScore"><span class="blue">5 AZUL</span> × <span class="red">5 RUBRO</span><small>ELIMINE A EQUIPE RIVAL</small></div><div class="objective-tag" id="objectiveTag">5 contra 5 · Última equipe viva vence</div>
         <div class="top-buttons"><button class="icon-btn" id="fullscreenBtn" title="Entrar ou sair da tela cheia" aria-label="Tela cheia">⛶</button><button class="icon-btn" id="muteBtn" title="Ativar/desativar som" aria-label="Ativar ou desativar som">♪</button><button class="icon-btn" id="pauseBtn" title="Pausar" aria-label="Pausar">Ⅱ</button></div>
         <div class="toast" id="toast"></div>
-        <div class="ability-cancel" id="abilityCancel">✕ CANCELAR</div><div class="mobile-controls" id="mobileControls"><div class="joy" id="joy"><div class="joy-knob" id="joyKnob"></div></div><div class="aim-pad" id="aimPad"><div class="aim-thumb" id="aimThumb"></div></div><div class="skill-controls"><button class="skill-btn" id="dashBtn" aria-label="Investida"><b>➤</b><small>Dash</small><span class="cd-text" hidden></span></button><button class="skill-btn" id="pulseBtn" aria-label="Pulso"><b>✳</b><small>Pulso</small><span class="cd-text" hidden></span></button><button class="skill-btn" id="shieldBtn" aria-label="Escudo"><b>◇</b><small>Escudo</small><span class="cd-text" hidden></span></button><button class="skill-btn fire" id="fireBtn" aria-label="Atirar"><b>✦</b><small>ATIRAR</small></button></div></div>
+        <div class="ability-cancel" id="abilityCancel">✕ CANCELAR</div><div class="mobile-controls" id="mobileControls"><div class="joy" id="joy"><div class="joy-knob" id="joyKnob"></div></div><div class="aim-pad" id="aimPad"><div class="aim-thumb" id="aimThumb"></div></div><div class="skill-controls"><button class="skill-btn" id="dashBtn" aria-label="Investida"><b>➤</b><small>Dash</small><span class="cd-text" hidden></span></button><button class="skill-btn" id="pulseBtn" aria-label="Pulso"><b>✳</b><small>Pulso</small><span class="cd-text" hidden></span></button><button class="skill-btn" id="shieldBtn" aria-label="Escudo"><b>◇</b><small>Escudo</small><span class="cd-text" hidden></span></button><button class="skill-btn ultimate" id="ultBtn" aria-label="Ultimate"><b>✸</b><small>ULTI</small><span class="cd-text" hidden></span></button><button class="skill-btn fire" id="fireBtn" aria-label="Atirar"><b>✦</b><small>ATIRAR</small></button></div></div>
         <div class="phase-pips" id="phasePips"><i class="on"></i><i></i><i></i><i></i><i></i></div>
         <div class="overlay" id="overlay"><div class="modal" id="modalContent"></div><aside class="mission-shelf" id="missionShelf"><h3>ESCOLHER FASE · 3 ESTRELAS</h3><div id="missions"></div></aside></div><div class="rotate-prompt" id="rotatePrompt"><div class="rotate-symbol">⤵</div><strong>Gire o celular</strong><p>A Arena de Sigilos agora foi feita para jogar na horizontal, ocupando a tela inteira.</p><button type="button" id="rotateFullscreen">ATIVAR TELA CHEIA</button></div>
       </div>
@@ -236,16 +236,18 @@ const save=()=>{try{localStorage.setItem('sigils-progress-v1',JSON.stringify({be
 
 
 const heroes={
- lyria:{name:'LYRIA',role:'ATIRADORA',symbol:'⌁',color:'#78f4d9',hp:226,move:187,damage:24,attackTime:1.10,range:560,projectile:570,skills:['lyria_pierce','lyria_step','lyria_rain'],passive:'A cada 3 ataques certeiros, o próximo impacto causa +14 de dano.',summary:'Longo alcance, flechas de precisão e chuva de projéteis.'},
- vexor:{name:'VEXOR',role:'DUELISTA',symbol:'⟠',color:'#ffb976',hp:254,move:204,damage:25,attackTime:1.00,range:425,projectile:555,skills:['vexor_lunge','vexor_whirl','vexor_mark'],passive:'Após usar uma habilidade, seu próximo ataque ganha +13 de dano.',summary:'Combos de lâminas, investida e marca para executar o alvo.'},
- orun:{name:'ORUN',role:'GUARDIÃO',symbol:'⬡',color:'#a9b5ff',hp:304,move:174,damage:23,attackTime:1.23,range:380,projectile:435,skills:['orun_charge','orun_guard','orun_quake'],passive:'A cada 3 ataques certeiros, recupera 15 de vida.',summary:'Proteção, controle próximo e choque de escudo.'},
- nyra:{name:'NYRA',role:'MAGA',symbol:'✶',color:'#dfa0ff',hp:216,move:183,damage:28,attackTime:1.37,range:520,projectile:500,skills:['nyra_bolt','nyra_rift','nyra_barrier'],passive:'A cada 3 ataques certeiros, descarrega +19 de dano mágico.',summary:'Magia de longo alcance, aprisionamento e proteção arcana.'},
- seris:{name:'SERIS',role:'SUPORTE',symbol:'✿',color:'#ffa7dc',hp:235,move:182,damage:17,attackTime:1.26,range:430,projectile:490,skills:['seris_tether','seris_bloom','seris_aegis'],passive:'Seus ataques enfraquecem o alvo; cura aliados feridos ao usar habilidades.',summary:'Suporte ranged que cura, protege e atrapalha investidas.'},
+ lyria:{name:'LYRIA',role:'ATIRADORA',symbol:'⌁',color:'#78f4d9',hp:226,move:187,damage:24,attackTime:1.10,range:560,projectile:570,skills:['lyria_pierce','lyria_step','lyria_rain'],ultimate:'lyria_ult',passive:'A cada 3 ataques certeiros, o próximo impacto causa +14 de dano.',summary:'Longo alcance, flechas de precisão e chuva de projéteis.'},
+ vexor:{name:'VEXOR',role:'DUELISTA',symbol:'⟠',color:'#ffb976',hp:254,move:204,damage:25,attackTime:1.00,range:425,projectile:555,skills:['vexor_lunge','vexor_whirl','vexor_mark'],ultimate:'vexor_ult',passive:'Após usar uma habilidade, seu próximo ataque ganha +13 de dano.',summary:'Combos de lâminas, investida e marca para executar o alvo.'},
+ orun:{name:'ORUN',role:'GUARDIÃO',symbol:'⬡',color:'#a9b5ff',hp:304,move:174,damage:23,attackTime:1.23,range:380,projectile:435,skills:['orun_charge','orun_guard','orun_quake'],ultimate:'orun_ult',passive:'A cada 3 ataques certeiros, recupera 15 de vida.',summary:'Proteção, controle próximo e choque de escudo.'},
+ nyra:{name:'NYRA',role:'MAGA',symbol:'✶',color:'#dfa0ff',hp:216,move:183,damage:28,attackTime:1.37,range:520,projectile:500,skills:['nyra_bolt','nyra_rift','nyra_barrier'],ultimate:'nyra_ult',passive:'A cada 3 ataques certeiros, descarrega +19 de dano mágico.',summary:'Magia de longo alcance, aprisionamento e proteção arcana.'},
+ seris:{name:'SERIS',role:'SUPORTE',symbol:'✿',color:'#ffa7dc',hp:235,move:182,damage:17,attackTime:1.26,range:430,projectile:490,skills:['seris_tether','seris_bloom','seris_aegis'],ultimate:'seris_ult',passive:'Seus ataques enfraquecem o alvo; cura aliados feridos ao usar habilidades.',summary:'Suporte ranged que cura, protege e atrapalha investidas.'},
 };
 let heroChoice='lyria';
 try{const h=localStorage.getItem('sigils-hero-v1');if(heroes[h])heroChoice=h}catch(_){}
 const chosenHero=()=>heroes[heroChoice];
 const heroSkillIds=(id=heroChoice)=>heroes[id].skills;
+const heroUltimateId=(id=heroChoice)=>heroes[id].ultimate;
+const fullHeroKit=(id=heroChoice)=>[...heroSkillIds(id),heroUltimateId(id)];
 const selectedHeroText=()=>{const h=chosenHero();return h.name+' · '+h.role+' · '+h.hp+' PV · '+h.damage+' dano · MOV '+h.move+' · '+(1/h.attackTime).toFixed(2)+' ataques/s';};
 const saveHero=()=>{try{localStorage.setItem('sigils-hero-v1',heroChoice)}catch(_){}};
 const skillDefs={
@@ -264,6 +266,11 @@ const skillDefs={
  seris_tether:{name:'Laço Luminoso',short:'Laço',icon:'✧',desc:'Projétil que desacelera o inimigo acertado.',cost:27,cd:6.9,aim:'direction',range:405,radius:20,cast:0},
  seris_bloom:{name:'Flor Restauradora',short:'Flor',icon:'✿',desc:'Cura numa área; toque rápido mira o aliado mais ferido, segurar permite escolher a região.',cost:39,cd:10.6,aim:'area',range:295,radius:104,cast:0.23},
  seris_aegis:{name:'Aura de Proteção',short:'Aura',icon:'◇',desc:'Protege aliados perto de Seris; ativação imediata.',cost:35,cd:11.2,aim:'self',radius:148,cast:0},
+ lyria_ult:{name:'Eclipse de Flechas',short:'Eclipse',icon:'☄',desc:'Ultimate: chuva devastadora de flechas sobre uma grande região. Desacelera vários adversários.',cost:58,cd:31,cast:.28,aim:'area',range:355,radius:140,ultimate:true},
+ vexor_ult:{name:'Caçada Implacável',short:'Caçada',icon:'⚔',desc:'Ultimate: investida imediata de execução que atravessa inimigos e causa dano adicional a alvos feridos.',cost:59,cd:32,cast:0,aim:'direction',range:230,radius:47,ultimate:true},
+ orun_ult:{name:'Bastião Vivo',short:'Bastião',icon:'⬡',desc:'Ultimate: protege aliados próximos, cura um pouco e atordoa os inimigos ao redor.',cost:58,cd:36,cast:0,aim:'self',radius:166,ultimate:true},
+ nyra_ult:{name:'Ruptura Celeste',short:'Ruptura',icon:'✹',desc:'Ultimate: grande explosão rúnica em área que causa dano e prende os adversários.',cost:62,cd:34,cast:.34,aim:'area',range:335,radius:137,ultimate:true},
+ seris_ult:{name:'Aurora Vital',short:'Aurora',icon:'✿',desc:'Ultimate: restaura muita vida de toda a equipe próxima e concede proteção coletiva.',cost:58,cd:37,cast:0,aim:'self',radius:198,ultimate:true},
 };
 const itemDefs={
  lens:{name:'Lente Astral',icon:'◈',desc:'Aumenta o dano dos disparos básicos.',unlock:0},
@@ -412,7 +419,7 @@ function createUnit(heroId,team,index,controlled=false){
   hp,maxHp:hp,damage:Math.round(h.damage*(controlled?1:.70)*(team===1?1+selected*.05:1)),
   speed:h.move*(team===1?1+selected*.006:1),range:unitRange({heroId}),vx:0,vy:0,angle:team===0?0:Math.PI,
   energy:100,maxEnergy:100,shoot:controlled?0:rnd(.25,.95),windup:0,windupTarget:null,
-  cool:Object.fromEntries(h.skills.map(id=>[id,controlled?0:rnd(1.7,3.4)])),casting:null,aiGoal:null,focusTime:0,
+  cool:Object.fromEntries(fullHeroKit(heroId).map(id=>[id,controlled?0:(id===h.ultimate?rnd(5,8):rnd(1.7,3.4))])),casting:null,aiGoal:null,focusTime:0,
   hit:0,shield:0,barrier:0,invuln:0,dash:0,dashVx:0,dashVy:0,dashSkill:null,
   stun:0,slowTimer:0,marked:0,markBonus:0,empowered:false,hitCombo:0,attackAnim:0,
   dodgeCooldown:rnd(2.8,5),actionClock:0,special:rnd(6,9),healBonus:0
@@ -451,7 +458,7 @@ function showMenu(){
  '<h2>'+m.name+' · 5 × 5</h2><p>'+m.desc+' Sua equipe enfrenta cinco campeões da equipe rubra. Você controla um herói; quatro aliados lutam autonomamente.</p>'+
  '<div class="result-objectives"><div><span>★</span> Elimine os cinco rivais</div><div><span>★</span> Sobreviva e termine com 60% da vida</div><div><span>★</span> Vença em até '+m.time+' segundos</div></div>'+
  '<div class="battle-hint">💡 '+themes[selected]+'<div class="teamfight-tip">RANGED: Lyria, Nyra e Seris · MELEE: Vexor e Orun.<br>Algumas habilidades são instantâneas; outras têm conjuração ou tempo de viagem. Os kits são fixos, só os itens podem ser trocados.</div></div>'+
- '<div class="loadout-preview"><span class="menu-hero">SEU CAMPEÃO: '+selectedHeroText()+'</span><br>Três habilidades fixas: '+h.skills.map(id=>skillDefs[id].name).join(' · ')+'<br>Itens: '+arsenal.items.map(id=>itemDefs[id].name).join(' + ')+'</div>'+
+ '<div class="loadout-preview"><span class="menu-hero">SEU CAMPEÃO: '+selectedHeroText()+'</span><br>Poderes fixos: '+fullHeroKit().map((id,i)=>(i===3?'ULT: ':'')+skillDefs[id].name).join(' · ')+'<br>Itens: '+arsenal.items.map(id=>itemDefs[id].name).join(' + ')+'</div>'+
  '<div class="actions"><button class="primary" id="startGame">INICIAR 5 × 5 ✦</button><button class="secondary" id="openHeroes">◇ PERSONAGENS</button><button class="secondary" id="openArsenal">⚒ ARSENAL</button></div>'+
  '<p style="margin:8px auto 0;font-size:10px">Se o seu campeão cair, a batalha continua até a última equipe sobrevivente. Vitória coletiva mantém a campanha.</p>';
  $('startGame').onclick=()=>{enterImmersive();reset(selected)};
@@ -463,14 +470,14 @@ function showHeroSelect(){
  $('overlay').classList.remove('hidden','arsenal-open');$('overlay').classList.add('picker-open','hero-open');
  const c=chosenHero();
  $('modalContent').innerHTML='<div class="arsenal-head"><strong>◇ ESCOLHA SEU CAMPEÃO</strong><button class="secondary" id="heroBack" style="padding:7px 10px">VOLTAR</button></div>'+
- '<div class="arsenal-info">Cada campeão tem três habilidades próprias e uma função tática. RANGED: Lyria, Nyra, Seris; MELEE: Vexor e Orun. Você escolhe seu campeão para o 5x5; apenas os itens podem ser trocados.</div>'+
+ '<div class="arsenal-info">Cada campeão tem três habilidades próprias, uma ultimate e uma função tática. RANGED: Lyria, Nyra, Seris; MELEE: Vexor e Orun. Você escolhe seu campeão para o 5x5; apenas os itens podem ser trocados.</div>'+
  '<div class="hero-selection">'+Object.entries(heroes).map(([id,h])=>
  '<button data-hero="'+id+'" class="hero-choice '+(id===heroChoice?'chosen':'')+'">'+
  '<span class="hero-mark" style="color:'+h.color+'">'+h.symbol+'</span>'+
  '<strong>'+h.name+'</strong><small>'+h.role+'</small>'+
  '<b>'+h.hp+' PV · '+h.damage+' dano · MOV '+h.move+' · '+(meleeClass(id)?'MELEE':'RANGED')+'</b>'+
  '<em>'+h.summary+'</em></button>').join('')+'</div>'+
- '<div class="hero-preview"><strong>'+c.name+' · PASSIVA</strong><div>'+c.passive+'</div><div style="margin-top:7px"><strong>HABILIDADES EXCLUSIVAS</strong><div>'+c.skills.map((id,i)=>(i+1)+'. '+skillDefs[id].name).join(' · ')+'</div></div></div>'+
+ '<div class="hero-preview"><strong>'+c.name+' · PASSIVA</strong><div>'+c.passive+'</div><div style="margin-top:7px"><strong>HABILIDADES EXCLUSIVAS</strong><div>'+[...c.skills,c.ultimate].map((id,i)=>(i===3?'ULTIMATE':(i+1)+'.')+' '+skillDefs[id].name).join(' · ')+'</div></div></div>'+
  '<div class="actions" style="margin-top:9px"><button class="primary" id="heroConfirm">CONFIRMAR '+c.name+'</button></div>';
  $('heroBack').onclick=showMenu;
  $('heroConfirm').onclick=showMenu;
@@ -486,7 +493,7 @@ function showArsenal(tab=arsenalTab){
 }
 function renderArsenal(){
  const el=$('modalContent'),scroll=el.scrollTop,isSkill=arsenalTab==='skills';
- const defs=isSkill?skillDefs:itemDefs,ids=isSkill?heroSkillIds():Object.keys(itemDefs);
+ const defs=isSkill?skillDefs:itemDefs,ids=isSkill?fullHeroKit():Object.keys(itemDefs);
  const slots=arsenal.items;
  const itemBonus=id=>{
   const lvl=itemLevel(id);
@@ -494,7 +501,7 @@ function renderArsenal(){
    stride:'+'+(4.5*lvl).toFixed(1)+'% movimento',cell:'+'+12*lvl+'% energia',
    prism:'1 salto em inimigos · +'+2*lvl+' dano',core:'-'+(6*lvl).toFixed(1)+'% recarga'}[id];
  };
- const fixed=isSkill?heroSkillIds().map((id,i)=>'<div class="fixed-skill">PODER '+(i+1)+'<small>'+skillDefs[id].name+'</small><span>FIXO</span></div>').join(''):
+ const fixed=isSkill?fullHeroKit().map((id,i)=>'<div class="fixed-skill">'+(i===3?'ULTIMATE':'PODER '+(i+1))+'<small>'+skillDefs[id].name+'</small><span>FIXO</span></div>').join(''):
   slots.map((id,i)=>'<button data-action="slot" data-index="'+i+'" class="'+(itemSlot===i?'selected':'')+'">ITEM '+(i+1)+'<small>'+itemDefs[id].name+'</small></button>').join('');
  const cards=ids.map(id=>{
   const d=defs[id],unlocked=isSkill||acquired(d),level=isSkill?skillLevel(id):itemLevel(id);
@@ -526,7 +533,7 @@ function renderArsenal(){
    else slots[itemSlot]=id;
    saveArsenal();renderArsenal();return;
   }
-  if(action==='upgrade'&&defs[id]&&acquired(defs[id])&&(!isSkill||heroSkillIds().includes(id))){
+  if(action==='upgrade'&&defs[id]&&acquired(defs[id])&&(!isSkill||fullHeroKit().includes(id))){
    const levels=isSkill?arsenal.skillLevels:arsenal.itemLevels,level=isSkill?skillLevel(id):itemLevel(id);
    const cost=level===1?(isSkill?50:38):(isSkill?90:72);
    if(level>=3||arsenal.credits<cost)return;
@@ -592,8 +599,8 @@ function updateHud(){
  $('objectiveTag').textContent=player&&player.hp<=0?'SEU CAMPEÃO CAIU · AGUARDE A EQUIPE':('★ Elimine 5 rivais · Vida ≥60% · Até '+m.time+'s');
  $('teamScore').innerHTML='<span class="blue">'+l+' AZUL</span> × <span class="red">'+r+' RUBRO</span><small>'+teamKills.ally+' ABATES × '+teamKills.enemy+' ABATES</small>';
  if(player){
-  heroSkillIds().forEach((id,i)=>{
-   const b=$(['dashBtn','pulseBtn','shieldBtn'][i]),d=skillDefs[id],cd=player.cool[id],el=b.querySelector('.cd-text');
+  fullHeroKit().forEach((id,i)=>{
+   const b=$(['dashBtn','pulseBtn','shieldBtn','ultBtn'][i]),d=skillDefs[id],cd=player.cool[id],el=b.querySelector('.cd-text');
    b.querySelector('b').textContent=d.icon;b.querySelector('small').textContent=d.short;b.setAttribute('aria-label',d.name);
    b.classList.toggle('oncd',cd>.03||player.energy<d.cost||!!player.casting||player.hp<=0);
    el.hidden=!(cd>.03||player.casting?.which===id);
@@ -792,7 +799,7 @@ function skillRadiusDamage(point,radius,damage,color,slow=0,stun=0,team=0,source
  return didHit;
 }
 function ability(which,aimSpec=null){
- if(mode!=='playing'||!player||player.hp<=0||!skillDefs[which]||!heroSkillIds(player.heroId).includes(which))return false;
+ if(mode!=='playing'||!player||player.hp<=0||!skillDefs[which]||!fullHeroKit(player.heroId).includes(which))return false;
  if(player.casting||player.dash>0)return false;
  const def=skillDefs[which],cost=skillCost(which);
  if(player.cool[which]>.01||player.energy<cost){tone(170,.04,'sine',.015);return false}
@@ -1842,7 +1849,7 @@ canvas.addEventListener('pointermove',e=>{if(e.pointerType==='mouse'){aim={...po
 canvas.addEventListener('pointerdown',e=>{if(mode==='playing'&&e.pointerType==='mouse'){e.preventDefault();aim={...pointInCanvas(e),active:true};queueSingleShot(targetDirection());canvas.setPointerCapture(e.pointerId)}});
 canvas.addEventListener('pointerup',()=>{});canvas.addEventListener('pointercancel',()=>{});
 
-window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' ','q','e','r','1','2','3','escape'].includes(k))e.preventDefault();if(k==='escape'){showPause();return}if(mode!=='playing')return;keys.add(k);if(!e.repeat){if(k==='q'||k==='1')ability(heroSkillIds()[0]);if(k==='e'||k==='2')ability(heroSkillIds()[1]);if(k==='r'||k==='3')ability(heroSkillIds()[2]);if(k===' ')queueSingleShot(targetDirection())}});
+window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' ','q','e','r','1','2','3','escape'].includes(k))e.preventDefault();if(k==='escape'){showPause();return}if(mode!=='playing')return;keys.add(k);if(!e.repeat){if(k==='q'||k==='1')ability(heroSkillIds()[0]);if(k==='w'||k==='2')ability(heroSkillIds()[1]);if(k==='e'||k==='3')ability(heroSkillIds()[2]);if(k==='r'||k==='4')ability(heroUltimateId());if(k===' ')queueSingleShot(targetDirection())}});
 window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{if(mode==='playing')showPause();keys.clear();shotQueue.length=0});
 $('fullscreenBtn').onclick=()=>{if(document.fullscreenElement&&document.exitFullscreen){document.exitFullscreen()}else enterImmersive()};
 $('rotateFullscreen').onclick=enterImmersive;
@@ -1895,7 +1902,7 @@ fireBtn.addEventListener('pointermove',updateTouchAim);
 for(const ev of ['pointerup','pointercancel','lostpointercapture'])fireBtn.addEventListener(ev,endFireTouch);
 
 let skillPointer=null,skillTouch=null;
-const abilityCancel=$('abilityCancel'),abilityButtons=['dashBtn','pulseBtn','shieldBtn'];
+const abilityCancel=$('abilityCancel'),abilityButtons=['dashBtn','pulseBtn','shieldBtn','ultBtn'];
 const SKILL_HOLD_MS=190; // tempo para abrir guia de mira, não é cast
 function clearSkillTouch(){
  if(skillTouch&&skillTouch.button)skillTouch.button.classList.remove('aim-holding');
@@ -1923,7 +1930,7 @@ function maybeActivateSkillAim(now){
 }
 function beginSkillTouch(e,index){
  if(mode!=='playing'||!player||player.hp<=0||skillPointer!==null)return;
- const which=heroSkillIds()[index],def=skillDefs[which];
+ const which=fullHeroKit()[index],def=skillDefs[which];
  if(!def)return;
  e.preventDefault();
  if(skillAimKind(which)==='self'){ability(which);return}
