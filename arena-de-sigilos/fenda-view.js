@@ -732,6 +732,55 @@ function hudUpdate(){
   scoreboardLastUpdate=S.time;renderScoreboard();
  }
 }
+// Placar de partida: as mesmas informações acionadas pelo placar do Wild Rift.
+const scoreRoles={orun:'TOP',vexor:'SELVA',nyra:'MEIO',lyria:'ATIR.',seris:'SUP.'};
+const scoreOrder={orun:0,vexor:1,nyra:2,lyria:3,seris:4};
+function scoreboardItems(hero){
+ const slots=Array.from({length:6},(_,i)=>hero.items[i]||null);
+ return '<div class="fenda-scoreboard-items">'+slots.map(id=>{
+  const item=id?E.ITEMS.find(x=>x.id===id):null;
+  return item?'<span class="fenda-scoreboard-item" title="'+item.name+' · '+item.stat+'">'+item.icon+'</span>':
+   '<span class="fenda-scoreboard-item empty">·</span>';
+ }).join('')+'</div>';
+}
+function scoreTeam(side){
+ const heroes=S.units.filter(u=>u.kind==='hero'&&u.side===side)
+  .sort((a,b)=>(scoreOrder[a.id]??9)-(scoreOrder[b.id]??9));
+ const aliveTowers=S.structures.filter(t=>t.kind==='tower'&&t.side===side&&t.hp>0).length;
+ const farm=heroes.reduce((sum,u)=>sum+(u.cs||0),0);
+ const totalGold=heroes.reduce((sum,u)=>sum+Math.round(u.gold||0),0);
+ const color=side===0?'azul':'rubro',title=side===0?'EQUIPE AZUL':'EQUIPE RUBRA';
+ const rows=heroes.map(u=>{
+  const hero=C.heroes[u.id],dead=u.hp<=0;
+  const deathInfo=dead?' · RESSURGE '+Math.ceil(u.respawn)+'s':' · NV '+u.level;
+  return '<div class="fenda-scoreboard-player'+(u.controlled?' is-self':'')+(dead?' is-dead':'')+'">'+
+   '<span class="fenda-scoreboard-role">'+(scoreRoles[u.id]||'ROTA')+'</span>'+
+   '<div class="fenda-scoreboard-champion"><span class="fenda-scoreboard-symbol" style="color:'+hero.color+'">'+hero.symbol+'</span>'+
+   '<span><strong>'+hero.name+'</strong><small>'+(u.controlled?'VOCÊ':'BOT')+deathInfo+'</small></span></div>'+
+   '<strong class="fenda-scoreboard-kda">'+u.kills+'/'+u.deaths+'/'+(u.assists||0)+'</strong>'+
+   '<span class="fenda-scoreboard-cs">'+(u.cs||0)+' <small>CS</small></span>'+
+   '<span class="fenda-scoreboard-gold">'+Math.round(u.gold||0)+' ✦</span>'+
+   scoreboardItems(u)+'</div>';
+ }).join('');
+ return '<section class="fenda-scoreboard-team '+color+'">'+
+  '<div class="fenda-scoreboard-teamhead"><strong>'+title+' <em>'+S.kills[side]+' ABATES</em></strong>'+
+  '<span>'+aliveTowers+' TORRES · '+farm+' CS · '+totalGold+' ✦</span></div>'+
+  '<div class="fenda-scoreboard-colheads"><span>ROTA</span><span>CAMPEÃO</span>'+
+  '<span>K/D/A</span><span>FARM</span><span>OURO</span><span>ITENS</span></div>'+rows+'</section>';
+}
+function renderScoreboard(){
+ $('fendaScoreboardTeams').innerHTML=scoreTeam(0)+scoreTeam(1);
+}
+function setScoreboardVisible(visible,viaTab=false){
+ scoreboardVisible=Boolean(visible&&S.mode==='playing');
+ scoreboardHeld=Boolean(scoreboardVisible&&viaTab);
+ scoreboard.classList.toggle('open',scoreboardVisible);
+ $('fendaScoreBtn').setAttribute('aria-expanded',String(scoreboardVisible));
+ if(scoreboardVisible){
+  keys.clear();joy.ptr=null;joy.x=joy.y=0;
+  scoreboardLastUpdate=S.time;renderScoreboard();
+ }
+}
 function shopRender(){
  const h=S.hero;if(!h)return;
  $('fendaShopGold').textContent='✦ '+Math.round(h.gold)+' OURO · '+h.items.length+'/6 ITENS';
@@ -757,13 +806,13 @@ function chooseHero(){
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice();
- $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 5.3</div><h2>FENDA DOS SIGILOS</h2>'+
+ $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 5.4</div><h2>FENDA DOS SIGILOS</h2>'+
  '<p>Rotas de curvas suaves, tropas em formação e torres nas laterais. IA de teamfight coordenada: iniciação, proteção, flanco e recuo.</p>'+
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
  '<div class="teamfight-tip">5×5 com IA tática · composição de equipe · foco conjunto · recuo e iniciação · névoa de guerra · jungle e ganks · objetivos · loja e XP.</div>'+
  '<div class="actions" style="margin-top:10px"><button class="primary" id="playFenda">▶ JOGAR FENDA 5×5</button><button class="secondary" id="playClassic">MODO ARENA RÁPIDA</button></div>'+
- '<p style="font-size:10px;margin:9px 0 0">Celular: joystick e Q/W/E/R. PC: clique direito no chão para andar; clique direito no inimigo para perseguir e atacar automaticamente. Q/W/E/R habilidades; B retorno, P loja, V sentinela. TAB alterna para WASD + 1/2/3/4.</p>';
+ '<p style="font-size:10px;margin:9px 0 0">Celular: joystick, habilidades e toque no placar para abrir o TAB. PC: clique direito para andar/atacar; TAB mostra o placar, F2 alterna para WASD + 1/2/3/4, B retorno, P loja, V sentinela.</p>';
  for(const b of $('modalContent').querySelectorAll('[data-hero]'))b.onclick=()=>{C.setHeroChoice(b.dataset.hero);chooseHero()};
  $('playFenda').onclick=startGame;
  $('playClassic').onclick=()=>{S.mode='classic';stage.classList.remove('fenda-on');C.showClassic()};
@@ -984,7 +1033,18 @@ function keyDown(e){
  if(k==='escape'&&S.showPause){e.preventDefault();pause();return}
  if(S.showPause||S.shopOpen)return;
  if(k==='tab'){
-  e.preventDefault();desktopScheme=desktopScheme==='wasd'?'arrows':'wasd';
+  e.preventDefault();
+  if(!e.repeat)setScoreboardVisible(true,true);
+  return;
+ }
+ if(scoreboardVisible){
+  if(k==='escape'){e.preventDefault();setScoreboardVisible(false); }
+  return;
+ }
+ if(k==='f2'){
+  e.preventDefault();
+  if(e.repeat)return;
+  desktopScheme=desktopScheme==='wasd'?'arrows':'wasd';
   keys.clear();clickDestination=null;E.clearAttackCommand(S.hero);
   E.announce(desktopScheme==='wasd'?'PC: WASD + HABILIDADES 1/2/3/4':'PC: SETAS + HABILIDADES Q/W/E/R',2.5);
   return;
@@ -1007,6 +1067,7 @@ function keyDown(e){
  else if(k==='escape')pause();
 }
 function movement(){
+ if(scoreboardVisible)return{x:0,y:0};
  let x=joy.x,y=joy.y;
  if(keys.has('arrowup')||desktopScheme==='wasd'&&keys.has('w'))y--;
  if(keys.has('arrowdown')||desktopScheme==='wasd'&&keys.has('s'))y++;
@@ -1068,9 +1129,15 @@ cv.addEventListener('contextmenu',e=>e.preventDefault());
 cv.addEventListener('pointermove',worldMove);
 for(const type of ['pointerup','pointercancel','lostpointercapture'])cv.addEventListener(type,worldEnd);
 window.addEventListener('keydown',keyDown);
-window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+window.addEventListener('keyup',e=>{
+ const key=e.key.toLowerCase();
+ keys.delete(key);
+ if(key==='tab'&&scoreboardHeld){e.preventDefault();setScoreboardVisible(false);}
+});
 window.addEventListener('blur',()=>{keys.clear();joy.ptr=null;joy.x=joy.y=0});
 $('fendaShopBtn').onclick=toggleShop;$('fendaShopClose').onclick=toggleShop;
+$('fendaScoreBtn').addEventListener('click',()=>setScoreboardVisible(!scoreboardVisible));
+$('fendaScoreClose').addEventListener('click',()=>setScoreboardVisible(false));
 $('fendaWardBtn').addEventListener('pointerdown',wardStart);
 $('fendaWardBtn').addEventListener('pointermove',wardMove);
 for(const type of ['pointerup','pointercancel','lostpointercapture'])
@@ -1115,6 +1182,6 @@ for(const type of ['pointerup','pointercancel','lostpointercapture'])
 mm.addEventListener('dblclick',()=>{cameraPeek=null;cameraPeekUntil=0});
 window.addEventListener('resize',resize);
 if(window.ResizeObserver)new ResizeObserver(resize).observe(stage);
-window.FendaView={chooseHero,startGame,pause,view,resize,toggleShop,hudUpdate,pickAttackTarget,issueRightClick,movement,minimapPoint,wardPoint,wardStart,wardMove,wardEnd,minimapStart,minimapMove,minimapEnd};
+window.FendaView={chooseHero,startGame,pause,view,resize,toggleShop,hudUpdate,pickAttackTarget,issueRightClick,movement,minimapPoint,wardPoint,wardStart,wardMove,wardEnd,minimapStart,minimapMove,minimapEnd,renderScoreboard,setScoreboardVisible};
 resize();chooseHero();requestAnimationFrame(loop);
 })();
