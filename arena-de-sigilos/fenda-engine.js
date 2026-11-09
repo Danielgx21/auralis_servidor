@@ -378,14 +378,123 @@ function structureStep(dt){
   }
  }
 }
+// Sistema físico: obeliscos/Núcleos, árvores, pedras e monstros possuem hitboxes.
+// Minions/campeões usam separação SUAVE, evitando empilhamento sem provocar creepblock rígido.
+function solidBodies(){
+ const objects=[];
+ for(const t of state.structures)if(t.hp>0)objects.push(t);
+ for(const t of state.obstacles)objects.push(t);
+ for(const c of state.camps)if(c.hp>0&&(!c.unlock||state.time>=c.unlock))objects.push(c);
+ return objects;
+}
+function solidRadius(o){
+ if(o.kind==='core')return 55;
+ if(o.kind==='tower')return 27;
+ if(o.kind==='boss')return 38;
+ if(o.kind==='buff')return 28;
+ if(o.kind==='camp')return 23;
+ return o.r||22;
+}
+function pushOutsideSolids(u,obstacles=solidBodies()){
+ const R=u.r||18;
+ for(let loop=0;loop<2;loop++){
+  let changed=false;
+  for(const obstacle of obstacles){
+   const radius=R+solidRadius(obstacle)+1;
+   const dx=u.x-obstacle.x,dy=u.y-obstacle.y;
+   if(Math.abs(dx)>=radius||Math.abs(dy)>=radius)continue;
+   const d2=dx*dx+dy*dy;
+   if(d2>=radius*radius)continue;
+   const distance=Math.sqrt(d2),dir=distance>.001?
+    {x:dx/distance,y:dy/distance}:
+    {x:Math.cos((u.uid||1)*2.4),y:Math.sin((u.uid||1)*2.4)};
+   u.x=clamp(obstacle.x+dir.x*radius,30,W-30);
+   u.y=clamp(obstacle.y+dir.y*radius,30,H-30);
+   changed=true;
+  }
+  if(!changed)break;
+ }
+}
+// Segmentado também para investidas: impede atravessar uma torre num frame longo.
+function movePhysical(u,dx,dy,obstacles=solidBodies()){
+ const distance=Math.hypot(dx,dy);
+ if(distance<.001)return false;
+ const x0=u.x,y0=u.y;
+ const pieces=Math.max(1,Math.ceil(distance/9));
+ for(let i=0;i<pieces;i++){
+  u.x=clamp(u.x+dx/pieces,30,W-30);
+  u.y=clamp(u.y+dy/pieces,30,H-30);
+  pushOutsideSolids(u,obstacles);
+ }
+ return Math.hypot(u.x-x0,u.y-y0)>.2;
+}
+// IA contorna obstáculos grandes em vez de tentar atravessá-los eternamente.
+function steerAround(u,dir,goal,solids){
+ if(!goal||Math.hypot(goal.x-u.x,goal.y-u.y)<8)return dir;
+ let best=null,score=Infinity;
+ for(const o of solids){
+  const relX=o.x-u.x,relY=o.y-u.y;
+  const forward=relX*dir.x+relY*dir.y;
+  const required=(u.r||18)+solidRadius(o)+11;
+  if(forward<0||forward>required+55)continue;
+  if(dist(goal,o)<required+3)continue; // Na aproximação de um obelisco, parar e atacar.
+  const lateral=relX*dir.y-relY*dir.x;
+  const a=Math.abs(lateral);
+  if(a>=required)continue;
+  const danger=forward+a*.15;
+  if(danger<score){score=danger;best={o,lateral,required}}
+ }
+ if(!best)return dir;
+ const side=Math.abs(best.lateral)>2?(best.lateral>0?1:-1):((u.uid||0)%2?1:-1);
+ const tangent={x:dir.y*side,y:-dir.x*side};
+ const push=1.15+clamp((best.required-Math.abs(best.lateral))/best.required,0,1)*.55;
+ return norm(dir.x+tangent.x*push,dir.y+tangent.y*push);
+}
+// Grade espacial de 80 px: evita comparações quadráticas de todos os minions.
+function separateUnits(){
+ const units=state.units.filter(u=>u.hp>0);
+ const size=78,grid=new Map(),key=(x,y)=>x+','+y,solids=solidBodies();
+ for(const u of units){
+  const cx=Math.floor(u.x/size),cy=Math.floor(u.y/size);
+  u._cellX=cx;u._cellY=cy;
+  const k=key(cx,cy);if(!grid.has(k))grid.set(k,[]);
+  grid.get(k).push(u);
+ }
+ for(const u of units){
+  for(let ox=-1;ox<=1;ox++)for(let oy=-1;oy<=1;oy++){
+   const others=grid.get(key(u._cellX+ox,u._cellY+oy));
+   if(!others)continue;
+   for(const v of others){
+    if(v.uid<=u.uid)continue;
+    const padding=u.side===v.side?2:4;
+    const minDist=Math.max(9,u.r+v.r-padding);
+    const dx=v.x-u.x,dy=v.y-u.y;
+    if(Math.abs(dx)>=minDist||Math.abs(dy)>=minDist)continue;
+    const d2=dx*dx+dy*dy;
+    if(d2>=minDist*minDist)continue;
+    const d=Math.sqrt(d2);
+    const dir=d>.001?{x:dx/d,y:dy/d}:{x:Math.cos(v.uid*2.1),y:Math.sin(v.uid*2.1)};
+    const strength=Math.min(12,(minDist-d)*.72);
+    const uMass=u.kind==='hero'?2.8:1,vMass=v.kind==='hero'?2.8:1;
+    const total=uMass+vMass;
+    const amountU=strength*vMass/total,amountV=strength*uMass/total;
+    u.x=clamp(u.x-dir.x*amountU,30,W-30);
+    u.y=clamp(u.y-dir.y*amountU,30,H-30);
+    v.x=clamp(v.x+dir.x*amountV,30,W-30);
+    v.y=clamp(v.y+dir.y*amountV,30,H-30);
+   }
+  }
+ }
+ for(const u of units)pushOutsideSolids(u,solids);
+}
 function moveToward(u,p,dt,speedFactor=1){
  const dx=p.x-u.x,dy=p.y-u.y,d=Math.hypot(dx,dy);
  if(d<4)return true;
  const step=Math.min(d,moveSpeed(u)*dt*speedFactor);
- u.x=clamp(u.x+dx/d*step,36,W-36);
- u.y=clamp(u.y+dy/d*step,36,H-36);
- u.facing=Math.atan2(dy,dx);
- return d<step+7;
+ const dir=steerAround(u,{x:dx/d,y:dy/d},p,solidBodies());
+ movePhysical(u,dir.x*step,dir.y*step);
+ u.facing=Math.atan2(dir.y,dir.x);
+ return dist(u,p)<Math.max(9,step+7);
 }
 function moveMinion(m,dt){
  if(m.stun>0)return;
@@ -738,7 +847,7 @@ function tickUnit(u,dt){
   }
   if(u.dash){
    const d=u.dash,ox=u.x,oy=u.y,step=Math.min(dt,d.t);
-   u.x=clamp(u.x+d.vx*step,30,W-30);u.y=clamp(u.y+d.vy*step,30,H-30);
+   movePhysical(u,d.vx*step,d.vy*step);
    for(const target of living(1-u.side)){
     if(d.hit.has(target.uid))continue;
     const hit=Math.hypot(target.x-u.x,target.y-u.y)<target.r+u.r+d.radius*.5;
@@ -775,8 +884,8 @@ function step(dt,movement={x:0,y:0}){
  if(hero&&hero.hp>0&&!hero.dash&&hero.stun<=0&&!hero.recall){
   const direction=norm(movement.x,movement.y),len=Math.min(1,Math.hypot(movement.x,movement.y));
   if(len>.06){
-   hero.x=clamp(hero.x+direction.x*moveSpeed(hero)*dt*len*(hero.casting?.58:1),30,W-30);
-   hero.y=clamp(hero.y+direction.y*moveSpeed(hero)*dt*len*(hero.casting?.58:1),30,H-30);
+   movePhysical(hero,direction.x*moveSpeed(hero)*dt*len*(hero.casting?.58:1),
+    direction.y*moveSpeed(hero)*dt*len*(hero.casting?.58:1));
    hero.facing=Math.atan2(direction.y,direction.x);
   }
  }
@@ -785,6 +894,7 @@ function step(dt,movement={x:0,y:0}){
  }
  for(const u of state.units){tickUnit(u,dt);if(state.mode!=='playing')break}
  if(state.mode!=='playing')return;
+ separateUnits();
  structureStep(dt);jungleStep(dt);tickProjectiles(dt);
  for(const f of state.effects)f.life-=dt;state.effects=state.effects.filter(f=>f.life>0);
  // Remove dead minions after a brief visible impact; keep heroes for respawn.
@@ -818,5 +928,5 @@ function recall(){
 }
 window.FendaEngine={state,W,H,TAU,HOME,PATHS,SIDE,ITEMS,hData,skillDef,
  start,step,cast,autoAttack,focusTower,buyItem,recall,damage,heal,announce,makeWave,
- living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect};
+ living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,pushOutsideSolids,separateUnits,solidBodies};
 })();
