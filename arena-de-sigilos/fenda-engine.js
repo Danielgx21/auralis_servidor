@@ -44,11 +44,11 @@ const JUNGLE_LINKS=[
 // deslocado para o lado da selva. A rotação de 180° preserva equilíbrio.
 const WALL_RIBBONS=[
  {name:'superior',lane:0,sign:1,offset:288,spans:[
-  [.08,.23],[.28,.49],[.55,.74],[.79,.93]]},
+  [.08,.20],[.32,.44],[.57,.68],[.81,.93]]},
  {name:'central-norte',lane:1,sign:-1,offset:288,spans:[
-  [.10,.23],[.30,.45]]},
+  [.10,.21],[.37,.48]]},
  {name:'central-sul',lane:1,sign:1,offset:288,spans:[
-  [.10,.23],[.30,.45]]}
+  [.10,.21],[.37,.48]]}
 ];
 const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1};
 const ITEMS=[
@@ -266,7 +266,8 @@ function buildMap(){
  ];
  state.camps=camps.map(o=>({...o,maxHp:o.hp,respawn:0}));
  // Paredes da jungle formam COSTAS CONTÍNUAS de cada lane, com três
- // ou mais entradas por setor. Toda a separação é uma hitbox real.
+ // ou mais entradas por setor, com vãos de gank de 300+ unidades.
+ // Toda a separação é uma hitbox real.
  // Fragmentos contíguos possuem a mesma identificação 'chain' para que
  // o desenho fique liso sem dezenas de ícones nas emendas.
  const wallHalf=92;
