@@ -737,7 +737,7 @@ function chooseHero(){
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice();
- $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 5.2</div><h2>FENDA DOS SIGILOS</h2>'+
+ $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 5.3</div><h2>FENDA DOS SIGILOS</h2>'+
  '<p>Rotas de curvas suaves, tropas em formação e torres nas laterais. IA de teamfight coordenada: iniciação, proteção, flanco e recuo.</p>'+
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
@@ -948,6 +948,14 @@ function wardEnd(e){
  }
  wardAim=null;
 }
+function beginRecall(){
+ clickDestination=null;
+ if(S.hero)E.clearAttackCommand(S.hero);
+ joy.x=joy.y=0;
+ const result=E.recall();
+ if(!result)warn('RETORNO INDISPONÍVEL');
+ return result;
+}
 function keyDown(e){
  if(S.mode!=='playing')return;
  const k=e.key.toLowerCase();
@@ -973,7 +981,7 @@ function keyDown(e){
   if(!E.cast(S.hero,kit[i]))warn('HABILIDADE INDISPONÍVEL OU EM RECARGA');return;
  }
  if(k==='v')deployWard();
- else if(k==='b'){if(!E.recall())warn('RETORNO INDISPONÍVEL');}
+ else if(k==='b')beginRecall();
  else if(k==='p')toggleShop();
  else if(k==='escape')pause();
 }
@@ -1046,7 +1054,7 @@ $('fendaWardBtn').addEventListener('pointerdown',wardStart);
 $('fendaWardBtn').addEventListener('pointermove',wardMove);
 for(const type of ['pointerup','pointercancel','lostpointercapture'])
  $('fendaWardBtn').addEventListener(type,wardEnd);
-$('fendaRecallBtn').onclick=()=>E.recall();$('fendaPauseBtn').onclick=pause;
+$('fendaRecallBtn').onclick=beginRecall;$('fendaPauseBtn').onclick=pause;
 $('fendaTowerBtn').addEventListener('pointerdown',e=>{
  e.preventDefault();e.stopPropagation();
  if(S.mode!=='playing'||S.shopOpen||S.showPause||!S.hero||S.hero.hp<=0)return;
