@@ -7,42 +7,36 @@ const W=2750,H=1900,TAU=Math.PI*2;
 const MOBA_WALK_SCALE=.55;
 // Largura de rota proporcional ao personagem: ~6 diâmetros por corredor.
 const LANE_HALF_WIDTH=108,LANE_MINION_SPREAD=26;
-// Fenda 6.0: coordenadas ancoradas à arte aprovada (1448×1086 pixels).
-// O mesmo mapeamento é usado pelo cenário, tropas, torres, IA e minimapa.
-const ART_W=1448,ART_H=1086;
-const mapPoint=(x,y)=>({x:Math.round(x*W/ART_W),y:Math.round(y*H/ART_H)});
-const JUNGLE_LINKS=[
- {lane:0,t:.54,...mapPoint(480,300)},
- {lane:1,t:.36,...mapPoint(340,530)},
- {lane:1,t:.67,...mapPoint(1050,620)},
- {lane:2,t:.46,...mapPoint(965,715)}
-];
+// Fenda 6.1 — desenho de três lanes inspirado na Rift, com a identidade da Arena Teamfight.
+// Exatamente três rotas: superior (L), central (diagonal) e inferior (L espelhada).
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const norm=(x,y)=>{const n=Math.hypot(x,y)||1;return{x:x/n,y:y/n}};
 const SIDE=['#69e6e4','#ed829e'];
-const HOME=[mapPoint(106,992),mapPoint(1350,65)];
-const CORE=[mapPoint(183,853),mapPoint(1217,150)];
-const PATH_PIXELS=[
- [[207,770],[205,555],[205,343],[365,183],[470,186],[700,188],[915,186],[1104,190]],
- [[345,724],[435,632],[525,540],[720,539],[923,539],[1106,340],[1165,273]],
- [[350,827],[500,831],[700,831],[966,831],[1070,816],[1170,675],[1190,518],[1190,325],[1190,266]]
+const HOME=[{x:220,y:1680},{x:2530,y:220}];
+const CORE=[{x:360,y:1530},{x:2390,y:370}];
+const TOP_PATH=[
+ {x:380,y:1320},{x:390,y:1080},{x:390,y:790},{x:390,y:500},
+ {x:520,y:355},{x:880,y:330},{x:1240,y:330},
+ {x:1660,y:330},{x:2010,y:345},{x:2180,y:355},{x:2220,y:370}
 ];
-const PATHS=PATH_PIXELS.map(path=>path.map(([x,y])=>mapPoint(x,y)));
-const BASE_GATE=[PATHS.map(path=>({...path[0]})),
- PATHS.map(path=>({...path[path.length-1]}))];
-// Torres coincidem com os cristais pintados; não aparecem mais duas torres no mesmo lugar.
-// tier 1 = externa; tier 3 = interna.
-const TOWER_PIXELS=[
- [
-  [[242,246],[169,500],[108,715]],
-  [[490,500],[328,654],[315,751]],
-  [[703,875],[486,876],[359,948]]
- ],
- [
-  [[692,145],[900,146],[1030,75]],
-  [[904,498],[1090,277],[1300,317]],
-  [[964,873],[1152,772],[1234,495]]
- ]
+const MID_PATH=[
+ {x:530,y:1390},{x:730,y:1250},{x:1000,y:1100},
+ {x:1375,y:950},{x:1750,y:800},{x:2020,y:650},{x:2220,y:510}
+];
+const rotateHalf=p=>({x:W-p.x,y:H-p.y});
+const PATHS=[TOP_PATH,MID_PATH,TOP_PATH.slice().reverse().map(rotateHalf)];
+const BASE_GATE=[
+ PATHS.map(pts=>({...pts[0]})),
+ PATHS.map(pts=>({...pts[pts.length-1]}))
+];
+// Apenas atalhos de navegação para a IA, nunca desenhados como rotas.
+const JUNGLE_LINKS=[
+ {lane:0,t:.35,x:770,y:700},{lane:1,t:.35,x:1030,y:765},
+ {lane:1,t:.66,x:1720,y:1135},{lane:2,t:.66,x:1980,y:1200}
+];
+const WALL_SEEDS=[
+ [[620,620],[900,580]],[[1050,580],[1190,720]],[[650,915],[830,830]],
+ [[1500,575],[1710,545]],[[1780,520],[1930,500]],[[1500,720],[1660,675]]
 ];
 const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1};
 const ITEMS=[
@@ -54,7 +48,7 @@ const ITEMS=[
  {id:'core',name:'Núcleo Ágil',price:620,stat:'-15% recarga',desc:'Habilidades disponíveis mais cedo',icon:'✦'}
 ];
 const state={mode:'menu',time:0,w:W,h:H,camera:{x:0,y:0},units:[],structures:[],projectiles:[],
- effects:[],jungle:[],camps:[],obstacles:[],wards:[],brushes:[],sight:[[],[]],seen:[null,null],
+ effects:[],jungle:[],camps:[],obstacles:[],walls:[],wards:[],brushes:[],sight:[[],[]],seen:[null,null],
  visionUpdate:-1,teamBuffs:[{serpe:0,titan:0},{serpe:0,titan:0}],
  hero:null,focused:null,kills:[0,0],wave:0,nextWave:4,
  flash:0,score:0,marker:null,shopOpen:false,showPause:false,notice:'',noticeUntil:0,
@@ -220,49 +214,61 @@ function placeWard(hero,x,y){
 }
 
 function buildMap(){
- state.structures=[];state.camps=[];state.obstacles=[];
- state.brushes=[
-  {id:'veil-n',...mapPoint(480,338),r:83},
-  {id:'veil-s',...mapPoint(968,748),r:83},
-  {id:'reed-n',...mapPoint(377,617),r:82},
-  {id:'reed-s',...mapPoint(1071,469),r:82},
-  {id:'thicket-n',...mapPoint(710,342),r:89},
-  {id:'thicket-s',...mapPoint(738,744),r:89}
- ];
+ state.structures=[];state.camps=[];state.obstacles=[];state.walls=[];
+ // Selva sem estradas extras: áreas de visão compartilhadas em pares simétricos.
+ const bushes=[{x:770,y:760},{x:1020,y:635},{x:1150,y:680}];
+ state.brushes=[];
+ for(let i=0;i<bushes.length;i++){
+  const p=bushes[i],mirror=rotateHalf(p),r=69+(i%2)*8;
+  state.brushes.push({id:'veil-a-'+i,...p,r});
+  state.brushes.push({id:'veil-b-'+i,...mirror,r});
+ }
+ // Torres reais ficam ao LADO das lanes, nunca no eixo por onde andam os minions.
+ // Posição definida pela mesma curva usada na movimentação e no minimapa.
  for(let side=0;side<2;side++){
-  const base=CORE[side];
-  state.structures.push({kind:'core',side,x:base.x,y:base.y,maxHp:1850,hp:1850,
+  const home=CORE[side];
+  state.structures.push({kind:'core',side,x:home.x,y:home.y,maxHp:1850,hp:1850,
    r:46,atk:53,range:375,attackCd:0,id:'core'+side});
   for(let lane=0;lane<3;lane++)for(let tier=0;tier<3;tier++){
-   const [ix,iy]=TOWER_PIXELS[side][lane][tier],p=mapPoint(ix,iy);
-   state.structures.push({kind:'tower',side,lane,tier:tier+1,x:p.x,y:p.y,
-    r:23,hp:880,maxHp:880,atk:58,range:360,attackCd:0,
+   const t=(side===0?[.405,.215,.072]:[.595,.785,.928])[tier];
+   const p=pathPos(lane,t),a=pathPos(lane,Math.max(0,t-.004)),b=pathPos(lane,Math.min(1,t+.004));
+   const direction=norm(b.x-a.x,b.y-a.y);
+   const sign=lane===0?1:lane===2?-1:side===0?1:-1;
+   const offset=130;
+   const x=p.x-direction.y*offset*sign,y=p.y+direction.x*offset*sign;
+   state.structures.push({kind:'tower',side,lane,tier:tier+1,x,y,
+    r:27,hp:880,maxHp:880,atk:58,range:230,attackCd:0,
     id:'tower'+side+'-'+lane+'-'+tier});
   }
  }
- // Monstros ficam nos bolsões escuros pintados, nunca sobre as pistas.
- state.camps=[
-  {id:'veilA',...mapPoint(470,300),kind:'buff',name:'Véu Azul',color:'#75caff',hp:630,maxHp:630,respawn:0,buff:'energy'},
-  {id:'emberA',...mapPoint(969,704),kind:'buff',name:'Brasa Rubra',color:'#ff9c74',hp:630,maxHp:630,respawn:0,buff:'damage'},
-  {id:'wolvesA',...mapPoint(342,529),kind:'camp',name:'Lobos Astrais',color:'#a7c2ef',hp:360,maxHp:360,respawn:0},
-  {id:'golemA',...mapPoint(1058,613),kind:'camp',name:'Golem Sigilar',color:'#e5c58f',hp:450,maxHp:450,respawn:0},
-  {id:'serpe',...mapPoint(690,683),kind:'boss',name:'Serpe Astral',color:'#9bf6e9',hp:1030,maxHp:1030,respawn:0,unlock:55},
-  {id:'titan',...mapPoint(710,337),kind:'boss',name:'Titã do Abismo',color:'#dfb1fa',hp:1500,maxHp:1500,respawn:0,unlock:110}
+ // Acampamentos apenas nas áreas não pavimentadas, longe das três rotas.
+ const camps=[
+  {id:'veilA',x:850,y:670,kind:'buff',name:'Véu Azul',color:'#75caff',hp:630,buff:'energy'},
+  {id:'emberA',x:1900,y:1230,kind:'buff',name:'Brasa Rubra',color:'#ff9c74',hp:630,buff:'damage'},
+  {id:'wolvesA',x:670,y:920,kind:'camp',name:'Lobos Astrais',color:'#a7c2ef',hp:360},
+  {id:'golemA',x:2080,y:980,kind:'camp',name:'Golem Sigilar',color:'#e5c58f',hp:450},
+  {id:'serpe',x:1590,y:1200,kind:'boss',name:'Serpe Astral',color:'#9bf6e9',hp:1030,unlock:55},
+  {id:'titan',x:1160,y:700,kind:'boss',name:'Titã do Abismo',color:'#dfb1fa',hp:1500,unlock:110}
  ];
- // As peças sólidas usam as próprias rochas já ilustradas no cenário.
- // Não criar blocos aleatórios que não existem na imagem.
- const SOLID_LANDMARKS=[
-  [390,266],[554,268],[829,276],[967,276],
-  [300,390],[435,404],[1001,404],[1144,414],
-  [306,627],[410,614],[988,614],[1140,614],
-  [441,744],[577,748],[828,745],[968,746]
- ];
- for(const [ix,iy] of SOLID_LANDMARKS){
-  const p=mapPoint(ix,iy),r=23;
-  if(state.structures.some(s=>dist(s,p)<s.r+r+14))continue;
-  if(state.camps.some(s=>dist(s,p)<r+50))continue;
-  if(Math.min(...[0,1,2].map(l=>routeProjection(l,p).distance))<r+64)continue;
-  state.obstacles.push({kind:'rock',x:p.x,y:p.y,r,solid:true});
+ state.camps=camps.map(o=>({...o,maxHp:o.hp,respawn:0}));
+ // Barricadas e passagens da selva: cada parede é um segmento FÍSICO verdadeiro.
+ for(let i=0;i<WALL_SEEDS.length;i++)for(let side=0;side<2;side++){
+  const [p,q]=WALL_SEEDS[i].map(([x,y])=>side===0?({x,y}):rotateHalf({x,y}));
+  const x=(p.x+q.x)/2,y=(p.y+q.y)/2,halfWidth=23;
+  state.walls.push({kind:'wall',id:'barrier-'+i+'-'+side,side,
+   ax:p.x,ay:p.y,bx:q.x,by:q.y,x,y,halfWidth,
+   r:Math.hypot(q.x-p.x,q.y-p.y)/2+halfWidth,solid:true});
+ }
+ // Pilares hexagonais, simétricos e separados das lanes.
+ const pillarSeeds=[{x:600,y:740},{x:930,y:730},{x:1350,y:580},{x:1560,y:620}];
+ for(const p of pillarSeeds)for(let side=0;side<2;side++){
+  const o=side===0?p:rotateHalf(p),r=23;
+  const closeRoute=[0,1,2].some(l=>routeProjection(l,o).distance<LANE_HALF_WIDTH+r+22);
+  const closeWall=state.walls.some(w=>pointToWall(o,w)<r+40);
+  const closeCamp=state.camps.some(k=>dist(o,k)<r+75);
+  const closeTower=state.structures.some(k=>dist(o,k)<r+k.r+45);
+  if(!closeRoute&&!closeWall&&!closeCamp&&!closeTower)
+   state.obstacles.push({kind:'rock',x:o.x,y:o.y,r,solid:true});
  }
  rebuildSolidIndex();
 }
@@ -656,12 +662,23 @@ function structureStep(dt){
 // Sistema físico: obeliscos/Núcleos, árvores, pedras e monstros possuem hitboxes.
 // Minions/campeões usam separação SUAVE, evitando empilhamento sem provocar creepblock rígido.
 // Índice estático: consulta apenas objetos próximos ao personagem.
+function wallClosest(point,o){
+ const dx=o.bx-o.ax,dy=o.by-o.ay;
+ const t=clamp(((point.x-o.ax)*dx+(point.y-o.ay)*dy)/Math.max(1,dx*dx+dy*dy),0,1);
+ return{x:o.ax+t*dx,y:o.ay+t*dy};
+}
+function pointToWall(point,o){
+ const q=wallClosest(point,o);return Math.hypot(point.x-q.x,point.y-q.y);
+}
+function distanceToSolid(point,o){
+ return o.kind==='wall'?pointToWall(point,o)-o.halfWidth:dist(point,o)-solidRadius(o);
+}
 const SOLID_CELL=165;
 let solidGrid=new Map();
 function solidKey(x,y){return x+','+y}
 function rebuildSolidIndex(){
  solidGrid=new Map();
- const all=[...state.structures,...state.obstacles,...state.camps];
+ const all=[...state.structures,...state.obstacles,...state.camps,...state.walls];
  for(const body of all){
   const radius=body.kind==='core'?55:body.kind==='tower'?27:
     body.kind==='boss'?38:body.kind==='buff'?28:body.kind==='camp'?23:body.r||22;
@@ -693,9 +710,10 @@ function nearSolids(x,y,radius=95){
  return result;
 }
 function solidBodies(){
- return [...state.structures,...state.obstacles,...state.camps].filter(aliveSolid);
+ return [...state.structures,...state.obstacles,...state.camps,...state.walls].filter(aliveSolid);
 }
 function solidRadius(o){
+ if(o.kind==='wall')return o.r;
  if(o.kind==='core')return 55;
  if(o.kind==='tower')return 27;
  if(o.kind==='boss')return 38;
@@ -708,6 +726,17 @@ function pushOutsideSolids(u,obstacles=nearSolids(u.x,u.y,(u.r||18)+83)){
  for(let loop=0;loop<2;loop++){
   let changed=false;
   for(const obstacle of obstacles){
+   if(obstacle.kind==='wall'){
+    const closest=wallClosest(u,obstacle),required=R+obstacle.halfWidth+1;
+    const dx=u.x-closest.x,dy=u.y-closest.y,dd=Math.hypot(dx,dy);
+    if(dd<required){
+     const side=dd>.0001?{x:dx/dd,y:dy/dd}:norm(-(obstacle.by-obstacle.ay),obstacle.bx-obstacle.ax);
+     u.x=clamp(closest.x+side.x*required,30,W-30);
+     u.y=clamp(closest.y+side.y*required,30,H-30);
+     changed=true;
+    }
+    continue;
+   }
    const radius=R+solidRadius(obstacle)+1;
    const dx=u.x-obstacle.x,dy=u.y-obstacle.y;
    if(Math.abs(dx)>=radius||Math.abs(dy)>=radius)continue;
@@ -746,6 +775,7 @@ function steerAround(u,dir,goal,solids){
  if(!goal||Math.hypot(goal.x-u.x,goal.y-u.y)<8)return dir;
  let best=null,score=Infinity;
  for(const o of solids){
+  if(o.kind==='wall')continue; // navegação longa contorna os segmentos por A*.
   const relX=o.x-u.x,relY=o.y-u.y;
   const forward=relX*dir.x+relY*dir.y;
   const required=(u.r||18)+solidRadius(o)+11;
@@ -956,7 +986,7 @@ function findJunglePath(u,goal){
  const blocked=i=>{
   if(cells[i])return cells[i]===2;
   const pos=point(i),hit=nearSolids(pos.x,pos.y,100).some(o=>
-   dist(pos,o)<solidRadius(o)+u.r+7);
+   distanceToSolid(pos,o)<u.r+7);
   cells[i]=hit?2:1;return hit;
  };
  const start=from(u.x,u.y),rawGoal=from(goal.x,goal.y);
@@ -1530,6 +1560,6 @@ function recall(){
  return true;
 }
 window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,hData,skillDef,
- start,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,isAttackCommandValid,buyItem,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,
+ start,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,isAttackCommandValid,buyItem,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
 })();
