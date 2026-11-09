@@ -219,6 +219,7 @@ function start(hero='lyria'){
  state.shopOpen=false;state.showPause=false;state.buffUntil=0;state.score=0;state.seq=0;
  state.wards=[];state.sight=[[],[]];state.seen=[new Uint8Array(VISION_COLS*VISION_ROWS),new Uint8Array(VISION_COLS*VISION_ROWS)];
  state.visionUpdate=-1;state.teamBuffs=[{serpe:0,titan:0},{serpe:0,titan:0}];
+ window.FendaTeamAI?.reset();
  buildMap();
  const ids=Object.keys(C.heroes);
  const blue=[state.selectedHero,...ids.filter(id=>id!==state.selectedHero)];
@@ -416,8 +417,10 @@ function findAA(u){
      (!u.jungleGoal.unlock||state.time>=u.jungleGoal.unlock)&&
      dist(u,u.jungleGoal)<=range+solidRadius(u.jungleGoal)+2)return u.jungleGoal;
  // Seleção explícita de torre mantém o foco do AA durante o cerco.
- const chosen=u.controlled&&u.focusTarget&&u.focusUntil>state.time?u.focusTarget:null;
+ const chosen=u.focusTarget&&u.focusUntil>state.time?u.focusTarget:null;
  if(chosen&&chosen.hp>0&&chosen.side!==u.side&&dist(chosen,u)<=range+chosen.r+2&&
+     (u.controlled||u.teamFightUntil>state.time&&chosen.kind==='hero')&&
+     (chosen.kind==='tower'||chosen.kind==='core'||visibleTo(u.side,chosen))&&
      (chosen.kind!=='tower'&&chosen.kind!=='core'||structureExposed(chosen)))return chosen;
  const target=u.kind==='minion'?laneTarget(u,range):nearestEnemy(u,range,true);
  if(target)return target;
@@ -727,12 +730,14 @@ function botUseSkill(u,target){
  const clusters=enemies.filter(e=>dist(e,target)<132).length;
  let options=[];
  if(u.id==='seris'){
-  if(ready('seris_ult')&&friendlies.filter(f=>dist(f,u)<190&&f.hp/f.maxHp<.62).length>=2)options.push('seris_ult');
+  if(ready('seris_ult')&&(friendlies.filter(f=>dist(f,u)<190&&f.hp/f.maxHp<.75).length>=2||
+      friendlies.some(f=>dist(f,u)<190&&f.hp/f.maxHp<.30)&&nearEnemies>=2))options.push('seris_ult');
   if(ready('seris_bloom')&&wounded)options.push('seris_bloom');
   if(ready('seris_aegis')&&(nearEnemies>0||wounded))options.push('seris_aegis');
   if(r<275)options.push('seris_tether');
  }else if(u.id==='orun'){
-  if(ready('orun_ult')&&nearEnemies>=2)options.push('orun_ult');
+  if(ready('orun_ult')&&(nearEnemies>=2&&friendlies.some(f=>f!==u&&dist(f,u)<190)||
+      nearEnemies>=1&&friendlies.some(f=>['lyria','nyra','seris'].includes(f.id)&&dist(f,u)<170&&f.hp/f.maxHp<.42)))options.push('orun_ult');
   if(ready('orun_guard')&&u.hp/u.maxHp<.7)options.push('orun_guard');
   if(r<130||nearEnemies>=2)options.push('orun_quake');
   if(r>70&&r<200)options.push('orun_charge');
@@ -755,7 +760,7 @@ function botUseSkill(u,target){
  options=options.filter(ready);
  if(!options.length)return false;
  const id=options[0],beneficiary=id==='seris_bloom'?wounded:target;
- if(cast(u,id,null,beneficiary)){
+ if(cast(u,id,window.FendaTeamAI?.aim(u,id,beneficiary)||null,beneficiary)){
   u.aiTimer=1.65+(u.uid%5)*.13;
   return true;
  }
@@ -952,6 +957,7 @@ function botHero(u,dt){
   }
   return;
  }
+ if(window.FendaTeamAI?.handleBot(u,dt))return;
  if(botJungler(u,dt))return;
  if(botSupportBoss(u,dt))return;
  const enemyHeroes=living(enemySide,'hero')
@@ -1305,6 +1311,8 @@ function step(dt,movement={x:0,y:0}){
  if(state.time>=state.nextWave){
   makeWave();state.nextWave=state.time+21;
  }
+ // A decisão coletiva é atualizada pela IA antes do movimento dos bots.
+ window.FendaTeamAI?.scan();
  for(const u of state.units){tickUnit(u,dt);if(state.mode!=='playing')break}
  if(state.mode!=='playing')return;
  separateUnits();
@@ -1342,5 +1350,5 @@ function recall(){
 }
 window.FendaEngine={state,W,H,TAU,HOME,PATHS,SIDE,ITEMS,hData,skillDef,
  start,step,cast,autoAttack,focusTower,buyItem,recall,damage,heal,announce,makeWave,
- living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
+ living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
 })();
