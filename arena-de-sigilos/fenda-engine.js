@@ -38,11 +38,30 @@ const state={mode:'menu',time:0,w:W,h:H,camera:{x:0,y:0},units:[],structures:[],
  hero:null,focused:null,kills:[0,0],wave:0,nextWave:4,
  flash:0,score:0,marker:null,shopOpen:false,showPause:false,notice:'',noticeUntil:0,
  nextObjectives:50,buffUntil:0,win:null,selectedHero:'lyria',seq:0,sounds:true};
-const rando=(a,b)=>a+Math.random()*(b-a),hData=id=>C.heroes[id],skillDef=id=>C.skills[id];
+const rando=(a,b)=>a+Math.random()*(b-a),hData=id=>C.heroes[id];
+// Alcances calibrados no espaço da Fenda (o modo Arena original não é alterado).
+const MOBA_SKILL_RANGES={
+ lyria_pierce:[345,17],lyria_step:[120,0],lyria_rain:[212,70],lyria_ult:[268,112],
+ vexor_lunge:[128,26],vexor_whirl:[0,82],vexor_mark:[185,56],vexor_ult:[173,44],
+ orun_charge:[111,38],orun_quake:[0,106],orun_ult:[0,143],
+ nyra_bolt:[341,17],nyra_rift:[207,63],nyra_ult:[258,109],
+ seris_tether:[298,18],seris_bloom:[211,92],seris_aegis:[0,139],seris_ult:[0,169]
+};
+const MOBA_SKILL_CACHE={};
+const skillDef=id=>{
+ if(MOBA_SKILL_CACHE[id])return MOBA_SKILL_CACHE[id];
+ const original=C.skills[id];if(!original)return null;
+ const val=MOBA_SKILL_RANGES[id];
+ return MOBA_SKILL_CACHE[id]={...original,
+  ...(val?val[0]?{range:val[0]}:{}:{}),
+  ...(val&&val[1]?{radius:val[1]}:{}),
+  cost:Math.round(original.cost*1.55)};
+};
 const living=(side,kind)=>state.units.filter(u=>u.hp>0&&(side==null||u.side===side)&&(!kind||u.kind===kind));
-const maxEnergy=u=>100+(u.items||[]).filter(i=>i==='cell').length*30;
+const maxMana=u=>320+Math.max(0,(u.level||1)-1)*16+(u.items||[]).filter(i=>i==='cell').length*85;
+const WARD_RANGE=280;
 const attackRange=u=>u.kind==='minion'?(u.id==='siege'?235:u.ranged?150:34):u.kind==='creep'?45:
- (u.id==='orun'?65:u.id==='vexor'?68:u.id==='lyria'?315:u.id==='nyra'?300:280);
+ (u.id==='orun'?55:u.id==='vexor'?58:u.id==='lyria'?173:u.id==='nyra'?164:152);
 const moveSpeed=u=>u.speed*(1+(u.items||[]).filter(i=>i==='stride').length*.17)*(u.slow>0?.62:1);
 const attackDamage=u=>u.atk+(u.items||[]).filter(i=>i==='lens').length*13;
 const spellPower=u=>1+(u.items||[]).filter(i=>i==='prism').length*.19;
@@ -164,7 +183,7 @@ function placeWard(hero,x,y){
  if(state.mode!=='playing'||!hero||hero.hp<=0||hero.kind!=='hero')return{ok:false,reason:'CAMPEÃO INDISPONÍVEL'};
  if(hero.visionCd>0)return{ok:false,reason:'VISÃO EM RECARGA'};
  const pos={x:clamp(x,35,W-35),y:clamp(y,35,H-35)};
- if(dist(hero,pos)>465)return{ok:false,reason:'LOCAL MUITO DISTANTE'};
+ if(dist(hero,pos)>WARD_RANGE+1)return{ok:false,reason:'FORA DO ALCANCE DA SENTINELA'};
  state.wards=state.wards.filter(w=>w.until>state.time);
  const existing=state.wards.filter(w=>w.side===hero.side);
  if(existing.length>=3){
@@ -172,7 +191,7 @@ function placeWard(hero,x,y){
   state.wards=state.wards.filter(w=>w!==oldest);
  }
  hero.visionCd=48;
- const ward={uid:++state.seq,side:hero.side,x:pos.x,y:pos.y,r:380,until:state.time+85,kind:'ward'};
+ const ward={uid:++state.seq,side:hero.side,x:pos.x,y:pos.y,r:295,until:state.time+85,kind:'ward'};
  state.wards.push(ward);refreshVision(true);
  addEffect(ward.x,ward.y,hero.side===0?'#8ef1d4':'#f5a6bb',48,.55,'blast');
  if(hero.controlled)announce('SENTINELA DE VISÃO INSTALADA · 85s',2);
@@ -255,12 +274,12 @@ function makeHero(id,side,controlled=false){
  // O Núcleo é sólido; os campeões surgem na fonte, fora de sua hitbox.
  const mid=pathPos(1,.11),dir=norm(mid.x-HOME[0].x,mid.y-HOME[0].y);
  const d=side===0?dir:{x:-dir.x,y:-dir.y};
- const spawnOffset=95+(state.seq%3)*12;
+ const spawnOffset=55+(state.seq%3)*13;
  return {uid:++state.seq,kind:'hero',id,side,controlled,
  x:start.x+d.x*spawnOffset+rando(-11,11),
  y:start.y+d.y*spawnOffset+rando(-11,11),r:id==='orun'?21:17.5,speed:h.move*MOBA_WALK_SCALE,atk:h.damage*.82,
  baseHp:h.hp*1.3,maxHp:Math.round(h.hp*1.3),hp:Math.round(h.hp*1.3),
- energy:100,maxEnergy:100,level:1,xp:0,gold:controlled?550:350,items:[],
+ mana:320,maxMana:320,level:1,xp:0,gold:controlled?550:350,items:[],
  lane:roles[id],waypoint:side===0?0:ROUTE_PATHS[roles[id]].length-1,attackCd:0,casting:null,
  cooldowns:Object.fromEntries([...h.skills,h.ultimate].map(k=>[k,0])),
  stun:0,slow:0,shield:0,guard:0,invuln:0,marked:0,attackAnim:0,
@@ -326,7 +345,7 @@ function xpGain(hero,amount){
  while(hero.level<12&&hero.xp>=levelXp(hero.level)){
   hero.xp-=levelXp(hero.level);hero.level++;
   hero.maxHp+=31;hero.hp=Math.min(hero.maxHp,hero.hp+28);
-  hero.atk+=3;hero.energy=Math.min(maxEnergy(hero),hero.energy+17);
+  hero.atk+=3;hero.mana=Math.min(maxMana(hero),hero.mana+17);
   if(hero.controlled)announce('NÍVEL '+hero.level+' · PODERES APRIMORADOS',2);
   addEffect(hero.x,hero.y,'#f9d987',85,.58);
  }
@@ -358,7 +377,7 @@ function onDeath(victim,source){
     source.gold+=victim.boss?230:105;
     xpGain(source,victim.boss?130:65);
     heal(source,victim.boss?90:36);
-    if(victim.buff==='energy')source.energy=maxEnergy(source);
+    if(victim.buff==='energy')source.mana=maxMana(source);
     if(victim.buff)source.homeBuff=state.time+72;
    }
    if(victim.boss){
@@ -825,10 +844,14 @@ function moveMinion(m,dt){
 function respawn(u){
  u.jungleGoal=null;u.gankUntil=0;u.navPath=null;
  const home=HOME[u.side];
- const mid=pathPos(1,.11),dir=norm(mid.x-HOME[0].x,mid.y-HOME[0].y);
- const d=u.side===0?dir:{x:-dir.x,y:-dir.y};
- u.x=home.x+d.x*104+rando(-10,10);u.y=home.y+d.y*104+rando(-10,10);
- u.hp=u.maxHp;u.energy=maxEnergy(u);u.shield=0;u.shieldUntil=0;
+ // Spawn na praça livre, evitando a hitbox do Núcleo e do obelisco interior.
+ const direction=u.side===0?1:-1;
+ u.x=home.x+direction*38+rando(-7,7);
+ u.y=home.y-direction*33+rando(-7,7);
+ pushOutsideSolids(u);
+ u.cameraSnapAt=state.time;
+ u.commandTarget=null;u.focusTarget=null;u.focusUntil=0;
+ u.hp=u.maxHp;u.mana=maxMana(u);u.shield=0;u.shieldUntil=0;
  if(!u.controlled)botShop(u);u.guard=0;u.casting=null;
  u.attackCd=0;u.stun=0;u.slow=0;u.dash=null;u.recall=0;u.attackPending=null;u.attackAnim=0;u.skillFlash=0;
  u.death=0;u.respawn=0;u.focus=null;u.aiTimer=.5;
@@ -846,12 +869,12 @@ function botShop(u){
  if(!item)return;
  u.items.push(item.id);u.gold-=item.price;
  if(item.id==='ward'){u.maxHp+=85;u.hp+=85}
- if(item.id==='cell'){u.maxEnergy=maxEnergy(u);u.energy=Math.min(maxEnergy(u),u.energy+30)}
+ if(item.id==='cell'){u.maxEnergy=maxMana(u);u.mana=Math.min(maxMana(u),u.mana+30)}
 }
 function botUseSkill(u,target){
  if(!u||u.stun>0||u.casting||u.dash||u.aiTimer>0)return false;
  const kit=hData(u.id),friendlies=living(u.side,'hero'),enemies=living(1-u.side,'hero').filter(e=>visibleTo(u.side,e));
- const ready=id=>id&&u.cooldowns[id]<=.01&&u.energy>=skillDef(id).cost&&
+ const ready=id=>id&&u.cooldowns[id]<=.01&&u.mana>=skillDef(id).cost&&
    (!skillDef(id).ultimate||u.level>=5);
  const r=dist(u,target),nearEnemies=enemies.filter(e=>dist(e,u)<240).length;
  const wounded=friendlies.filter(a=>dist(a,u)<295&&a.hp/a.maxHp<.74)
@@ -1034,9 +1057,9 @@ function botJungler(u,dt){
  if(camp.kind==='boss'&&dist(u,camp)>1150)return false;
  approachCreep(u,camp,dt);
  if(dist(u,camp)<125){
-  if(u.id==='vexor'&&u.cooldowns.vexor_whirl<=0&&u.energy>=skillDef('vexor_whirl').cost){
+  if(u.id==='vexor'&&u.cooldowns.vexor_whirl<=0&&u.mana>=skillDef('vexor_whirl').cost){
    cast(u,'vexor_whirl',null,camp);
-  }else if(u.id==='orun'&&u.cooldowns.orun_quake<=0&&u.energy>=skillDef('orun_quake').cost){
+  }else if(u.id==='orun'&&u.cooldowns.orun_quake<=0&&u.mana>=skillDef('orun_quake').cost){
    cast(u,'orun_quake',null,camp);
   }
  }
@@ -1057,7 +1080,7 @@ function botSupportBoss(u,dt){
   cast(u,'orun_quake',null,boss);
  if(u.id==='nyra'&&dist(u,boss)<325&&u.cooldowns.nyra_bolt<=0)
   cast(u,'nyra_bolt',null,boss);
- if(u.id==='seris'&&u.cooldowns.seris_aegis<=0&&u.energy>=skillDef('seris_aegis').cost){
+ if(u.id==='seris'&&u.cooldowns.seris_aegis<=0&&u.mana>=skillDef('seris_aegis').cost){
   const teammates=living(u.side,'hero').filter(h=>dist(h,u)<200&&h.hp/h.maxHp<.68);
   if(teammates.length)cast(u,'seris_aegis',null,teammates[0]);
  }
@@ -1081,7 +1104,7 @@ function botHero(u,dt){
   u.jungleGoal=null;
   moveToward(u,HOME[u.side],dt);
   if(dist(u,HOME[u.side])<120){
-   u.aiRetreat=false;heal(u,u.maxHp*.56);u.energy=maxEnergy(u);
+   u.aiRetreat=false;heal(u,u.maxHp*.56);u.mana=maxMana(u);
    botShop(u);
   }
   return;
@@ -1187,7 +1210,7 @@ function cast(u,id,aim=null,autoTarget=null){
  if(!u||u.hp<=0||state.mode!=='playing')return false;
  if(![...hData(u.id).skills,hData(u.id).ultimate].includes(id))return false;
  const def=skillDef(id);
- if(u.casting||u.dash||u.cooldowns[id]>0||u.energy<def.cost||u.stun>0)return false;
+ if(u.casting||u.dash||u.cooldowns[id]>0||u.mana<def.cost||u.stun>0)return false;
  if(def.ultimate&&u.level<5)return false;
  const target=autoTarget||((def.aim==='self')?u:nearestEnemy(u,def.range||350,false));
  const dx=aim?.x??(target?target.x-u.x:1),dy=aim?.y??(target?target.y-u.y:0);
@@ -1202,7 +1225,7 @@ function cast(u,id,aim=null,autoTarget=null){
  const maxLv=id===hData(u.id).ultimate?Math.min(3,1+Math.floor((u.level-5)/3)):Math.min(5,1+Math.floor((u.level-1)/2));
  const haste=(u.items||[]).filter(i=>i==='core').length*.15;
  u.cooldowns[id]=def.cd*(1-haste)*(1-.045*(maxLv-1));
- u.energy-=def.cost;
+ u.mana-=def.cost;
  if(u.recall>0){u.recall=0;if(u.controlled)announce('RETORNO CANCELADO: HABILIDADE',1.2)}
  const c={id,dir,center,level:maxLv,time:Math.max(0,def.cast),total:Math.max(0,def.cast)};
  if(c.time<=0)releaseSkill(u,c);else u.casting=c;
@@ -1371,21 +1394,26 @@ function tickUnit(u,dt){
    }
   }
  }
- if(u.kind==='hero')for(const id in u.cooldowns)u.cooldowns[id]=Math.max(0,u.cooldowns[id]-dt);
+ if(u.kind==='hero'){
+  const latest=maxMana(u);u.maxMana=latest;
+  for(const id in u.cooldowns)u.cooldowns[id]=Math.max(0,u.cooldowns[id]-dt);
+ }
  if(u.kind==='hero'){
   u.visionCd=Math.max(0,(u.visionCd||0)-dt);
   u.gold=Math.min(20000,u.gold+dt*1.15);
-  u.energy=clamp(u.energy+dt*((u.homeBuff>state.time?19:12)+
-    (state.teamBuffs[u.side].serpe>state.time?4:0)),0,maxEnergy(u));
+  u.mana=clamp(u.mana+dt*((dist(u,HOME[u.side])<160?27:4.2)+
+    (state.teamBuffs[u.side].serpe>state.time?2.4:0)),0,maxMana(u));
   u.aiTimer-=dt;
   u.hp=Math.min(u.maxHp,u.hp+dt*(dist(u,HOME[u.side])<150?24:1.15+
    (state.teamBuffs[u.side].serpe>state.time?1.65:0)));
   if(u.recall>0){
    if(u.controlled){u.recall-=dt;if(u.recall<=0){const home=HOME[u.side];
-     const mid=pathPos(1,.11),out=norm(mid.x-HOME[0].x,mid.y-HOME[0].y);
-     const dir=u.side===0?out:{x:-out.x,y:-out.y};
-     u.x=home.x+dir.x*104;u.y=home.y+dir.y*104;
-     u.hp=u.maxHp;u.energy=maxEnergy(u);announce('RETORNO AO SANTUÁRIO',1.6)}}
+     const direction=u.side===0?1:-1;
+     u.x=home.x+direction*38;u.y=home.y-direction*33;
+     pushOutsideSolids(u);
+     u.commandTarget=null;u.focusTarget=null;u.focusUntil=0;
+     u.cameraSnapAt=state.time;
+     u.hp=u.maxHp;u.mana=maxMana(u);announce('RETORNO AO SANTUÁRIO',1.6)}}
   }
   if(u.casting){
    if(u.stun>0){u.casting=null;return}
@@ -1468,7 +1496,7 @@ function buyItem(id){
  if(hero.gold<item.price)return{ok:false,reason:'Ouro insuficiente'};
  hero.gold-=item.price;hero.items.push(id);
  if(id==='ward'){hero.maxHp+=85;hero.hp+=85;}
- if(id==='cell'){hero.energy+=30;hero.maxEnergy=maxEnergy(hero);}
+ if(id==='cell'){hero.mana+=30;hero.maxEnergy=maxMana(hero);}
  addEffect(hero.x,hero.y,'#fbe1a1',58,.44);
  announce(item.name.toUpperCase()+' EQUIPADO',1.6);
  return{ok:true};
@@ -1483,6 +1511,6 @@ function recall(){
  return true;
 }
 window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,hData,skillDef,
- start,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,isAttackCommandValid,buyItem,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,
+ start,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,isAttackCommandValid,buyItem,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
 })();
