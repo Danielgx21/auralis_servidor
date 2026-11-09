@@ -57,6 +57,11 @@ function drawTerrain(){
    const t=clamp(((x-a.x)*vx+(y-a.y)*vy)/(vx*vx+vy*vy),0,1);
    if(Math.hypot(a.x+vx*t-x,a.y+vy*t-y)<pad)return true;
   }
+  for(const link of E.JUNGLE_LINKS){
+   const a=E.pathPos(link.lane,link.t),dx=link.x-a.x,dy=link.y-a.y;
+   const t=clamp(((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy),0,1);
+   if(Math.hypot(x-a.x-dx*t,y-a.y-dy*t)<pad*.64)return true;
+  }
   return E.HOME.some(p=>Math.hypot(p.x-x,p.y-y)<155);
  };
  for(let i=0;i<2500;i++){
@@ -72,10 +77,22 @@ function drawTerrain(){
  g.strokeStyle='#266475';g.lineWidth=112;g.stroke();
  g.strokeStyle='#327d8a';g.lineWidth=76;g.stroke();
  g.setLineDash([22,28]);g.strokeStyle='#78d5c65b';g.lineWidth=4;g.stroke();g.setLineDash([]);
+ // Caminhos da selva se conectam às bordas das lanes, com passagem física livre.
+ for(const link of E.JUNGLE_LINKS){
+  const start=E.pathPos(link.lane,link.t);
+  g.beginPath();g.moveTo(start.x,start.y);g.lineTo(link.x,link.y);
+  for(const [w,color] of [[89,'#112e31'],[75,'#4b6659'],[55,'#829079'],[39,'#a0a18a']]){
+   g.lineWidth=w;g.strokeStyle=color;g.stroke();
+  }
+  g.setLineDash([8,22]);g.strokeStyle='#e0d2a665';g.lineWidth=2;g.stroke();g.setLineDash([]);
+ }
  for(let lane=0;lane<3;lane++){
   const pts=E.PATHS[lane];g.beginPath();
   pts.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y));
-  for(const [w,stroke] of [[194,'#0b2730'],[183,'#4b695e'],[165,'#9da28b'],[149,'#c8bc94'],[127,'#b4ad90']]){
+  const laneW=E.LANE_HALF_WIDTH*2;
+  for(const [w,stroke] of [[laneW+16,'#0b2730'],[laneW,'#4b695e'],
+   [laneW-12,'#89998a'],[laneW-28,'#b6aa91'],[laneW-49,'#c8bc94'],
+   [laneW-94,'#b4ad90']]){
    g.lineWidth=w;g.strokeStyle=stroke;g.stroke();
   }
   g.setLineDash([17,31]);g.strokeStyle='#ebefbba1';g.lineWidth=4;g.stroke();g.setLineDash([]);
@@ -84,19 +101,19 @@ function drawTerrain(){
    g.strokeStyle='#edf4c050';g.lineWidth=3;g.strokeRect(-8,-8,16,16);g.restore();
   }
  }
- // Plataformas de pedra sinalizam a torre como parte do eixo central da lane.
+ // Plataformas defensivas no ombro da lane, deixando o eixo central livre para a wave.
  for(const t of S.structures){
   if(t.kind!=='tower')continue;
   g.save();g.translate(t.x,t.y);
-  g.fillStyle='#172f3b';g.beginPath();g.arc(0,0,57,0,TAU);g.fill();
+  g.fillStyle='#172f3b';g.beginPath();g.arc(0,0,45,0,TAU);g.fill();
   g.strokeStyle=t.side===0?'#7acac39c':'#d68e9e9c';g.lineWidth=5;
-  g.beginPath();g.arc(0,0,49,0,TAU);g.stroke();
-  g.strokeStyle='#dccfa378';g.lineWidth=2;
   g.beginPath();g.arc(0,0,39,0,TAU);g.stroke();
+  g.strokeStyle='#dccfa378';g.lineWidth=2;
+  g.beginPath();g.arc(0,0,34,0,TAU);g.stroke();
   for(let i=0;i<8;i++){
    const angle=TAU*i/8;
    g.fillStyle='#c5b88ba8';
-   g.beginPath();g.arc(Math.cos(angle)*53,Math.sin(angle)*53,3.5,0,TAU);g.fill();
+   g.beginPath();g.arc(Math.cos(angle)*41,Math.sin(angle)*41,3.0,0,TAU);g.fill();
   }
   g.restore();
  }
@@ -116,7 +133,7 @@ function drawTerrain(){
  // Bosques densos, flores rúnicas e ruínas de pedra em vez de prédios genéricos.
  for(let i=0;i<960;i++){
   const x=40+rand()*(E.W-80),y=40+rand()*(E.H-80);
-  if(nearRoute(x,y,E.LANE_HALF_WIDTH+46)||S.camps.some(k=>dist(k,{x,y})<78))continue;
+  if(nearRoute(x,y,E.LANE_HALF_WIDTH+55)||S.camps.some(k=>dist(k,{x,y})<78))continue;
   const r=9+rand()*19;
   g.fillStyle='#061b22a2';g.beginPath();g.ellipse(x+5,y+8,r*1.15,r*.65,0,0,TAU);g.fill();
   if(rand()>.22){
@@ -564,8 +581,8 @@ function chooseHero(){
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice();
- $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 4.6</div><h2>FENDA DOS SIGILOS</h2>'+
- '<p>Rotas ampliadas, torres alinhadas e zonas defensivas maiores. IA 5×5 coordenada: o tanque inicia, o assassino flanqueia e a retaguarda protege os carregadores.</p>'+
+ $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 4.7</div><h2>FENDA DOS SIGILOS</h2>'+
+ '<p>Rotas ampliadas, torres alinhadas e zonas defensivas maiores. IA coordenada de teamfight: tanque inicia, assassino flanqueia, suporte protege; rotas largas e torres recuadas.</p>'+
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
  '<div class="teamfight-tip">5×5 com IA tática · composição de equipe · foco conjunto · recuo e iniciação · névoa de guerra · jungle e ganks · objetivos · loja e XP.</div>'+
