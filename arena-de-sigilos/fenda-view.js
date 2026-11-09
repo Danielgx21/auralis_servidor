@@ -34,24 +34,8 @@ let vw=900,vh=460,dpr=1,terrain=null,last=performance.now(),hudCountdown=0,ended
 // A câmera usa pixels de tela separados de metros do mundo. Não reduzir o herói
 // para tentar encaixar 3 torres no mesmo enquadramento.
 let cameraZoom=1.30,worldVW=vw/cameraZoom,worldVH=vh/cameraZoom;
-const spritePaths={
- ground:'grass-ground.svg',fountain:'fountain.svg',inlay:'base-inlay.svg',
- bush:'moonflower-bush.svg',rock:'rune-rock.svg',
- tower:'sigil-tower.svg',core:'nexus-spire.svg'
-};
-const sprites={};
-for(const [key,file] of Object.entries(spritePaths)){
- const img=document.createElement('img');sprites[key]=img;
- img.onload=()=>{terrain=null};
- img.onerror=()=>{img.failed=true};
- img.src='art/'+file;
-}
-const hasSprite=key=>sprites[key]?.complete&&sprites[key].naturalWidth>0;
-function drawSprite(g,key,x,y,w,h,alpha=1){
- if(!hasSprite(key))return false;
- g.save();g.globalAlpha*=alpha;g.drawImage(sprites[key],x-w/2,y-h/2,w,h);g.restore();return true;
-}
-// Fenda 6.1: mapa 100% Canvas no estilo da Arena Teamfight.
+// Não há texturas, atlas ou sprites nesta arena. Toda a paisagem é Canvas procedural.
+// Fenda 6.3: paisagem 100% procedural, com geometria e camera próprias.
  // Somente três rotas; paredes/obstáculos provêm das hitboxes do motor.
 const fogCanvas=document.createElement('canvas'),fogContext=fogCanvas.getContext('2d');
 let fogAt=-1,fogCamX=-99999,fogCamY=-99999;
@@ -69,8 +53,8 @@ function resize(){
  const r=stage.getBoundingClientRect();vw=Math.max(320,r.width);vh=Math.max(220,r.height);
  dpr=Math.min(window.devicePixelRatio||1,1.65);
  cv.width=Math.round(vw*dpr);cv.height=Math.round(vh*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
- cameraZoom=vw>=1250?1.22:vw>=750?1.32:1.20;
- if(vh<385)cameraZoom=Math.min(cameraZoom,1.20);
+ cameraZoom=vw>=1250?1.43:vw>=750?1.35:1.26;
+ if(vh<385)cameraZoom=Math.min(cameraZoom,1.29);
  worldVW=vw/cameraZoom;worldVH=vh/cameraZoom;
  fogCanvas.width=Math.ceil(vw*.64);fogCanvas.height=Math.ceil(vh*.64);fogAt=-1;
 }
@@ -97,140 +81,10 @@ function techRing(g,x,y,r,color,width=2){
  g.beginPath();g.arc(x,y,r,0,TAU);
  g.strokeStyle=color;g.lineWidth=width;g.stroke();
 }
-function techBase(g,side){
- const home=E.HOME[side],core=E.CORE[side],color=E.SIDE[side];
- g.save();
- // O santuário é uma praça construída, independente da pista. O portão
- // superior, o central e o inferior estão separados desde o fim da base.
- g.translate(home.x,home.y);if(side===1)g.rotate(Math.PI);
- const outline=[[-178,170],[-180,-175],[-70,-305],[235,-350],[418,-175],[405,100],[257,220],[-35,225]];
- g.beginPath();outline.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();
- g.fillStyle='#203941';g.fill();g.lineJoin='round';g.strokeStyle='#111f27';g.lineWidth=28;g.stroke();
- g.strokeStyle='#7b9991';g.lineWidth=12;g.stroke();
- g.strokeStyle='#d0c297';g.lineWidth=3;g.stroke();
- // Pedra polida, canteiros e círculos ornamentais: arquitetura do Teamfight.
- g.save();g.clip();
- const tiles=60;
- for(let y=-355;y<260;y+=tiles)for(let x=-230;x<460;x+=tiles){
-  g.fillStyle=(Math.floor(x/tiles)+Math.floor(y/tiles))%2?'#4d6764':'#556d68';
-  g.fillRect(x,y,tiles-3,tiles-3);
- }
- g.restore();
- drawSprite(g,'inlay',0,0,318,318,.90);
- drawSprite(g,'fountain',0,0,194,194);
- if(!hasSprite('fountain')){
-  techRing(g,0,0,92,color,7);techRing(g,0,0,62,'#badad0',4);
-  techPolygon(g,0,0,47,8,Math.PI/8);g.fillStyle='#164658';g.fill();
- }
- g.restore();
- // Plataforma do núcleo é separada da fonte e não tampa corredores.
- drawSprite(g,'inlay',core.x,core.y,160,160,.80);
- techRing(g,core.x,core.y,56,color+'88',3);
-}
-function techWall(g,w){
- // Barricada rochosa alta. Uma única espinha de colisão corresponde à faixa
- // escura no chão; rochas decorativas não fingem ser novas paredes.
- const dx=w.bx-w.ax,dy=w.by-w.ay,len=Math.hypot(dx,dy);
- g.save();g.lineCap='round';g.lineJoin='round';
- g.beginPath();g.moveTo(w.ax+5,w.ay+9);g.lineTo(w.bx+5,w.by+9);
- g.strokeStyle='#091b20b8';g.lineWidth=w.halfWidth*2+15;g.stroke();
- g.beginPath();g.moveTo(w.ax,w.ay);g.lineTo(w.bx,w.by);
- g.strokeStyle='#263e40';g.lineWidth=w.halfWidth*2+5;g.stroke();
- g.strokeStyle='#667f78';g.lineWidth=w.halfWidth*2-4;g.stroke();
- const n=Math.max(2,Math.round(len/51));
- for(let i=0;i<=n;i++){
-  const t=i/n,x=w.ax+dx*t,y=w.ay+dy*t;
-  const shift=Math.sin(i*7.1)*3.4;
-  if(!drawSprite(g,'rock',x-dy/len*shift,y+dx/len*shift,60,56,.99)){
-   techPolygon(g,x,y,27,7,i*.5);g.fillStyle='#425f60';g.fill();g.strokeStyle='#8ca9a0';g.lineWidth=3;g.stroke();
-  }
- }
- g.restore();
-}
-function techObstacle(g,o){
- if(drawSprite(g,'rock',o.x,o.y,o.r*2.6,o.r*2.4))return;
- g.save();techPolygon(g,o.x,o.y,o.r,7);g.fillStyle='#4e6e68';g.fill();
- g.strokeStyle='#879e93';g.lineWidth=3;g.stroke();g.restore();
-}
-function drawTerrain(){
- const c=document.createElement('canvas');c.width=E.W;c.height=E.H;
- const g=c.getContext('2d');
- g.fillStyle='#193833';g.fillRect(0,0,E.W,E.H);
- if(hasSprite('ground')){
-  const p=g.createPattern(sprites.ground,'repeat');
-  if(p){g.fillStyle=p;g.fillRect(0,0,E.W,E.H);}
- }
- // A água cruza a mid perpendicularmente e organiza visualmente a jungle;
- // é atravessável, como no Wild Rift, nunca vira uma quarta rota.
- const river=[{x:980,y:20},{x:1100,y:400},{x:1300,y:785},{x:1635,y:1230},
-              {x:1835,y:1580},{x:2080,y:2010},{x:2310,y:2480}];
- g.lineCap='round';g.lineJoin='round';
- for(const [width,color] of [[224,'#102d33a8'],[180,'#385956'],[146,'#244954'],[113,'#2d6370']]){
-  techRoute(g,river);g.strokeStyle=color;g.lineWidth=width;g.stroke();
- }
- // Clareiras isoladas para monstros: não desenhar caminhos de jungle como lanes.
- for(const camp of S.camps){
-  const r=camp.kind==='boss'?126:99;
-  g.save();g.translate(camp.x,camp.y);g.rotate((camp.x+camp.y)*.0001);
-  g.fillStyle='#40594a';g.beginPath();g.ellipse(0,0,r*1.12,r*.75,0,0,TAU);g.fill();
-  g.strokeStyle='#79867a6c';g.lineWidth=9;g.stroke();g.restore();
- }
- // ÚNICAS três rotas pavimentadas, bem separadas e com largura constante.
- for(let lane=0;lane<3;lane++){
-  const pts=E.ROUTE_PATHS[lane];
-  for(const [width,color] of [[255,'#18332f'],[235,'#233d3a'],[221,'#7c8880'],[212,'#626e68']]){
-   techRoute(g,pts);g.lineWidth=width;g.strokeStyle=color;g.stroke();
-  }
-  // Lajotas discretas no sentido do fluxo, não linhas geométricas contínuas.
-  for(let t=.025;t<.99;t+=.026){
-   const p=E.pathPos(lane,t),a=E.pathPos(lane,Math.max(0,t-.004)),
-    b=E.pathPos(lane,Math.min(1,t+.004)),angle=Math.atan2(b.y-a.y,b.x-a.x);
-   g.save();g.translate(p.x,p.y);g.rotate(angle);
-   g.fillStyle=(Math.round(t*100)%3===0)?'#a4b3a533':'#233f3c31';
-   g.fillRect(-13,-68,26,136);
-   g.restore();
-  }
- }
- // Três passagens curtas da PRAÇA até os três portões de saída, sem
- // sobreposição de rotas em cima do núcleo.
- const gateways=[[{x:445,y:1840},{x:440,y:1360}],
-                 [{x:600,y:1910},{x:760,y:1750}],
-                 [{x:635,y:2240},{x:1020,y:2180}]];
- for(const side of [0,1]){
-  const rot=p=>side===0?p:{x:E.W-p.x,y:E.H-p.y};
-  for(const pair of gateways){
-   const pts=pair.map(rot);
-   for(const [w,col] of [[178,'#263e3a'],[150,'#667872']]){
-    techRoute(g,pts);g.strokeStyle=col;g.lineWidth=w;g.stroke();
-   }
-  }
- }
- // Plantas e pedras distribuídas simetricamente, longe dos corredores,
- // das torres e dos monstros. Elementos baixos não têm hitbox enganosa.
- let seed=21177;
- const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
- for(let i=0;i<175;i++){
-  const blue={x:150+random()*1510,y:120+random()*1210};
-  for(const p of [blue,{x:E.W-blue.x,y:E.H-blue.y}]){
-   if([0,1,2].some(l=>E.routeProjection(l,p).distance<E.LANE_HALF_WIDTH+58))continue;
-   if(S.structures.some(t=>dist(t,p)<t.r+98))continue;
-   if(S.camps.some(t=>dist(t,p)<125))continue;
-   if(E.HOME.some(h=>dist(h,p)<230))continue;
-   if(S.walls.some(w=>E.pointToWall(p,w)<w.halfWidth+35))continue;
-   const r=23+random()*23;
-   drawSprite(g,'bush',p.x,p.y,r*2.3,r*1.8,.63);
-  }
- }
- for(const b of S.brushes){
-  // Arbustos de camuflagem são visíveis como moitas, não círculos invisíveis.
-  drawSprite(g,'bush',b.x-b.r*.38,b.y,b.r*2,b.r*1.7,.95);
-  drawSprite(g,'bush',b.x+b.r*.38,b.y+9,b.r*2,b.r*1.7,.93);
- }
- for(const w of S.walls)techWall(g,w);
- for(const o of S.obstacles)techObstacle(g,o);
- for(let side=0;side<2;side++)techBase(g,side);
- terrain=c;
-}
+function techBase(g,side){window.FendaScenery.drawBase(g,E,side);}
+function techWall(g,w){window.FendaScenery.drawWall(g,w);}
+function techObstacle(g,o){window.FendaScenery.drawRock(g,o);}
+function drawTerrain(){terrain=window.FendaScenery.drawTerrain(E,S);}
 function visible(x,y,r=70){
  return x+r>S.camera.x&&y+r>S.camera.y&&
   x-r<S.camera.x+worldVW&&y-r<S.camera.y+worldVH;
@@ -248,32 +102,47 @@ function manaBar(x,y,r,mana,max,width=55){
  ctx.strokeStyle='#c8d9f180';ctx.lineWidth=.7;ctx.strokeRect(left,top,width,5);
 }
 function drawStructure(o,t){
- if(!visible(o.x,o.y,115))return;
- const col=E.SIDE[o.side],isCore=o.kind==='core';
- if(o.kind==='tower'&&o.hp<=0)return;
- if(o.side!==S.hero?.side&&o.hp>0&&S.hero?.hp>0&&dist(S.hero,o)<o.range+135){
-  ctx.save();ctx.globalAlpha=.18;
-  circle(o.x,o.y,o.range,null,'#e9a0a6',1.5);
-  ctx.restore();
+ if(!visible(o.x,o.y,105)||o.hp<=0)return;
+ const col=E.SIDE[o.side],core=o.kind==='core',r=core?43:27;
+ if(o.side!==S.hero?.side&&S.hero?.hp>0&&dist(S.hero,o)<o.range+135){
+  ctx.save();ctx.globalAlpha=.18;circle(o.x,o.y,o.range,null,'#e29b9e',1.5);ctx.restore();
  }
  ctx.save();ctx.translate(o.x,o.y);
- // Torre = construção legível, não um ícone de UI gigantesco.
- if(isCore){
-  ctx.shadowColor=col;ctx.shadowBlur=20;
-  if(!drawSprite(ctx,'core',0,-34,118,133)){
-   techPolygon(ctx,0,0,48,7);ctx.fillStyle=col;ctx.fill();
-  }
-  ctx.shadowBlur=0;
-  bar(0,-128,0,o.hp,o.maxHp,o.side,89);
- }else{
-  ctx.shadowColor=col;ctx.shadowBlur=9;
-  if(!drawSprite(ctx,'tower',0,-26,77,96)){
-   techPolygon(ctx,0,-20,32,7);ctx.fillStyle='#3e6768';ctx.fill();
-   techPolygon(ctx,0,-44,16,5);ctx.fillStyle=col;ctx.fill();
-  }
-  ctx.shadowBlur=0;
-  bar(0,-85,0,o.hp,o.maxHp,o.side,65);
+ ctx.fillStyle='#041a25a9';ctx.beginPath();ctx.ellipse(6,9,r*1.58,r*.71,0,0,TAU);ctx.fill();
+ ctx.shadowColor=col;ctx.shadowBlur=core?16:9;
+ techPolygon(ctx,0,1,r+13,8,Math.PI/8);ctx.fillStyle='#0c2736';ctx.fill();
+ ctx.shadowBlur=0;ctx.lineWidth=4;ctx.strokeStyle='#8aaba8';ctx.stroke();
+ techPolygon(ctx,0,-4,r+7,8,Math.PI/8);
+ const stone=ctx.createLinearGradient(-r,-r,r,r);
+ stone.addColorStop(0,'#608989');stone.addColorStop(.48,'#284f5e');stone.addColorStop(1,'#122f40');
+ ctx.fillStyle=stone;ctx.fill();ctx.strokeStyle='#cfbc89';ctx.lineWidth=2;ctx.stroke();
+ techRing(ctx,0,-4,r*.77,col+'b8',2.8);
+ const tip=core?-94:-67,shoulder=core?36:23;
+ ctx.beginPath();ctx.moveTo(-shoulder,-18);ctx.lineTo(-shoulder*.55,tip*.59);
+ ctx.lineTo(-8,tip+18);ctx.lineTo(0,tip);ctx.lineTo(8,tip+18);
+ ctx.lineTo(shoulder*.55,tip*.59);ctx.lineTo(shoulder,-18);ctx.closePath();
+ const casing=ctx.createLinearGradient(-shoulder,-60,shoulder,0);
+ casing.addColorStop(0,'#a1ada0');casing.addColorStop(.23,'#34556a');
+ casing.addColorStop(.76,'#122d43');casing.addColorStop(1,'#708d87');
+ ctx.fillStyle=casing;ctx.fill();ctx.strokeStyle='#d0bb83';ctx.lineWidth=3.4;ctx.stroke();
+ ctx.beginPath();ctx.moveTo(0,tip+5);ctx.lineTo(shoulder*.40,-34);
+ ctx.lineTo(0,-14);ctx.lineTo(-shoulder*.40,-34);ctx.closePath();
+ const crystal=ctx.createLinearGradient(0,tip,0,-13);
+ crystal.addColorStop(0,'#c7fff4');crystal.addColorStop(.25,col);
+ crystal.addColorStop(.8,o.side===0?'#087d9e':'#9b426a');crystal.addColorStop(1,'#0d536e');
+ ctx.fillStyle=crystal;ctx.fill();ctx.strokeStyle='#d1fff4';ctx.lineWidth=1.8;ctx.stroke();
+ ctx.beginPath();ctx.moveTo(0,tip+6);ctx.lineTo(-shoulder*.40,-34);
+ ctx.lineTo(0,-14);ctx.closePath();ctx.fillStyle='#f0ffec46';ctx.fill();
+ ctx.beginPath();ctx.moveTo(0,tip+5);ctx.lineTo(0,-14);
+ ctx.strokeStyle='#d9fff4af';ctx.lineWidth=1.7;ctx.stroke();
+ ctx.shadowColor=col;ctx.shadowBlur=9;circle(0,-28,4.5,'#e8fff1');ctx.shadowBlur=0;
+ for(const sign of [-1,1]){
+  ctx.beginPath();ctx.moveTo(sign*shoulder,-18);
+  ctx.lineTo(sign*(shoulder+7),-33);ctx.lineTo(sign*(shoulder+12),-13);
+  ctx.lineTo(sign*(shoulder*.7),-4);ctx.closePath();
+  ctx.fillStyle='#325768';ctx.fill();ctx.strokeStyle='#b2aa87';ctx.lineWidth=1.8;ctx.stroke();
  }
+ bar(0,tip-14,0,o.hp,o.maxHp,o.side,core?96:69);
  ctx.restore();
 }
 function drawMinion(u,t){
