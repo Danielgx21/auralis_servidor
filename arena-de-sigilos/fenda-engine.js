@@ -473,7 +473,7 @@ function steerAround(u,dir,goal,solids){
   const forward=relX*dir.x+relY*dir.y;
   const required=(u.r||18)+solidRadius(o)+11;
   if(forward<0||forward>required+55)continue;
-  if(dist(goal,o)<required+3)continue; // Na aproximação de um obelisco, parar e atacar.
+  if(dist(goal,o)<required+3&&goal.kind==='tower')continue; // Ataque direto a torre, quando ela é o alvo. 
   const lateral=relX*dir.y-relY*dir.x;
   const a=Math.abs(lateral);
   if(a>=required)continue;
@@ -482,7 +482,8 @@ function steerAround(u,dir,goal,solids){
  }
  if(!best)return dir;
  const side=Math.abs(best.lateral)>2?(best.lateral>0?1:-1):((u.uid||0)%2?1:-1);
- const tangent={x:dir.y*side,y:-dir.x*side};
+ // Desviar para o lado OPOSTO ao obstáculo (a orientação antiga estava invertida).
+ const tangent={x:-dir.y*side,y:dir.x*side};
  const push=1.15+clamp((best.required-Math.abs(best.lateral))/best.required,0,1)*.55;
  return norm(dir.x+tangent.x*push,dir.y+tangent.y*push);
 }
