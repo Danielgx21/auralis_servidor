@@ -328,7 +328,13 @@ function hudUpdate(){
  }
  $('fireBtn').querySelector('b').textContent='➤';
  $('fireBtn').querySelector('small').textContent=h.hp<=0?'RESSURGIR':'ATACAR';
- $('fireBtn').classList.toggle('oncd',h.hp<=0);
+ const aaBtn=$('fireBtn');
+ aaBtn.classList.toggle('oncd',h.hp<=0||h.attackCd>.02);
+ const aaCD=aaBtn.querySelector('.cd-text');
+ if(aaCD){
+  aaCD.hidden=h.attackCd<=.03||h.hp<=0;
+  aaCD.textContent=h.attackCd>0?h.attackCd.toFixed(1):'';
+ }
  const targetTowers=S.structures.filter(t=>t.side!==h.side&&t.hp>0&&
   (t.kind==='tower'||t.kind==='core')&&dist(h,t)<=E.attackRange(h)+t.r+2);
  const towerBtn=$('fendaTowerBtn');
@@ -362,7 +368,7 @@ function chooseHero(){
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice();
  $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 4.1</div><h2>FENDA DOS SIGILOS</h2>'+
- '<p>Três rotas, tropas, obeliscos, selva e Núcleos Sigilares. Jogue de verdade: farme, evolua, compre itens e destrua a base rubra.</p>'+
+ '<p>Três rotas, tropas, obeliscos, selva e Núcleos Sigilares. Ataque os obeliscos com o botão TORRE próximo ao AA; abra uma rota para atingir o Núcleo.</p>'+
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
  '<div class="teamfight-tip">5×5 com aliados e inimigos de IA · 3 rotas · torres · ondas de tropas · ouro e XP · loja · recall · objetivos astrais · minimapa.</div>'+
