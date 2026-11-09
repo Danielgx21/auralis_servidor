@@ -2,26 +2,28 @@
 'use strict';
 const C=window.SigilsCore;
 if(!C){console.error('Fenda: núcleo de campeões não carregado');return;}
-const W=2750,H=1900,TAU=Math.PI*2;
+const W=3300,H=2500,TAU=Math.PI*2;
 // Um deslocamento base-a-base deve durar ~27–30 s, não 11–13 s como na v4.1.
 const MOBA_WALK_SCALE=.55;
 // Largura de rota proporcional ao personagem: ~6 diâmetros por corredor.
 const LANE_HALF_WIDTH=108,LANE_MINION_SPREAD=26;
-// Fenda 6.1 — desenho de três lanes inspirado na Rift, com a identidade da Arena Teamfight.
-// Exatamente três rotas: superior (L), central (diagonal) e inferior (L espelhada).
+// Fenda 6.2 — arena expandida, três portões de saída distintos e torres distribuídas.
+// Top e bot são simétricas por rotação de 180 graus; a mid mantém diagonal própria.
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const norm=(x,y)=>{const n=Math.hypot(x,y)||1;return{x:x/n,y:y/n}};
 const SIDE=['#69e6e4','#ed829e'];
-const HOME=[{x:185,y:1720},{x:2565,y:180}];
-const CORE=[{x:360,y:1530},{x:2390,y:370}];
+const HOME=[{x:230,y:2230},{x:3070,y:270}];
+const CORE=[{x:470,y:2040},{x:2830,y:460}];
+// Portões ficam na borda externa do santuário, não amontoados junto ao núcleo.
+// O avanço faz uma ampla curva pela borda (top/bot), preservando o corredor central.
 const TOP_PATH=[
- {x:380,y:1320},{x:390,y:1080},{x:390,y:790},{x:390,y:500},
- {x:520,y:355},{x:880,y:330},{x:1240,y:330},
- {x:1660,y:330},{x:2010,y:345},{x:2180,y:355},{x:2220,y:370}
+ {x:440,y:1360},{x:440,y:1000},{x:465,y:780},{x:540,y:560},
+ {x:770,y:385},{x:1180,y:335},{x:1600,y:325},
+ {x:1970,y:320},{x:2280,y:320}
 ];
 const MID_PATH=[
- {x:530,y:1390},{x:730,y:1250},{x:1000,y:1100},
- {x:1375,y:950},{x:1750,y:800},{x:2020,y:650},{x:2220,y:510}
+ {x:760,y:1750},{x:960,y:1590},{x:1220,y:1430},
+ {x:1650,y:1250},{x:2080,y:1060},{x:2350,y:865},{x:2540,y:750}
 ];
 const rotateHalf=p=>({x:W-p.x,y:H-p.y});
 const PATHS=[TOP_PATH,MID_PATH,TOP_PATH.slice().reverse().map(rotateHalf)];
@@ -31,12 +33,16 @@ const BASE_GATE=[
 ];
 // Apenas atalhos de navegação para a IA, nunca desenhados como rotas.
 const JUNGLE_LINKS=[
- {lane:0,t:.35,x:770,y:700},{lane:1,t:.35,x:1030,y:765},
- {lane:1,t:.66,x:1720,y:1135},{lane:2,t:.66,x:1980,y:1200}
+ {lane:0,t:.40,x:830,y:965},{lane:1,t:.37,x:1290,y:1070},
+ {lane:1,t:.63,x:2010,y:1430},{lane:2,t:.60,x:2470,y:1535}
 ];
+// Espinha dorsal de duas selvas organizadas; cada trecho possui hitbox física.
+// Não atravessam nenhuma das três pistas de tropas.
 const WALL_SEEDS=[
- [[620,620],[900,580]],[[1050,580],[1190,720]],[[650,915],[830,830]],
- [[1500,575],[1710,545]],[[1780,520],[1930,500]],[[1250,520],[1390,575]]
+ [[660,940],[820,875]],[[1010,680],[1130,750]],
+ [[1060,1150],[1210,1080]],[[1400,670],[1530,720]],
+ [[1710,910],[1890,850]],[[1960,610],[2150,550]],
+ [[1230,910],[1360,850]]
 ];
 const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1};
 const ITEMS=[
@@ -216,7 +222,7 @@ function placeWard(hero,x,y){
 function buildMap(){
  state.structures=[];state.camps=[];state.obstacles=[];state.walls=[];
  // Selva sem estradas extras: áreas de visão compartilhadas em pares simétricos.
- const bushes=[{x:770,y:760},{x:1020,y:635},{x:1150,y:680}];
+ const bushes=[{x:710,y:1250},{x:950,y:1060},{x:1500,y:875},{x:1910,y:710}];
  state.brushes=[];
  for(let i=0;i<bushes.length;i++){
   const p=bushes[i],mirror=rotateHalf(p),r=69+(i%2)*8;
@@ -230,7 +236,7 @@ function buildMap(){
   state.structures.push({kind:'core',side,x:home.x,y:home.y,maxHp:1850,hp:1850,
    r:46,atk:53,range:375,attackCd:0,id:'core'+side});
   for(let lane=0;lane<3;lane++)for(let tier=0;tier<3;tier++){
-   const t=(side===0?[.405,.215,.072]:[.595,.785,.928])[tier];
+   const t=(side===0?[.40,.25,.09]:[.60,.75,.91])[tier];
    const p=pathPos(lane,t),a=pathPos(lane,Math.max(0,t-.004)),b=pathPos(lane,Math.min(1,t+.004));
    const direction=norm(b.x-a.x,b.y-a.y);
    const sign=lane===0?1:lane===2?-1:side===0?1:-1;
@@ -243,12 +249,12 @@ function buildMap(){
  }
  // Acampamentos apenas nas áreas não pavimentadas, longe das três rotas.
  const camps=[
-  {id:'veilA',x:850,y:670,kind:'buff',name:'Véu Azul',color:'#75caff',hp:630,buff:'energy'},
-  {id:'emberA',x:1900,y:1230,kind:'buff',name:'Brasa Rubra',color:'#ff9c74',hp:630,buff:'damage'},
-  {id:'wolvesA',x:620,y:1040,kind:'camp',name:'Lobos Astrais',color:'#a7c2ef',hp:360},
-  {id:'golemA',x:2130,y:860,kind:'camp',name:'Golem Sigilar',color:'#e5c58f',hp:450},
-  {id:'serpe',x:1460,y:1240,kind:'boss',name:'Serpe Astral',color:'#9bf6e9',hp:1030,unlock:55},
-  {id:'titan',x:1290,y:660,kind:'boss',name:'Titã do Abismo',color:'#dfb1fa',hp:1500,unlock:110}
+  {id:'veilA',x:880,y:830,kind:'buff',name:'Véu Azul',color:'#75caff',hp:630,buff:'energy'},
+  {id:'emberA',x:2420,y:1670,kind:'buff',name:'Brasa Rubra',color:'#ff9c74',hp:630,buff:'damage'},
+  {id:'wolvesA',x:1230,y:1000,kind:'camp',name:'Lobos Astrais',color:'#a7c2ef',hp:360},
+  {id:'golemA',x:2070,y:1500,kind:'camp',name:'Golem Sigilar',color:'#e5c58f',hp:450},
+  {id:'serpe',x:1560,y:730,kind:'boss',name:'Serpe Astral',color:'#9bf6e9',hp:1030,unlock:55},
+  {id:'titan',x:1740,y:1770,kind:'boss',name:'Titã do Abismo',color:'#dfb1fa',hp:1500,unlock:110}
  ];
  state.camps=camps.map(o=>({...o,maxHp:o.hp,respawn:0}));
  // Barricadas e passagens da selva: cada parede é um segmento FÍSICO verdadeiro.
@@ -260,7 +266,7 @@ function buildMap(){
    r:Math.hypot(q.x-p.x,q.y-p.y)/2+halfWidth,solid:true});
  }
  // Pilares hexagonais, simétricos e separados das lanes.
- const pillarSeeds=[{x:600,y:740},{x:930,y:730},{x:1350,y:580},{x:1560,y:620}];
+ const pillarSeeds=[{x:700,y:1080},{x:1020,y:890},{x:1450,y:1020},{x:1830,y:750}];
  for(const p of pillarSeeds)for(let side=0;side<2;side++){
   const o=side===0?p:rotateHalf(p),r=23;
   const closeRoute=[0,1,2].some(l=>routeProjection(l,o).distance<LANE_HALF_WIDTH+r+22);
