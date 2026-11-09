@@ -42,9 +42,9 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=5.0')&&
- html.includes('fenda-team-ai.js?v=5.0')&&
- html.includes('fenda-view.js?v=5.0'),'O site deve carregar todos os sistemas da 5.0.');
+assert.ok(html.includes('fenda-engine.js?v=5.1')&&
+ html.includes('fenda-team-ai.js?v=5.1')&&
+ html.includes('fenda-view.js?v=5.1'),'O site deve carregar todos os sistemas da 5.0.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -122,16 +122,21 @@ assert.ok(terrainSource.includes('drawBasePaving(g)')&&terrainSource.includes('d
  'Plataforma de base não foi desenhada');
 assert.ok(!terrainSource.includes("g.arc(base.x,base.y,176"),
  'A rotatória antiga continua aparecendo no mapa');
-assert.ok(terrainSource.includes('As pistas se estreitam ao entrar nas bases'),
- 'A pista não se estreita na região da base');
-assert.ok(!terrainSource.includes('for(let iy=-3;iy<8;iy++)for(let ix=-4;ix<11;ix++)'),
- 'Grade de grandes quadrados permaneceu na fonte');
-assert.ok(!terrainSource.includes('for(let t=.012;t<.99;t+=.011)'),
- 'Grade de cinco colunas permaneceu nas rotas');
-assert.ok(terrainSource.includes('g.quadraticCurveTo(p[0],p[1]'),
- 'O pátio deve ter limites curvos em vez de um polígono rígido');
-assert.ok(terrainSource.includes('g.arc(0,0,r1,a0,a1)'),
- 'O piso do pátio não foi organizado em arcos');
+assert.ok(terrainSource.includes("sceneryAtlas.src='fenda-art-atlas.webp?v=5.1'"),
+ 'Atlas de imagem da fonte e do piso não está conectado ao jogo');
+assert.ok(terrainSource.includes('sceneryAtlas,0,0,112,112'),
+ 'Fonte não usa a arte ilustrada do atlas');
+assert.ok(terrainSource.includes('sceneryAtlas,112,0,112,112'),
+ 'Piso não usa uma textura de pedra do atlas');
+assert.ok(terrainSource.includes('function laneOutline(g,lane,margin)')&&
+ terrainSource.includes('drawPaintedLanes(g)'),
+ 'O fundo das rotas deve ser desenhado com uma forma contínua');
+assert.ok(!terrainSource.includes('for(let ring=0;ring<7;ring++)'),
+ 'Mosaico radial que gerava listras continua presente');
+assert.ok(!terrainSource.includes('const steps=110;'),
+ 'As lanes ainda são centenas de traços grossos sobrepostos');
+assert.ok(terrainSource.includes('sceneryAtlas.onload=()=>{sceneryReady=true;terrain=null;}'),
+ 'Carregamento da arte precisa forçar o redesenho do cenário');
 const sourceCss=read('fenda.css');
 assert.ok(sourceCss.includes('.stage.fenda-on .mobile-controls #joy'),
  'Joystick não está oculto no modo desktop');
