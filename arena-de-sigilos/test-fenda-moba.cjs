@@ -42,9 +42,9 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=5.7')&&
- html.includes('fenda-team-ai.js?v=5.7')&&
- html.includes('fenda-view.js?v=5.7'),'O site deve carregar todos os sistemas da 5.0.');
+assert.ok(html.includes('fenda-engine.js?v=5.8')&&
+ html.includes('fenda-team-ai.js?v=5.8')&&
+ html.includes('fenda-view.js?v=5.8'),'O site deve carregar todos os sistemas da 5.0.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -122,68 +122,50 @@ assert.ok(terrainSource.includes('drawBasePaving(g)')&&terrainSource.includes('d
  'Plataforma de base não foi desenhada');
 assert.ok(!terrainSource.includes("g.arc(base.x,base.y,176"),
  'A rotatória antiga continua aparecendo no mapa');
-// 5.6: texturas e construções vêm de um atlas raster WebP já pronto.
-assert.ok(terrainSource.includes("painted:'painted-sprite-atlas.webp'"),
- 'Atlas WebP pré-renderizado não conectado ao jogo');
-assert.ok(terrainSource.includes("world:'world-illustrated.webp'") &&
- terrainSource.includes("if(artReady('world')){") &&
- terrainSource.includes("g.drawImage(art.world,0,0,E.W,E.H);") &&
- terrainSource.includes("terrain=c;") ,
- 'Mapa inteiro deve ser pré-pintado em imagem WebP única, sem construções canvas');
-assert.ok(terrainSource.includes("image.src='art/'+file+'?v=5.7'"),
- 'Cache de arte não renovado para a versão 5.6');
-assert.ok(terrainSource.includes("const ART_SIZE=256") &&
- terrainSource.includes("function paintedPattern(g,col,row=0)") &&
- terrainSource.includes("function paintedSprite(g,col,row,x,y,w,h)"),
- 'Código de apresentação precisa apenas posicionar imagens raster');
-assert.ok(terrainSource.includes("const p=paintedPattern(g,0)") &&
- terrainSource.includes("const p=paintedPattern(g,2)") &&
- terrainSource.includes("const grass=paintedPattern(g,1)"),
- 'Base, lanes e selva devem usar pavimento e vegetação pintados');
-assert.ok(terrainSource.includes("paintedSprite(g,2,1,-112,-112,224,224)") &&
- terrainSource.includes("paintedSprite(ctx,o.side===0?0:1,1,-59,-118,118,132)") &&
- terrainSource.includes("paintedSprite(ctx,2,1,-70,-96,140,146)"),
- 'Fonte, torres e núcleos precisam ser sprites raster, sem serem desenhados geometricamente');
-assert.ok(!terrainSource.includes("drawLaneCircuitry(g);") &&
- !terrainSource.includes("g.drawImage(art.inlay,-237,-183,600,600)") &&
- !terrainSource.includes("for(let i=0;i<2500;i++)"),
- 'Remover efeitos geométricos repetitivos por cima do chão pintado');
-assert.ok(!terrainSource.includes("g.setLineDash([22,28])"),
- 'Rio não pode parecer uma avenida tracejada');
-assert.ok(terrainSource.includes('image.onload=()=>{terrain=null}'),
- 'Carregamento de cada imagem deve reconstruir o terreno');
-assert.ok(terrainSource.includes("function drawHero(u,t){") &&
- terrainSource.includes("function drawMinion(u,t){"),
- 'A arte dos personagens e minions deve ser preservada');
-// Fenda 5.7: identidade tech simplificada da arena; artes raster como recursos.
-assert.ok(terrainSource.includes("worldTech:'world-tech-5-7.webp'")&&
- terrainSource.includes("towerBlueTech:'tower-blue-tech.webp'")&&
- terrainSource.includes("towerRedTech:'tower-red-tech.webp'")&&
- terrainSource.includes("coreBlueTech:'nexus-blue-tech.webp'")&&
- terrainSource.includes("coreRedTech:'nexus-red-tech.webp'"),
- 'Faltam os sprites industriais de mapa, torres ou nucleos');
-assert.ok(terrainSource.includes("coverTech:'cover-block-tech.webp'")&&
- terrainSource.includes("generatorTech:'generator-tech.webp'")&&
+// Fenda 5.8: pisos sem objetos falsos, as únicas estruturas vêm do motor.
+assert.ok(terrainSource.includes("cleanWorld:'arena-tech-clean.webp'")&&
+ terrainSource.includes("cleanTowerBlue:'tower-tech-0.webp'")&&
+ terrainSource.includes("cleanTowerRed:'tower-tech-1.webp'")&&
+ terrainSource.includes("cleanCoreBlue:'nexus-tech-0.webp'")&&
+ terrainSource.includes("cleanCoreRed:'nexus-tech-1.webp'"),
+ 'O jogo deve usar o novo pacote pré-renderizado de cenário e estruturas');
+assert.ok(terrainSource.includes("cleanCover:'cover-tech-clean.webp'")&&
+ terrainSource.includes("cleanGenerator:'generator-tech-clean.webp'")&&
  terrainSource.includes("stealthTech:'stealth-zone-tech.webp'"),
- 'Os obstaculos e moitas precisam de artes de tecnologia');
-assert.ok(terrainSource.includes("if(artReady('worldTech')){")&&
- terrainSource.includes("g.drawImage(art.worldTech,0,0,E.W,E.H)")&&
- terrainSource.indexOf("if(artReady('worldTech')){")<
- terrainSource.indexOf("if(artReady('world')){"),
- 'O fundo tecnologico deve ter prioridade sobre o mapa de floresta antigo');
-assert.ok(terrainSource.includes("for(const o of S.obstacles){")&&
- terrainSource.includes("o.kind==='rock'?'coverTech':'generatorTech'")&&
- terrainSource.includes("g.drawImage(art[sprite],xx,yy,radius,radius)"),
- 'Os sprites de cobertura devem acompanhar a colisao real');
-assert.ok(terrainSource.includes("for(const bush of S.brushes)")&&
- terrainSource.includes("g.drawImage(art.stealthTech,bush.x-d/2,bush.y-d/2,d,d)"),
- 'A camuflagem precisa ficar no local correto no mapa');
-assert.ok(terrainSource.includes("ctx.drawImage(sprite,-73,-122,146,146)")&&
- terrainSource.includes("ctx.drawImage(sprite,-79,-126,158,158)"),
- 'Torre e Nexus devem usar sprites HD, sem esticamento excessivo');
+ 'Coberturas, geradores e campos de camuflagem são recursos próprios');
+assert.ok(terrainSource.includes("image.src='art/'+file+'?v=5.8'"),
+ 'Cache dos recursos da versão 5.8 não atualizado');
+assert.ok(terrainSource.includes("if(artReady('cleanWorld')){")&&
+ terrainSource.includes("g.drawImage(art.cleanWorld,0,0,E.W,E.H);"),
+ 'O mapa inteiro deve ser uma imagem pronta sem torres duplicadas');
+assert.ok(terrainSource.includes("const asset=o.kind==='rock'?'cleanCover':'cleanGenerator'")&&
+ terrainSource.includes("o.x-span/2,o.y-span*.58,span,span"),
+ 'A posição dos sprites deve corresponder exatamente à física');
+assert.ok(terrainSource.includes("g.globalAlpha=.34")&&
+ terrainSource.includes("const size=bush.r*1.85"),
+ 'Campos de camuflagem devem ser discretos, sem poluir a imagem');
+assert.ok(terrainSource.includes("ctx.drawImage(sprite,-52,-109,104,115)")&&
+ terrainSource.includes("ctx.drawImage(sprite,-66,-125,132,142)"),
+ 'Torre e Núcleo precisam ter sprites próprios bem dimensionados');
 assert.ok(terrainSource.includes("function drawHero(u,t){")&&
  terrainSource.includes("function drawMinion(u,t){"),
- 'Os personagens e tropas devem ficar iguais');
+ 'Manter os personagens e tropas como eram');
+assert.ok(!terrainSource.includes("image.src='art/'+file+'?v=5.7'"),
+ 'Não misturar nova direção artística com assets antigos em cache');
+E.start('lyria');
+assert.equal(state.obstacles.length,32,'Menos obstáculos, sem poluição visual');
+for(let i=0;i<state.obstacles.length;i+=2){
+ const a=state.obstacles[i],b=state.obstacles[i+1];
+ assert.ok(Math.abs(a.x+b.x-E.W)<.001&&Math.abs(a.y+b.y-E.H)<.001,
+  'Obstáculos precisam ficar em pares simétricos');
+ assert.equal(a.kind,b.kind,'Pares espelhados devem representar a mesma construção');
+}
+assert.equal(state.brushes.length,6,'Campos de camuflagem não podem se multiplicar');
+for(let i=0;i<6;i+=2){
+ const a=state.brushes[i],b=state.brushes[i+1];
+ assert.ok(Math.abs(a.x+b.x-E.W)<.001&&Math.abs(a.y+b.y-E.H)<.001&&a.r===b.r,
+  'Camuflagem espelhada não bate com a física');
+}
 const sourceCss=read('fenda.css');
 assert.ok(sourceCss.includes('.stage.fenda-on .mobile-controls #joy'),
  'Joystick não está oculto no modo desktop');
