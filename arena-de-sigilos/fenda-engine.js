@@ -1382,8 +1382,22 @@ function tickProjectiles(dt){
     const hit=segmentHit(ax,ay,endX,endY,c.x,c.y+(c.hover||0),28+p.r);
     if(hit!==null&&hit<firstT){firstT=hit;first={kind:'creep',target:c}}
    }
-   // Rochas e árvores interceptam feitiços, mas não roubam a mira de AA travado.
-   for(const o of nearSolids(ax,ay,length+35)){
+   // Feitiços não atravessam paredes físicas; AAs travados continuam certeiros.
+   for(const o of nearSolids(ax,ay,length+45)){
+    if(o.kind==='wall'){
+     // Colisão segmentada contra cápsula de parede, sem inventar um círculo enorme
+     // na posição central de um obstáculo comprido.
+     const segments=Math.max(1,Math.ceil(length/7));
+     for(let i=0;i<=segments;i++){
+      const t=i/segments;
+      if(t>=firstT)break;
+      const pos={x:ax+(endX-ax)*t,y:ay+(endY-ay)*t};
+      if(pointToWall(pos,o)<=o.halfWidth+p.r*.6){
+       firstT=t;first={kind:'terrain',target:o};break;
+      }
+     }
+     continue;
+    }
     if(o.kind!=='rock'&&o.kind!=='tree')continue;
     const hit=segmentHit(ax,ay,endX,endY,o.x,o.y,o.r+p.r*.60);
     if(hit!==null&&hit<firstT){firstT=hit;first={kind:'terrain',target:o}}
