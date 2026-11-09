@@ -108,11 +108,13 @@ function brush(g,b){
 function terrain(E,S){
  const c=document.createElement('canvas');c.width=E.W;c.height=E.H;
  const g=c.getContext('2d',{alpha:false});fond(g,E);
+ // Camada de chão antes dos sólidos: portões reais e pilares não ficam
+ // escondidos sob a decoração da praça.
+ for(let side=0;side<2;side++)base(g,E,side);
  for(const camp of S.camps)jungleCamp(g,camp);
  for(const b of S.brushes)brush(g,b);
  for(const w of S.walls)wall(g,w);
  for(const o of S.obstacles)rock(g,o);
- for(let side=0;side<2;side++)base(g,E,side);
  return c;
 }
 window.FendaScenery={drawTerrain:terrain,drawBase:base,drawWall:wall,drawRock:rock};
