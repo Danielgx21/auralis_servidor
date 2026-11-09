@@ -675,6 +675,7 @@ function moveMinion(m,dt){
  }else moveToward(m,HOME[1-m.side],dt);
 }
 function respawn(u){
+ u.jungleGoal=null;u.gankUntil=0;
  const home=HOME[u.side];
  const mid=pathPos(1,.11),dir=norm(mid.x-HOME[0].x,mid.y-HOME[0].y);
  const d=u.side===0?dir:{x:-dir.x,y:-dir.y};
@@ -744,6 +745,88 @@ function botUseSkill(u,target){
  }
  return false;
 }
+// Junglers alternam campos, ganks e objetivos, em vez de ficarem parados nas rotas.
+function openBoss(){
+ const titan=state.camps.find(c=>c.id==='titan');
+ const serpe=state.camps.find(c=>c.id==='serpe');
+ if(titan&&titan.hp>0&&state.time>=Math.max(titan.unlock||0,160))return titan;
+ if(serpe&&serpe.hp>0&&state.time>=Math.max(serpe.unlock||0,108))return serpe;
+ return null;
+}
+function approachCreep(u,c,dt){
+ if(!c||c.hp<=0)return false;
+ const d=dist(u,c),range=attackRange(u)+solidRadius(c)-4;
+ if(d>range){
+  const n=norm(c.x-u.x,c.y-u.y),approach=Math.max(8,range-9);
+  moveToward(u,{x:c.x-n.x*approach,y:c.y-n.y*approach},dt,.94);
+ }else{
+  u.facing=Math.atan2(c.y-u.y,c.x-u.x);
+  if(u.attackCd<=0&&!u.casting)autoAttack(u);
+ }
+ return true;
+}
+function botJungler(u,dt){
+ if(!u.jungler)return false;
+ if(u.jungleGoal&&(u.jungleGoal.hp<=0||
+    (u.jungleGoal.unlock&&state.time<u.jungleGoal.unlock))){
+  u.jungleGoal=null;u.gankUntil=state.time+15;
+ }
+ const nearbyThreat=living(1-u.side,'hero')
+  .some(e=>visibleTo(u.side,e)&&dist(e,u)<225);
+ if(nearbyThreat){u.gankUntil=Math.max(u.gankUntil||0,state.time+7);return false}
+ const boss=openBoss();
+ const healthy=living(u.side,'hero').filter(h=>h.hp/h.maxHp>.53);
+ const supports=healthy.filter(h=>!h.jungler&&dist(h,boss||u)<880);
+ const contest=boss&&healthy.length>=3&&supports.length>=1&&u.level>=3;
+ if(contest&&(!u.jungleGoal||u.jungleGoal.kind!=='boss'))u.jungleGoal=boss;
+ if(!u.jungleGoal){
+  if((u.gankUntil||0)>state.time)return false;
+  const preferred=u.side===0?['wolvesA','veilA','emberA','golemA']:['golemA','emberA','veilA','wolvesA'];
+  const available=state.camps.filter(c=>c.hp>0&&c.kind!=='boss'&&
+     (!c.unlock||state.time>=c.unlock));
+  available.sort((a,b)=>preferred.indexOf(a.id)-preferred.indexOf(b.id)+
+    (dist(a,u)-dist(b,u))*.0016);
+  u.jungleGoal=available[0]||null;
+ }
+ const camp=u.jungleGoal;
+ if(!camp)return false;
+ if(u.visionCd<=0&&state.time>26&&
+    (camp.kind==='boss'||state.brushes.some(b=>dist(b,u)<240))){
+  const pos={x:u.x+(camp.x-u.x)*.55,y:u.y+(camp.y-u.y)*.55};
+  if(dist(u,pos)<440)placeWard(u,pos.x,pos.y);
+ }
+ if(u.hp/u.maxHp<.33){u.aiRetreat=true;u.jungleGoal=null;return false}
+ if(camp.kind==='boss'&&dist(u,camp)>1150)return false;
+ approachCreep(u,camp,dt);
+ if(dist(u,camp)<125){
+  if(u.id==='vexor'&&u.cooldowns.vexor_whirl<=0&&u.energy>=skillDef('vexor_whirl').cost){
+   cast(u,'vexor_whirl',null,camp);
+  }else if(u.id==='orun'&&u.cooldowns.orun_quake<=0&&u.energy>=skillDef('orun_quake').cost){
+   cast(u,'orun_quake',null,camp);
+  }
+ }
+ return true;
+}
+// Quando o jungler começa um grande objetivo, um guardião ou suporte vem protegê-lo.
+function botSupportBoss(u,dt){
+ if(u.controlled||u.jungler||!['orun','seris','nyra'].includes(u.id))return false;
+ const boss=state.camps.find(c=>c.kind==='boss'&&c.hp>0&&c.hp<c.maxHp*.92&&
+   c.aggroTarget&&c.aggroTarget.side===u.side&&dist(c,u)<770);
+ if(!boss||u.hp/u.maxHp<.52||
+  living(1-u.side,'hero').some(e=>visibleTo(u.side,e)&&dist(e,u)<190)){
+  if(u.jungleGoal&&u.jungleGoal.kind==='boss')u.jungleGoal=null;
+  return false;
+ }
+ u.jungleGoal=boss;approachCreep(u,boss,dt);
+ if(u.id==='orun'&&dist(u,boss)<138&&u.cooldowns.orun_quake<=0)
+  cast(u,'orun_quake',null,boss);
+ if(u.id==='seris'&&u.cooldowns.seris_aegis<=0&&u.energy>=skillDef('seris_aegis').cost){
+  const teammates=living(u.side,'hero').filter(h=>dist(h,u)<200&&h.hp/h.maxHp<.68);
+  if(teammates.length)cast(u,'seris_aegis',null,teammates[0]);
+ }
+ if(u.visionCd<=0&&state.time>70)placeWard(u,boss.x,boss.y);
+ return true;
+}
 function botHero(u,dt){
  botShop(u);
  if(u.stun>0||u.casting||u.dash)return;
@@ -758,6 +841,7 @@ function botHero(u,dt){
  })).find(x=>x.underAttack&&x.attacker&&x.attacker.hp>0&&x.attacker.side===enemySide);
  if(u.hp/u.maxHp<.26&&dist(u,HOME[u.side])>160)u.aiRetreat=true;
  if(u.aiRetreat){
+  u.jungleGoal=null;
   moveToward(u,HOME[u.side],dt);
   if(dist(u,HOME[u.side])<120){
    u.aiRetreat=false;heal(u,u.maxHp*.56);u.energy=maxEnergy(u);
@@ -765,6 +849,8 @@ function botHero(u,dt){
   }
   return;
  }
+ if(botJungler(u,dt))return;
+ if(botSupportBoss(u,dt))return;
  const enemyHeroes=living(enemySide,'hero')
   .filter(e=>visibleTo(u.side,e)&&dist(e,u)<340).sort((a,b)=>dist(u,a)-dist(u,b));
  const enemyWave=living(enemySide,'minion')
