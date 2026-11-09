@@ -227,6 +227,12 @@ function start(hero='lyria'){
  // Enemy team has the same five roles, in different positions.
  for(const id of ids)state.units.push(makeHero(id,1));
  state.hero.lane=roles[state.hero.id];
+ for(const side of [0,1]){
+  const bots=state.units.filter(u=>u.kind==='hero'&&u.side===side&&!u.controlled);
+  const jungler=bots.find(u=>u.id==='vexor')||bots.find(u=>u.id==='orun');
+  if(jungler){jungler.jungler=true;jungler.jungleGoal=null}
+ }
+ refreshVision(true);
  state.camera={x:clamp(state.hero.x-400,0,W-800),y:clamp(state.hero.y-220,0,H-440)};
  announce('FENDA DOS SIGILOS · DESTRUA O NÚCLEO RUBRO',3.3);
  return state;
@@ -671,7 +677,7 @@ function botShop(u){
 }
 function botUseSkill(u,target){
  if(!u||u.stun>0||u.casting||u.dash||u.aiTimer>0)return false;
- const kit=hData(u.id),friendlies=living(u.side,'hero'),enemies=living(1-u.side,'hero');
+ const kit=hData(u.id),friendlies=living(u.side,'hero'),enemies=living(1-u.side,'hero').filter(e=>visibleTo(u.side,e));
  const ready=id=>id&&u.cooldowns[id]<=.01&&u.energy>=skillDef(id).cost&&
    (!skillDef(id).ultimate||u.level>=5);
  const r=dist(u,target),nearEnemies=enemies.filter(e=>dist(e,u)<240).length;
@@ -736,9 +742,9 @@ function botHero(u,dt){
   return;
  }
  const enemyHeroes=living(enemySide,'hero')
-  .filter(e=>dist(e,u)<340).sort((a,b)=>dist(u,a)-dist(u,b));
+  .filter(e=>visibleTo(u.side,e)&&dist(e,u)<340).sort((a,b)=>dist(u,a)-dist(u,b));
  const enemyWave=living(enemySide,'minion')
-  .filter(e=>e.lane===lane&&dist(e,u)<350).sort((a,b)=>dist(u,a)-dist(u,b));
+  .filter(e=>visibleTo(u.side,e)&&e.lane===lane&&dist(e,u)<350).sort((a,b)=>dist(u,a)-dist(u,b));
  const objective=state.structures.filter(t=>t.side===enemySide&&t.hp>0&&
   (t.kind==='tower'&&t.lane===lane||t.kind==='core'&&laneCleared(enemySide,lane))&&structureExposed(t))
   .sort((a,b)=>dist(u,a)-dist(u,b))[0];
@@ -1041,7 +1047,6 @@ function step(dt,movement={x:0,y:0}){
  if(state.mode!=='playing'||state.showPause)return;
  dt=clamp(dt,0,.05);state.time+=dt;
  state.wards=state.wards.filter(w=>w.until>state.time);
- refreshVision();
  const hero=state.hero;
  if(hero&&hero.recall>0&&Math.hypot(movement.x,movement.y)>.07){
   hero.recall=0;announce('RETORNO CANCELADO: MOVIMENTO',1.2);
@@ -1060,7 +1065,7 @@ function step(dt,movement={x:0,y:0}){
  for(const u of state.units){tickUnit(u,dt);if(state.mode!=='playing')break}
  if(state.mode!=='playing')return;
  separateUnits();
- refreshVision(true);
+ refreshVision();
  structureStep(dt);jungleStep(dt);tickProjectiles(dt);
  for(const f of state.effects)f.life-=dt;state.effects=state.effects.filter(f=>f.life>0);
  // Remove dead minions after a brief visible impact; keep heroes for respawn.
