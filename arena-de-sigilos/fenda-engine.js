@@ -188,7 +188,8 @@ function buildMap(){
   for(let lane=0;lane<3;lane++){
    // tier 1: externa, mais próxima do meio; tier 2: intermediária; tier 3: interna.
    // A ordem física precisa acompanhar a ordem de vulnerabilidade das torres.
-   const fractions=side===0?[.37,.23,.095]:[.63,.77,.905];
+   // A torre externa rubra da rota inferior deve ficar depois da curva, fora do corredor.
+   const fractions=side===0?[.37,.23,.095]:(lane===2?[.67,.77,.905]:[.63,.77,.905]);
    for(let i=0;i<fractions.length;i++){
     // Defesa no ombro da rota: a onda passa pelo eixo livre da lane.
     const t=fractions[i],p=pathPos(lane,t);
