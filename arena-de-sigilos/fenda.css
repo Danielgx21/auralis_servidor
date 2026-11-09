@@ -53,3 +53,28 @@
 #fendaHUD #fendaTowerBtn.available{opacity:.95;border-color:#efd992;box-shadow:0 0 10px #ead58a4d,0 3px 10px #0009}
 #fendaHUD #fendaTowerBtn.focused{border-color:#b8fff0;color:#b8fff0}
 @media(max-height:360px){#fendaHUD #fendaTowerBtn{width:36px;height:35px;bottom:65px;right:9px;font-size:16px}}
+
+/* 4.4 — visão tática e timers de objetivos, sem novos menus invasivos. */
+#fendaObjectives{
+ position:absolute;left:50%;top:76px;transform:translateX(-50%);
+ background:#061b2dce;border:1px solid #80c6ae70;border-radius:9px;
+ padding:4px 10px;font-size:9px;letter-spacing:.02em;color:#bcebd9;
+ text-align:center;white-space:nowrap;max-width:48%;overflow:hidden;text-overflow:ellipsis;
+ text-shadow:0 1px 3px #001;pointer-events:none;
+}
+#fendaHUD #fendaWardBtn{
+ position:absolute;right:65px;bottom:calc(clamp(62px,18vh,82px) + 9px);
+ z-index:9;width:44px;height:41px;display:grid;place-items:center;align-content:center;
+ pointer-events:auto;touch-action:manipulation;border:2px solid #7bdec4;
+ border-radius:14px;background:radial-gradient(circle at 35% 20%,#356a62,#1b394a 60%,#0b2035);
+ box-shadow:0 4px 12px #020b16ad,inset 0 1px 3px #b5fff660;
+ color:#c5ffed;font-size:20px;line-height:1;
+}
+#fendaHUD #fendaWardBtn small{display:block;font-weight:900;letter-spacing:.05em;font-size:8px;line-height:1.05}
+#fendaHUD #fendaWardBtn em{position:absolute;inset:-1px;display:grid;place-items:center;color:#e6fff5;
+ border-radius:12px;background:#051629df;font:900 11px system-ui;font-style:normal}
+#fendaHUD #fendaWardBtn em:empty{display:none}
+#fendaHUD #fendaWardBtn:disabled{opacity:.49}
+#fendaHUD #fendaWardBtn.available{box-shadow:0 0 12px #8dedc744,0 4px 12px #020b16a6}
+@media(max-height:510px){#fendaObjectives{top:49px;font-size:8px;padding:3px 6px;max-width:52%}}
+@media(max-height:360px){#fendaHUD #fendaWardBtn{width:36px;height:35px;bottom:65px;right:52px;font-size:16px}}
