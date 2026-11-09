@@ -7,21 +7,42 @@ const W=2750,H=1900,TAU=Math.PI*2;
 const MOBA_WALK_SCALE=.55;
 // Largura de rota proporcional ao personagem: ~6 diâmetros por corredor.
 const LANE_HALF_WIDTH=108,LANE_MINION_SPREAD=26;
+// Fenda 6.0: coordenadas ancoradas à arte aprovada (1448×1086 pixels).
+// O mesmo mapeamento é usado pelo cenário, tropas, torres, IA e minimapa.
+const ART_W=1448,ART_H=1086;
+const mapPoint=(x,y)=>({x:Math.round(x*W/ART_W),y:Math.round(y*H/ART_H)});
 const JUNGLE_LINKS=[
- {lane:0,t:.55,x:870,y:610},{lane:1,t:.35,x:1070,y:1320},
- {lane:1,t:.67,x:1850,y:830},{lane:2,t:.43,x:1700,y:1310}
+ {lane:0,t:.54,...mapPoint(480,300)},
+ {lane:1,t:.36,...mapPoint(340,530)},
+ {lane:1,t:.67,...mapPoint(1050,620)},
+ {lane:2,t:.46,...mapPoint(965,715)}
 ];
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const norm=(x,y)=>{const n=Math.hypot(x,y)||1;return{x:x/n,y:y/n}};
-const SIDE=['#69e6e4','#ed829e'],HOME=[{x:205,y:1675},{x:2545,y:210}];
-// A fonte de surgimento e o Núcleo são estruturas espacialmente distintas.
-const CORE=[{x:390,y:1415},{x:2360,y:485}];
-const BASE_GATE=[[{x:255,y:1510},{x:345,y:1580},{x:365,y:1735}],
-                 [{x:2445,y:265},{x:2410,y:330},{x:2505,y:390}]];
-const PATHS=[
- [{x:255,y:1510},{x:235,y:1280},{x:235,y:790},{x:255,y:440},{x:435,y:248},{x:1090,y:245},{x:1770,y:245},{x:2445,y:265}],
- [{x:345,y:1580},{x:640,y:1360},{x:1070,y:1060},{x:1540,y:725},{x:2040,y:385},{x:2410,y:330}],
- [{x:365,y:1735},{x:780,y:1645},{x:1450,y:1645},{x:2050,y:1640},{x:2470,y:1510},{x:2480,y:1080},{x:2480,y:600},{x:2505,y:390}]
+const SIDE=['#69e6e4','#ed829e'];
+const HOME=[mapPoint(106,992),mapPoint(1350,65)];
+const CORE=[mapPoint(183,853),mapPoint(1217,150)];
+const PATH_PIXELS=[
+ [[207,770],[205,555],[205,343],[365,183],[470,186],[700,188],[915,186],[1104,190]],
+ [[345,724],[435,632],[525,540],[720,539],[923,539],[1106,340],[1165,273]],
+ [[350,827],[500,831],[700,831],[966,831],[1070,816],[1170,675],[1190,518],[1190,325],[1190,266]]
+];
+const PATHS=PATH_PIXELS.map(path=>path.map(([x,y])=>mapPoint(x,y)));
+const BASE_GATE=[PATHS.map(path=>({...path[0]})),
+ PATHS.map(path=>({...path[path.length-1]}))];
+// Torres coincidem com os cristais pintados; não aparecem mais duas torres no mesmo lugar.
+// tier 1 = externa; tier 3 = interna.
+const TOWER_PIXELS=[
+ [
+  [[242,246],[169,500],[108,715]],
+  [[490,500],[328,654],[315,751]],
+  [[703,875],[486,876],[359,948]]
+ ],
+ [
+  [[692,145],[900,146],[1030,75]],
+  [[904,498],[1090,277],[1300,317]],
+  [[964,873],[1152,772],[1234,495]]
+ ]
 ];
 const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1};
 const ITEMS=[
@@ -201,78 +222,47 @@ function placeWard(hero,x,y){
 function buildMap(){
  state.structures=[];state.camps=[];state.obstacles=[];
  state.brushes=[
-  // Campos de camuflagem por pares espelhados a 180 graus.
-  {id:'veil-n',x:865,y:445,r:94},{id:'veil-s',x:1885,y:1455,r:94},
-  {id:'reed-n',x:1020,y:840,r:88},{id:'reed-s',x:1730,y:1060,r:88},
-  {id:'thicket-n',x:735,y:1090,r:96},{id:'thicket-s',x:2015,y:810,r:96}
+  {id:'veil-n',...mapPoint(480,338),r:83},
+  {id:'veil-s',...mapPoint(968,748),r:83},
+  {id:'reed-n',...mapPoint(377,617),r:82},
+  {id:'reed-s',...mapPoint(1071,469),r:82},
+  {id:'thicket-n',...mapPoint(710,342),r:89},
+  {id:'thicket-s',...mapPoint(738,744),r:89}
  ];
  for(let side=0;side<2;side++){
   const base=CORE[side];
-  state.structures.push({kind:'core',side,x:base.x,y:base.y,maxHp:1850,hp:1850,r:46,atk:53,range:375,attackCd:0,id:'core'+side});
-  for(let lane=0;lane<3;lane++){
-   // tier 1: externa, mais próxima do meio; tier 2: intermediária; tier 3: interna.
-   // A ordem física precisa acompanhar a ordem de vulnerabilidade das torres.
-   // A torre externa rubra da rota inferior deve ficar depois da curva, fora do corredor.
-   const fractions=side===0?(lane===0?[.37,.23,.14]:[.37,.23,.095]):
-    (lane===2?[.67,.77,.86]:[.63,.77,.905]);
-   for(let i=0;i<fractions.length;i++){
-    // Defesa no ombro da rota: a onda passa pelo eixo livre da lane.
-    const t=fractions[i],p=pathPos(lane,t);
-    const before=pathPos(lane,Math.max(0,t-.004)),after=pathPos(lane,Math.min(1,t+.004));
-    const tangent=norm(after.x-before.x,after.y-before.y);
-    const normal={x:-tangent.y,y:tangent.x};
-    const recess=side===0?-30:30,lateral=(side===0?1:-1)*138;
-    const towerX=p.x+tangent.x*recess+normal.x*lateral;
-    const towerY=p.y+tangent.y*recess+normal.y*lateral;
-    state.structures.push({kind:'tower',side,lane,tier:i+1,
-      x:clamp(towerX,55,W-55),y:clamp(towerY,55,H-55),
-      r:27,hp:880,maxHp:880,atk:58,range:360,attackCd:0,
-      id:'tower'+side+'-'+lane+'-'+i});
-   }
+  state.structures.push({kind:'core',side,x:base.x,y:base.y,maxHp:1850,hp:1850,
+   r:46,atk:53,range:375,attackCd:0,id:'core'+side});
+  for(let lane=0;lane<3;lane++)for(let tier=0;tier<3;tier++){
+   const [ix,iy]=TOWER_PIXELS[side][lane][tier],p=mapPoint(ix,iy);
+   state.structures.push({kind:'tower',side,lane,tier:tier+1,x:p.x,y:p.y,
+    r:23,hp:880,maxHp:880,atk:58,range:360,attackCd:0,
+    id:'tower'+side+'-'+lane+'-'+tier});
   }
  }
+ // Monstros ficam nos bolsões escuros pintados, nunca sobre as pistas.
  state.camps=[
-  {id:'veilA',x:870,y:610,kind:'buff',name:'Véu Azul',color:'#75caff',hp:630,maxHp:630,respawn:0,buff:'energy'},
-  {id:'emberA',x:1700,y:1310,kind:'buff',name:'Brasa Rubra',color:'#ff9c74',hp:630,maxHp:630,respawn:0,buff:'damage'},
-  {id:'wolvesA',x:1070,y:1320,kind:'camp',name:'Lobos Astrais',color:'#a7c2ef',hp:360,maxHp:360,respawn:0},
-  {id:'golemA',x:1850,y:830,kind:'camp',name:'Golem Sigilar',color:'#e5c58f',hp:450,maxHp:450,respawn:0},
-  {id:'serpe',x:1570,y:1120,kind:'boss',name:'Serpe Astral',color:'#9bf6e9',hp:1030,maxHp:1030,respawn:0,unlock:55},
-  {id:'titan',x:1170,y:650,kind:'boss',name:'Titã do Abismo',color:'#dfb1fa',hp:1500,maxHp:1500,respawn:0,unlock:110}
+  {id:'veilA',...mapPoint(470,300),kind:'buff',name:'Véu Azul',color:'#75caff',hp:630,maxHp:630,respawn:0,buff:'energy'},
+  {id:'emberA',...mapPoint(969,704),kind:'buff',name:'Brasa Rubra',color:'#ff9c74',hp:630,maxHp:630,respawn:0,buff:'damage'},
+  {id:'wolvesA',...mapPoint(342,529),kind:'camp',name:'Lobos Astrais',color:'#a7c2ef',hp:360,maxHp:360,respawn:0},
+  {id:'golemA',...mapPoint(1058,613),kind:'camp',name:'Golem Sigilar',color:'#e5c58f',hp:450,maxHp:450,respawn:0},
+  {id:'serpe',...mapPoint(690,683),kind:'boss',name:'Serpe Astral',color:'#9bf6e9',hp:1030,maxHp:1030,respawn:0,unlock:55},
+  {id:'titan',...mapPoint(710,337),kind:'boss',name:'Titã do Abismo',color:'#dfb1fa',hp:1500,maxHp:1500,respawn:0,unlock:110}
  ];
- // Obstáculos tecnológicos físicos aos pares rotacionados: distribuição simétrica,
- // com corredores amplos. Cada peça desenhada é a mesma peça que bloqueia a passagem.
- let seed=14653;
- const rand=()=>{seed=seed*16807%2147483647;return (seed-1)/2147483646};
- const onRoad=(x,y,margin)=>{
-  for(const pts of ROUTE_PATHS)for(let i=0;i<pts.length-1;i++){
-   const a=pts[i],b=pts[i+1],vx=b.x-a.x,vy=b.y-a.y;
-   const t=clamp(((x-a.x)*vx+(y-a.y)*vy)/(vx*vx+vy*vy),0,1);
-   if(Math.hypot(a.x+vx*t-x,a.y+vy*t-y)<margin)return true;
-  }
-  return false;
- };
- const clearForCover=(pos,r)=>{
-  const {x,y}=pos;
-  if(onRoad(x,y,r+LANE_HALF_WIDTH+26))return false;
-  if(JUNGLE_LINKS.some(link=>{
-   const a=pathPos(link.lane,link.t),b=link,dx=b.x-a.x,dy=b.y-a.y;
-   const t=clamp(((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy),0,1);
-   return Math.hypot(x-a.x-t*dx,y-a.y-t*dy)<r+55;
-  }))return false;
-  if(HOME.some(h=>Math.hypot(h.x-x,h.y-y)<260))return false;
-  if(state.structures.some(o=>Math.hypot(o.x-x,o.y-y)<r+o.r+75))return false;
-  if(state.camps.some(o=>Math.hypot(o.x-x,o.y-y)<r+125))return false;
-  if(state.obstacles.some(o=>Math.hypot(o.x-x,o.y-y)<r+o.r+42))return false;
-  return true;
- };
- for(let attempt=0;attempt<1250&&state.obstacles.length<32;attempt++){
-  const x=150+rand()*(W*.5-300),y=150+rand()*(H-300);
-  const r=24+rand()*13,other={x:W-x,y:H-y};
-  const nearTwin=Math.hypot(other.x-x,other.y-y)<=2*r+42;
-  if(nearTwin||!clearForCover({x,y},r)||!clearForCover(other,r))continue;
-  const kind=rand()>.46?'tree':'rock'; // tree = gerador; rock = cobertura sólida
-  state.obstacles.push({kind,x,y,r,solid:true});
-  state.obstacles.push({kind,x:other.x,y:other.y,r,solid:true});
+ // As peças sólidas usam as próprias rochas já ilustradas no cenário.
+ // Não criar blocos aleatórios que não existem na imagem.
+ const SOLID_LANDMARKS=[
+  [390,266],[554,268],[829,276],[967,276],
+  [300,390],[435,404],[1001,404],[1144,414],
+  [306,627],[410,614],[988,614],[1140,614],
+  [441,744],[577,748],[828,745],[968,746]
+ ];
+ for(const [ix,iy] of SOLID_LANDMARKS){
+  const p=mapPoint(ix,iy),r=23;
+  if(state.structures.some(s=>dist(s,p)<s.r+r+14))continue;
+  if(state.camps.some(s=>dist(s,p)<r+50))continue;
+  if(Math.min(...[0,1,2].map(l=>routeProjection(l,p).distance))<r+64)continue;
+  state.obstacles.push({kind:'rock',x:p.x,y:p.y,r,solid:true});
  }
  rebuildSolidIndex();
 }
