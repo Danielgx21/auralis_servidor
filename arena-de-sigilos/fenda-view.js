@@ -34,6 +34,9 @@ let vw=900,vh=460,dpr=1,terrain=null,last=performance.now(),hudCountdown=0,ended
 // A câmera usa pixels de tela separados de metros do mundo. Não reduzir o herói
 // para tentar encaixar 3 torres no mesmo enquadramento.
 let cameraZoom=1.30,worldVW=vw/cameraZoom,worldVH=vh/cameraZoom;
+// O anel gráfico anterior ocupava ~85px em 1720px de largura.
+// Redução visual ~27%, sem adulterar colisão, hitbox ou alcance.
+const HERO_RENDER_SCALE=.73;
 // Não há texturas, atlas ou sprites nesta arena. Toda a paisagem é Canvas procedural.
 // Fenda 6.3: paisagem 100% procedural, com geometria e camera próprias.
  // Somente três rotas; paredes/obstáculos provêm das hitboxes do motor.
@@ -171,7 +174,7 @@ function drawHero(u,t){
  const stride=walking?Math.sin((u.walkPhase||0)*1.55)*2.2:Math.sin(t*1.7+u.uid)*.58;
  const attackPhase=u.attackAnim>0?1-u.attackAnim/(u.attackTotal||.39):0;
  const recoil=u.attackAnim>0?Math.sin(Math.PI*attackPhase)*3.3:0;
- ctx.save();ctx.translate(x,y);
+ ctx.save();ctx.translate(x,y);ctx.scale(HERO_RENDER_SCALE,HERO_RENDER_SCALE);
  ctx.fillStyle='#00151cab';ctx.beginPath();ctx.ellipse(4,9,r+6,r*.64,0,0,TAU);ctx.fill();
  circle(0,0,r+9,null,side,u.controlled?3.3:2);
  if(u.controlled)circle(0,0,r+13,null,'#e4fff183',1.4);
@@ -221,11 +224,12 @@ function drawHero(u,t){
   ctx.restore();
  }
  ctx.restore();
- bar(x,y,r+2,u.hp,u.maxHp,u.side,55);
- manaBar(x,y,r,u.mana,E.maxMana(u),55);
- ctx.save();ctx.textAlign='center';ctx.font='900 10px system-ui';
- ctx.shadowColor='#00111a';ctx.shadowBlur=5;ctx.fillStyle=u.side===0?'#d4fff2':'#ffdde5';
- ctx.fillText((u.controlled?'✦ ':'')+h.name+' · '+u.level,x,y-r-26);ctx.restore();
+ const barRadius=r*.84;
+ bar(x,y,barRadius,u.hp,u.maxHp,u.side,44);
+ manaBar(x,y,barRadius,u.mana,E.maxMana(u),44);
+ ctx.save();ctx.textAlign='center';ctx.font='850 9px system-ui';
+ ctx.shadowColor='#00111a';ctx.shadowBlur=4;ctx.fillStyle=u.side===0?'#d4fff2':'#ffdde5';
+ ctx.fillText((u.controlled?'✦ ':'')+h.name+' · '+u.level,x,y-barRadius-32);ctx.restore();
  if(u.casting){
   const ratio=clamp(1-u.casting.time/(u.casting.total||1),0,1);
   ctx.save();ctx.globalAlpha=.76;
