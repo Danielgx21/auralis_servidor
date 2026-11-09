@@ -23,6 +23,13 @@ shop.innerHTML='<div class="fenda-shop-head"><strong>⚒ ARSENAL DO SANTUÁRIO</
 stage.appendChild(shop);
 const mm=$('fendaMinimap'),mc=mm.getContext('2d');
 let vw=900,vh=460,dpr=1,terrain=null,last=performance.now(),hudCountdown=0,endedShown=false;
+// Texturas ilustradas, em arquivo independente: 0..112 fonte, 112..224 pedra.
+// Renderiza apenas o cenário. Campeões, UI, névoa, torres e colisões continuam dinâmicos.
+const sceneryAtlas=new Image();
+let sceneryReady=false;
+sceneryAtlas.onload=()=>{sceneryReady=true;terrain=null;};
+sceneryAtlas.onerror=()=>{sceneryReady=false;};
+sceneryAtlas.src='fenda-art-atlas.webp?v=5.1';
 const fogCanvas=document.createElement('canvas'),fogContext=fogCanvas.getContext('2d');
 let fogAt=-1,fogCamX=-99999,fogCamY=-99999;
 const keys=new Set(),joy={ptr:null,x:0,y:0,sx:0,sy:0},pointers={aa:null,skill:null};
@@ -63,59 +70,71 @@ function baseBoundary(g){
  g.closePath();
 }
 function drawBasePaving(g){
- // Pátio da fonte, esplanada do Núcleo e corredores de saída são áreas distintas.
+ // Ilustração estática de pedra natural, sem mosaico processual.
  for(let side=0;side<2;side++){
   g.save();baseSpace(g,side);
   baseBoundary(g);
-  const stone=g.createLinearGradient(-110,-160,365,290);
-  stone.addColorStop(0,'#354f53');stone.addColorStop(.40,'#6c8175');
-  stone.addColorStop(.76,'#84958a');stone.addColorStop(1,'#425b56');
-  g.fillStyle=stone;g.fill();
+  const bg=g.createLinearGradient(-175,-140,380,290);
+  bg.addColorStop(0,'#566f66');bg.addColorStop(.5,'#697c70');
+  bg.addColorStop(1,'#465e55');
+  g.fillStyle=bg;g.fill();
   g.save();baseBoundary(g);g.clip();
-  // Mosaico radial de lajes: juntas em arcos e placas de cores próximas.
-  // A base vira uma praça com profundidade, não um tabuleiro de quadrados claros.
-  g.save();g.translate(65,81);
-  for(let ring=0;ring<7;ring++){
-   const inner=ring===0?24:36+(ring-1)*41;
-   const outer=ring===0?36:36+ring*41;
-   const sections=ring===0?8:Math.round(12+ring*5);
-   for(let j=0;j<sections;j++){
-    const wobble=(j*11+ring*7)%5;
-    const a0=j*TAU/sections+ring*.12+.018;
-    const a1=(j+1)*TAU/sections+ring*.12-.018;
-    const r0=inner+2+wobble*.25,r1=outer-2-wobble*.35;
-    g.beginPath();g.arc(0,0,r1,a0,a1);
-    g.arc(0,0,r0,a1,a0,true);g.closePath();
-    const k=(j*13+ring*17)%6;
-    g.fillStyle=['#83948b','#798c84','#71867b','#8c9b8d','#667e76','#98a59a'][k];
-    g.globalAlpha=.32+(k%3)*.05;g.fill();
-    g.globalAlpha=.67;g.strokeStyle='#304d4b78';g.lineWidth=1.2;g.stroke();
-   }
+  if(sceneryReady){
+   // Um único recorte pintado e ampliado evita costuras repetidas de ladrilhos.
+   g.globalAlpha=.72;
+   g.drawImage(sceneryAtlas,112,0,112,112,-190,-190,650,545);
+   g.globalAlpha=1;
+   const glaze=g.createLinearGradient(-190,-170,410,320);
+   glaze.addColorStop(0,'#27463b22');glaze.addColorStop(.6,'#465e4d20');
+   glaze.addColorStop(1,'#233e352d');
+   g.fillStyle=glaze;g.fillRect(-205,-190,670,560);
   }
   g.restore();
-  // Pequenos musgos nas juntas: detalhe ambiental, não uma faixa contínua.
-  for(let i=0;i<110;i++){
-   const x=-170+((i*83)%590),y=-171+((i*59)%481);
-   const k=(i*17)%7;
-   if(k>3)continue;
-   g.fillStyle=i%2?'#2e62504a':'#91ad7652';
-   g.beginPath();g.ellipse(x,y,2+k*.6,1.4+k*.35,i*.8,0,TAU);g.fill();
-  }
-  // Esplanada de saída: três caminhos convergem, com bordas de alvenaria desgastada.
-  g.strokeStyle='#d6d1ad54';g.lineWidth=9;
-  g.beginPath();g.moveTo(-135,165);g.quadraticCurveTo(-65,303,135,309);g.stroke();
-  g.strokeStyle='#253f427d';g.lineWidth=17;
-  g.beginPath();g.moveTo(-154,48);g.quadraticCurveTo(-133,202,-45,268);g.stroke();
-  // Detalhes rúnicos pequenos, sem repetir um enorme símbolo sob o personagem.
-  for(let i=0;i<8;i++){
-   const u=40+i*34,v=192+Math.sin(i*.9)*28;
-   g.strokeStyle='#cfe5c14a';g.lineWidth=2;
-   g.strokeRect(u-6,v-6,12,12);
-  }
+  // Muralha e borda da praça continuam elementos arquitetônicos simples.
+  g.strokeStyle='#263f3b';g.lineWidth=13;baseBoundary(g);g.stroke();
+  g.strokeStyle='#a8b79c';g.lineWidth=3;baseBoundary(g);g.stroke();
   g.restore();
-  g.strokeStyle='#203b3f';g.lineWidth=13;baseBoundary(g);g.stroke();
-  g.strokeStyle='#c1bfa271';g.lineWidth=3;baseBoundary(g);g.stroke();
-  g.restore();
+ }
+}
+function laneOutline(g,lane,margin){
+ // Construção única da forma da pista: evita a sobreposição dos traços curvos
+ // que causava centenas de "ondas" na versão 5.0.
+ const left=[],right=[],count=126;
+ for(let i=0;i<=count;i++){
+  const t=i/count,p=E.pathPos(lane,t);
+  const a=E.pathPos(lane,Math.max(0,t-.002));
+  const b=E.pathPos(lane,Math.min(1,t+.002));
+  const n=E.norm(b.x-a.x,b.y-a.y),edge=Math.min(t,1-t);
+  const k=clamp((edge-.015)/.15,0,1),smooth=k*k*(3-2*k);
+  const hw=52+(E.LANE_HALF_WIDTH-52)*smooth+margin;
+  left.push({x:p.x-n.y*hw,y:p.y+n.x*hw});
+  right.push({x:p.x+n.y*hw,y:p.y-n.x*hw});
+ }
+ g.beginPath();
+ left.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y));
+ for(let i=right.length-1;i>=0;i--)g.lineTo(right[i].x,right[i].y);
+ g.closePath();
+}
+function drawPaintedLanes(g){
+ let pattern=null;
+ if(sceneryReady){
+  const tile=document.createElement('canvas');tile.width=112;tile.height=112;
+  tile.getContext('2d').drawImage(sceneryAtlas,112,0,112,112,0,0,112,112);
+  pattern=g.createPattern(tile,'repeat');
+ }
+ for(let lane=0;lane<3;lane++){
+  for(const [margin,color] of [[12,'#253e3a'],[4,'#4b665a'],[-9,'#70867c']]){
+   laneOutline(g,lane,margin);g.fillStyle=color;g.fill();
+  }
+  if(pattern){
+   g.save();laneOutline(g,lane,-12);g.clip();
+   // A imagem é uma textura suave sob os personagens; não redesenha
+   // as bordas nem acrescenta linhas de trânsito ou anéis repetidos.
+   g.globalAlpha=.34;
+   g.scale(2.15,2.15);
+   g.fillStyle=pattern;g.fillRect(0,0,E.W/2.15,E.H/2.15);
+   g.restore();
+  }
  }
 }
 function drawBaseDetails(g){
@@ -124,19 +143,14 @@ function drawBaseDetails(g){
   g.save();baseSpace(g,side);
   const ux=side===0?core.x-source.x:source.x-core.x;
   const vy=side===0?source.y-core.y:core.y-source.y;
-  // Fonte compacta para surgimento e compra, afastada do Núcleo.
-  g.fillStyle='#183d44';g.beginPath();g.arc(0,0,82,0,TAU);g.fill();
-  g.strokeStyle='#c4c3a5';g.lineWidth=10;g.beginPath();g.arc(0,0,77,0,TAU);g.stroke();
-  g.fillStyle='#457d7c';g.beginPath();g.arc(0,0,63,0,TAU);g.fill();
-  g.strokeStyle='#c2e1ca8c';g.lineWidth=3;g.beginPath();g.arc(0,0,52,0,TAU);g.stroke();
-  for(let i=0;i<8;i++){
-   const a=i*TAU/8;
-   g.strokeStyle='#c3d9ba78';g.lineWidth=3;
-   g.beginPath();g.moveTo(Math.cos(a)*34,Math.sin(a)*34);
-   g.lineTo(Math.cos(a)*55,Math.sin(a)*55);g.stroke();
+  // Fonte pintada à mão recortada do atlas (sem HUD nem personagens).
+  if(sceneryReady){
+   g.drawImage(sceneryAtlas,0,0,112,112,-112,-112,224,224);
+  }else{
+   g.fillStyle='#183d44';g.beginPath();g.arc(0,0,74,0,TAU);g.fill();
+   g.strokeStyle='#b3c4a7';g.lineWidth=7;g.beginPath();g.arc(0,0,67,0,TAU);g.stroke();
+   g.fillStyle='#67bdbe';g.beginPath();g.arc(0,0,34,0,TAU);g.fill();
   }
-  g.fillStyle='#a4eff1a0';g.beginPath();g.arc(0,0,26,0,TAU);g.fill();
-  g.strokeStyle='#d8fcdd';g.lineWidth=3;g.beginPath();g.arc(0,0,19,0,TAU);g.stroke();
   // A base do Núcleo tem seu próprio piso, sem recobrir a fonte.
   g.save();g.translate(ux,vy);
   g.fillStyle='#233b44';g.beginPath();g.arc(0,0,67,0,TAU);g.fill();
@@ -171,7 +185,6 @@ function drawTerrain(){
  const color=g.createLinearGradient(0,0,E.W,E.H);
  color.addColorStop(0,'#193932');color.addColorStop(.48,'#14382f');color.addColorStop(1,'#243344');
  g.fillStyle=color;g.fillRect(0,0,E.W,E.H);
- drawBasePaving(g);
  const nearRoute=(x,y,pad)=>{
   for(const pts of E.ROUTE_PATHS)for(let i=0;i<pts.length-1;i++){
    const a=pts[i],b=pts[i+1],vx=b.x-a.x,vy=b.y-a.y;
@@ -213,53 +226,8 @@ function drawTerrain(){
   }
   g.setLineDash([8,22]);g.strokeStyle='#e0d2a665';g.lineWidth=2;g.stroke();g.setLineDash([]);
  }
- // As pistas se estreitam ao entrar nas bases. A região da fonte permanece um pátio
- // com saídas separadas, em vez de três autoestradas sobrepostas.
- for(let lane=0;lane<3;lane++){
-  const steps=110;
-  for(let j=0;j<steps;j++){
-   const t0=j/steps,t1=(j+1)/steps,t=(t0+t1)*.5;
-   const p=E.pathPos(lane,t0),q=E.pathPos(lane,t1);
-   const nearBase=Math.min(t,1-t);
-   const transition=clamp((nearBase-.015)/.15,0,1);
-   const smooth=transition*transition*(3-2*transition);
-   const width=102+(E.LANE_HALF_WIDTH*2-102)*smooth;
-   g.beginPath();g.moveTo(p.x,p.y);g.lineTo(q.x,q.y);
-   g.lineCap='round';g.lineJoin='round';
-   for(const [w,color] of [[width+16,'#234642'],[width+4,'#4c6860'],[width-14,'#70877a']]){
-    g.strokeStyle=color;g.lineWidth=w;g.stroke();
-   }
-  }
-  // Lajes espaçadas, sem repetição de um grid retangular ou faixas de trânsito.
-  for(let t=.075;t<.94;t+=.025){
-   const p=E.pathPos(lane,t);
-   const prev=E.pathPos(lane,Math.max(0,t-.003));
-   const next=E.pathPos(lane,Math.min(1,t+.003));
-   const angle=Math.atan2(next.y-prev.y,next.x-prev.x);
-   const transition=clamp((Math.min(t,1-t)-.015)/.15,0,1);
-   const nCols=transition<.55?2:3;
-   g.save();g.translate(p.x,p.y);g.rotate(angle);
-   for(let col=0;col<nCols;col++){
-    const k=(Math.floor(t*10000)*13+lane*29+col*47)%17;
-    const x=(k%5-2)*5,y=(col-(nCols-1)/2)*55+(k%3-1)*5;
-    const length=48+(k%4)*5,half=18+(k%3)*4;
-    g.beginPath();
-    g.moveTo(x-length*.5+5,y-half);
-    g.lineTo(x+length*.5-7,y-half+2);
-    g.lineTo(x+length*.5,y+half-4);
-    g.lineTo(x-length*.5+2,y+half);
-    g.closePath();
-    g.fillStyle=k%4===0?'#a7b1a193':k%4===1?'#a2b09a72':
-      k%4===2?'#617e7478':'#7a958487';
-    g.fill();g.strokeStyle='#33584d76';g.lineWidth=1.4;g.stroke();
-    if(k%7===0){
-     g.strokeStyle='#4b7b5c73';g.beginPath();
-     g.moveTo(x-13,y-3);g.lineTo(x-3,y+5);g.lineTo(x+7,y+3);g.stroke();
-    }
-   }
-   g.restore();
-  }
- }
+ drawPaintedLanes(g);
+ drawBasePaving(g);
  // Plataformas defensivas no ombro da lane, deixando o eixo central livre para a wave.
  for(const t of S.structures){
   if(t.kind!=='tower')continue;
@@ -732,7 +700,7 @@ function chooseHero(){
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice();
- $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 5.0</div><h2>FENDA DOS SIGILOS</h2>'+
+ $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 5.1</div><h2>FENDA DOS SIGILOS</h2>'+
  '<p>Rotas de curvas suaves, tropas em formação e torres nas laterais. IA de teamfight coordenada: iniciação, proteção, flanco e recuo.</p>'+
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
