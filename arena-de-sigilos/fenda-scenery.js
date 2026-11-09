@@ -55,6 +55,12 @@ function base(g,E,side){
   hex(g,0,0,53,6,Math.PI/6);g.strokeStyle=col+'42';g.lineWidth=2;g.stroke();
   g.fillStyle=col+'24';g.beginPath();g.arc(0,0,9,0,TAU);g.fill();
   g.restore();
+  // Sinalização junto do portão, NÃO uma avenida pintada no chão.
+  g.save();g.textAlign='center';g.font='800 13px system-ui';
+  g.fillStyle=side===0?'#d0fcf1':'#ffe2e9';
+  g.shadowColor=col;g.shadowBlur=5;
+  g.fillText(['TOP','MID','BOT'][i],p.x,p.y-39);
+  g.restore();
  }
  g.restore();
 }
