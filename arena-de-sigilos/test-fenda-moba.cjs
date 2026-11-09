@@ -42,9 +42,9 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=5.4')&&
- html.includes('fenda-team-ai.js?v=5.4')&&
- html.includes('fenda-view.js?v=5.4'),'O site deve carregar todos os sistemas da 5.0.');
+assert.ok(html.includes('fenda-engine.js?v=5.5')&&
+ html.includes('fenda-team-ai.js?v=5.5')&&
+ html.includes('fenda-view.js?v=5.5'),'O site deve carregar todos os sistemas da 5.0.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -125,9 +125,14 @@ assert.ok(!terrainSource.includes("g.arc(base.x,base.y,176"),
 assert.ok(terrainSource.includes("stone:'stone-paving.svg'")&&
  terrainSource.includes("fountain:'fountain.svg'")&&
  terrainSource.includes("grass:'grass-ground.svg'")&&
- terrainSource.includes("tree:'tree-canopy.svg'"),
+ terrainSource.includes("tree:'tree-canopy.svg'")&&
+ terrainSource.includes("tower:'sigil-tower.svg'")&&
+ terrainSource.includes("core:'nexus-spire.svg'")&&
+ terrainSource.includes("rock:'rune-rock.svg'")&&
+ terrainSource.includes("flower:'moonflower-bush.svg'")&&
+ terrainSource.includes("inlay:'base-inlay.svg'"),
  'Imagens SVG independentes não estão sendo carregadas');
-assert.ok(terrainSource.includes("image.src='art/'+file+'?v=5.2'"),
+assert.ok(terrainSource.includes("image.src='art/'+file+'?v=5.5'"),
  'Cache de arquivos de arte não renovado');
 assert.ok(terrainSource.includes("g.drawImage(art.fountain,-106,-106,212,212)"),
  'Fonte deve manter proporção 1:1 e ser renderizada em tamanho adequado');
@@ -144,6 +149,22 @@ assert.ok(!terrainSource.includes("g.setLineDash([22,28])"),
  'O rio continua parecendo uma avenida com faixa central');
 assert.ok(terrainSource.includes('image.onload=()=>{terrain=null}'),
  'As artes devem invalidar o cache de terreno assim que carregarem');
+// 5.5: novo cenário mantém os personagens e a física de todas as estruturas.
+assert.ok(terrainSource.includes("function drawLaneCircuitry(g)")&&
+ terrainSource.includes("drawLaneCircuitry(g);"),
+ 'Rotas nao receberam filetes futuristas de energia');
+assert.ok(terrainSource.includes("g.drawImage(art.inlay,-237,-183,600,600)"),
+ 'Patio nao recebeu arte runica do santuario');
+assert.ok(terrainSource.includes("g.drawImage(art.flower,")&&
+ terrainSource.includes("g.drawImage(art.tree,")&&
+ terrainSource.includes("g.drawImage(art.rock,"),
+ 'Flora e pedras da selva devem usar imagens ilustradas');
+assert.ok(terrainSource.includes("g.drawImage(art.tower,-50,-100,100,122)")&&
+ terrainSource.includes("g.drawImage(art.core,-65,-126,130,148)"),
+ 'Torres e nucleos devem usar seus recursos de arte');
+assert.ok(terrainSource.includes("function drawHero(u,t){")&&
+ terrainSource.includes("function drawMinion(u,t){"),
+ 'Campeoes e unidades continuam com sua arte propria');
 const sourceCss=read('fenda.css');
 assert.ok(sourceCss.includes('.stage.fenda-on .mobile-controls #joy'),
  'Joystick não está oculto no modo desktop');
