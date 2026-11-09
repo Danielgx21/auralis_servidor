@@ -242,6 +242,14 @@ canvas {width:100%;height:100%;}
 @media(max-height:320px){
  .mobile-controls .skill-controls{--aa-size:57px;--skill-size:38px;height:154px!important}
 }
+
+.mobile-controls .skill-btn:not(.fire)::after{
+ content:attr(data-key);position:absolute;right:-4px;top:-6px;min-width:17px;height:17px;
+ border-radius:10px;background:#061b2ef0;color:#cfe6fa;font-size:10px;font-weight:900;
+ display:grid;place-items:center;border:1px solid #7ca9bb8c;box-shadow:0 2px 6px #0009;
+ pointer-events:none;line-height:1
+}
+.mobile-controls #ultBtn::after{background:#6c4b22f0;color:#fff0b4;border-color:#e6bc73}
 </style>
 </head>
 <body>
@@ -259,11 +267,11 @@ canvas {width:100%;height:100%;}
         <div class="team-score" id="teamScore"><span class="blue">5 AZUL</span> × <span class="red">5 RUBRO</span><small>ELIMINE A EQUIPE RIVAL</small></div><div class="objective-tag" id="objectiveTag">5 contra 5 · Última equipe viva vence</div>
         <div class="top-buttons"><button class="icon-btn" id="fullscreenBtn" title="Entrar ou sair da tela cheia" aria-label="Tela cheia">⛶</button><button class="icon-btn" id="muteBtn" title="Ativar/desativar som" aria-label="Ativar ou desativar som">♪</button><button class="icon-btn" id="pauseBtn" title="Pausar" aria-label="Pausar">Ⅱ</button></div>
         <div class="toast" id="toast"></div>
-        <div class="ability-cancel" id="abilityCancel">✕ CANCELAR</div><div class="mobile-controls" id="mobileControls"><div class="joy" id="joy"><div class="joy-knob" id="joyKnob"></div></div><div class="aim-pad" id="aimPad"><div class="aim-thumb" id="aimThumb"></div></div><div class="skill-controls"><button class="skill-btn" id="dashBtn" aria-label="Investida"><b>➤</b><small>Dash</small><span class="cd-text" hidden></span></button><button class="skill-btn" id="pulseBtn" aria-label="Pulso"><b>✳</b><small>Pulso</small><span class="cd-text" hidden></span></button><button class="skill-btn" id="shieldBtn" aria-label="Escudo"><b>◇</b><small>Escudo</small><span class="cd-text" hidden></span></button><button class="skill-btn ultimate" id="ultBtn" aria-label="Ultimate"><b>✸</b><small>ULTI</small><span class="cd-text" hidden></span></button><button class="skill-btn fire" id="fireBtn" aria-label="Atirar"><b>✦</b><small>ATIRAR</small></button></div></div>
+        <div class="ability-cancel" id="abilityCancel">✕ CANCELAR</div><div class="mobile-controls" id="mobileControls"><div class="joy" id="joy"><div class="joy-knob" id="joyKnob"></div></div><div class="aim-pad" id="aimPad"><div class="aim-thumb" id="aimThumb"></div></div><div class="skill-controls"><button class="skill-btn" id="dashBtn" data-key="Q" aria-label="Investida"><b>➤</b><small>Dash</small><span class="cd-text" hidden></span></button><button class="skill-btn" id="pulseBtn" data-key="W" aria-label="Pulso"><b>✳</b><small>Pulso</small><span class="cd-text" hidden></span></button><button class="skill-btn" id="shieldBtn" data-key="E" aria-label="Escudo"><b>◇</b><small>Escudo</small><span class="cd-text" hidden></span></button><button class="skill-btn ultimate" id="ultBtn" data-key="R" aria-label="Ultimate"><b>✸</b><small>ULTI</small><span class="cd-text" hidden></span></button><button class="skill-btn fire" id="fireBtn" aria-label="Atirar"><b>✦</b><small>ATIRAR</small></button></div></div>
         <div class="phase-pips" id="phasePips"><i class="on"></i><i></i><i></i><i></i><i></i></div>
         <div class="overlay" id="overlay"><div class="modal" id="modalContent"></div><aside class="mission-shelf" id="missionShelf"><h3>ESCOLHER FASE · 3 ESTRELAS</h3><div id="missions"></div></aside></div><div class="rotate-prompt" id="rotatePrompt"><div class="rotate-symbol">⤵</div><strong>Gire o celular</strong><p>A Arena de Sigilos agora foi feita para jogar na horizontal, ocupando a tela inteira.</p><button type="button" id="rotateFullscreen">ATIVAR TELA CHEIA</button></div>
       </div>
-      <div class="tip">WASD para mover · Mouse para mirar · Clique ou Espaço para atirar · 1 / 2 / 3 para habilidades</div>
+      <div class="tip">WASD para mover · AA: clique ou Espaço · Q/W/E: habilidades · R: ultimate</div>
     </section>
     <aside class="side"><section class="panel"><h3>Campanha · 3 estrelas</h3><div id="retiredMissions"></div></section><section class="panel"><h3>Arsenal de sigilos</h3><div class="guide"><div class="guide-item"><span class="key">CLICK</span><span><strong style="color:#dceeff">Disparo astral</strong><br>Atire em movimento</span></div><div class="guide-item"><span class="key">1 / Q</span><span><strong style="color:#dceeff">Investida</strong><br>Esquiva rápida e invulnerável</span></div><div class="guide-item"><span class="key">2 / E</span><span><strong style="color:#dceeff">Pulso</strong><br>Dano e empurrão próximos</span></div><div class="guide-item"><span class="key">3 / R</span><span><strong style="color:#dceeff">Escudo</strong><br>Proteção por 2 segundos</span></div></div><hr style="border:0;border-top:1px solid var(--line);margin:15px 0"><p class="info-note">A zona brilhante no centro recupera sua energia mais rápido. Use os pilares como cobertura. O sigilo acompanha o rival automaticamente. Toques rápidos disparam sem linha; pressione por um instante para mirar manualmente.</p></section><section class="panel"><span class="effect-title">DESAFIO DE VERDADE</span><p class="info-note" style="margin-top:10px">Cada fase oferece ★ por vencer, ★ por preservar a vida e ★ por vencer antes do tempo-alvo. Suas melhores notas ficam salvas neste navegador.</p></section></aside>
   </div><div class="footer"><span>Projeto experimental · Feito em Canvas 2D, sem imagens externas</span><span>Desktop + celular · Funciona sem internet depois de salvo</span></div>
@@ -766,7 +774,7 @@ function enemyFire(){
 
 const castDirection=(which,aimSpec)=>{
  if(aimSpec&&aimSpec.dir)return unit(aimSpec.dir.x,aimSpec.dir.y);
- if(['lyria_step','vexor_lunge','orun_charge'].includes(which)){const movement=moveVec();if(Math.hypot(movement.x,movement.y)>.14)return unit(movement.x,movement.y);}
+ if(['lyria_step','vexor_lunge','orun_charge','vexor_ult'].includes(which)){const movement=moveVec();if(Math.hypot(movement.x,movement.y)>.14)return unit(movement.x,movement.y);}
  const target=refreshTarget();return target?unit(target.x-player.x,target.y-player.y):{x:1,y:0};
 };
 const groundTarget=(which,aimSpec)=>{
@@ -820,8 +828,8 @@ function launchAreaSkill(which,target,radius,damage,color,slow=0,stun=0){
   slow,stun,life:duration+.12,size:which==='lyria_rain'?8:10,team:0,source:player,
   trail:[]
  });
- if(which==='lyria_rain'){
-  for(let i of [-1,1]){
+ if(which==='lyria_rain'||which==='lyria_ult'){
+  for(const i of (which==='lyria_ult'?[-2,-1,1,2]:[-1,1])){
    abilityShots.push({
     type:'area',which,x:startX+i*8,y:startY+6,fromX:startX+i*8,fromY:startY+6,
     tx:clamp(target.x+i*radius*.45,12,W-12),ty:clamp(target.y+12*i,12,H-12),
@@ -1829,7 +1837,7 @@ function drawSkillGuide(t){
  const category=spell.aim,color=spell.ultimate?'#ffe7aa':chosenHero().color;
  ctx.save();ctx.shadowBlur=8;ctx.shadowColor=color;
  if(category==='area'){
-  const p=player.casting?.target||groundTarget(which,manual),rad=spell.radius+(which==='vexor_mark'?5:8)*(lvl-1);
+  const p=player.casting?.target||groundTarget(which,manual),rad=spell.radius+({lyria_ult:7,nyra_ult:9,lyria_rain:7,nyra_rift:7,seris_bloom:6,vexor_mark:5}[which]??8)*(lvl-1);
   ring(player.x,player.y,spell.range,color,.19,1.4);
   circle(p.x,p.y,rad,color,.14);
   ring(p.x,p.y,rad,color,.87,3);
@@ -1837,9 +1845,9 @@ function drawSkillGuide(t){
   ctx.setLineDash([8,8]);line(player.x,player.y,p.x,p.y,color,1.6,.6);
   ctx.setLineDash([]);ring(p.x,p.y,10,'#efffff',.88,1.9);circle(p.x,p.y,3,'#ffffff',.97);
  }else{
-  const dir=castDirection(which,manual),len=spell.range+(which==='orun_charge'?8*(lvl-1):['lyria_step','vexor_lunge'].includes(which)?10*(lvl-1):0);
+  const dir=castDirection(which,manual),len=spell.range+(which==='vexor_ult'?13*(lvl-1):which==='orun_charge'?8*(lvl-1):['lyria_step','vexor_lunge'].includes(which)?10*(lvl-1):0);
   const ax=player.x,ay=player.y,bx=ax+dir.x*len,by=ay+dir.y*len;
-  const isDash=['lyria_step','vexor_lunge','orun_charge'].includes(which);
+  const isDash=['lyria_step','vexor_lunge','orun_charge','vexor_ult'].includes(which);
   if(!isDash){
    const rad=spell.radius||20,px=-dir.y*rad,py=dir.x*rad;
    ctx.beginPath();
@@ -1883,13 +1891,13 @@ function drawAbilityProjectiles(){
   const dy=p.type==='line'?p.vy:p.ty-p.fromY;
   ctx.save();ctx.translate(p.x,p.y);ctx.rotate(Math.atan2(dy,dx));
   ctx.shadowColor=p.color;ctx.shadowBlur=18;
-  if(p.which==='lyria_pierce'||p.which==='lyria_rain'||p.which==='seris_tether'||p.which==='seris_bloom'){
+  if(p.which==='lyria_pierce'||p.which==='lyria_rain'||p.which==='lyria_ult'||p.which==='seris_tether'||p.which==='seris_bloom'){
    // Flecha visível desde a saída do arco até a região de impacto.
    line(-20,0,8,0,p.color,3.3,.98);
    polygon(11,0,p.size,3,'#effff6',0,true,.96);
    line(-17,-5,-10,0,p.color,1.8);
    line(-17,5,-10,0,p.color,1.8);
-  }else if(p.which==='nyra_bolt'||p.which==='nyra_rift'){
+  }else if(p.which==='nyra_bolt'||p.which==='nyra_rift'||p.which==='nyra_ult'){
    // Lança arcana e orbe do círculo rúnico.
    ring(0,0,p.size+3,p.color,.85,2.4);
    circle(0,0,p.size,p.color,.96);
