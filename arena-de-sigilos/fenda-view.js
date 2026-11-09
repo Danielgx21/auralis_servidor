@@ -381,8 +381,8 @@ function drawFX(t){
 }
 function drawAim(){
  if(S.hero&&S.hero.focusTarget&&S.hero.focusUntil>S.time&&S.hero.focusTarget.hp>0){
-  const structure=S.hero.focusTarget;
-  ctx.save();circle(structure.x,structure.y,structure.r+16,null,'#f3e2a4a8',2.1);ctx.restore();
+  const structure=S.hero.focusTarget,radius=structure.r||(structure.kind==='boss'?38:28);
+  ctx.save();circle(structure.x,structure.y,radius+15,null,'#f3e2a4a8',2.1);ctx.restore();
  }
  if(pointers.aa&&S.hero&&S.hero.hp>0){
   const r=E.attackRange(S.hero),target=E.findAA(S.hero);
@@ -581,13 +581,13 @@ function chooseHero(){
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice();
- $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 4.7</div><h2>FENDA DOS SIGILOS</h2>'+
+ $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 4.8</div><h2>FENDA DOS SIGILOS</h2>'+
  '<p>Rotas de curvas suaves, tropas em formação e torres nas laterais. IA de teamfight coordenada: iniciação, proteção, flanco e recuo.</p>'+
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
  '<div class="teamfight-tip">5×5 com IA tática · composição de equipe · foco conjunto · recuo e iniciação · névoa de guerra · jungle e ganks · objetivos · loja e XP.</div>'+
  '<div class="actions" style="margin-top:10px"><button class="primary" id="playFenda">▶ JOGAR FENDA 5×5</button><button class="secondary" id="playClassic">MODO ARENA RÁPIDA</button></div>'+
- '<p style="font-size:10px;margin:9px 0 0">Celular: joystick e Q/W/E/R. PC: clique direito para andar, Q/W/E/R habilidades, Espaço AA. B retorno, P loja, V sentinela de visão. TAB alterna para WASD + 1/2/3/4.</p>';
+ '<p style="font-size:10px;margin:9px 0 0">Celular: joystick e Q/W/E/R. PC: clique direito no chão para andar; clique direito no inimigo para perseguir e atacar automaticamente. Q/W/E/R habilidades; B retorno, P loja, V sentinela. TAB alterna para WASD + 1/2/3/4.</p>';
  for(const b of $('modalContent').querySelectorAll('[data-hero]'))b.onclick=()=>{C.setHeroChoice(b.dataset.hero);chooseHero()};
  $('playFenda').onclick=startGame;
  $('playClassic').onclick=()=>{S.mode='classic';stage.classList.remove('fenda-on');C.showClassic()};
@@ -692,14 +692,47 @@ function aaStart(e){
  try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_){}
 }
 function aaEnd(e){if(pointers.aa===e.pointerId)pointers.aa=null}
+
+function pickAttackTarget(clientX,clientY){
+ if(!S.hero)return null;
+ const rect=cv.getBoundingClientRect();
+ const wx=S.camera.x+clientX-rect.left,wy=S.camera.y+clientY-rect.top;
+ const candidates=[
+  ...S.units.filter(u=>u.hp>0&&u.side!==S.hero.side&&
+   (u.kind==='hero'||u.kind==='minion')&&E.visibleTo(S.hero.side,u)),
+  ...S.structures.filter(t=>t.hp>0&&t.side!==S.hero.side),
+  ...S.camps.filter(t=>t.hp>0&&(!t.unlock||S.time>=t.unlock)&&E.isPointVisible(S.hero.side,t))
+ ];
+ const hits=candidates.map(t=>{
+  const radius=t.r||(t.kind==='boss'?38:t.kind==='buff'?28:23);
+  const distance=Math.hypot(t.x-wx,t.y-wy);
+  const hitRadius=Math.max(radius+12,t.kind==='hero'?30:radius+9);
+  return{target:t,distance,hitRadius};
+ }).filter(o=>o.distance<=o.hitRadius)
+   .sort((a,b)=>(a.distance/a.hitRadius)-(b.distance/b.hitRadius));
+ return hits[0]?.target||null;
+}
+function issueRightClick(clientX,clientY){
+ if(S.mode!=='playing'||S.showPause||S.shopOpen||!S.hero||S.hero.hp<=0)return;
+ const target=pickAttackTarget(clientX,clientY);
+ if(target){
+  const result=E.commandAttack(S.hero,target);
+  clickDestination=null;
+  if(result.ok)E.autoAttack(S.hero);
+  else warn(result.reason);
+ }else{
+  E.clearAttackCommand(S.hero);
+  const rect=cv.getBoundingClientRect();
+  clickDestination={x:clamp(S.camera.x+clientX-rect.left,15,E.W-15),
+   y:clamp(S.camera.y+clientY-rect.top,15,E.H-15)};
+ }
+}
 function worldDown(e){
  if(S.mode!=='playing'||S.showPause||S.shopOpen)return;
  if(e.pointerType==='mouse'){
   const rect=cv.getBoundingClientRect();
-  if(e.button===2){
-   clickDestination={x:clamp(S.camera.x+e.clientX-rect.left,15,E.W-15),
-    y:clamp(S.camera.y+e.clientY-rect.top,15,E.H-15)};
-  }else if(e.button===0&&!selectTowerAt(e.clientX,e.clientY))E.autoAttack(S.hero);
+  if(e.button===2)issueRightClick(e.clientX,e.clientY);
+  // AA no PC é exclusivamente por ordem de ataque (clique direito).
   e.preventDefault();return;
  }
  const rect=cv.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;
@@ -738,7 +771,7 @@ function keyDown(e){
  if(S.showPause||S.shopOpen)return;
  if(k==='tab'){
   e.preventDefault();desktopScheme=desktopScheme==='wasd'?'arrows':'wasd';
-  keys.clear();clickDestination=null;
+  keys.clear();clickDestination=null;E.clearAttackCommand(S.hero);
   E.announce(desktopScheme==='wasd'?'PC: WASD + HABILIDADES 1/2/3/4':'PC: SETAS + HABILIDADES Q/W/E/R',2.5);
   return;
  }
@@ -768,7 +801,18 @@ function movement(){
  let len=Math.hypot(x,y);
  if(len>.08){
   clickDestination=null;
+  E.clearAttackCommand(S.hero);
   return len>1?{x:x/len,y:y/len}:{x,y};
+ }
+ if(S.hero?.commandTarget){
+  const target=S.hero.commandTarget;
+  if(!E.isAttackCommandValid(S.hero,target))E.clearAttackCommand(S.hero);
+  else{
+   const dx=target.x-S.hero.x,dy=target.y-S.hero.y,d=Math.hypot(dx,dy);
+   const r=target.r||(target.kind==='boss'?38:target.kind==='buff'?28:23);
+   if(d>E.attackRange(S.hero)+r-5)return{x:dx/d,y:dy/d};
+   return{x:0,y:0};
+  }
  }
  if(clickDestination&&S.hero&&S.hero.hp>0){
   const dx=clickDestination.x-S.hero.x,dy=clickDestination.y-S.hero.y,d=Math.hypot(dx,dy);
@@ -782,7 +826,16 @@ function loop(now){
  if(S.mode==='playing'){
   if(pointers.skill&&performance.now()-pointers.skill.started>190)aimPreview=pointers.skill;
   if(!S.showPause){
-   E.step(dt,movement());view(dt);hudCountdown-=dt;
+   E.step(dt,movement());
+   if(S.hero?.commandTarget){
+    const t=S.hero.commandTarget;
+    if(!E.isAttackCommandValid(S.hero,t))E.clearAttackCommand(S.hero);
+    else{
+     const r=t.r||(t.kind==='boss'?38:t.kind==='buff'?28:23);
+     if(E.dist(S.hero,t)<=E.attackRange(S.hero)+r+2)E.autoAttack(S.hero);
+    }
+   }
+   view(dt);hudCountdown-=dt;
    if(hudCountdown<=0){hudCountdown=.16;hudUpdate();if(S.shopOpen)shopRender();}
   }
  }else if(S.mode==='ended'){view(0);endScreen();}
@@ -823,6 +876,6 @@ mm.addEventListener('pointerdown',e=>{
 });
 window.addEventListener('resize',resize);
 if(window.ResizeObserver)new ResizeObserver(resize).observe(stage);
-window.FendaView={chooseHero,startGame,pause,view,resize,toggleShop,hudUpdate};
+window.FendaView={chooseHero,startGame,pause,view,resize,toggleShop,hudUpdate,pickAttackTarget,issueRightClick,movement};
 resize();chooseHero();requestAnimationFrame(loop);
 })();
