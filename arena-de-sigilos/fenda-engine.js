@@ -208,7 +208,9 @@ function createMinion(side,lane,type=0,slot=0){
  hp,maxHp:hp,atk:Math.round((siege?34:ranged?20:19)*wavePower),
  speed:siege?59:ranged?74:83,attackCd:rando(.1,.5),ranged,site:type,slot,
  pathIndex:side===0?0:PATHS[lane].length-1,focus:null,
- stun:0,slow:0,shield:0,invuln:0,attackAnim:0,death:0,lastDamage:0};
+ stun:0,slow:0,shield:state.teamBuffs[side].titan>state.time?42:0,
+ shieldUntil:state.teamBuffs[side].titan>state.time?state.time+18:0,
+ invuln:0,attackAnim:0,death:0,lastDamage:0};
 }
 function start(hero='lyria'){
  state.mode='playing';state.time=0;state.units=[];state.projectiles=[];state.effects=[];
@@ -273,13 +275,25 @@ function onDeath(victim,source){
    grantNearbyXP(victim,victim.side===0?1:0,victim.id==='siege'?28:15);
   }
  }else if(victim.kind==='creep'){
-  if(source&&source.kind==='hero'){
-   source.gold+=victim.boss?170:75;xpGain(source,victim.boss?95:38);
+  if(source&&source.side!==undefined&&(source.side===0||source.side===1)){
+   const owner=source.side;
+   if(source.kind==='hero'){
+    source.gold+=victim.boss?230:105;
+    xpGain(source,victim.boss?130:65);
+    heal(source,victim.boss?90:36);
+    if(victim.buff==='energy')source.energy=maxEnergy(source);
+    if(victim.buff)source.homeBuff=state.time+72;
+   }
    if(victim.boss){
-    for(const u of living(source.side,'hero')){u.guard=24;u.homeBuff=state.time+75;}
-    announce('OBJETIVO CONQUISTADO · BÊNÇÃO SIGILAR!',4);
-   }else if(victim.buff==='energy'){source.energy=maxEnergy(source);source.homeBuff=state.time+75;}
-   else if(victim.buff==='damage')source.homeBuff=state.time+75;
+    const buff=victim.id==='titan'?'titan':'serpe';
+    state.teamBuffs[owner][buff]=state.time+95;
+    for(const teammate of living(owner,'hero')){
+     teammate.gold+=95;xpGain(teammate,55);
+     heal(teammate,46);teammate.guard=Math.max(teammate.guard,38);
+    }
+    announce((owner===0?'AZUL':'RUBRO')+' CONQUISTOU '+victim.name.toUpperCase()+' · BÊNÇÃO DE EQUIPE!',4);
+    addEffect(victim.x,victim.y,victim.color,145,.9,'burst');
+   }
   }
  }
 }
@@ -398,6 +412,9 @@ function laneTarget(u,range){
 function findAA(u){
  if(!u||u.hp<=0)return null;
  const range=attackRange(u);
+ if(u.jungler&&u.jungleGoal&&u.jungleGoal.hp>0&&
+     (!u.jungleGoal.unlock||state.time>=u.jungleGoal.unlock)&&
+     dist(u,u.jungleGoal)<=range+solidRadius(u.jungleGoal)+2)return u.jungleGoal;
  // Seleção explícita de torre mantém o foco do AA durante o cerco.
  const chosen=u.controlled&&u.focusTarget&&u.focusUntil>state.time?u.focusTarget:null;
  if(chosen&&chosen.hp>0&&chosen.side!==u.side&&dist(chosen,u)<=range+chosen.r+2&&
@@ -438,6 +455,13 @@ function autoAttack(u){
  let damageVal=attackDamage(u)+(u.homeBuff>state.time?4:0);
  // Minions limpam ondas de forma consistente, sem congestionamentos infinitos.
  if(u.kind==='minion'&&target.kind==='minion')damageVal=Math.round(damageVal*1.25);
+ if(target.kind==='boss'||target.kind==='buff'||target.kind==='camp'){
+  damageVal=Math.round(damageVal*(u.kind==='hero'?1.52:1.0));
+ }
+ if(u.kind==='minion'&&state.teamBuffs[u.side].titan>state.time&&
+    (target.kind==='tower'||target.kind==='core'))damageVal=Math.round(damageVal*1.28);
+ if(u.kind==='hero'&&state.teamBuffs[u.side].serpe>state.time)
+  damageVal=Math.round(damageVal*1.12);
  // Os AAs de campeões devem causar dano perceptível em torres;
  // sentinelas de cerco também possuem bônus contra estruturas.
  if(target.kind==='tower'||target.kind==='core')
@@ -794,24 +818,36 @@ function jungleStep(dt){
  for(const c of state.camps){
   if(c.hp<=0){
    c.respawn=Math.max(0,c.respawn-dt);
-   if(c.respawn<=0){c.hp=c.maxHp;addEffect(c.x,c.y,c.color,55,.55)}
+   if(c.respawn<=0){c.hp=c.maxHp;c.aggroTarget=null;c.attackCd=1;addEffect(c.x,c.y,c.color,55,.55)}
    continue;
   }
   if(c.unlock&&state.time<c.unlock)continue;
-  if(!c.attackCd)c.attackCd=1;
-  c.attackCd-=dt;
-  if(c.attackCd<=0){
-   const heroesNear=living(null,'hero').filter(u=>dist(u,c)<100);
-   if(heroesNear.length){
-    const closest=heroesNear.sort((a,b)=>dist(a,c)-dist(b,c))[0];
-    damage(closest,c.kind==='boss'?24:12,c);
+  c.attackCd=Math.max(0,(c.attackCd||1)-dt);
+  let target=c.aggroTarget;
+  if(!target||target.hp<=0||dist(target,c)>240||state.time>(c.aggroUntil||0)){
+   target=living(null,'hero').filter(u=>dist(u,c)<95)
+    .sort((a,b)=>dist(a,c)-dist(b,c))[0]||null;
+   c.aggroTarget=target;
+  }
+  if(target&&dist(target,c)<155+(c.kind==='boss'?45:0)){
+   c.aggroUntil=state.time+4;
+   if(c.attackCd<=0){
+    const damageValue=c.kind==='boss'?(c.id==='titan'?32:25):c.kind==='buff'?15:11;
+    damage(target,damageValue,c);
+    addEffect(target.x,target.y,c.color,20,.25,'hit');
+    c.attackCd=c.kind==='boss'?1.65:2.25;
    }
-   c.attackCd=c.kind==='boss'?1.7:2.3;
+  }else if(c.hp<c.maxHp){
+   c.hp=Math.min(c.maxHp,c.hp+dt*4.5); // Reinicia lentamente caso o caçador abandone o campo.
   }
  }
 }
 function damageCreep(c,amount,source){
  if(!c||c.hp<=0||c.unlock&&state.time<c.unlock)return;
+ if(source&&source.kind==='hero'){
+  c.aggroTarget=source;c.aggroUntil=state.time+5;
+  c.lastHitSide=source.side;
+ }
  c.hp=Math.max(0,c.hp-amount);
  addEffect(c.x,c.y,c.color,17,.21);
  if(c.hp<=0){
@@ -998,10 +1034,13 @@ function tickUnit(u,dt){
  u.attackCd=Math.max(0,u.attackCd-dt);u.attackAnim=Math.max(0,(u.attackAnim||0)-dt);
  if(u.kind==='hero')for(const id in u.cooldowns)u.cooldowns[id]=Math.max(0,u.cooldowns[id]-dt);
  if(u.kind==='hero'){
+  u.visionCd=Math.max(0,(u.visionCd||0)-dt);
   u.gold=Math.min(20000,u.gold+dt*1.15);
-  u.energy=clamp(u.energy+dt*(u.homeBuff>state.time?19:12),0,maxEnergy(u));
+  u.energy=clamp(u.energy+dt*((u.homeBuff>state.time?19:12)+
+    (state.teamBuffs[u.side].serpe>state.time?4:0)),0,maxEnergy(u));
   u.aiTimer-=dt;
-  u.hp=Math.min(u.maxHp,u.hp+dt*(dist(u,HOME[u.side])<150?24:1.15));
+  u.hp=Math.min(u.maxHp,u.hp+dt*(dist(u,HOME[u.side])<150?24:1.15+
+   (state.teamBuffs[u.side].serpe>state.time?1.65:0)));
   if(u.recall>0){
    if(u.controlled){u.recall-=dt;if(u.recall<=0){const home=HOME[u.side];
      const mid=pathPos(1,.11),out=norm(mid.x-HOME[0].x,mid.y-HOME[0].y);
