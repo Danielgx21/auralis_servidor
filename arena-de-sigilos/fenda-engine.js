@@ -201,9 +201,10 @@ function placeWard(hero,x,y){
 function buildMap(){
  state.structures=[];state.camps=[];state.obstacles=[];
  state.brushes=[
-  {id:'veil-n',x:865,y:445,r:118},{id:'reed-n',x:1190,y:815,r:86},
-  {id:'veil-s',x:735,y:1090,r:105},{id:'reed-s',x:1510,y:1400,r:105},
-  {id:'thicket-n',x:1920,y:670,r:112},{id:'thicket-s',x:1900,y:1190,r:115}
+  // Campos de camuflagem por pares espelhados a 180 graus.
+  {id:'veil-n',x:865,y:445,r:94},{id:'veil-s',x:1885,y:1455,r:94},
+  {id:'reed-n',x:1020,y:840,r:88},{id:'reed-s',x:1730,y:1060,r:88},
+  {id:'thicket-n',x:735,y:1090,r:96},{id:'thicket-s',x:2015,y:810,r:96}
  ];
  for(let side=0;side<2;side++){
   const base=CORE[side];
@@ -238,8 +239,8 @@ function buildMap(){
   {id:'serpe',x:1570,y:1120,kind:'boss',name:'Serpe Astral',color:'#9bf6e9',hp:1030,maxHp:1030,respawn:0,unlock:55},
   {id:'titan',x:1170,y:650,kind:'boss',name:'Titã do Abismo',color:'#dfb1fa',hp:1500,maxHp:1500,respawn:0,unlock:110}
  ];
- // Pedras e árvores antigas são obstáculos reais, não apenas desenhos decorativos.
- // A floresta mantém corredores navegáveis entre as três rotas e os campos.
+ // Obstáculos tecnológicos físicos aos pares rotacionados: distribuição simétrica,
+ // com corredores amplos. Cada peça desenhada é a mesma peça que bloqueia a passagem.
  let seed=14653;
  const rand=()=>{seed=seed*16807%2147483647;return (seed-1)/2147483646};
  const onRoad=(x,y,margin)=>{
@@ -250,22 +251,28 @@ function buildMap(){
   }
   return false;
  };
- for(let attempt=0;attempt<900&&state.obstacles.length<48;attempt++){
-  const x=140+rand()*(W-280),y=135+rand()*(H-270);
-  const r=22+rand()*21;
-  // Passagens reais entre selva e rotas: sem rochas bloqueando o corredor.
-  const onJunglePath=JUNGLE_LINKS.some(link=>{
-    const a=pathPos(link.lane,link.t),b=link;
-    const dx=b.x-a.x,dy=b.y-a.y;
-    const t=clamp(((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy),0,1);
-    return Math.hypot(x-a.x-t*dx,y-a.y-t*dy)<r+40;
-  });
-  if(onRoad(x,y,r+LANE_HALF_WIDTH+15)||onJunglePath||
-     HOME.some(h=>Math.hypot(h.x-x,h.y-y)<230)||
-     state.structures.some(t=>Math.hypot(t.x-x,t.y-y)<r+t.r+53)||
-     state.camps.some(c=>Math.hypot(c.x-x,c.y-y)<r+115)||
-     state.obstacles.some(o=>Math.hypot(o.x-x,o.y-y)<r+o.r+25))continue;
-  state.obstacles.push({kind:rand()>.35?'tree':'rock',x,y,r,solid:true});
+ const clearForCover=(pos,r)=>{
+  const {x,y}=pos;
+  if(onRoad(x,y,r+LANE_HALF_WIDTH+26))return false;
+  if(JUNGLE_LINKS.some(link=>{
+   const a=pathPos(link.lane,link.t),b=link,dx=b.x-a.x,dy=b.y-a.y;
+   const t=clamp(((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy),0,1);
+   return Math.hypot(x-a.x-t*dx,y-a.y-t*dy)<r+55;
+  }))return false;
+  if(HOME.some(h=>Math.hypot(h.x-x,h.y-y)<260))return false;
+  if(state.structures.some(o=>Math.hypot(o.x-x,o.y-y)<r+o.r+75))return false;
+  if(state.camps.some(o=>Math.hypot(o.x-x,o.y-y)<r+125))return false;
+  if(state.obstacles.some(o=>Math.hypot(o.x-x,o.y-y)<r+o.r+42))return false;
+  return true;
+ };
+ for(let attempt=0;attempt<1250&&state.obstacles.length<32;attempt++){
+  const x=150+rand()*(W*.5-300),y=150+rand()*(H-300);
+  const r=24+rand()*13,other={x:W-x,y:H-y};
+  const nearTwin=Math.hypot(other.x-x,other.y-y)<=2*r+42;
+  if(nearTwin||!clearForCover({x,y},r)||!clearForCover(other,r))continue;
+  const kind=rand()>.46?'tree':'rock'; // tree = gerador; rock = cobertura sólida
+  state.obstacles.push({kind,x,y,r,solid:true});
+  state.obstacles.push({kind,x:other.x,y:other.y,r,solid:true});
  }
  rebuildSolidIndex();
 }
