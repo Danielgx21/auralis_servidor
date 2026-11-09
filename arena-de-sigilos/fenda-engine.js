@@ -23,7 +23,7 @@ const ITEMS=[
  {id:'core',name:'Núcleo Ágil',price:620,stat:'-15% recarga',desc:'Habilidades disponíveis mais cedo',icon:'✦'}
 ];
 const state={mode:'menu',time:0,w:W,h:H,camera:{x:0,y:0},units:[],structures:[],projectiles:[],
- effects:[],jungle:[],camps:[],hero:null,focused:null,kills:[0,0],wave:0,nextWave:4,
+ effects:[],jungle:[],camps:[],obstacles:[],hero:null,focused:null,kills:[0,0],wave:0,nextWave:4,
  flash:0,score:0,marker:null,shopOpen:false,showPause:false,notice:'',noticeUntil:0,
  nextObjectives:50,buffUntil:0,win:null,selectedHero:'lyria',seq:0,sounds:true};
 const rando=(a,b)=>a+Math.random()*(b-a),hData=id=>C.heroes[id],skillDef=id=>C.skills[id];
@@ -48,7 +48,7 @@ function pathPos(lane,t){
  return{...pts[pts.length-1]};
 }
 function buildMap(){
- state.structures=[];state.camps=[];
+ state.structures=[];state.camps=[];state.obstacles=[];
  for(let side=0;side<2;side++){
   const base=HOME[side];
   state.structures.push({kind:'core',side,x:base.x,y:base.y,maxHp:1850,hp:1850,r:56,atk:53,range:220,attackCd:0,id:'core'+side});
@@ -74,11 +74,36 @@ function buildMap(){
   {id:'serpe',x:1570,y:1120,kind:'boss',name:'Serpe Astral',color:'#9bf6e9',hp:1750,maxHp:1750,respawn:0,unlock:55},
   {id:'titan',x:1170,y:650,kind:'boss',name:'Titã do Abismo',color:'#dfb1fa',hp:2300,maxHp:2300,respawn:0,unlock:110}
  ];
+ // Pedras e árvores antigas são obstáculos reais, não apenas desenhos decorativos.
+ // A floresta mantém corredores navegáveis entre as três rotas e os campos.
+ let seed=14653;
+ const rand=()=>{seed=seed*16807%2147483647;return (seed-1)/2147483646};
+ const onRoad=(x,y,margin)=>{
+  for(const pts of PATHS)for(let i=0;i<pts.length-1;i++){
+   const a=pts[i],b=pts[i+1],vx=b.x-a.x,vy=b.y-a.y;
+   const t=clamp(((x-a.x)*vx+(y-a.y)*vy)/(vx*vx+vy*vy),0,1);
+   if(Math.hypot(a.x+vx*t-x,a.y+vy*t-y)<margin)return true;
+  }
+  return false;
+ };
+ for(let attempt=0;attempt<900&&state.obstacles.length<48;attempt++){
+  const x=140+rand()*(W-280),y=135+rand()*(H-270);
+  const r=22+rand()*21;
+  if(onRoad(x,y,r+90)||HOME.some(h=>Math.hypot(h.x-x,h.y-y)<210)||
+     state.camps.some(c=>Math.hypot(c.x-x,c.y-y)<r+115)||
+     state.obstacles.some(o=>Math.hypot(o.x-x,o.y-y)<r+o.r+25))continue;
+  state.obstacles.push({kind:rand()>.35?'tree':'rock',x,y,r,solid:true});
+ }
 }
 function makeHero(id,side,controlled=false){
  const h=hData(id),start=HOME[side],offset=side===0?1:-1;
- return {uid:++state.seq,kind:'hero',id,side,controlled,x:start.x+rando(-35,35)*offset,
- y:start.y+rando(-35,35)*offset,r:id==='orun'?23:19,speed:h.move*MOBA_WALK_SCALE,atk:h.damage*.82,
+ // O Núcleo é sólido; os campeões surgem na fonte, fora de sua hitbox.
+ const mid=pathPos(1,.11),dir=norm(mid.x-HOME[0].x,mid.y-HOME[0].y);
+ const d=side===0?dir:{x:-dir.x,y:-dir.y};
+ const spawnOffset=95+(state.seq%3)*12;
+ return {uid:++state.seq,kind:'hero',id,side,controlled,
+ x:start.x+d.x*spawnOffset+rando(-11,11),
+ y:start.y+d.y*spawnOffset+rando(-11,11),r:id==='orun'?23:19,speed:h.move*MOBA_WALK_SCALE,atk:h.damage*.82,
  baseHp:h.hp*1.3,maxHp:Math.round(h.hp*1.3),hp:Math.round(h.hp*1.3),
  energy:100,maxEnergy:100,level:1,xp:0,gold:controlled?550:350,items:[],
  lane:roles[id],waypoint:side===0?0:PATHS[roles[id]].length-1,attackCd:0,casting:null,
@@ -89,11 +114,11 @@ function makeHero(id,side,controlled=false){
  healthRegen:1.3,homeBuff:0,botLane:roles[id],cs:0,focusTarget:null,focusUntil:0,isRanged:!['vexor','orun'].includes(id)};
 }
 function createMinion(side,lane,type=0,slot=0){
- const p=pathPos(lane,side===0?.007:.993),ranged=type>=1,siege=type===2;
+ const p=pathPos(lane,side===0?.035:.965),ranged=type>=1,siege=type===2;
  const wavePower=1+Math.min(1.45,state.time/680);
  let hp=Math.round((siege?380:ranged?130:190)*wavePower);
  return{uid:++state.seq,kind:'minion',id:siege?'siege':ranged?'caster':'guard',side,lane,
- x:p.x+rando(-20,20),y:p.y+rando(-16,16),r:siege?19:ranged?12:14,
+ x:p.x+rando(-9,9),y:p.y+rando(-9,9),r:siege?19:ranged?12:14,
  hp,maxHp:hp,atk:Math.round((siege?31:ranged?17:15)*wavePower),
  speed:siege?59:ranged?74:83,attackCd:rando(.1,.5),ranged,site:type,slot,
  pathIndex:side===0?0:PATHS[lane].length-1,focus:null,
@@ -385,7 +410,9 @@ function moveMinion(m,dt){
 }
 function respawn(u){
  const home=HOME[u.side];
- u.x=home.x+rando(-25,25);u.y=home.y+rando(-25,25);
+ const mid=pathPos(1,.11),dir=norm(mid.x-HOME[0].x,mid.y-HOME[0].y);
+ const d=u.side===0?dir:{x:-dir.x,y:-dir.y};
+ u.x=home.x+d.x*104+rando(-10,10);u.y=home.y+d.y*104+rando(-10,10);
  u.hp=u.maxHp;u.energy=maxEnergy(u);u.shield=0;u.shieldUntil=0;
  if(!u.controlled)botShop(u);u.guard=0;u.casting=null;
  u.attackCd=0;u.stun=0;u.slow=0;u.dash=null;u.recall=0;
