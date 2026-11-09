@@ -295,7 +295,7 @@ assert.equal(deadAssist.assists,1,'Participante eliminado tambem recebe assisten
 E.start('lyria');
 const allies=state.units.filter(u=>u.kind==='hero'&&u.side===0);
 const enemies=state.units.filter(u=>u.kind==='hero'&&u.side===1);
-const center={x:1440,y:1180};
+const center={x:1200,y:1110}; // Trecho neutro da nova rota, fora do raio das torres rubras.
 for(let i=0;i<allies.length;i++){
  const u=allies[i];u.x=center.x-100+(i%2)*40;u.y=center.y+i*16;u.level=8;u.hp=u.maxHp;
 }
