@@ -94,6 +94,7 @@ function buildMap(){
      state.obstacles.some(o=>Math.hypot(o.x-x,o.y-y)<r+o.r+25))continue;
   state.obstacles.push({kind:rand()>.35?'tree':'rock',x,y,r,solid:true});
  }
+ rebuildSolidIndex();
 }
 function makeHero(id,side,controlled=false){
  const h=hData(id),start=HOME[side],offset=side===0?1:-1;
@@ -380,12 +381,45 @@ function structureStep(dt){
 }
 // Sistema físico: obeliscos/Núcleos, árvores, pedras e monstros possuem hitboxes.
 // Minions/campeões usam separação SUAVE, evitando empilhamento sem provocar creepblock rígido.
+// Índice estático: consulta apenas objetos próximos ao personagem.
+const SOLID_CELL=165;
+let solidGrid=new Map();
+function solidKey(x,y){return x+','+y}
+function rebuildSolidIndex(){
+ solidGrid=new Map();
+ const all=[...state.structures,...state.obstacles,...state.camps];
+ for(const body of all){
+  const radius=body.kind==='core'?55:body.kind==='tower'?27:
+    body.kind==='boss'?38:body.kind==='buff'?28:body.kind==='camp'?23:body.r||22;
+  const minX=Math.floor((body.x-radius)/SOLID_CELL),maxX=Math.floor((body.x+radius)/SOLID_CELL);
+  const minY=Math.floor((body.y-radius)/SOLID_CELL),maxY=Math.floor((body.y+radius)/SOLID_CELL);
+  for(let x=minX;x<=maxX;x++)for(let y=minY;y<=maxY;y++){
+   const k=solidKey(x,y);
+   if(!solidGrid.has(k))solidGrid.set(k,[]);
+   solidGrid.get(k).push(body);
+  }
+ }
+}
+function aliveSolid(o){
+ return (o.hp===undefined||o.hp>0)&&(!o.unlock||state.time>=o.unlock);
+}
+function nearSolids(x,y,radius=95){
+ const minX=Math.floor((x-radius)/SOLID_CELL),maxX=Math.floor((x+radius)/SOLID_CELL);
+ const minY=Math.floor((y-radius)/SOLID_CELL),maxY=Math.floor((y+radius)/SOLID_CELL);
+ const result=[],seen=new Set();
+ for(let cx=minX;cx<=maxX;cx++)for(let cy=minY;cy<=maxY;cy++){
+  for(const body of solidGrid.get(solidKey(cx,cy))||[]){
+   if(!seen.has(body)&&aliveSolid(body)){
+    seen.add(body);
+    if(Math.abs(body.x-x)<radius+solidRadius(body)&&
+       Math.abs(body.y-y)<radius+solidRadius(body))result.push(body);
+   }
+  }
+ }
+ return result;
+}
 function solidBodies(){
- const objects=[];
- for(const t of state.structures)if(t.hp>0)objects.push(t);
- for(const t of state.obstacles)objects.push(t);
- for(const c of state.camps)if(c.hp>0&&(!c.unlock||state.time>=c.unlock))objects.push(c);
- return objects;
+ return [...state.structures,...state.obstacles,...state.camps].filter(aliveSolid);
 }
 function solidRadius(o){
  if(o.kind==='core')return 55;
@@ -395,7 +429,7 @@ function solidRadius(o){
  if(o.kind==='camp')return 23;
  return o.r||22;
 }
-function pushOutsideSolids(u,obstacles=solidBodies()){
+function pushOutsideSolids(u,obstacles=nearSolids(u.x,u.y,(u.r||18)+83)){
  const R=u.r||18;
  for(let loop=0;loop<2;loop++){
   let changed=false;
@@ -416,7 +450,7 @@ function pushOutsideSolids(u,obstacles=solidBodies()){
  }
 }
 // Segmentado também para investidas: impede atravessar uma torre num frame longo.
-function movePhysical(u,dx,dy,obstacles=solidBodies()){
+function movePhysical(u,dx,dy,obstacles=nearSolids(u.x,u.y,(u.r||18)+Math.hypot(dx,dy)+80)){
  const distance=Math.hypot(dx,dy);
  if(distance<.001)return false;
  const x0=u.x,y0=u.y;
@@ -453,7 +487,7 @@ function steerAround(u,dir,goal,solids){
 // Grade espacial de 80 px: evita comparações quadráticas de todos os minions.
 function separateUnits(){
  const units=state.units.filter(u=>u.hp>0);
- const size=78,grid=new Map(),key=(x,y)=>x+','+y,solids=solidBodies();
+ const size=78,grid=new Map(),key=(x,y)=>x+','+y;
  for(const u of units){
   const cx=Math.floor(u.x/size),cy=Math.floor(u.y/size);
   u._cellX=cx;u._cellY=cy;
@@ -485,14 +519,15 @@ function separateUnits(){
    }
   }
  }
- for(const u of units)pushOutsideSolids(u,solids);
+ for(const u of units)pushOutsideSolids(u);
 }
 function moveToward(u,p,dt,speedFactor=1){
  const dx=p.x-u.x,dy=p.y-u.y,d=Math.hypot(dx,dy);
  if(d<4)return true;
  const step=Math.min(d,moveSpeed(u)*dt*speedFactor);
- const dir=steerAround(u,{x:dx/d,y:dy/d},p,solidBodies());
- movePhysical(u,dir.x*step,dir.y*step);
+ const solids=nearSolids(u.x,u.y,(u.r||18)+100);
+ const dir=steerAround(u,{x:dx/d,y:dy/d},p,solids);
+ movePhysical(u,dir.x*step,dir.y*step,solids);
  u.facing=Math.atan2(dir.y,dir.x);
  return dist(u,p)<Math.max(9,step+7);
 }
