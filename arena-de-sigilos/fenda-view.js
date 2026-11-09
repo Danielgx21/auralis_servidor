@@ -217,7 +217,7 @@ function drawTerrain(){
  const c=document.createElement('canvas');c.width=E.W;c.height=E.H;
  const g=c.getContext('2d');let seed=9127;
  function rand(){seed=(seed*16807)%2147483647;return(seed-1)/2147483646}
- const grass=artPattern(g,'grass');
+ const grass=paintedPattern(g,1)||artPattern(g,'grass');
  if(grass){g.fillStyle=grass;g.fillRect(0,0,E.W,E.H);}
  else{
   const color=g.createLinearGradient(0,0,E.W,E.H);
@@ -243,12 +243,7 @@ function drawTerrain(){
   }
   return false;
  };
- for(let i=0;i<2500;i++){
-  const x=rand()*E.W,y=rand()*E.H;
-  if(nearRoute(x,y,E.LANE_HALF_WIDTH+24))continue;
-  g.fillStyle=rand()>.5?'#4c82603b':'#0e565c3b';
-  const rx=3+rand()*14;g.beginPath();g.ellipse(x,y,rx,rx*(.5+rand()),rand()*6,0,TAU);g.fill();
- }
+ // A textura natural já está na imagem; sem 2500 elipses desenhadas por código.
  // Rio pintado em camadas: sem as faixas tracejadas que pareciam estrada.
  g.lineCap='round';g.lineJoin='round';
  g.beginPath();g.moveTo(580,260);g.bezierCurveTo(900,520,1450,1190,2200,1620);
@@ -275,33 +270,18 @@ function drawTerrain(){
  }
  drawPaintedLanes(g);
  drawBasePaving(g);
- // Plataformas defensivas no ombro da lane, deixando o eixo central livre para a wave.
- for(const t of S.structures){
-  if(t.kind!=='tower')continue;
-  g.save();g.translate(t.x,t.y);
-  g.fillStyle='#172f3b';g.beginPath();g.arc(0,0,45,0,TAU);g.fill();
-  g.strokeStyle=t.side===0?'#7acac39c':'#d68e9e9c';g.lineWidth=5;
-  g.beginPath();g.arc(0,0,39,0,TAU);g.stroke();
-  g.strokeStyle='#dccfa378';g.lineWidth=2;
-  g.beginPath();g.arc(0,0,34,0,TAU);g.stroke();
-  for(let i=0;i<8;i++){
-   const angle=TAU*i/8;
-   g.fillStyle='#c5b88ba8';
-   g.beginPath();g.arc(Math.cos(angle)*41,Math.sin(angle)*41,3.0,0,TAU);g.fill();
-  }
-  g.restore();
- }
+ // Plataformas e anéis estão pintados nos sprites de torre, não no canvas.
  // Moitas do Véu: a vegetação aqui esconde campeões dos observadores externos.
  for(const brush of S.brushes){
   const x=brush.x,y=brush.y,r=brush.r;
-  const grad=g.createRadialGradient(x,y,r*.11,x,y,r);
-  grad.addColorStop(0,'#194a3dcc');grad.addColorStop(.62,'#174b3aa6');grad.addColorStop(1,'#113e2c00');
-  g.fillStyle=grad;g.beginPath();g.arc(x,y,r,0,TAU);g.fill();
-  for(let n=0;n<34;n++){
-   const a=n*2.39996,rad=r*(.2+((n*17)%67)/100);
-   const bx=x+Math.cos(a)*rad,by=y+Math.sin(a)*rad;
-   g.strokeStyle=n%3?'#6dad7775':'#bee0a075';g.lineWidth=2;
-   g.beginPath();g.moveTo(bx-4,by+7);g.lineTo(bx,by-7-(n%4)*2);g.lineTo(bx+4,by+5);g.stroke();
+  if(artReady('flower')){
+   g.save();g.globalAlpha=.66;
+   for(let j=0;j<7;j++){
+    const angle=j*TAU/7,rad=r*(j%3===0?.47:.58);
+    const bx=x+Math.cos(angle)*rad,by=y+Math.sin(angle)*rad;
+    g.drawImage(art.flower,bx-34,by-30,68,62);
+   }
+   g.restore();
   }
  }
  // Flores e arbustos das bordas, arte estática independente da hitbox.
@@ -388,7 +368,14 @@ function drawStructure(o,t){
   ctx.restore();
  }
  ctx.save();ctx.translate(x,y);
- if(o.kind==='core'&&artReady('core')){
+ if(o.kind==='core'&&artReady('painted')){
+  // Fonte/Núcleo: recorte raster real, sem o cristal construído por comandos canvas.
+  ctx.save();
+  if(o.side===1)ctx.filter='hue-rotate(142deg) saturate(.77)';
+  paintedSprite(ctx,2,1,-70,-96,140,146);
+  ctx.restore();
+  bar(0,-101,0,o.hp,o.maxHp,o.side,98);
+ }else if(o.kind==='core'&&artReady('core')){
   ctx.save();
   if(o.side===1)ctx.filter='hue-rotate(142deg) saturate(.77)';
   ctx.drawImage(art.core,-65,-126,130,148);
@@ -408,8 +395,13 @@ function drawStructure(o,t){
   ctx.fillStyle=alive?col:'#435161';ctx.fill();ctx.strokeStyle='#fff1c4';ctx.lineWidth=3;ctx.stroke();
   circle(0,0,12,'#f7ffdb');
   bar(0,0,54,o.hp,o.maxHp,o.side,100);
+ }else if(artReady('painted')){
+  ctx.save();
+  paintedSprite(ctx,o.side===0?0:1,1,-59,-118,118,132);
+  ctx.restore();
+  bar(0,-110,0,o.hp,o.maxHp,o.side,74);
  }else if(artReady('tower')){
-  // A torre usa sprite detalhado; a posição e hitbox permanecem no motor.
+  // Fallback visual para dispositivo sem suporte à imagem. Física não muda.
   ctx.save();
   if(o.side===1)ctx.filter='hue-rotate(145deg) saturate(.77)';
   ctx.drawImage(art.tower,-50,-100,100,122);
