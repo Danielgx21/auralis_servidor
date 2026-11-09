@@ -42,9 +42,9 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=5.5')&&
- html.includes('fenda-team-ai.js?v=5.5')&&
- html.includes('fenda-view.js?v=5.5'),'O site deve carregar todos os sistemas da 5.0.');
+assert.ok(html.includes('fenda-engine.js?v=5.6')&&
+ html.includes('fenda-team-ai.js?v=5.6')&&
+ html.includes('fenda-view.js?v=5.6'),'O site deve carregar todos os sistemas da 5.0.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -122,49 +122,34 @@ assert.ok(terrainSource.includes('drawBasePaving(g)')&&terrainSource.includes('d
  'Plataforma de base não foi desenhada');
 assert.ok(!terrainSource.includes("g.arc(base.x,base.y,176"),
  'A rotatória antiga continua aparecendo no mapa');
-assert.ok(terrainSource.includes("stone:'stone-paving.svg'")&&
- terrainSource.includes("fountain:'fountain.svg'")&&
- terrainSource.includes("grass:'grass-ground.svg'")&&
- terrainSource.includes("tree:'tree-canopy.svg'")&&
- terrainSource.includes("tower:'sigil-tower.svg'")&&
- terrainSource.includes("core:'nexus-spire.svg'")&&
- terrainSource.includes("rock:'rune-rock.svg'")&&
- terrainSource.includes("flower:'moonflower-bush.svg'")&&
- terrainSource.includes("inlay:'base-inlay.svg'"),
- 'Imagens SVG independentes não estão sendo carregadas');
-assert.ok(terrainSource.includes("image.src='art/'+file+'?v=5.5'"),
- 'Cache de arquivos de arte não renovado');
-assert.ok(terrainSource.includes("g.drawImage(art.fountain,-106,-106,212,212)"),
- 'Fonte deve manter proporção 1:1 e ser renderizada em tamanho adequado');
-assert.ok(terrainSource.includes("g.fillRect(0,0,E.W,E.H)")&&
- terrainSource.includes("const p=artPattern(g,'stone')"),
- 'Chão e lane precisam usar imagens nítidas em escala original');
-assert.ok(!terrainSource.includes('sceneryAtlas') &&
- !terrainSource.includes('g.scale(2.15,2.15)') &&
- !terrainSource.includes('drawImage(sceneryAtlas,112,0,112,112,-190,-190,650,545)'),
- 'Atlas minúsculo ainda está sendo esticado');
-assert.ok(!terrainSource.includes('for(let i=0;i<960;i++)'),
- 'Árvores simples demais continuam dominando o mapa');
+// 5.6: texturas e construções vêm de um atlas raster WebP já pronto.
+assert.ok(terrainSource.includes("painted:'painted-sprite-atlas.webp'"),
+ 'Atlas WebP pré-renderizado não conectado ao jogo');
+assert.ok(terrainSource.includes("image.src='art/'+file+'?v=5.6'"),
+ 'Cache de arte não renovado para a versão 5.6');
+assert.ok(terrainSource.includes("const ART_SIZE=256") &&
+ terrainSource.includes("function paintedPattern(g,col,row=0)") &&
+ terrainSource.includes("function paintedSprite(g,col,row,x,y,w,h)"),
+ 'Código de apresentação precisa apenas posicionar imagens raster');
+assert.ok(terrainSource.includes("const p=paintedPattern(g,0)") &&
+ terrainSource.includes("const p=paintedPattern(g,2)") &&
+ terrainSource.includes("const grass=paintedPattern(g,1)"),
+ 'Base, lanes e selva devem usar pavimento e vegetação pintados');
+assert.ok(terrainSource.includes("paintedSprite(g,2,1,-112,-112,224,224)") &&
+ terrainSource.includes("paintedSprite(ctx,o.side===0?0:1,1,-59,-118,118,132)") &&
+ terrainSource.includes("paintedSprite(ctx,2,1,-70,-96,140,146)"),
+ 'Fonte, torres e núcleos precisam ser sprites raster, sem serem desenhados geometricamente');
+assert.ok(!terrainSource.includes("drawLaneCircuitry(g);") &&
+ !terrainSource.includes("g.drawImage(art.inlay,-237,-183,600,600)") &&
+ !terrainSource.includes("for(let i=0;i<2500;i++)"),
+ 'Remover efeitos geométricos repetitivos por cima do chão pintado');
 assert.ok(!terrainSource.includes("g.setLineDash([22,28])"),
- 'O rio continua parecendo uma avenida com faixa central');
+ 'Rio não pode parecer uma avenida tracejada');
 assert.ok(terrainSource.includes('image.onload=()=>{terrain=null}'),
- 'As artes devem invalidar o cache de terreno assim que carregarem');
-// 5.5: novo cenário mantém os personagens e a física de todas as estruturas.
-assert.ok(terrainSource.includes("function drawLaneCircuitry(g)")&&
- terrainSource.includes("drawLaneCircuitry(g);"),
- 'Rotas nao receberam filetes futuristas de energia');
-assert.ok(terrainSource.includes("g.drawImage(art.inlay,-237,-183,600,600)"),
- 'Patio nao recebeu arte runica do santuario');
-assert.ok(terrainSource.includes("g.drawImage(art.flower,")&&
- terrainSource.includes("g.drawImage(art.tree,")&&
- terrainSource.includes("g.drawImage(art.rock,"),
- 'Flora e pedras da selva devem usar imagens ilustradas');
-assert.ok(terrainSource.includes("ctx.drawImage(art.tower,-50,-100,100,122)")&&
- terrainSource.includes("ctx.drawImage(art.core,-65,-126,130,148)"),
- 'Torres e nucleos devem usar seus recursos de arte');
-assert.ok(terrainSource.includes("function drawHero(u,t){")&&
+ 'Carregamento de cada imagem deve reconstruir o terreno');
+assert.ok(terrainSource.includes("function drawHero(u,t){") &&
  terrainSource.includes("function drawMinion(u,t){"),
- 'Campeoes e unidades continuam com sua arte propria');
+ 'A arte dos personagens e minions deve ser preservada');
 const sourceCss=read('fenda.css');
 assert.ok(sourceCss.includes('.stage.fenda-on .mobile-controls #joy'),
  'Joystick não está oculto no modo desktop');
