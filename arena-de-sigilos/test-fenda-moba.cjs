@@ -254,6 +254,28 @@ E.damage(enemy,enemy.maxHp*2,only);
 assert.equal(only.kills,1,'Abate sem outro participante');
 assert.equal(only.assists,0,'Nao se recebe assistencia em propria eliminacao');
 assert.equal(enemy.deaths,1,'Morte aparece no placar adversario');
+// O HTML real do TAB gera dez linhas e seis slots de itens por campeao.
+E.start('lyria');
+const scoreCode=view.slice(view.indexOf('const scoreRoles='),view.indexOf('function shopRender()'));
+assert.ok(scoreCode.length>300,'Fonte de placar nao encontrada');
+const scoreApi=new Function('E','C','S',scoreCode+'return {scoreTeam};')(E,{heroes},state);
+const blueHTML=scoreApi.scoreTeam(0),redHTML=scoreApi.scoreTeam(1);
+assert.equal((blueHTML.match(/class="fenda-scoreboard-player/g)||[]).length,5);
+assert.equal((redHTML.match(/class="fenda-scoreboard-player/g)||[]).length,5);
+assert.ok(blueHTML.includes('LYRIA')&&redHTML.includes('LYRIA'),
+ 'Campeoes dos dois times precisam aparecer');
+const self=state.hero;self.kills=4;self.deaths=2;self.assists=6;self.cs=34;
+self.items.push('lens');
+const populated=scoreApi.scoreTeam(0);
+assert.ok(populated.includes('4/2/6')&&populated.includes('34 <small>CS</small>')&&
+ populated.includes('Lente Astral'),'KDA, farm e itens devem atualizar juntos');
+// Assists nao desaparecem quando o colaborador morre antes do golpe final.
+E.start('lyria');
+const deadAssist=state.units.find(u=>u.kind==='hero'&&u.side===0&&!u.controlled);
+const deadKiller=state.hero,deadEnemy=state.units.find(u=>u.kind==='hero'&&u.side===1);
+E.damage(deadEnemy,24,deadAssist);
+deadAssist.hp=0;E.damage(deadEnemy,deadEnemy.maxHp*2,deadKiller);
+assert.equal(deadAssist.assists,1,'Participante eliminado tambem recebe assistencia');
 // Contexto neutro e composição completa: avaliar engage.
 E.start('lyria');
 const allies=state.units.filter(u=>u.kind==='hero'&&u.side===0);
