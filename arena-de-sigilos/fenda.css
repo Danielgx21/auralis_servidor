@@ -102,3 +102,11 @@
  }
  .stage.fenda-on .mobile-controls{pointer-events:none!important;}
 }
+
+/* 5.0: prioridade explícita para toque — AA e torre continuam no celular. */
+@media (hover:none), (pointer:coarse) {
+ .stage.fenda-on #fireBtn {display:flex!important;pointer-events:auto!important;}
+ .stage.fenda-on #fendaTowerBtn {display:block!important;pointer-events:auto!important;}
+ .stage.fenda-on .mobile-controls .joy {display:block!important;}
+ .stage.fenda-on .mobile-controls .skill-controls {transform:none!important;}
+}
