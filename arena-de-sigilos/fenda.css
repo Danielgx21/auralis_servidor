@@ -85,3 +85,20 @@
  .stage.fenda-on #fireBtn,
  .stage.fenda-on #fendaTowerBtn { display:none !important; pointer-events:none !important; }
 }
+
+/* V4.9 — no computador, a área visível do jogo não deve ser ocupada pelo joystick móvel. */
+@media (hover:hover) and (pointer:fine) {
+ .stage.fenda-on .mobile-controls #joy,
+ .stage.fenda-on .mobile-controls .joy,
+ .stage.fenda-on #fireBtn,
+ .stage.fenda-on #fendaTowerBtn {
+  display:none!important;
+ }
+ .stage.fenda-on .mobile-controls .skill-controls {
+  transform:scale(.75);
+  transform-origin:right bottom;
+  right:14px!important;
+  bottom:10px!important;
+ }
+ .stage.fenda-on .mobile-controls{pointer-events:none!important;}
+}
