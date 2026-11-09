@@ -492,7 +492,7 @@ function createUnit(heroId,team,index,controlled=false){
 }
 function reset(level){
  selected=level;elapsed=0;sceneTime=0;shake=0;flash=0;teamKills={ally:0,enemy:0};teamHazardNext=8+Math.random()*2;
- teamPlans=[{focus:null,peel:null,protector:null,engaged:false,updatedAt:-1},{focus:null,peel:null,protector:null,engaged:false,updatedAt:-1}];
+ teamPlans=[{focus:null,peel:null,protector:null,engaged:false,updatedAt:-1,lastUltimateAt:-99},{focus:null,peel:null,protector:null,engaged:false,updatedAt:-1,lastUltimateAt:-99}];
  bullets=[];abilityShots=[];abilityVisuals=[];particles=[];waves=[];hazards=[];floaters=[];
  keys.clear();firing=false;touchAim.active=false;touchAim.id=null;
  firePointer=null;fireTouch=false;clearSkillTouch();shotQueue.length=0;
@@ -1123,8 +1123,8 @@ function damageEnemy(n,source=player){return damageUnit(refreshTarget(),n,source
 // conjuração, uso de habilidades próprias e ataques melee/ranged.
 // A mesma tática é compartilhada por cada equipe, evitando nove bots independentes.
 let teamPlans=[
- {focus:null,peel:null,protector:null,engaged:false,updatedAt:-1},
- {focus:null,peel:null,protector:null,engaged:false,updatedAt:-1}
+ {focus:null,peel:null,protector:null,engaged:false,updatedAt:-1,lastUltimateAt:-99},
+ {focus:null,peel:null,protector:null,engaged:false,updatedAt:-1,lastUltimateAt:-99}
 ];
 function selectTeamPlan(team){
  const friends=living(team),foes=living(team===0?1:0);
@@ -1306,7 +1306,7 @@ function botChooseSkill(u,target){
  const alliesNear=(center,radius)=>friends.filter(f=>dist(center,f)<radius+f.r).length;
  let candidates=[];
  const ultimate=heroes[u.heroId].ultimate,ult=skillDefs[ultimate];
- if(ready(ultimate)&&plan.engaged){
+ if(ready(ultimate)&&plan.engaged&&elapsed>=9&&elapsed-plan.lastUltimateAt>=4.3){
   const clustered=enemiesNear(target,ult.radius||90);
   const lowAllies=friends.filter(f=>f.hp/f.maxHp<.64&&dist(u,f)<ult.radius+f.r).length;
   let useUlt=false,point=null;
@@ -1315,7 +1315,7 @@ function botChooseSkill(u,target){
   else if(u.heroId==='vexor')useUlt=d<ult.range+15&&(target.hp/target.maxHp<.68||enemiesNear(u,165)>=2);
   else if(u.heroId==='orun')useUlt=enemiesNear(u,ult.radius)>=2||lowAllies>=2;
   else if(u.heroId==='seris')useUlt=lowAllies>=2||friends.some(f=>dist(u,f)<ult.radius&&f.hp/f.maxHp<.30);
-  if(useUlt&&beginBotSkill(u,ultimate,target,point))return true;
+  if(useUlt&&beginBotSkill(u,ultimate,target,point)){plan.lastUltimateAt=elapsed;return true;}
  }
  if(u.heroId==='seris'){
   if(friendInNeed&&ready('seris_bloom')){
