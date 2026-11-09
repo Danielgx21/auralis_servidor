@@ -1864,26 +1864,24 @@ function updateAimVector(){
 function maybeActivateAim(now){
  if(firePointer===null||!touchAim.pressed||touchAim.active||mode!=='playing'||now-touchAim.startTime<AIM_HOLD_MS)return;
  touchAim.active=true;
- aimPad.classList.add('active');fireBtn.classList.add('aiming');
- updateAimVector();
+ fireBtn.classList.add('aiming'); // AA mostra só alcance e alvo travado, sem joystick de precisão.
 }
 function updateTouchAim(e){
  if(firePointer!==e.pointerId)return;
  touchAim.currentX=e.clientX;touchAim.currentY=e.clientY;
- if(touchAim.active)updateAimVector();
+ // A direção do AA é travada automaticamente no adversário, mesmo ao arrastar.
 }
 function endFireTouch(e){
  if(firePointer!==e.pointerId)return;
- // A direção desenhada é preservada para a única bolinha disparada ao soltar.
- const dir=targetDirection(); // Se não houve arraste, segue o rival; se houve, usa a mira manual.
- if(e.type==='pointerup')queueSingleShot(dir);
+ // Um toque = um ataque básico automático, apenas se o alvo estiver em alcance.
+ if(e.type==='pointerup')queueSingleShot(targetDirection());
  firePointer=null;fireTouch=false;firing=false;touchAim.active=false;touchAim.pressed=false;touchAim.id=null;
  fireBtn.classList.remove('aiming');aimPad.classList.remove('active');aimThumb.style.transform='translate(-50%,-50%)';
 }
 function beginFireTouch(e,captureElement){
  if(mode!=='playing'||!player||player.hp<=0||firePointer!==null)return;
  e.preventDefault();fireTouch=true;firePointer=e.pointerId;
- // Um toque simples usa a mira automática; arrastar ativa a direção manual.
+ // AA tem alvo travado, não skillshot. Segurar somente exibe o alcance.
  const initial=targetDirection();
  touchAim={id:e.pointerId,active:false,pressed:true,dragged:false,x:initial.x,y:initial.y,startX:e.clientX,startY:e.clientY,currentX:e.clientX,currentY:e.clientY,startTime:performance.now()};
  const r=stage.getBoundingClientRect(),half=47;
