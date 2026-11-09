@@ -42,9 +42,9 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=5.6')&&
- html.includes('fenda-team-ai.js?v=5.6')&&
- html.includes('fenda-view.js?v=5.6'),'O site deve carregar todos os sistemas da 5.0.');
+assert.ok(html.includes('fenda-engine.js?v=5.7')&&
+ html.includes('fenda-team-ai.js?v=5.7')&&
+ html.includes('fenda-view.js?v=5.7'),'O site deve carregar todos os sistemas da 5.0.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -130,7 +130,7 @@ assert.ok(terrainSource.includes("world:'world-illustrated.webp'") &&
  terrainSource.includes("g.drawImage(art.world,0,0,E.W,E.H);") &&
  terrainSource.includes("terrain=c;") ,
  'Mapa inteiro deve ser pré-pintado em imagem WebP única, sem construções canvas');
-assert.ok(terrainSource.includes("image.src='art/'+file+'?v=5.6'"),
+assert.ok(terrainSource.includes("image.src='art/'+file+'?v=5.7'"),
  'Cache de arte não renovado para a versão 5.6');
 assert.ok(terrainSource.includes("const ART_SIZE=256") &&
  terrainSource.includes("function paintedPattern(g,col,row=0)") &&
@@ -155,6 +155,35 @@ assert.ok(terrainSource.includes('image.onload=()=>{terrain=null}'),
 assert.ok(terrainSource.includes("function drawHero(u,t){") &&
  terrainSource.includes("function drawMinion(u,t){"),
  'A arte dos personagens e minions deve ser preservada');
+// Fenda 5.7: identidade tech simplificada da arena; artes raster como recursos.
+assert.ok(terrainSource.includes("worldTech:'world-tech-5-7.webp'")&&
+ terrainSource.includes("towerBlueTech:'tower-blue-tech.webp'")&&
+ terrainSource.includes("towerRedTech:'tower-red-tech.webp'")&&
+ terrainSource.includes("coreBlueTech:'nexus-blue-tech.webp'")&&
+ terrainSource.includes("coreRedTech:'nexus-red-tech.webp'"),
+ 'Faltam os sprites industriais de mapa, torres ou nucleos');
+assert.ok(terrainSource.includes("coverTech:'cover-block-tech.webp'")&&
+ terrainSource.includes("generatorTech:'generator-tech.webp'")&&
+ terrainSource.includes("stealthTech:'stealth-zone-tech.webp'"),
+ 'Os obstaculos e moitas precisam de artes de tecnologia');
+assert.ok(terrainSource.includes("if(artReady('worldTech')){")&&
+ terrainSource.includes("g.drawImage(art.worldTech,0,0,E.W,E.H)")&&
+ terrainSource.indexOf("if(artReady('worldTech')){")<
+ terrainSource.indexOf("if(artReady('world')){"),
+ 'O fundo tecnologico deve ter prioridade sobre o mapa de floresta antigo');
+assert.ok(terrainSource.includes("for(const o of S.obstacles){")&&
+ terrainSource.includes("o.kind==='rock'?'coverTech':'generatorTech'")&&
+ terrainSource.includes("g.drawImage(art[sprite],xx,yy,radius,radius)"),
+ 'Os sprites de cobertura devem acompanhar a colisao real');
+assert.ok(terrainSource.includes("for(const bush of S.brushes)")&&
+ terrainSource.includes("g.drawImage(art.stealthTech,bush.x-d/2,bush.y-d/2,d,d)"),
+ 'A camuflagem precisa ficar no local correto no mapa');
+assert.ok(terrainSource.includes("ctx.drawImage(sprite,-73,-122,146,146)")&&
+ terrainSource.includes("ctx.drawImage(sprite,-79,-126,158,158)"),
+ 'Torre e Nexus devem usar sprites HD, sem esticamento excessivo');
+assert.ok(terrainSource.includes("function drawHero(u,t){")&&
+ terrainSource.includes("function drawMinion(u,t){"),
+ 'Os personagens e tropas devem ficar iguais');
 const sourceCss=read('fenda.css');
 assert.ok(sourceCss.includes('.stage.fenda-on .mobile-controls #joy'),
  'Joystick não está oculto no modo desktop');
