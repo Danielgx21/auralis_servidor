@@ -13,7 +13,8 @@ hud.innerHTML='<div class="fenda-meta"><div id="fendaTopScore">✦ AZUL 0 × 0 R
 '<div class="fenda-actions"><button id="fendaShopBtn">⚒ LOJA</button><button id="fendaRecallBtn">⌂ RETORNO</button><button id="fendaPauseBtn">Ⅱ</button></div>'+
 '<button id="fendaTowerBtn" title="Priorizar obelisco no AA" aria-label="Atacar torre ou núcleo com o ataque básico">⬡<small>TORRE</small></button>'+
 '<canvas id="fendaMinimap" width="220" height="152" aria-label="Minimapa tático"></canvas>'+
-'<div id="fendaInfo">3 ROTAS · DESTRUA O NÚCLEO INIMIGO</div><div id="fendaNotice"></div>';
+'<div id="fendaInfo">3 ROTAS · DESTRUA O NÚCLEO INIMIGO</div><div id="fendaNotice"></div>'+
+'<button id="fendaWardBtn" aria-label="Colocar sentinela de visão" title="Coloca visão à frente do campeão · Tecla V">◉<small>VISÃO</small><em id="fendaWardCD"></em></button>';
 stage.appendChild(hud);
 const shop=document.createElement('div');shop.id='fendaShop';
 shop.innerHTML='<div class="fenda-shop-head"><strong>⚒ ARSENAL DO SANTUÁRIO</strong><button id="fendaShopClose">✕</button></div>'+
@@ -22,6 +23,8 @@ shop.innerHTML='<div class="fenda-shop-head"><strong>⚒ ARSENAL DO SANTUÁRIO</
 stage.appendChild(shop);
 const mm=$('fendaMinimap'),mc=mm.getContext('2d');
 let vw=900,vh=460,dpr=1,terrain=null,last=performance.now(),hudCountdown=0,endedShown=false;
+const fogCanvas=document.createElement('canvas'),fogContext=fogCanvas.getContext('2d');
+let fogAt=-1,fogCamX=-99999,fogCamY=-99999;
 const keys=new Set(),joy={ptr:null,x:0,y:0,sx:0,sy:0},pointers={aa:null,skill:null};
 let aimPreview=null,desktopScheme='arrows',clickDestination=null;
 let lastWarningAt=-100;
@@ -34,6 +37,7 @@ function resize(){
  const r=stage.getBoundingClientRect();vw=Math.max(320,r.width);vh=Math.max(220,r.height);
  dpr=Math.min(window.devicePixelRatio||1,1.65);
  cv.width=Math.round(vw*dpr);cv.height=Math.round(vh*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
+ fogCanvas.width=Math.ceil(vw*.64);fogCanvas.height=Math.ceil(vh*.64);fogAt=-1;
 }
 function circle(x,y,r,fill,stroke='',w=1){
  ctx.beginPath();ctx.arc(x,y,r,0,TAU);
@@ -78,6 +82,19 @@ function drawTerrain(){
   for(let t=.08;t<.95;t+=.07){
    const p=E.pathPos(lane,t);g.save();g.translate(p.x,p.y);g.rotate(Math.PI/4);
    g.strokeStyle='#edf4c050';g.lineWidth=3;g.strokeRect(-8,-8,16,16);g.restore();
+  }
+ }
+ // Moitas do Véu: a vegetação aqui esconde campeões dos observadores externos.
+ for(const brush of S.brushes){
+  const x=brush.x,y=brush.y,r=brush.r;
+  const grad=g.createRadialGradient(x,y,r*.11,x,y,r);
+  grad.addColorStop(0,'#194a3dcc');grad.addColorStop(.62,'#174b3aa6');grad.addColorStop(1,'#113e2c00');
+  g.fillStyle=grad;g.beginPath();g.arc(x,y,r,0,TAU);g.fill();
+  for(let n=0;n<34;n++){
+   const a=n*2.39996,rad=r*(.2+((n*17)%67)/100);
+   const bx=x+Math.cos(a)*rad,by=y+Math.sin(a)*rad;
+   g.strokeStyle=n%3?'#6dad7775':'#bee0a075';g.lineWidth=2;
+   g.beginPath();g.moveTo(bx-4,by+7);g.lineTo(bx,by-7-(n%4)*2);g.lineTo(bx+4,by+5);g.stroke();
   }
  }
  // Bosques densos, flores rúnicas e ruínas de pedra em vez de prédios genéricos.
@@ -247,13 +264,13 @@ function drawCreep(o,t){
 }
 function drawFX(t){
  for(const p of S.projectiles){
-  if(!visible(p.x,p.y,25))continue;
+  if(!visible(p.x,p.y,25)||p.side===1&&!E.isPointVisible(0,p))continue;
   const col=p.color||E.SIDE[p.side];ctx.save();ctx.shadowColor=col;ctx.shadowBlur=15;
   circle(p.x,p.y,p.kind==='damagearea'?11:p.r||5,col);
   circle(p.x,p.y,3,'#fff9e6');ctx.restore();
  }
  for(const f of S.effects){
-  if(!visible(f.x,f.y,f.r+8))continue;
+  if(!visible(f.x,f.y,f.r+8)||!E.isPointVisible(0,f))continue;
   if(f.kind==='damageNumber'){
    const progress=1-f.life/f.maxLife;
    ctx.save();ctx.globalAlpha=clamp(f.life/f.maxLife,0,1);
@@ -304,6 +321,38 @@ function drawAim(){
   }
  }
 }
+function drawFog(){
+ if(S.mode!=='playing'&&S.mode!=='ended')return;
+ const x=S.camera.x,y=S.camera.y,scaleX=fogCanvas.width/vw,scaleY=fogCanvas.height/vh;
+ if(fogAt<0||S.time-fogAt>.17||Math.abs(x-fogCamX)>9||Math.abs(y-fogCamY)>9){
+  fogAt=S.time;fogCamX=x;fogCamY=y;
+  fogContext.setTransform(scaleX,0,0,scaleY,-x*scaleX,-y*scaleY);
+  fogContext.clearRect(x-5,y-5,vw+10,vh+10);
+  const cell=E.VISION_CELL;
+  const x0=Math.max(0,Math.floor(x/cell)),x1=Math.min(E.VISION_COLS-1,Math.ceil((x+vw)/cell));
+  const y0=Math.max(0,Math.floor(y/cell)),y1=Math.min(E.VISION_ROWS-1,Math.ceil((y+vh)/cell));
+  for(let cy=y0;cy<=y1;cy++)for(let cx=x0;cx<=x1;cx++){
+   const px=(cx+.5)*cell,py=(cy+.5)*cell;
+   if(E.isPointVisible(0,{x:px,y:py}))continue;
+   const discovered=S.seen[0]?.[cy*E.VISION_COLS+cx];
+   fogContext.fillStyle=discovered?'rgba(3,17,27,.66)':'rgba(2,11,24,.92)';
+   fogContext.fillRect(cx*cell-1,cy*cell-1,cell+2,cell+2);
+  }
+ }
+ ctx.drawImage(fogCanvas,x,y,vw,vh);
+}
+function drawWards(t){
+ for(const ward of S.wards){
+  if(ward.side!==0||!visible(ward.x,ward.y,38))continue;
+  const x=ward.x,y=ward.y,pulse=.5+.5*Math.sin(t*2.8+ward.uid);
+  ctx.save();ctx.globalAlpha=.8;
+  circle(x,y,18+pulse*4,'#8ee8ca15','#a1f1d978',1.5);
+  ctx.beginPath();ctx.moveTo(x,y-15);ctx.lineTo(x+10,y);ctx.lineTo(x,y+15);ctx.lineTo(x-10,y);ctx.closePath();
+  ctx.fillStyle='#9ef2c7';ctx.fill();ctx.strokeStyle='#efffe0';ctx.lineWidth=1.5;ctx.stroke();
+  circle(x,y,3,'#efffe1');
+  ctx.restore();
+ }
+}
 function view(dt){
  if(!terrain)drawTerrain();
  const h=S.hero;
@@ -315,9 +364,11 @@ function view(dt){
  }
  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,vw,vh);
  ctx.save();ctx.translate(-S.camera.x,-S.camera.y);ctx.drawImage(terrain,0,0);
- for(const o of S.camps)drawCreep(o,S.time);
+ drawFog();
+ drawWards(S.time);
+ for(const o of S.camps)if(E.isPointVisible(0,o))drawCreep(o,S.time);
  for(const o of S.structures)drawStructure(o,S.time);
- for(const u of S.units.filter(u=>u.hp>0).sort((a,b)=>a.y-b.y))
+ for(const u of S.units.filter(u=>u.hp>0&&(u.side===0||E.visibleTo(0,u))).sort((a,b)=>a.y-b.y))
   u.kind==='hero'?drawHero(u,S.time):drawMinion(u,S.time);
  drawFX(S.time);drawAim();ctx.restore();
  minimap();
@@ -329,7 +380,7 @@ function minimap(){
   mc.strokeStyle='#95aaa0';mc.lineWidth=48;mc.stroke();}
  for(const o of S.structures){if(o.hp<=0)continue;mc.fillStyle=E.SIDE[o.side];
   mc.fillRect(o.x-20,o.y-20,o.kind==='core'?40:28,o.kind==='core'?40:28);}
- for(const u of S.units){if(u.hp<=0)continue;mc.fillStyle=u.side===0?'#5cece3':'#ff7e9e';
+ for(const u of S.units){if(u.hp<=0||u.side===1&&!E.visibleTo(0,u))continue;mc.fillStyle=u.side===0?'#5cece3':'#ff7e9e';
   mc.beginPath();mc.arc(u.x,u.y,u.kind==='hero'?23:10,0,TAU);mc.fill();}
  if(S.hero){mc.strokeStyle='#fff4c5';mc.lineWidth=18;mc.beginPath();mc.arc(S.hero.x,S.hero.y,44,0,TAU);mc.stroke();}
  if(S.marker){mc.fillStyle='#ffe1a3';mc.beginPath();mc.arc(S.marker.x,S.marker.y,34,0,TAU);mc.fill();}
