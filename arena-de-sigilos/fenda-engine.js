@@ -36,7 +36,7 @@ const JUNGLE_LINKS=[
 ];
 const WALL_SEEDS=[
  [[620,620],[900,580]],[[1050,580],[1190,720]],[[650,915],[830,830]],
- [[1500,575],[1710,545]],[[1780,520],[1930,500]],[[1500,720],[1660,675]]
+ [[1500,575],[1710,545]],[[1780,520],[1930,500]],[[1250,520],[1390,575]]
 ];
 const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1};
 const ITEMS=[
@@ -245,10 +245,10 @@ function buildMap(){
  const camps=[
   {id:'veilA',x:850,y:670,kind:'buff',name:'Véu Azul',color:'#75caff',hp:630,buff:'energy'},
   {id:'emberA',x:1900,y:1230,kind:'buff',name:'Brasa Rubra',color:'#ff9c74',hp:630,buff:'damage'},
-  {id:'wolvesA',x:670,y:920,kind:'camp',name:'Lobos Astrais',color:'#a7c2ef',hp:360},
-  {id:'golemA',x:2080,y:980,kind:'camp',name:'Golem Sigilar',color:'#e5c58f',hp:450},
-  {id:'serpe',x:1590,y:1200,kind:'boss',name:'Serpe Astral',color:'#9bf6e9',hp:1030,unlock:55},
-  {id:'titan',x:1160,y:700,kind:'boss',name:'Titã do Abismo',color:'#dfb1fa',hp:1500,unlock:110}
+  {id:'wolvesA',x:620,y:1040,kind:'camp',name:'Lobos Astrais',color:'#a7c2ef',hp:360},
+  {id:'golemA',x:2130,y:860,kind:'camp',name:'Golem Sigilar',color:'#e5c58f',hp:450},
+  {id:'serpe',x:1460,y:1240,kind:'boss',name:'Serpe Astral',color:'#9bf6e9',hp:1030,unlock:55},
+  {id:'titan',x:1290,y:660,kind:'boss',name:'Titã do Abismo',color:'#dfb1fa',hp:1500,unlock:110}
  ];
  state.camps=camps.map(o=>({...o,maxHp:o.hp,respawn:0}));
  // Barricadas e passagens da selva: cada parede é um segmento FÍSICO verdadeiro.
