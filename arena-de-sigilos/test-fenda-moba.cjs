@@ -23,6 +23,22 @@ assert.equal(state.units.filter(u=>u.kind==='hero').length,10);
 assert.equal(state.structures.filter(u=>u.kind==='tower').length,18);
 assert.equal(E.LANE_HALF_WIDTH*2,216);
 assert.equal(E.JUNGLE_LINKS.length,4);
+assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
+assert.ok(html.includes('fenda-engine.js?v=4.7')&&
+ html.includes('fenda-team-ai.js?v=4.7')&&
+ html.includes('fenda-view.js?v=4.7'),'O site deve carregar todos os sistemas da 4.7.');
+// Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
+for(const pts of E.ROUTE_PATHS){
+ let largestTurn=0;
+ for(let i=1;i<pts.length-1;i++){
+  const a=pts[i-1],b=pts[i],c=pts[i+1];
+  const ab=Math.atan2(b.y-a.y,b.x-a.x),bc=Math.atan2(c.y-b.y,c.x-b.x);
+  const angle=Math.abs(Math.atan2(Math.sin(bc-ab),Math.cos(bc-ab)));
+  largestTurn=Math.max(largestTurn,angle);
+ }
+ assert.ok(largestTurn<.40,'Trajetória ainda possui curvas abruptas.');
+}
+
 // T1 deslocada lateralmente e sem obstruir o centro do caminho.
 for(const side of [0,1])for(const lane of [0,1,2]){
  const t=state.structures.find(s=>s.side===side&&s.lane===lane&&s.tier===1);
@@ -65,4 +81,22 @@ for(let i=0;i<1000;i++)E.step(.05,{x:0,y:0});
 assert.ok(state.wave>=3,'Ondas não estão surgindo');
 assert.ok(state.units.every(u=>Number.isFinite(u.x)&&Number.isFinite(u.y)&&
  u.x>=0&&u.x<=E.W&&u.y>=0&&u.y<=E.H),'Unidade em coordenada inválida');
-console.log('OK: 5x5, lanes, torres, ataque básico, colisões, teamfight e 50s de simulação.');
+// Verifica a formação após surgirem várias ondas, sem unidades atravessando umas às outras.
+let overlaps=0,invalid=0;
+for(let j=0;j<1000;j++){
+ E.step(.05,{x:0,y:0});
+ if(j%20)continue;
+ const units=state.units.filter(u=>u.kind==='minion'&&u.hp>0);
+ for(let k=0;k<units.length;k++){
+  const u=units[k];
+  const pos=E.routeProjection(u.lane,u);
+  if(!Number.isFinite(pos.progress)||!Number.isFinite(pos.distance))invalid++;
+  for(let l=k+1;l<units.length;l++){
+   const v=units[l];
+   if(u.side===v.side&&u.lane===v.lane&&distance(u,v)<u.r+v.r-4)overlaps++;
+  }
+ }
+}
+assert.equal(invalid,0,'Erro de posição projetada em uma rota.');
+assert.ok(overlaps<=3,'Ondas de tropas estão se sobrepondo excessivamente.');
+console.log('OK: 5x5, lanes curvas, tropas em formação, torres, colisões e teamfight em 100s.');
