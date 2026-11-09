@@ -42,9 +42,9 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=5.1')&&
- html.includes('fenda-team-ai.js?v=5.1')&&
- html.includes('fenda-view.js?v=5.1'),'O site deve carregar todos os sistemas da 5.0.');
+assert.ok(html.includes('fenda-engine.js?v=5.2')&&
+ html.includes('fenda-team-ai.js?v=5.2')&&
+ html.includes('fenda-view.js?v=5.2'),'O site deve carregar todos os sistemas da 5.0.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -122,21 +122,28 @@ assert.ok(terrainSource.includes('drawBasePaving(g)')&&terrainSource.includes('d
  'Plataforma de base não foi desenhada');
 assert.ok(!terrainSource.includes("g.arc(base.x,base.y,176"),
  'A rotatória antiga continua aparecendo no mapa');
-assert.ok(terrainSource.includes("sceneryAtlas.src='fenda-art-atlas.webp?v=5.1'"),
- 'Atlas de imagem da fonte e do piso não está conectado ao jogo');
-assert.ok(terrainSource.includes('sceneryAtlas,0,0,112,112'),
- 'Fonte não usa a arte ilustrada do atlas');
-assert.ok(terrainSource.includes('sceneryAtlas,112,0,112,112'),
- 'Piso não usa uma textura de pedra do atlas');
-assert.ok(terrainSource.includes('function laneOutline(g,lane,margin)')&&
- terrainSource.includes('drawPaintedLanes(g)'),
- 'O fundo das rotas deve ser desenhado com uma forma contínua');
-assert.ok(!terrainSource.includes('for(let ring=0;ring<7;ring++)'),
- 'Mosaico radial que gerava listras continua presente');
-assert.ok(!terrainSource.includes('const steps=110;'),
- 'As lanes ainda são centenas de traços grossos sobrepostos');
-assert.ok(terrainSource.includes('sceneryAtlas.onload=()=>{sceneryReady=true;terrain=null;}'),
- 'Carregamento da arte precisa forçar o redesenho do cenário');
+assert.ok(terrainSource.includes("stone:'stone-paving.svg'")&&
+ terrainSource.includes("fountain:'fountain.svg'")&&
+ terrainSource.includes("grass:'grass-ground.svg'")&&
+ terrainSource.includes("tree:'tree-canopy.svg'"),
+ 'Imagens SVG independentes não estão sendo carregadas');
+assert.ok(terrainSource.includes("image.src='art/'+file+'?v=5.2'"),
+ 'Cache de arquivos de arte não renovado');
+assert.ok(terrainSource.includes("g.drawImage(art.fountain,-106,-106,212,212)"),
+ 'Fonte deve manter proporção 1:1 e ser renderizada em tamanho adequado');
+assert.ok(terrainSource.includes("g.fillRect(0,0,E.W,E.H)")&&
+ terrainSource.includes("const paving=artPattern(g,'stone')"),
+ 'Chão e lane precisam usar imagens nítidas em escala original');
+assert.ok(!terrainSource.includes('sceneryAtlas') &&
+ !terrainSource.includes('g.scale(2.15,2.15)') &&
+ !terrainSource.includes('drawImage(sceneryAtlas,112,0,112,112,-190,-190,650,545)'),
+ 'Atlas minúsculo ainda está sendo esticado');
+assert.ok(!terrainSource.includes('for(let i=0;i<960;i++)'),
+ 'Árvores simples demais continuam dominando o mapa');
+assert.ok(!terrainSource.includes("g.setLineDash([22,28])"),
+ 'O rio continua parecendo uma avenida com faixa central');
+assert.ok(terrainSource.includes('image.onload=()=>{terrain=null}'),
+ 'As artes devem invalidar o cache de terreno assim que carregarem');
 const sourceCss=read('fenda.css');
 assert.ok(sourceCss.includes('.stage.fenda-on .mobile-controls #joy'),
  'Joystick não está oculto no modo desktop');
