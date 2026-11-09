@@ -420,6 +420,7 @@ function createUnit(heroId,team,index,controlled=false){
 }
 function reset(level){
  selected=level;elapsed=0;sceneTime=0;shake=0;flash=0;teamKills={ally:0,enemy:0};teamHazardNext=8+Math.random()*2;
+ teamPlans=[{focus:null,peel:null,protector:null,engaged:false,updatedAt:-1},{focus:null,peel:null,protector:null,engaged:false,updatedAt:-1}];
  bullets=[];abilityShots=[];abilityVisuals=[];particles=[];waves=[];hazards=[];floaters=[];
  keys.clear();firing=false;touchAim.active=false;touchAim.id=null;
  firePointer=null;fireTouch=false;clearSkillTouch();shotQueue.length=0;
@@ -971,6 +972,7 @@ function damageUnit(u,n,source=null){
  if(u.barrier>0)n*=.72;
  const amount=Math.max(1,Math.round(n));
  u.hp=Math.max(0,u.hp-amount);u.hit=.22;
+ if(source&&source.team!==u.team){u.lastDamagedBy=source;u.lastHitAt=elapsed;source.lastAttackTarget=u;}
  if(u===player)shake=3.3;
  hitText(u.x,u.y-u.r-15,amount,u.team===0?'#ffaaba':'#ffe4a3');
  burst(u.x,u.y,u.team===0?'#ff8da9':'#ffbf94',6,100);
@@ -990,19 +992,95 @@ function damageEnemy(n,source=player){return damageUnit(refreshTarget(),n,source
 
 // IAs dos nove personagens não controlados: avanço, proteção da retaguarda,
 // conjuração, uso de habilidades próprias e ataques melee/ranged.
+// A mesma tática é compartilhada por cada equipe, evitando nove bots independentes.
+let teamPlans=[
+ {focus:null,peel:null,protector:null,engaged:false,updatedAt:-1},
+ {focus:null,peel:null,protector:null,engaged:false,updatedAt:-1}
+];
+function selectTeamPlan(team){
+ const friends=living(team),foes=living(team===0?1:0);
+ const plan=teamPlans[team];
+ if(!friends.length||!foes.length){
+  plan.focus=null;plan.peel=null;plan.protector=null;plan.engaged=false;
+  plan.updatedAt=elapsed;return plan;
+ }
+ const fragile=friends.filter(u=>!meleeClass(u.heroId));
+ let protectedAlly=null,risk=-Infinity,peeler=null;
+ for(const ally of fragile){
+  const nearby=foes.filter(e=>dist(e,ally)<170);
+  const attack=foes.find(e=>ally.lastDamagedBy===e&&elapsed-(ally.lastHitAt||-99)<3.5);
+  const danger=nearby.length*34+(attack?80:0)+(1-ally.hp/ally.maxHp)*48;
+  if(danger>risk){risk=danger;protectedAlly=ally;peeler=attack||nearby.sort((a,b)=>dist(a,ally)-dist(b,ally))[0]||null}
+ }
+ plan.protector=protectedAlly;
+ plan.peel=peeler&&risk>=43?peeler:null;
+ // O grupo escolhe um foco alcançável, priorizando inimigos frágeis ou já enfraquecidos.
+ const frontline=friends.filter(meleeClass);
+ const origin=frontline.length?{
+  x:frontline.reduce((a,u)=>a+u.x,0)/frontline.length,
+  y:frontline.reduce((a,u)=>a+u.y,0)/frontline.length
+ }:{x:friends.reduce((a,u)=>a+u.x,0)/friends.length,y:friends.reduce((a,u)=>a+u.y,0)/friends.length};
+ let focus=null,minScore=Infinity;
+ for(const foe of foes){
+  const vulnerability=1-foe.hp/foe.maxHp;
+  const nearbyFriends=friends.filter(u=>dist(u,foe)<260).length;
+  const score=dist(origin,foe)*.52+vulnerability*(-135)
+   +(foe.heroId==='orun'?58:0)
+   +(foe.heroId==='seris'?-28:0)
+   +(meleeClass(foe.heroId)?22:-27)
+   -nearbyFriends*21
+   +(foe.casting?-17:0);
+  if(score<minScore){minScore=score;focus=foe}
+ }
+ const old=plan.focus;
+ if(old&&old.hp>0&&focus&&old!==focus){
+  const oldDistance=dist(origin,old);
+  const oldScore=oldDistance*.52-(1-old.hp/old.maxHp)*135+
+   (old.heroId==='orun'?58:0)+(meleeClass(old.heroId)?22:-27);
+  if(oldScore<minScore+22)focus=old;
+ }
+ plan.focus=focus;
+ const engaged=friends.filter(u=>dist(u,focus)<260).length;
+ plan.engaged=engaged>=2||elapsed>7.5;
+ plan.updatedAt=elapsed;
+ return plan;
+}
+function updateTeamPlans(){
+ for(let team=0;team<2;team++){
+  if(elapsed-teamPlans[team].updatedAt>=.45||!teamPlans[team].focus||teamPlans[team].focus.hp<=0){
+   selectTeamPlan(team);
+  }
+ }
+}
 function botTarget(u){
- const list=living(u.team===0?1:0);
- if(!list.length)return null;
+ const enemiesAvailable=living(u.team===0?1:0);
+ if(!enemiesAvailable.length)return null;
+ const plan=teamPlans[u.team];
+ // O guardião responde ao inimigo que ameaça a retaguarda.
+ if(u.heroId==='orun'&&plan.peel&&dist(u,plan.peel)<290){
+  u.aiGoal=plan.peel;u.focusTime=.4;return plan.peel;
+ }
+ // O assassino aproveita inimigos fragilizados, sem abandonar a formação.
+ if(u.heroId==='vexor'){
+  const candidates=enemiesAvailable.filter(e=>e.heroId!=='orun'&&dist(u,e)<285);
+  const finisher=candidates.sort((a,b)=>(a.hp/a.maxHp)-(b.hp/b.maxHp))[0];
+  if(finisher&&finisher.hp/finisher.maxHp<.42){
+   u.aiGoal=finisher;u.focusTime=.42;return finisher;
+  }
+ }
+ // Rangeds reagem à ameaça imediata e evitam perseguir o foco até a linha de frente.
+ if(!meleeClass(u.heroId)){
+  const danger=enemiesAvailable.filter(e=>dist(u,e)<115)
+   .sort((a,b)=>dist(u,a)-dist(u,b))[0];
+  if(danger){u.aiGoal=danger;u.focusTime=.3;return danger}
+ }
+ if(plan.focus&&plan.focus.hp>0){
+  u.aiGoal=plan.focus;u.focusTime=.45;return plan.focus;
+ }
  u.focusTime-=.025;
  if(u.aiGoal&&u.aiGoal.hp>0&&u.focusTime>0)return u.aiGoal;
- let best=null,score=Infinity;
- for(const target of list){
-  const d=dist(u,target);
-  const value=d+(target.hp/target.maxHp)*16+(target===player?7:0);
-  if(value<score){score=value;best=target}
- }
- u.aiGoal=best;u.focusTime=rnd(.55,1.1);
- return best;
+ const target=enemiesAvailable.sort((a,b)=>dist(u,a)-dist(u,b))[0];
+ u.aiGoal=target;u.focusTime=.45;return target;
 }
 function botLaunchLine(u,c,damage,slow=0){
  const def=skillDefs[c.which],dir=c.dir,speed=def.aim==='direction'?480:440;
@@ -1213,6 +1291,7 @@ function tick(dt){
  tickAbilityVisuals(dt);
  if(mode!=='playing')return;
  elapsed+=dt;
+ updateTeamPlans();
  for(const u of [...allies,...enemies]){
   if(u.hp<=0)continue;
   for(const k in u.cool)u.cool[k]=Math.max(0,u.cool[k]-dt);
