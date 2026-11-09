@@ -37,7 +37,7 @@ for(const [key,file] of Object.entries({stone:'stone-paving.svg',
  fountain:'fountain.svg',grass:'grass-ground.svg',tree:'tree-canopy.svg',
  tower:'sigil-tower.svg',core:'nexus-spire.svg',
  rock:'rune-rock.svg',flower:'moonflower-bush.svg',inlay:'base-inlay.svg',
- painted:'painted-sprite-atlas.webp'})){
+ painted:'painted-sprite-atlas.webp',world:'world-illustrated.webp'})){
  const image=new Image();image.decoding='async';
  image.onload=()=>{terrain=null};image.onerror=()=>console.warn('Arte indisponível:',file);
  image.src='art/'+file+'?v=5.6';art[key]=image;
@@ -215,7 +215,18 @@ function drawBaseDetails(g){
 }
 function drawTerrain(){
  const c=document.createElement('canvas');c.width=E.W;c.height=E.H;
- const g=c.getContext('2d');let seed=9127;
+ const g=c.getContext('2d');
+ // Cenário inteiro pintado e exportado como imagem 2750×1900:
+ // apenas um drawImage; sem estradas, prédios, bordas e árvores gerados por código.
+ // O mapa físico, unidades e estruturas interativas continuam independentes.
+ if(artReady('world')){
+  g.imageSmoothingEnabled=true;
+  g.drawImage(art.world,0,0,E.W,E.H);
+  terrain=c;
+  return;
+ }
+ // Arte antiga fica como fallback caso o WebP não carregue.
+ let seed=9127;
  function rand(){seed=(seed*16807)%2147483647;return(seed-1)/2147483646}
  const grass=paintedPattern(g,1)||artPattern(g,'grass');
  if(grass){g.fillStyle=grass;g.fillRect(0,0,E.W,E.H);}
