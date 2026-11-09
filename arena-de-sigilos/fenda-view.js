@@ -204,13 +204,21 @@ function drawTerrain(){
   g.fillStyle=rand()>.5?'#4c82603b':'#0e565c3b';
   const rx=3+rand()*14;g.beginPath();g.ellipse(x,y,rx,rx*(.5+rand()),rand()*6,0,TAU);g.fill();
  }
- // Rio do Véu, diagonal e distinto das três estradas pavimentadas.
+ // Rio pintado em camadas: sem as faixas tracejadas que pareciam estrada.
  g.lineCap='round';g.lineJoin='round';
  g.beginPath();g.moveTo(580,260);g.bezierCurveTo(900,520,1450,1190,2200,1620);
- g.strokeStyle='#102d42';g.lineWidth=155;g.stroke();
- g.strokeStyle='#266475';g.lineWidth=112;g.stroke();
- g.strokeStyle='#327d8a';g.lineWidth=76;g.stroke();
- g.setLineDash([22,28]);g.strokeStyle='#78d5c65b';g.lineWidth=4;g.stroke();g.setLineDash([]);
+ for(const [width,color] of [[176,'#123a40'],[166,'#43665b'],[149,'#1b5360'],
+     [125,'#1e6a78'],[93,'#267887'],[55,'#2b8390']]){
+  g.strokeStyle=color;g.lineWidth=width;g.stroke();
+ }
+ for(let i=0;i<38;i++){
+  const t=(i+.4)/39,s=1-t;
+  const x=s*s*s*580+3*s*s*t*900+3*s*t*t*1450+t*t*t*2200;
+  const y=s*s*s*260+3*s*s*t*520+3*s*t*t*1190+t*t*t*1620;
+  const shift=Math.sin(i*8.3)*37;
+  g.beginPath();g.ellipse(x-shift*.65,y+shift,10+(i%4)*4,2+i%3,-.45,0,Math.PI*1.5);
+  g.strokeStyle=i%3===0?'#8fe0dd68':'#77d2cb34';g.lineWidth=1.6;g.stroke();
+ }
  // Caminhos da selva se conectam às bordas das lanes, com passagem física livre.
  for(const link of E.JUNGLE_LINKS){
   const start=E.pathPos(link.lane,link.t);
@@ -218,7 +226,7 @@ function drawTerrain(){
   for(const [w,color] of [[89,'#112e31'],[75,'#4b6659'],[55,'#829079'],[39,'#a0a18a']]){
    g.lineWidth=w;g.strokeStyle=color;g.stroke();
   }
-  g.setLineDash([8,22]);g.strokeStyle='#e0d2a665';g.lineWidth=2;g.stroke();g.setLineDash([]);
+  // Solo natural de acesso, sem faixas rodoviárias.
  }
  drawPaintedLanes(g);
  drawBasePaving(g);
