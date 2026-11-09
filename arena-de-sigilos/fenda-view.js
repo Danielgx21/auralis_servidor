@@ -52,7 +52,7 @@ function drawTerrain(){
  color.addColorStop(0,'#193932');color.addColorStop(.48,'#14382f');color.addColorStop(1,'#243344');
  g.fillStyle=color;g.fillRect(0,0,E.W,E.H);
  const nearRoute=(x,y,pad)=>{
-  for(const pts of E.PATHS)for(let i=0;i<pts.length-1;i++){
+  for(const pts of E.ROUTE_PATHS)for(let i=0;i<pts.length-1;i++){
    const a=pts[i],b=pts[i+1],vx=b.x-a.x,vy=b.y-a.y;
    const t=clamp(((x-a.x)*vx+(y-a.y)*vy)/(vx*vx+vy*vy),0,1);
    if(Math.hypot(a.x+vx*t-x,a.y+vy*t-y)<pad)return true;
@@ -87,7 +87,7 @@ function drawTerrain(){
   g.setLineDash([8,22]);g.strokeStyle='#e0d2a665';g.lineWidth=2;g.stroke();g.setLineDash([]);
  }
  for(let lane=0;lane<3;lane++){
-  const pts=E.PATHS[lane];g.beginPath();
+  const pts=E.ROUTE_PATHS[lane];g.beginPath();
   pts.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y));
   const laneW=E.LANE_HALF_WIDTH*2;
   for(const [w,stroke] of [[laneW+16,'#0b2730'],[laneW,'#4b695e'],
@@ -582,7 +582,7 @@ function chooseHero(){
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice();
  $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 4.7</div><h2>FENDA DOS SIGILOS</h2>'+
- '<p>Rotas ampliadas, torres alinhadas e zonas defensivas maiores. IA coordenada de teamfight: tanque inicia, assassino flanqueia, suporte protege; rotas largas e torres recuadas.</p>'+
+ '<p>Rotas de curvas suaves, tropas em formação e torres nas laterais. IA de teamfight coordenada: iniciação, proteção, flanco e recuo.</p>'+
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
  '<div class="teamfight-tip">5×5 com IA tática · composição de equipe · foco conjunto · recuo e iniciação · névoa de guerra · jungle e ganks · objetivos · loja e XP.</div>'+
