@@ -359,50 +359,120 @@ function botShop(u){
  if(item.id==='ward'){u.maxHp+=85;u.hp+=85}
  if(item.id==='cell'){u.maxEnergy=maxEnergy(u);u.energy=Math.min(maxEnergy(u),u.energy+30)}
 }
+function botUseSkill(u,target){
+ if(!u||u.stun>0||u.casting||u.dash||u.aiTimer>0)return false;
+ const kit=hData(u.id),friendlies=living(u.side,'hero'),enemies=living(1-u.side,'hero');
+ const ready=id=>id&&u.cooldowns[id]<=.01&&u.energy>=skillDef(id).cost&&
+   (!skillDef(id).ultimate||u.level>=5);
+ const r=dist(u,target),nearEnemies=enemies.filter(e=>dist(e,u)<240).length;
+ const wounded=friendlies.filter(a=>dist(a,u)<295&&a.hp/a.maxHp<.74)
+  .sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
+ const clusters=enemies.filter(e=>dist(e,target)<132).length;
+ let options=[];
+ if(u.id==='seris'){
+  if(ready('seris_ult')&&friendlies.filter(f=>dist(f,u)<190&&f.hp/f.maxHp<.62).length>=2)options.push('seris_ult');
+  if(ready('seris_bloom')&&wounded)options.push('seris_bloom');
+  if(ready('seris_aegis')&&(nearEnemies>0||wounded))options.push('seris_aegis');
+  if(r<275)options.push('seris_tether');
+ }else if(u.id==='orun'){
+  if(ready('orun_ult')&&nearEnemies>=2)options.push('orun_ult');
+  if(ready('orun_guard')&&u.hp/u.maxHp<.7)options.push('orun_guard');
+  if(r<130||nearEnemies>=2)options.push('orun_quake');
+  if(r>70&&r<200)options.push('orun_charge');
+ }else if(u.id==='vexor'){
+  if(ready('vexor_ult')&&target.hp/target.maxHp<.52&&r<225)options.push('vexor_ult');
+  if(r<230&&target.kind==='hero'&&!target.marked)options.push('vexor_mark');
+  if(r<115)options.push('vexor_whirl');
+  if(r>72&&r<190)options.push('vexor_lunge');
+ }else if(u.id==='lyria'){
+  if(r<105)options.push('lyria_step');
+  if(ready('lyria_ult')&&clusters>=2&&r<355)options.push('lyria_ult');
+  if(r<330&&clusters>=2)options.push('lyria_rain');
+  if(r<420)options.push('lyria_pierce');
+ }else if(u.id==='nyra'){
+  if(ready('nyra_ult')&&clusters>=2&&r<330)options.push('nyra_ult');
+  if(u.hp/u.maxHp<.55)options.push('nyra_barrier');
+  if(r<270&&clusters>=2)options.push('nyra_rift');
+  if(r<390)options.push('nyra_bolt');
+ }
+ options=options.filter(ready);
+ if(!options.length)return false;
+ const id=options[0],beneficiary=id==='seris_bloom'?wounded:target;
+ if(cast(u,id,null,beneficiary)){
+  u.aiTimer=1.65+(u.uid%5)*.13;
+  return true;
+ }
+ return false;
+}
 function botHero(u,dt){
  botShop(u);
  if(u.stun>0||u.casting||u.dash)return;
- if(u.hp/u.maxHp<.25&&dist(u,HOME[u.side])>160){
-  u.aiRetreat=true;
- }
+ const lane=u.lane,enemySide=1-u.side;
+ const allies=living(u.side,'minion').filter(m=>m.lane===lane&&dist(m,u)<450);
+ const friendlyWave=allies.sort((a,b)=>dist(a,HOME[enemySide])-dist(b,HOME[enemySide]))[0]||null;
+ const behindTower=state.structures.filter(t=>t.side===u.side&&t.kind==='tower'&&
+   t.hp>0&&t.lane===lane&&dist(t,u)<410);
+ const threatened=behindTower.map(t=>({
+  tower:t,attacker:t.lastAttacker,
+  underAttack:state.time-(t.lastDamage||-100)<4.2
+ })).find(x=>x.underAttack&&x.attacker&&x.attacker.hp>0&&x.attacker.side===enemySide);
+ if(u.hp/u.maxHp<.26&&dist(u,HOME[u.side])>160)u.aiRetreat=true;
  if(u.aiRetreat){
-  const dest=HOME[u.side];
-  moveToward(u,dest,dt);
-  if(dist(u,dest)<120){u.aiRetreat=false;heal(u,u.maxHp*.55);u.energy=maxEnergy(u)}
-  return;
- }
- const foe=nearestEnemy(u,370);
- if(foe){
-  const distance=dist(u,foe),ideal=attackRange(u);
-  if(distance>ideal*.85){
-   // Never dive a turret alone without minions.
-   const tower=state.structures.find(t=>t.side!==u.side&&t.kind==='tower'&&t.hp>0&&dist(u,t)<t.range+65);
-   const friendlyWave=living(u.side,'minion').some(m=>dist(m,u)<210);
-   if(!tower||friendlyWave)moveToward(u,foe,dt,.83);
-  }else if(u.isRanged&&distance<ideal*.43){
-   const away=norm(u.x-foe.x,u.y-foe.y);
-   moveToward(u,{x:u.x+away.x*130,y:u.y+away.y*130},dt,.76);
-  }
-  if(u.aiTimer<=0&&Math.random()<.17){
-   const skills=hData(u.id).skills.concat([hData(u.id).ultimate]);
-   const options=skills.filter(id=>u.cooldowns[id]<=0&&u.energy>=skillDef(id).cost&&
-    (id!==hData(u.id).ultimate||u.level>=5));
-   if(options.length){
-    const id=options[Math.floor(Math.random()*options.length)];
-    cast(u,id,null,foe);u.aiTimer=3.8;
-   }
+  moveToward(u,HOME[u.side],dt);
+  if(dist(u,HOME[u.side])<120){
+   u.aiRetreat=false;heal(u,u.maxHp*.56);u.energy=maxEnergy(u);
+   botShop(u);
   }
   return;
  }
- // Move along assigned lane, helping allied minion waves and towers.
- const lane=roles[u.id]||0;
- const points=PATHS[lane],fraction=u.side===0?.47:.53;
- let anchor=pathPos(lane,fraction);
- const friendlyFront=living(u.side,'minion').filter(m=>m.lane===lane).sort((a,b)=>dist(a,HOME[1-u.side])-dist(b,HOME[1-u.side]))[0];
- if(friendlyFront)anchor={x:friendlyFront.x,y:friendlyFront.y};
- const ownTower=state.structures.find(t=>t.side===u.side&&t.kind==='tower'&&t.lane===lane&&t.hp>0&&dist(t,u)<210);
- if(ownTower&&!friendlyFront)anchor=ownTower;
- moveToward(u,anchor,dt,.69);
+ const enemyHeroes=living(enemySide,'hero')
+  .filter(e=>dist(e,u)<340).sort((a,b)=>dist(u,a)-dist(u,b));
+ const enemyWave=living(enemySide,'minion')
+  .filter(e=>e.lane===lane&&dist(e,u)<350).sort((a,b)=>dist(u,a)-dist(u,b));
+ const objective=state.structures.filter(t=>t.side===enemySide&&t.hp>0&&
+  (t.kind==='tower'&&t.lane===lane||t.kind==='core'&&laneCleared(enemySide,lane))&&structureExposed(t))
+  .sort((a,b)=>dist(u,a)-dist(u,b))[0];
+ const hasWave=friendlyWave&&dist(friendlyWave,u)<260;
+ const enemyNear=enemyHeroes[0];
+ let target=null;
+ // Foco defensivo quando uma torre da própria rota precisa de ajuda.
+ if(threatened&&dist(u,threatened.attacker)<405)target=threatened.attacker;
+ // Equipe entra em combate se um inimigo estiver perto o suficiente.
+ else if(enemyNear&&dist(u,enemyNear)<attackRange(u)+85)target=enemyNear;
+ // Farmar tropas e escoltar as sentinelas é mais importante do que perseguição longa.
+ else if(enemyWave.length)target=enemyWave[0];
+ else if(objective&&dist(u,objective)<390&&hasWave)target=objective;
+ else if(enemyNear&&dist(u,enemyNear)<240)target=enemyNear;
+ // Espera o avanço da onda ao invés de avançar sozinho sob um obelisco inimigo.
+ const enemyTower=state.structures.find(t=>t.side===enemySide&&t.kind==='tower'&&
+  t.hp>0&&dist(t,u)<t.range+95);
+ if(enemyTower&&!hasWave&&dist(u,enemyTower)<enemyTower.range+u.r+12){
+  const vec=norm(u.x-enemyTower.x,u.y-enemyTower.y);
+  moveToward(u,{x:u.x+vec.x*125,y:u.y+vec.y*125},dt,.78);
+  return;
+ }
+ if(target){
+  const d=dist(u,target),ideal=attackRange(u);
+  if(d>ideal*.78+target.r)moveToward(u,target,dt,.89);
+  else if(u.isRanged&&target.kind==='hero'&&d<ideal*.45){
+   const vec=norm(u.x-target.x,u.y-target.y);
+   moveToward(u,{x:u.x+vec.x*105,y:u.y+vec.y*105},dt,.72);
+  }
+  if(target.kind==='hero'||target.kind==='minion'){
+   if(!u.casting)botUseSkill(u,target);
+  }
+  return;
+ }
+ const path=PATHS[lane];
+ let anchor=pathPos(lane,u.side===0?.40:.60);
+ if(friendlyWave)anchor={x:friendlyWave.x,y:friendlyWave.y};
+ else if(objective){
+  // Sem tropas, reagrupa junto à última torre aliada ou à frente do próprio santuário.
+  const lastTower=state.structures.filter(t=>t.side===u.side&&t.kind==='tower'&&
+   t.hp>0&&t.lane===lane).sort((a,b)=>dist(a,objective)-dist(b,objective))[0];
+  if(lastTower)anchor={x:lastTower.x,y:lastTower.y};
+ }
+ if(dist(u,anchor)>110)moveToward(u,anchor,dt,.74);
 }
 function jungleStep(dt){
  for(const c of state.camps){
