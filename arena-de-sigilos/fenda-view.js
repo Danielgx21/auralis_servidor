@@ -460,6 +460,14 @@ function minimap(){
  if(S.hero){mc.strokeStyle='#fff4c5';mc.lineWidth=18;mc.beginPath();mc.arc(S.hero.x,S.hero.y,44,0,TAU);mc.stroke();}
  if(S.marker){mc.fillStyle='#ffe1a3';mc.beginPath();mc.arc(S.marker.x,S.marker.y,34,0,TAU);mc.fill();}
  mc.strokeStyle='#f6e9be';mc.lineWidth=17;mc.strokeRect(S.camera.x,S.camera.y,worldVW,worldVH);mc.restore();
+ // Mini-orientação: os nomes ficam só no mapa estratégico, não simulam estradas.
+ mc.save();mc.textAlign='center';mc.font='800 8px system-ui';
+ mc.fillStyle='#c6efefb9';mc.shadowColor='#081723';mc.shadowBlur=4;
+ for(let lane=0;lane<3;lane++){
+  const p=E.pathPos(lane,.50);
+  mc.fillText(['TOP','MID','BOT'][lane],ox+p.x*scale,oy+p.y*scale-3);
+ }
+ mc.restore();
 }
 function hudUpdate(){
  const h=S.hero;if(!h)return;
