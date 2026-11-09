@@ -61,7 +61,7 @@ function drawTerrain(){
  };
  for(let i=0;i<2500;i++){
   const x=rand()*E.W,y=rand()*E.H;
-  if(nearRoute(x,y,80))continue;
+  if(nearRoute(x,y,E.LANE_HALF_WIDTH+24))continue;
   g.fillStyle=rand()>.5?'#4c82603b':'#0e565c3b';
   const rx=3+rand()*14;g.beginPath();g.ellipse(x,y,rx,rx*(.5+rand()),rand()*6,0,TAU);g.fill();
  }
@@ -75,7 +75,7 @@ function drawTerrain(){
  for(let lane=0;lane<3;lane++){
   const pts=E.PATHS[lane];g.beginPath();
   pts.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y));
-  for(const [w,stroke] of [[112,'#0b2730'],[90,'#4b695e'],[70,'#9da28b'],[53,'#c8bc94'],[37,'#abac95']]){
+  for(const [w,stroke] of [[194,'#0b2730'],[183,'#4b695e'],[165,'#9da28b'],[149,'#c8bc94'],[127,'#b4ad90']]){
    g.lineWidth=w;g.strokeStyle=stroke;g.stroke();
   }
   g.setLineDash([17,31]);g.strokeStyle='#ebefbba1';g.lineWidth=4;g.stroke();g.setLineDash([]);
@@ -83,6 +83,22 @@ function drawTerrain(){
    const p=E.pathPos(lane,t);g.save();g.translate(p.x,p.y);g.rotate(Math.PI/4);
    g.strokeStyle='#edf4c050';g.lineWidth=3;g.strokeRect(-8,-8,16,16);g.restore();
   }
+ }
+ // Plataformas de pedra sinalizam a torre como parte do eixo central da lane.
+ for(const t of S.structures){
+  if(t.kind!=='tower')continue;
+  g.save();g.translate(t.x,t.y);
+  g.fillStyle='#172f3b';g.beginPath();g.arc(0,0,57,0,TAU);g.fill();
+  g.strokeStyle=t.side===0?'#7acac39c':'#d68e9e9c';g.lineWidth=5;
+  g.beginPath();g.arc(0,0,49,0,TAU);g.stroke();
+  g.strokeStyle='#dccfa378';g.lineWidth=2;
+  g.beginPath();g.arc(0,0,39,0,TAU);g.stroke();
+  for(let i=0;i<8;i++){
+   const angle=TAU*i/8;
+   g.fillStyle='#c5b88ba8';
+   g.beginPath();g.arc(Math.cos(angle)*53,Math.sin(angle)*53,3.5,0,TAU);g.fill();
+  }
+  g.restore();
  }
  // Moitas do Véu: a vegetação aqui esconde campeões dos observadores externos.
  for(const brush of S.brushes){
@@ -100,7 +116,7 @@ function drawTerrain(){
  // Bosques densos, flores rúnicas e ruínas de pedra em vez de prédios genéricos.
  for(let i=0;i<960;i++){
   const x=40+rand()*(E.W-80),y=40+rand()*(E.H-80);
-  if(nearRoute(x,y,126)||S.camps.some(k=>dist(k,{x,y})<78))continue;
+  if(nearRoute(x,y,E.LANE_HALF_WIDTH+46)||S.camps.some(k=>dist(k,{x,y})<78))continue;
   const r=9+rand()*19;
   g.fillStyle='#061b22a2';g.beginPath();g.ellipse(x+5,y+8,r*1.15,r*.65,0,0,TAU);g.fill();
   if(rand()>.22){
@@ -157,6 +173,13 @@ function drawStructure(o,t){
  if(!visible(o.x,o.y,118))return;
  const x=o.x,y=o.y,col=E.SIDE[o.side],alive=o.hp>0;
  if(o.kind==='tower'&&!alive)return;
+ if(o.side!==S.hero?.side&&alive&&S.hero?.hp>0&&dist(S.hero,o)<o.range+135){
+  // Alcance da torre visto perto dela, sem encobrir o terreno.
+  ctx.save();
+  ctx.globalAlpha=.24;
+  circle(x,y,o.range,null,'#e9a0a6',1.6);
+  ctx.restore();
+ }
  ctx.save();ctx.translate(x,y);
  if(o.kind==='core'){
   circle(0,10,80,'#071923a0');
@@ -541,8 +564,8 @@ function chooseHero(){
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice();
- $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 4.5</div><h2>FENDA DOS SIGILOS</h2>'+
- '<p>Três rotas, tropas, obeliscos e grandes objetivos na selva. IA 5×5 coordenada: o tanque inicia, o assassino flanqueia e a retaguarda protege os carregadores.</p>'+
+ $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 4.6</div><h2>FENDA DOS SIGILOS</h2>'+
+ '<p>Rotas ampliadas, torres alinhadas e zonas defensivas maiores. IA 5×5 coordenada: o tanque inicia, o assassino flanqueia e a retaguarda protege os carregadores.</p>'+
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
  '<div class="teamfight-tip">5×5 com IA tática · composição de equipe · foco conjunto · recuo e iniciação · névoa de guerra · jungle e ganks · objetivos · loja e XP.</div>'+
