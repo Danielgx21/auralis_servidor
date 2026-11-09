@@ -244,7 +244,9 @@ function buildMap(){
   for(let lane=0;lane<3;lane++)for(let tier=0;tier<3;tier++){
    // T1 externa distante do centro; T2 e T3 recuam progressivamente à base.
    // Espaço central neutro suficiente para combate antes do alcance das torres.
-   const t=(side===0?[.27,.16,.05]:[.73,.84,.95])[tier];
+   const t=(lane===1
+     ?(side===0?[.295,.175,.06]:[.705,.825,.94])
+     :(side===0?[.27,.16,.05]:[.73,.84,.95]))[tier];
    const p=pathPos(lane,t),a=pathPos(lane,Math.max(0,t-.004)),b=pathPos(lane,Math.min(1,t+.004));
    const direction=norm(b.x-a.x,b.y-a.y);
    const sign=lane===0?1:lane===2?-1:side===0?1:-1;
