@@ -410,6 +410,7 @@ function chooseHero(){
  $('playClassic').onclick=()=>{S.mode='classic';stage.classList.remove('fenda-on');C.showClassic()};
 }
 function startGame(){
+ C.suspendClassic?.();
  E.start(C.getHeroChoice());endedShown=false;clickDestination=null;keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
  shop.classList.remove('open');$('overlay').classList.add('hidden');$('missionShelf').hidden=true;
  resize();drawTerrain();last=performance.now();hudCountdown=0;hudUpdate();
