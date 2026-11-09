@@ -130,6 +130,26 @@ function drawRoute(g,E,lane){
  }
  g.restore();
 }
+function drawGateBridges(g,E){
+ // Os últimos metros saem da borda do santuário para portões fisicamente
+ // SEPARADOS: superior, lateral e inferior. Sem ruas que se sobreponham.
+ const bridges=[
+  [{x:345,y:1864},{x:345,y:1740}],
+  [{x:662,y:1982},{x:730,y:1950}],
+  [{x:656,y:2320},{x:730,y:2320}]
+ ];
+ for(const side of [0,1]){
+  for(const pair of bridges){
+   const pts=pair.map(p=>side===0?p:{x:E.W-p.x,y:E.H-p.y});
+   g.save();g.lineCap='round';g.lineJoin='round';
+   for(const [width,col] of [[194,'#061d2b'],[179,'#557c80'],
+    [167,'#243d4b'],[157,'#42626a']]){
+    line(g,pts);g.lineWidth=width;g.strokeStyle=col;g.stroke();
+   }
+   g.restore();
+  }
+ }
+}
 function drawLeaf(g,x,y,r,rotation,color){
  g.save();g.translate(x,y);g.rotate(rotation);
  polygon(g,[[0,-r],[-r*.66,r*.08],[-r*.11,r*.69],[r*.61,r*.04]]);
@@ -315,6 +335,7 @@ function drawTerrain(E,S){
  drawRiver(g,E);
  for(const camp of S.camps)drawCampGround(g,camp);
  for(let i=0;i<3;i++)drawRoute(g,E,i);
+ drawGateBridges(g,E);
  drawVegetation(g,E,S);
  for(const w of S.walls)drawWall(g,w);
  for(const o of S.obstacles)drawRock(g,o);
