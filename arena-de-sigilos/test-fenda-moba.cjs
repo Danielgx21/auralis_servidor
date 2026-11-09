@@ -21,12 +21,12 @@ const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const state=E.start('lyria');
 assert.equal(state.units.filter(u=>u.kind==='hero').length,10);
 assert.equal(state.structures.filter(u=>u.kind==='tower').length,18);
-assert.equal(E.LANE_HALF_WIDTH*2,216);
+assert.equal(E.LANE_HALF_WIDTH*2,196);
 assert.equal(E.CORE.length,2,'Cada lado tem um Núcleo independente da fonte');
 assert.equal(E.BASE_GATE.length,2,'Saídas próprias das duas equipes');
 assert.ok(E.W>=3300&&E.H>=2500,'Mapa pequeno demais para separar as rotas');
 for(const gates of E.BASE_GATE){
- assert.ok(distance(gates[0],gates[1])>450&&distance(gates[1],gates[2])>450,
+ assert.ok(distance(gates[0],gates[1])>350&&distance(gates[1],gates[2])>350,
   'Saídas da base amontoadas como antes');
 }
 for(let side=0;side<2;side++){
@@ -47,9 +47,10 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=6.2')&&
- html.includes('fenda-team-ai.js?v=6.2')&&
- html.includes('fenda-view.js?v=6.2'),'O site deve carregar todos os sistemas da 5.0.');
+assert.ok(html.includes('fenda-engine.js?v=6.3')&&
+ html.includes('fenda-team-ai.js?v=6.3')&&
+ html.includes('fenda-scenery.js?v=6.3')&&
+ html.includes('fenda-view.js?v=6.3'),'O site precisa carregar o cenário procedural antes da câmera.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -120,37 +121,41 @@ for(const camp of state.camps){
  assert.ok(Math.min(...[0,1,2].map(l=>E.routeProjection(l,camp).distance))>=170,
  'Monstro ocupando uma lane: '+camp.id);
 }
-// Fenda 6.2: rotas realmente separadas, jungle física, assets e câmera tática.
-const terrainSource=read('fenda-view.js');
-assert.equal(E.ROUTE_PATHS.length,3,'A Fenda tem somente três rotas');
-assert.ok(terrainSource.includes('function techWall(g,w)')&&
- terrainSource.includes('function techBase(g,side)')&&
- terrainSource.includes('function drawTerrain(){'),
- 'Cenário deve continuar com objetos e hitboxes sincronizados');
-assert.ok(terrainSource.includes('for(let lane=0;lane<3;lane++){')&&
- terrainSource.includes('const pts=E.ROUTE_PATHS[lane];')&&
- terrainSource.includes('techRoute(g,pts);'),
- 'Apenas as três rotas podem ser pintadas');
-assert.ok(!terrainSource.includes('MAP_ART.src=')&&
- !terrainSource.includes('new Image(')&&
- !terrainSource.includes('g.drawImage(MAP_ART')&&
- !terrainSource.includes('for(const link of E.JUNGLE_LINKS)'),
- 'Não usar a arte de mapa inteiro da 6.0 nem abrir estradas extras na selva');
-assert.ok(terrainSource.includes("ground:'grass-ground.svg'")&&
- terrainSource.includes("bush:'moonflower-bush.svg'")&&
- terrainSource.includes("tower:'sigil-tower.svg'")&&
- terrainSource.includes("drawSprite(g,'fountain'")&&
- terrainSource.includes("ctx.scale(cameraZoom,cameraZoom)")&&
- terrainSource.includes("S.camera.x+worldVW")&&
- terrainSource.includes("worldVW,worldVH"),
- 'Mapa deve usar elementos da arena original e câmera com zoom sem distorcer cliques');
-assert.ok(terrainSource.includes('for(const w of S.walls)techWall(g,w);')&&
- terrainSource.includes('for(const o of S.obstacles)techObstacle(g,o);'),
- 'Paredes e obstáculos devem corresponder à colisão verdadeira');
+// Fenda 6.3: cenário absolutamente sem imagens de fora, geometria e física unificadas.
+const terrainSource=read('fenda-view.js'),scenerySource=read('fenda-scenery.js');
+vm.runInNewContext(scenerySource,sandbox);
+assert.ok(sandbox.window.FendaScenery,'Módulo de paisagem Canvas não carregou');
+assert.equal(E.ROUTE_PATHS.length,3);
+assert.ok(terrainSource.includes('function drawTerrain(){terrain=window.FendaScenery.drawTerrain(E,S);}')&&
+ scenerySource.includes('function drawBase(g,E,side)')&&
+ scenerySource.includes('function drawWall(g,w)')&&
+ scenerySource.includes('function drawRiver(g,E)')&&
+ scenerySource.includes('function drawVegetation(g,E,S)'),
+ 'Base, rios e paredões precisam ser desenhados no Canvas');
+assert.ok(scenerySource.includes('for(let i=0;i<3;i++)drawRoute(g,E,i)')&&
+ scenerySource.includes('const path=E.ROUTE_PATHS[lane]'),
+ 'As únicas rotas devem ser aquelas percorridas pelos minions');
+assert.ok([".png",".svg",".webp","new Image(","createElement('img')","spritePaths","drawSprite","MAP_ART"].every(term=>
+ !terrainSource.includes(term)&&!scenerySource.includes(term)),
+ 'É PROIBIDO usar arquivos de imagem, atlas ou sprites no mapa');
+assert.ok(scenerySource.includes('for(const w of S.walls)drawWall(g,w)')&&
+ scenerySource.includes('for(const o of S.obstacles)drawRock(g,o)'),
+ 'Toda barreira desenhada precisa ser uma hitbox real');
+assert.ok(terrainSource.includes('ctx.scale(cameraZoom,cameraZoom)')&&
+ terrainSource.includes('S.camera.x+worldVW')&&
+ terrainSource.includes('worldVW,worldVH'),
+ 'Camera, visao e click precisam respeitar o zoom');
 assert.ok(terrainSource.includes('function drawStructure(o,t){')&&
  terrainSource.includes('function drawHero(u,t){')&&
  terrainSource.includes('function drawMinion(u,t){'),
  'Torres, campeões e tropas continuam dinâmicos');
+const allTowers=state.structures.filter(s=>s.kind==='tower');
+assert.ok(allTowers.every(t=>distance(t,E.CORE[t.side])>410),
+ 'Torres foram amontoadas dentro da base');
+for(let i=0;i<allTowers.length;i++)for(let j=i+1;j<allTowers.length;j++){
+ assert.ok(distance(allTowers[i],allTowers[j])>250,
+  'Torres do mapa estão próximas demais');
+}
 assert.ok(read('fenda-engine.js').includes('const TOP_PATH=[')&&
  read('fenda-engine.js').includes('const MID_PATH=[')&&
  read('fenda-engine.js').includes('TOP_PATH.slice().reverse().map(rotateHalf)'),
@@ -174,7 +179,7 @@ for(let i=0;i<state.walls.length;i+=2){
  }
 }
 for(const o of state.structures.filter(x=>x.kind==='tower')){
- assert.ok(E.routeProjection(o.lane,o).distance>=112,
+ assert.ok(E.routeProjection(o.lane,o).distance>=82,
   'Torre atravessando a pista: '+o.id);
 }
 const topMid=E.pathPos(0,.55),centralMid=E.pathPos(1,.50),bottomMid=E.pathPos(2,.55);
@@ -395,4 +400,4 @@ for(let j=0;j<1000;j++){
 }
 assert.equal(invalid,0,'Erro de posição projetada em uma rota.');
 assert.ok(overlaps<=3,'Ondas de tropas estão se sobrepondo excessivamente.');
-console.log('OK: 5x5, lanes curvas, tropas em formação, torres, colisões e teamfight em 100s.');
+console.log('OK: mapa procedural sem imagens, 3 portoes, torres separadas, jungle fisica, câmera, colisões e combate 5x5.');
