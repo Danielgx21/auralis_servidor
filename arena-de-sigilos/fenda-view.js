@@ -31,8 +31,14 @@ shop.innerHTML='<div class="fenda-shop-head"><strong>⚒ ARSENAL DO SANTUÁRIO</
 stage.appendChild(shop);
 const mm=$('fendaMinimap'),mc=mm.getContext('2d');
 let vw=900,vh=460,dpr=1,terrain=null,last=performance.now(),hudCountdown=0,endedShown=false;
-// Arte da Fenda 5.9: Canvas 2D nativo no estilo da Arena Teamfight.
-// Nenhum atlas, imagem ampliada ou objeto de cenário pré-renderizado.
+// Fenda 6.0: o cenário é a imagem completa aprovada, não azulejos ou linhas
+// reconstruídos por código. As unidades, visão, colisões e HUD continuam dinâmicas.
+const MAP_ART=new Image();
+let mapArtReady=false;
+MAP_ART.onload=()=>{mapArtReady=true;terrain=null;};
+MAP_ART.onerror=()=>{mapArtReady=false;console.warn('Arte da Fenda 6.0 indisponível; usando cenário de emergência');};
+MAP_ART.decoding='async';
+MAP_ART.src='art/fenda-6-0-map-full.webp?v=6.0';
 const fogCanvas=document.createElement('canvas'),fogContext=fogCanvas.getContext('2d');
 let fogAt=-1,fogCamX=-99999,fogCamY=-99999;
 const keys=new Set(),joy={ptr:null,x:0,y:0,sx:0,sy:0},pointers={aa:null,skill:null};
@@ -120,6 +126,13 @@ function techObstacle(g,o){
 function drawTerrain(){
  const c=document.createElement('canvas');c.width=E.W;c.height=E.H;
  const g=c.getContext('2d');
+ if(mapArtReady&&MAP_ART.naturalWidth){
+  // Exatamente a composição original, sem repetir elementos do cenário.
+  g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
+  g.drawImage(MAP_ART,0,0,E.W,E.H);
+  terrain=c;return;
+ }
+ // Geometria da Teamfight mantida apenas como fallback offline.
  const glow=g.createRadialGradient(E.W*.5,E.H*.5,120,E.W*.5,E.H*.5,1950);
  glow.addColorStop(0,'#173448');glow.addColorStop(.54,'#0e2537');glow.addColorStop(1,'#081727');
  g.fillStyle=glow;g.fillRect(0,0,E.W,E.H);
@@ -183,6 +196,31 @@ function manaBar(x,y,r,mana,max,width=55){
 function drawStructure(o,t){
  if(!visible(o.x,o.y,120))return;
  const col=E.SIDE[o.side],isCore=o.kind==='core';
+ if(mapArtReady&&MAP_ART.naturalWidth){
+  // A torre e o Núcleo JÁ ESTÃO NA IMAGEM: não criar cópia por cima.
+  // Só o estado interativo (vida/dano/destruição) é desenhado em tempo real.
+  ctx.save();
+  if(o.hp<=0){
+   if(o.kind==='tower'){
+    ctx.globalAlpha=.92;
+    circle(o.x,o.y,45,'#0b1a2c','#657787',2);
+    ctx.beginPath();ctx.moveTo(o.x-16,o.y-15);ctx.lineTo(o.x+15,o.y+17);
+    ctx.moveTo(o.x+15,o.y-15);ctx.lineTo(o.x-16,o.y+17);
+    ctx.lineWidth=4;ctx.strokeStyle='#7c7f87';ctx.stroke();
+   }else{
+    circle(o.x,o.y,60,'#071a2aee','#de8da6',3);
+   }
+  }else{
+   // Pequena indicação de funcionamento; o cristal é da arte original.
+   const hpYOffset=isCore?79:53;
+   bar(o.x,o.y-hpYOffset,0,o.hp,o.maxHp,o.side,isCore?96:66);
+   if(o.hp<o.maxHp){
+    circle(o.x,o.y,isCore?55:30,null,col+'99',2);
+   }
+  }
+  ctx.restore();
+  return;
+ }
  if(o.kind==='tower'&&o.hp<=0)return;
  const r=isCore?44:28;
  if(o.side!==S.hero?.side&&o.hp>0&&S.hero?.hp>0&&dist(S.hero,o)<o.range+135){
@@ -658,7 +696,7 @@ function chooseHero(){
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice();
- $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 5.9</div><h2>FENDA DOS SIGILOS</h2>'+
+ $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 6.0</div><h2>FENDA DOS SIGILOS</h2>'+
  '<p>Rotas de curvas suaves, tropas em formação e torres nas laterais. IA de teamfight coordenada: iniciação, proteção, flanco e recuo.</p>'+
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
