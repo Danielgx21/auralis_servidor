@@ -43,18 +43,60 @@ const moveSpeed=u=>u.speed*(1+(u.items||[]).filter(i=>i==='stride').length*.17)*
 const attackDamage=u=>u.atk+(u.items||[]).filter(i=>i==='lens').length*13;
 const spellPower=u=>1+(u.items||[]).filter(i=>i==='prism').length*.19;
 const levelXp=level=>42+level*24;
-function pathPos(lane,t){
- const pts=PATHS[lane];let total=0;
- for(let j=0;j<pts.length-1;j++)total+=dist(pts[j],pts[j+1]);
- let left=clamp(t,0,1)*total;
- for(let j=0;j<pts.length-1;j++){
-  const d=dist(pts[j],pts[j+1]);
-  if(left<=d)return{x:pts[j].x+(pts[j+1].x-pts[j].x)*left/d,
-   y:pts[j].y+(pts[j+1].y-pts[j].y)*left/d};
-  left-=d;
+// Trajetos curvos compartilhados por física, tropas, torres e renderização.
+// Cada esquina vira uma transição quadrática, evitando quinas de 90°.
+function roundRoute(points){
+ const out=[{...points[0]}],radius=78,parts=9;
+ for(let i=1;i<points.length-1;i++){
+  const a=points[i-1],p=points[i],b=points[i+1];
+  const d1=dist(a,p),d2=dist(p,b);
+  const inDir=norm(p.x-a.x,p.y-a.y),outDir=norm(b.x-p.x,b.y-p.y);
+  const turn=Math.abs(inDir.x*outDir.y-inDir.y*outDir.x);
+  if(turn<.025){out.push({...p});continue}
+  const r=Math.min(radius,d1*.30,d2*.30);
+  const left={x:p.x-inDir.x*r,y:p.y-inDir.y*r};
+  const right={x:p.x+outDir.x*r,y:p.y+outDir.y*r};
+  out.push(left);
+  for(let j=1;j<=parts;j++){
+   const t=j/parts,v=1-t;
+   out.push({x:v*v*left.x+2*v*t*p.x+t*t*right.x,
+     y:v*v*left.y+2*v*t*p.y+t*t*right.y});
+  }
  }
- return{...pts[pts.length-1]};
+ out.push({...points[points.length-1]});
+ return out;
 }
+const ROUTE_PATHS=PATHS.map(roundRoute);
+const ROUTE_LENGTHS=ROUTE_PATHS.map(pts=>{
+ const lengths=[0];
+ for(let i=1;i<pts.length;i++)lengths.push(lengths[i-1]+dist(pts[i-1],pts[i]));
+ return lengths;
+});
+const ROUTE_TOTALS=ROUTE_LENGTHS.map(p=>p[p.length-1]);
+function routePoint(lane,d){
+ const pts=ROUTE_PATHS[lane],lens=ROUTE_LENGTHS[lane];
+ const v=clamp(d,0,ROUTE_TOTALS[lane]);
+ for(let i=1;i<pts.length;i++){
+  if(v>lens[i])continue;
+  const t=(v-lens[i-1])/Math.max(.0001,lens[i]-lens[i-1]);
+  return{x:pts[i-1].x+(pts[i].x-pts[i-1].x)*t,
+   y:pts[i-1].y+(pts[i].y-pts[i-1].y)*t};
+ }
+ return {...pts[pts.length-1]};
+}
+function pathPos(lane,t){return routePoint(lane,clamp(t,0,1)*ROUTE_TOTALS[lane])}
+function routeProjection(lane,pt){
+ const pts=ROUTE_PATHS[lane],lens=ROUTE_LENGTHS[lane];
+ let best=Infinity,progress=0;
+ for(let i=1;i<pts.length;i++){
+  const a=pts[i-1],b=pts[i],dx=b.x-a.x,dy=b.y-a.y;
+  const q=clamp(((pt.x-a.x)*dx+(pt.y-a.y)*dy)/Math.max(1,dx*dx+dy*dy),0,1);
+  const x=a.x+q*dx,y=a.y+q*dy,d2=(pt.x-x)**2+(pt.y-y)**2;
+  if(d2<best){best=d2;progress=lens[i-1]+q*(lens[i]-lens[i-1]);}
+ }
+ return {progress,distance:Math.sqrt(best)};
+}
+
 
 const VISION_CELL=65,VISION_COLS=Math.ceil(W/VISION_CELL),VISION_ROWS=Math.ceil(H/VISION_CELL);
 function brushAt(pos){
@@ -212,7 +254,7 @@ function makeHero(id,side,controlled=false){
  y:start.y+d.y*spawnOffset+rando(-11,11),r:id==='orun'?21:17.5,speed:h.move*MOBA_WALK_SCALE,atk:h.damage*.82,
  baseHp:h.hp*1.3,maxHp:Math.round(h.hp*1.3),hp:Math.round(h.hp*1.3),
  energy:100,maxEnergy:100,level:1,xp:0,gold:controlled?550:350,items:[],
- lane:roles[id],waypoint:side===0?0:PATHS[roles[id]].length-1,attackCd:0,casting:null,
+ lane:roles[id],waypoint:side===0?0:ROUTE_PATHS[roles[id]].length-1,attackCd:0,casting:null,
  cooldowns:Object.fromEntries([...h.skills,h.ultimate].map(k=>[k,0])),
  stun:0,slow:0,shield:0,guard:0,invuln:0,marked:0,attackAnim:0,
  vision:350,death:0,respawn:0,recall:0,lastDamage:0,focus:null,
@@ -232,7 +274,8 @@ function createMinion(side,lane,type=0,slot=0){
  x:spawnX+rando(-2.5,2.5),y:spawnY+rando(-2.5,2.5),r:siege?17.5:ranged?11:13,
  hp,maxHp:hp,atk:Math.round((siege?34:ranged?20:19)*wavePower),
  speed:siege?59:ranged?74:83,attackCd:rando(.1,.5),ranged,site:type,slot,
- pathIndex:side===0?0:PATHS[lane].length-1,focus:null,
+ routeProgress:t*ROUTE_TOTALS[lane],routeReturning:false,
+ pathIndex:side===0?0:ROUTE_PATHS[lane].length-1,focus:null,
  stun:0,slow:0,shield:state.teamBuffs[side].titan>state.time?42:0,
  shieldUntil:state.teamBuffs[side].titan>state.time?state.time+18:0,
  invuln:0,attackAnim:0,death:0,lastDamage:0};
@@ -666,7 +709,7 @@ function separateUnits(){
     if(v.uid<=u.uid)continue;
     const friendlyMinions=u.side===v.side&&u.kind==='minion'&&v.kind==='minion';
     // Companheiros de onda se afastam suavemente, mas conseguem atravessar filas.
-    const padding=friendlyMinions?9:(u.side===v.side?3:4);
+    const padding=friendlyMinions?2:(u.side===v.side?3:4);
     const minDist=Math.max(9,u.r+v.r-padding);
     const dx=v.x-u.x,dy=v.y-u.y;
     if(Math.abs(dx)>=minDist||Math.abs(dy)>=minDist)continue;
@@ -674,7 +717,7 @@ function separateUnits(){
     if(d2>=minDist*minDist)continue;
     const d=Math.sqrt(d2);
     const dir=d>.001?{x:dx/d,y:dy/d}:{x:Math.cos(v.uid*2.1),y:Math.sin(v.uid*2.1)};
-    const strength=Math.min(12,(minDist-d)*(friendlyMinions?.47:.72));
+    const strength=Math.min(14,(minDist-d)*(friendlyMinions?.72:.78));
     const uMass=u.kind==='hero'?2.8:1,vMass=v.kind==='hero'?2.8:1;
     const total=uMass+vMass;
     const amountU=strength*vMass/total,amountV=strength*uMass/total;
@@ -704,19 +747,43 @@ function moveMinion(m,dt){
   m.aiEnemy=laneTarget(m,m.ranged?235:145);
   m.senseTimer=.14+(m.uid%6)*.017;
  }
+ const projection=routeProjection(m.lane,m);
  const enemy=m.aiEnemy;
- if(enemy){
-  if(dist(m,enemy)>attackRange(m)+enemy.r)moveToward(m,enemy,dt);
+ // As tropas não perseguem um alvo indefinidamente para dentro da selva.
+ if(enemy&&!(enemy.kind==='tower'||enemy.kind==='core')&&projection.distance>165&&
+    dist(m,enemy)>attackRange(m)+enemy.r){
+   m.aiEnemy=null;
+ }
+ if(m.aiEnemy){
+  m.routeReturning=true;
+  if(dist(m,m.aiEnemy)>attackRange(m)+m.aiEnemy.r){
+   moveToward(m,m.aiEnemy,dt,.94);
+  }
   return;
  }
- const points=PATHS[m.lane],next=m.pathIndex+(m.side===0?1:-1);
- if(next>=0&&next<points.length){
-  const previous=points[m.pathIndex],dest=points[next];
-  const facing=norm(dest.x-previous.x,dest.y-previous.y);
-  const offset=(m.slot-1.5)*LANE_MINION_SPREAD;
-  const target={x:dest.x-facing.y*offset,y:dest.y+facing.x*offset};
-  if(moveToward(m,target,dt))m.pathIndex=next;
- }else moveToward(m,HOME[1-m.side],dt);
+ const direction=m.side===0?1:-1,routeMax=ROUTE_TOTALS[m.lane];
+ if(m.routeProgress==null)m.routeProgress=projection.progress;
+ // Ao sair de uma luta, volta à curva mais próxima sem voltar aos vértices antigos.
+ if(m.routeReturning){
+  m.routeProgress=projection.progress;m.routeReturning=false;
+ }else{
+  m.routeProgress=direction===1?
+    Math.max(m.routeProgress,projection.progress):
+    Math.min(m.routeProgress,projection.progress);
+ }
+ const lookAhead=clamp(m.speed*.91,60,90);
+ const ahead=clamp(m.routeProgress+direction*lookAhead,0,routeMax);
+ const center=routePoint(m.lane,ahead);
+ const before=routePoint(m.lane,clamp(ahead-11,0,routeMax));
+ const after=routePoint(m.lane,clamp(ahead+11,0,routeMax));
+ const axis=norm(after.x-before.x,after.y-before.y);
+ const offset=(m.slot-1.5)*LANE_MINION_SPREAD;
+ const target={x:center.x-axis.y*offset,y:center.y+axis.x*offset};
+ if(Math.abs(ahead-m.routeProgress)<1&&dist(m,target)<38){
+  moveToward(m,HOME[1-m.side],dt,.92);
+ }else{
+  moveToward(m,target,dt,.94);
+ }
 }
 function respawn(u){
  u.jungleGoal=null;u.gankUntil=0;u.navPath=null;
@@ -1374,6 +1441,6 @@ function recall(){
  return true;
 }
 window.FendaEngine={state,W,H,TAU,HOME,PATHS,SIDE,ITEMS,hData,skillDef,
- start,step,cast,autoAttack,focusTower,buyItem,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,JUNGLE_LINKS,
+ start,step,cast,autoAttack,focusTower,buyItem,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
 })();
