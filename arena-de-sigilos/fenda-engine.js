@@ -117,10 +117,10 @@ function makeHero(id,side,controlled=false){
 function createMinion(side,lane,type=0,slot=0){
  const p=pathPos(lane,side===0?.035:.965),ranged=type>=1,siege=type===2;
  const wavePower=1+Math.min(1.45,state.time/680);
- let hp=Math.round((siege?380:ranged?130:190)*wavePower);
+ let hp=Math.round((siege?340:ranged?117:165)*wavePower);
  return{uid:++state.seq,kind:'minion',id:siege?'siege':ranged?'caster':'guard',side,lane,
  x:p.x+rando(-9,9),y:p.y+rando(-9,9),r:siege?19:ranged?12:14,
- hp,maxHp:hp,atk:Math.round((siege?31:ranged?17:15)*wavePower),
+ hp,maxHp:hp,atk:Math.round((siege?34:ranged?20:19)*wavePower),
  speed:siege?59:ranged?74:83,attackCd:rando(.1,.5),ranged,site:type,slot,
  pathIndex:side===0?0:PATHS[lane].length-1,focus:null,
  stun:0,slow:0,shield:0,invuln:0,attackAnim:0,death:0,lastDamage:0};
@@ -128,7 +128,7 @@ function createMinion(side,lane,type=0,slot=0){
 function start(hero='lyria'){
  state.mode='playing';state.time=0;state.units=[];state.projectiles=[];state.effects=[];
  state.selectedHero=C.heroes[hero]?hero:'lyria';state.hero=null;state.structures=[];
- state.kills=[0,0];state.win=null;state.marker=null;state.nextWave=4;state.wave=0;
+ state.kills=[0,0];state.win=null;state.marker=null;state.nextWave=5;state.wave=0;
  state.shopOpen=false;state.showPause=false;state.buffUntil=0;state.score=0;state.seq=0;
  buildMap();
  const ids=Object.keys(C.heroes);
@@ -343,6 +343,8 @@ function autoAttack(u){
  u.attackCd=u.kind==='hero'?(hData(u.id).attackTime*attackFactor+Math.max(0,5-u.level)*.018):u.id==='siege'?2.15:u.ranged?1.5:1.25;
  u.attackAnim=.23;
  let damageVal=attackDamage(u)+(u.homeBuff>state.time?4:0);
+ // Minions limpam ondas de forma consistente, sem congestionamentos infinitos.
+ if(u.kind==='minion'&&target.kind==='minion')damageVal=Math.round(damageVal*1.25);
  // Os AAs de campeões devem causar dano perceptível em torres;
  // sentinelas de cerco também possuem bônus contra estruturas.
  if(target.kind==='tower'||target.kind==='core')
@@ -925,7 +927,7 @@ function step(dt,movement={x:0,y:0}){
   }
  }
  if(state.time>=state.nextWave){
-  makeWave();state.nextWave=state.time+15;
+  makeWave();state.nextWave=state.time+21;
  }
  for(const u of state.units){tickUnit(u,dt);if(state.mode!=='playing')break}
  if(state.mode!=='playing')return;
