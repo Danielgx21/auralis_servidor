@@ -177,6 +177,36 @@ assert.ok(signedAfter>=pilot.r+w.halfWidth-.6,
  'Barreira foi atravessada pelo jogador');
 assert.ok(E.distanceToSolid(pilot,w)>=pilot.r-.7,
  'Colisão deixou jogador dentro da parede');
+// Geometria verdadeira: não colocar paredes sobre monstros nem torres.
+for(const creep of state.camps){
+ const radius=creep.kind==='boss'?38:creep.kind==='buff'?28:23;
+ assert.ok(state.walls.every(w=>E.pointToWall(creep,w)-w.halfWidth>=radius+12),
+  'Uma barricada atravessa o acampamento '+creep.id);
+}
+for(const tower of state.structures.filter(o=>o.kind==='tower')){
+ assert.ok(state.walls.every(w=>E.pointToWall(tower,w)-w.halfWidth>=tower.r+12),
+  'Parede atravessa a torre '+tower.id);
+}
+assert.ok(view.includes('for(const path of E.ROUTE_PATHS)')&&
+ view.includes('for(const w of S.walls)'),
+ 'O minimapa também deve mostrar as três rotas e suas barreiras reais');
+// Projetéis de habilidade param ao tocar uma parede, sem dano do outro lado.
+E.start('lyria');
+const projectileWall=state.walls[0],normalShot=E.norm(-(projectileWall.by-projectileWall.ay),
+ projectileWall.bx-projectileWall.ax);
+const caster=state.hero,defender=state.units.find(o=>o.kind==='hero'&&o.side===1);
+caster.x=projectileWall.x+normalShot.x*100;caster.y=projectileWall.y+normalShot.y*100;
+defender.x=projectileWall.x-normalShot.x*100;defender.y=projectileWall.y-normalShot.y*100;
+defender.stun=10;
+for(const t of state.structures)t.attackCd=100;
+state.units=[caster,defender];
+const defenderHp=defender.hp;
+state.projectiles=[{kind:'skillline',x:caster.x,y:caster.y,vx:-normalShot.x*550,
+ vy:-normalShot.y*550,life:2,range:230,travel:0,damage:95,
+ r:7,side:0,source:caster,stun:0,slow:0}];
+for(let i=0;i<10;i++)E.step(.05,{x:0,y:0});
+assert.equal(state.projectiles.length,0,'Feitiço passou através da parede');
+assert.equal(defender.hp,defenderHp,'Feitiço atravessou a parede e acertou o adversário');
 const sourceCss=read('fenda.css');
 assert.ok(sourceCss.includes('.stage.fenda-on .mobile-controls #joy'),
  'Joystick não está oculto no modo desktop');
