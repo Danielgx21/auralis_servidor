@@ -102,47 +102,39 @@ function manaBar(x,y,r,mana,max,width=55){
  ctx.strokeStyle='#c8d9f180';ctx.lineWidth=.7;ctx.strokeRect(left,top,width,5);
 }
 function drawStructure(o,t){
- if(!visible(o.x,o.y,105)||o.hp<=0)return;
- const col=E.SIDE[o.side],core=o.kind==='core',r=core?43:27;
+ if(!visible(o.x,o.y,100)||o.hp<=0)return;
+ const col=E.SIDE[o.side],core=o.kind==='core';
+ const r=core?49:32;
  if(o.side!==S.hero?.side&&S.hero?.hp>0&&dist(S.hero,o)<o.range+135){
-  ctx.save();ctx.globalAlpha=.18;circle(o.x,o.y,o.range,null,'#e29b9e',1.5);ctx.restore();
+  ctx.save();ctx.globalAlpha=.17;circle(o.x,o.y,o.range,null,'#f2a1aa',1.5);ctx.restore();
  }
  ctx.save();ctx.translate(o.x,o.y);
- ctx.fillStyle='#041a25a9';ctx.beginPath();ctx.ellipse(6,9,r*1.58,r*.71,0,0,TAU);ctx.fill();
- ctx.shadowColor=col;ctx.shadowBlur=core?16:9;
- techPolygon(ctx,0,1,r+13,8,Math.PI/8);ctx.fillStyle='#0c2736';ctx.fill();
- ctx.shadowBlur=0;ctx.lineWidth=4;ctx.strokeStyle='#8aaba8';ctx.stroke();
- techPolygon(ctx,0,-4,r+7,8,Math.PI/8);
- const stone=ctx.createLinearGradient(-r,-r,r,r);
- stone.addColorStop(0,'#608989');stone.addColorStop(.48,'#284f5e');stone.addColorStop(1,'#122f40');
- ctx.fillStyle=stone;ctx.fill();ctx.strokeStyle='#cfbc89';ctx.lineWidth=2;ctx.stroke();
- techRing(ctx,0,-4,r*.77,col+'b8',2.8);
- const tip=core?-94:-67,shoulder=core?36:23;
- ctx.beginPath();ctx.moveTo(-shoulder,-18);ctx.lineTo(-shoulder*.55,tip*.59);
- ctx.lineTo(-8,tip+18);ctx.lineTo(0,tip);ctx.lineTo(8,tip+18);
- ctx.lineTo(shoulder*.55,tip*.59);ctx.lineTo(shoulder,-18);ctx.closePath();
- const casing=ctx.createLinearGradient(-shoulder,-60,shoulder,0);
- casing.addColorStop(0,'#a1ada0');casing.addColorStop(.23,'#34556a');
- casing.addColorStop(.76,'#122d43');casing.addColorStop(1,'#708d87');
- ctx.fillStyle=casing;ctx.fill();ctx.strokeStyle='#d0bb83';ctx.lineWidth=3.4;ctx.stroke();
- ctx.beginPath();ctx.moveTo(0,tip+5);ctx.lineTo(shoulder*.40,-34);
- ctx.lineTo(0,-14);ctx.lineTo(-shoulder*.40,-34);ctx.closePath();
- const crystal=ctx.createLinearGradient(0,tip,0,-13);
- crystal.addColorStop(0,'#c7fff4');crystal.addColorStop(.25,col);
- crystal.addColorStop(.8,o.side===0?'#087d9e':'#9b426a');crystal.addColorStop(1,'#0d536e');
- ctx.fillStyle=crystal;ctx.fill();ctx.strokeStyle='#d1fff4';ctx.lineWidth=1.8;ctx.stroke();
- ctx.beginPath();ctx.moveTo(0,tip+6);ctx.lineTo(-shoulder*.40,-34);
- ctx.lineTo(0,-14);ctx.closePath();ctx.fillStyle='#f0ffec46';ctx.fill();
- ctx.beginPath();ctx.moveTo(0,tip+5);ctx.lineTo(0,-14);
- ctx.strokeStyle='#d9fff4af';ctx.lineWidth=1.7;ctx.stroke();
- ctx.shadowColor=col;ctx.shadowBlur=9;circle(0,-28,4.5,'#e8fff1');ctx.shadowBlur=0;
- for(const sign of [-1,1]){
-  ctx.beginPath();ctx.moveTo(sign*shoulder,-18);
-  ctx.lineTo(sign*(shoulder+7),-33);ctx.lineTo(sign*(shoulder+12),-13);
-  ctx.lineTo(sign*(shoulder*.7),-4);ctx.closePath();
-  ctx.fillStyle='#325768';ctx.fill();ctx.strokeStyle='#b2aa87';ctx.lineWidth=1.8;ctx.stroke();
+ // Mesma linguagem top-down dos campeões originais: hexágonos,
+ // anéis técnicos e cristal central, sem falso edifício em perspectiva.
+ ctx.fillStyle='#010d18a4';ctx.beginPath();ctx.ellipse(4,9,r+13,r*.70,0,0,TAU);ctx.fill();
+ ctx.shadowColor=col;ctx.shadowBlur=core?20:13;
+ techPolygon(ctx,0,0,r+8,8,Math.PI/8);
+ ctx.fillStyle='#0a2235';ctx.fill();
+ ctx.shadowBlur=0;ctx.lineWidth=4;ctx.strokeStyle='#588a9d';ctx.stroke();
+ techPolygon(ctx,0,0,r+1,8,Math.PI/8);
+ ctx.fillStyle='#214357';ctx.fill();
+ ctx.strokeStyle=col+'b0';ctx.lineWidth=2.8;ctx.stroke();
+ techPolygon(ctx,0,0,r*.75,6,Math.PI/6);
+ ctx.fillStyle='#0b2b42';ctx.fill();
+ ctx.strokeStyle='#6fa6b370';ctx.lineWidth=1.8;ctx.stroke();
+ techRing(ctx,0,0,r*.50,col+'8c',core?3.4:2.5);
+ ctx.save();ctx.rotate(Math.PI/4);
+ ctx.fillStyle=col;ctx.fillRect(-r*.23,-r*.23,r*.46,r*.46);
+ ctx.strokeStyle='#e2fff5d8';ctx.lineWidth=2;ctx.strokeRect(-r*.23,-r*.23,r*.46,r*.46);
+ ctx.restore();
+ ctx.fillStyle='#e9fff5';ctx.beginPath();ctx.arc(0,0,core?6:4.5,0,TAU);ctx.fill();
+ for(let i=0;i<(core?8:4);i++){
+  const a=(i+.5)*TAU/(core?8:4);
+  const x=Math.cos(a)*(r*.88),y=Math.sin(a)*(r*.88);
+  techPolygon(ctx,x,y,core?5:4,4,Math.PI/4);
+  ctx.fillStyle=col+'7c';ctx.fill();
  }
- bar(0,tip-14,0,o.hp,o.maxHp,o.side,core?96:69);
+ bar(0,0,r,o.hp,o.maxHp,o.side,core?85:59);
  ctx.restore();
 }
 function drawMinion(u,t){
