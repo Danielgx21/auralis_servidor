@@ -42,9 +42,9 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=6.0')&&
- html.includes('fenda-team-ai.js?v=6.0')&&
- html.includes('fenda-view.js?v=6.0'),'O site deve carregar todos os sistemas da 5.0.');
+assert.ok(html.includes('fenda-engine.js?v=6.1')&&
+ html.includes('fenda-team-ai.js?v=6.1')&&
+ html.includes('fenda-view.js?v=6.1'),'O site deve carregar todos os sistemas da 5.0.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -115,50 +115,68 @@ for(const camp of state.camps){
  assert.ok(Math.min(...[0,1,2].map(l=>E.routeProjection(l,camp).distance))>=170,
  'Monstro ocupando uma lane: '+camp.id);
 }
-// Fenda 6.0: imagem aprovada é o cenário integral, não um mosaico ou simulação.
+// Fenda 6.1: somente top, meio e bot, com visual da Arena Teamfight.
 const terrainSource=read('fenda-view.js');
-assert.ok(terrainSource.includes("MAP_ART.src='art/fenda-6-0-map-full.webp?v=6.0'"),
- 'A imagem específica aprovada não está carregada no jogo');
-assert.ok(terrainSource.includes('MAP_ART.onload=()=>{mapArtReady=true;terrain=null;}'),
- 'O canvas precisa redesenhar o terreno quando a imagem terminar de carregar');
-assert.ok(terrainSource.includes("if(mapArtReady&&MAP_ART.naturalWidth)")&&
- terrainSource.includes('g.drawImage(MAP_ART,0,0,E.W,E.H);')&&
- terrainSource.includes('terrain=c;return;'),
- 'O fundo deve ser desenhado com uma imagem única e inteira');
-assert.ok(terrainSource.includes('const hpYOffset=isCore?79:53')&&
- terrainSource.includes('A torre e o Núcleo JÁ ESTÃO NA IMAGEM'),
- 'Não duplicar torre ou Núcleo sobre os elementos já pintados');
-assert.ok(terrainSource.includes("if(o.hp<=0)")&&
- terrainSource.includes("circle(o.x,o.y,45,'#0b1a2c'"),
- 'A destruição das torres precisa ser visível sobre a imagem');
-assert.ok(terrainSource.includes('function drawHero(u,t){')&&
+assert.equal(E.ROUTE_PATHS.length,3,'A Fenda tem somente três rotas');
+assert.ok(terrainSource.includes('function techWall(g,w)')&&
+ terrainSource.includes('function techBase(g,side)')&&
+ terrainSource.includes('function drawTerrain(){'),
+ 'Cenário deve ser Canvas geométrico no estilo da Teamfight');
+assert.ok(terrainSource.includes('for(let lane=0;lane<3;lane++){')&&
+ terrainSource.includes('const pts=E.ROUTE_PATHS[lane];')&&
+ terrainSource.includes('techRoute(g,pts);'),
+ 'Apenas as três rotas podem ser pintadas');
+assert.ok(!terrainSource.includes('MAP_ART.src=')&&
+ !terrainSource.includes('new Image(')&&
+ !terrainSource.includes('g.drawImage(MAP_ART')&&
+ !terrainSource.includes('for(const link of E.JUNGLE_LINKS)'),
+ 'Não usar a arte da 6.0 nem abrir estradas extras na selva');
+assert.ok(terrainSource.includes('for(const w of S.walls)techWall(g,w);')&&
+ terrainSource.includes('for(const o of S.obstacles)techObstacle(g,o);'),
+ 'Paredes e obstáculos devem corresponder à colisão verdadeira');
+assert.ok(terrainSource.includes('function drawStructure(o,t){')&&
+ terrainSource.includes('function drawHero(u,t){')&&
  terrainSource.includes('function drawMinion(u,t){'),
- 'Manter as artes dos personagens e tropas originais');
-// As três rotas e as bases precisam se localizar exatamente sobre a arte.
-assert.ok(read('fenda-engine.js').includes('const PATH_PIXELS=')&&
- read('fenda-engine.js').includes('const TOWER_PIXELS=')&&
- read('fenda-engine.js').includes('const mapPoint=(x,y)=>'),
- 'Geometria do motor não está coordenada com a arte');
+ 'Torres, campeões e tropas continuam dinâmicos');
+assert.ok(read('fenda-engine.js').includes('const TOP_PATH=[')&&
+ read('fenda-engine.js').includes('const MID_PATH=[')&&
+ read('fenda-engine.js').includes('TOP_PATH.slice().reverse().map(rotateHalf)'),
+ 'Top e bot precisam ser espelhadas, e mid diagonal');
 E.start('lyria');
 assert.equal(state.structures.filter(s=>s.kind==='tower').length,18);
-assert.ok(state.obstacles.length>=8&&state.obstacles.length<=20,
- 'Objetos físicos demais ou poucos para as rochas que aparecem no mapa');
+assert.equal(state.structures.filter(s=>s.kind==='core').length,2);
+assert.equal(state.walls.length,12,'Mapeamento precisa de 12 paredes de verdade');
 assert.equal(state.brushes.length,6);
-for(let i=0;i<6;i+=2){
- const a=state.brushes[i],b=state.brushes[i+1];
- assert.ok(Math.abs(a.x+b.x-E.W)<1.1&&Math.abs(a.y+b.y-E.H)<1.1&&a.r===b.r,
-  'Campos de camuflagem precisam ser simétricos');
+assert.ok(state.obstacles.length>=2&&state.obstacles.length<=8,
+ 'Selva não deve ficar lotada de obstáculos');
+for(let i=0;i<state.walls.length;i+=2){
+ const a=state.walls[i],b=state.walls[i+1];
+ assert.ok(Math.abs(a.ax+b.ax-E.W)<.01&&Math.abs(a.ay+b.ay-E.H)<.01&&
+ Math.abs(a.bx+b.bx-E.W)<.01&&Math.abs(a.by+b.by-E.H)<.01,
+ 'Paredes precisam ser simétricas por rotação de 180 graus');
+ assert.equal(a.halfWidth,b.halfWidth);
+ for(const p of [{x:a.ax,y:a.ay},{x:a.bx,y:a.by}]){
+  const gap=Math.min(...[0,1,2].map(l=>E.routeProjection(l,p).distance));
+  assert.ok(gap>=145,'Parede bloqueando o corredor de minions');
+ }
 }
-const mapped=(x,y)=>({x:Math.round(x*E.W/1448),y:Math.round(y*E.H/1086)});
-assert.ok(distance(E.CORE[0],mapped(183,853))<2&&
- distance(E.CORE[1],mapped(1217,150))<2,
- 'Núcleos precisam coincidir com os cristais centrais da imagem');
-assert.ok(distance(E.PATHS[1][3],mapped(720,539))<2,
- 'A rota central não segue a passagem horizontal da imagem');
-for(const s of state.structures.filter(x=>x.kind==='tower')){
- assert.ok(E.routeProjection(s.lane,s).distance>=60,
-  'Torre bloqueia o centro da rota: '+s.id);
+for(const o of state.structures.filter(x=>x.kind==='tower')){
+ assert.ok(E.routeProjection(o.lane,o).distance>=112,
+  'Torre atravessando a pista: '+o.id);
 }
+const topMid=E.pathPos(0,.55),centralMid=E.pathPos(1,.50),bottomMid=E.pathPos(2,.55);
+assert.ok(distance(topMid,centralMid)>350&&distance(bottomMid,centralMid)>350,
+ 'As três rotas devem ser claramente separadas no meio da partida');
+// Colisão real: não se atravessa a barricada de um lado para o outro.
+const w=state.walls[0],pilot=state.hero;
+const normal=E.norm(-(w.by-w.ay),w.bx-w.ax),off=pilot.r+w.halfWidth+26;
+pilot.x=w.x+normal.x*off;pilot.y=w.y+normal.y*off;
+E.movePhysical(pilot,-normal.x*(off*2+44),-normal.y*(off*2+44));
+const signedAfter=(pilot.x-w.x)*normal.x+(pilot.y-w.y)*normal.y;
+assert.ok(signedAfter>=pilot.r+w.halfWidth-.6,
+ 'Barreira foi atravessada pelo jogador');
+assert.ok(E.distanceToSolid(pilot,w)>=pilot.r-.7,
+ 'Colisão deixou jogador dentro da parede');
 const sourceCss=read('fenda.css');
 assert.ok(sourceCss.includes('.stage.fenda-on .mobile-controls #joy'),
  'Joystick não está oculto no modo desktop');
