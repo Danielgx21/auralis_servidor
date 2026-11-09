@@ -13,12 +13,15 @@
 .fenda-name{font-weight:900;letter-spacing:.03em;font-size:clamp(9px,2vh,12px);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fenda-bar{height:7px;background:#081427;border:1px solid #a7dbd850;border-radius:20px;overflow:hidden;margin-top:3px}
 .fenda-bar i{display:block;height:100%;background:linear-gradient(90deg,#2ea7b4,#85f2d3);transition:width .11s}
-.fenda-bar.mana{height:5px}.fenda-bar.mana i{background:linear-gradient(90deg,#498ad3,#b2c4ff)}
+.fenda-bar.mana{height:12px;position:relative;overflow:hidden}
+.fenda-bar.mana i{background:linear-gradient(90deg,#346bbd,#8bb9ff);height:100%}
+#fendaManaText{position:absolute;inset:0;text-align:center;line-height:11px;z-index:1;color:#e9f4ff;
+ font-size:8px;font-weight:900;text-shadow:0 1px 3px #001427;pointer-events:none;font-variant-numeric:tabular-nums}
 .fenda-bar.xp{height:3px}.fenda-bar.xp i{background:#f1ca78}
 .fenda-actions{position:absolute;right:9px;top:8px;display:flex;gap:6px}
 .fenda-actions button,.fenda-shop-head button{border:1px solid #83bcb37d;border-radius:9px;background:#092234e5;color:#f2f8f8;padding:7px 9px;font-size:10px;font-weight:850;box-shadow:0 3px 10px #0009}
 .fenda-actions button:active{background:#2d6374}
-#fendaMinimap{position:absolute;top:83px;left:14px;width:clamp(115px,17vw,164px);height:auto;aspect-ratio:220/152;border:1px solid #7ca6aeaa;border-radius:11px;background:#081e29d9;box-shadow:0 5px 15px #0009;touch-action:manipulation}
+#fendaMinimap{position:absolute;top:83px;left:14px;width:clamp(115px,17vw,164px);height:auto;aspect-ratio:220/152;border:1px solid #7ca6aeaa;border-radius:11px;background:#081e29d9;box-shadow:0 5px 15px #0009;touch-action:none;user-select:none}
 #fendaInfo{position:absolute;top:55px;left:50%;transform:translateX(-50%);font-size:9px;text-align:center;color:#daf7f1;background:#051727b7;padding:5px 10px;border-radius:9px;max-width:38%;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
 #fendaNotice{position:absolute;top:27%;left:50%;transform:translateX(-50%);background:#082438e8;border:1px solid #a9dfd17a;color:#f4f5df;border-radius:10px;padding:9px 16px;font-size:12px;font-weight:900;text-shadow:0 2px 6px #000;box-shadow:0 7px 23px #0008;display:none;white-space:nowrap;max-width:75%;text-overflow:ellipsis;overflow:hidden}
 #fendaShop{position:absolute;right:14px;top:49px;bottom:16px;z-index:12;width:min(400px,84vw);padding:12px;background:linear-gradient(145deg,#142b3df7,#0a1624fa);border:1px solid #8ed8c58c;border-radius:15px;box-shadow:0 13px 32px #000d;display:none;overflow-y:auto}
@@ -65,7 +68,7 @@
 #fendaHUD #fendaWardBtn{
  position:absolute;right:65px;bottom:calc(clamp(62px,18vh,82px) + 9px);
  z-index:9;width:44px;height:41px;display:grid;place-items:center;align-content:center;
- pointer-events:auto;touch-action:manipulation;border:2px solid #7bdec4;
+ pointer-events:auto;touch-action:none;border:2px solid #7bdec4;
  border-radius:14px;background:radial-gradient(circle at 35% 20%,#356a62,#1b394a 60%,#0b2035);
  box-shadow:0 4px 12px #020b16ad,inset 0 1px 3px #b5fff660;
  color:#c5ffed;font-size:20px;line-height:1;
