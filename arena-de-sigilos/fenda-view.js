@@ -96,6 +96,29 @@ function drawTerrain(){
    g.strokeStyle='#bacbb188';g.stroke();
   }
  }
+ // Obstáculos com colisão: símbolos e pedras visíveis nas mesmas coordenadas da física.
+ // A vegetação do fundo é apenas textura baixa, estes grandes objetos impedem passagem.
+ for(const o of S.obstacles){
+  const r=o.r,x=o.x,y=o.y;
+  g.fillStyle='#020e17a3';g.beginPath();g.ellipse(x+7,y+12,r*1.14,r*.61,0,0,TAU);g.fill();
+  if(o.kind==='tree'){
+   g.fillStyle='#28483d';g.beginPath();g.arc(x,y,r+5,0,TAU);g.fill();
+   g.fillStyle='#13504b';g.beginPath();g.arc(x,y,r,0,TAU);g.fill();
+   g.fillStyle='#297964';g.beginPath();g.arc(x-r*.23,y-r*.22,r*.68,0,TAU);g.fill();
+   g.strokeStyle='#a2e0b66b';g.lineWidth=3;
+   g.beginPath();g.arc(x,y,r*.88,.3,2.7);g.stroke();
+   g.strokeStyle='#e5dab485';g.lineWidth=2;g.beginPath();g.moveTo(x-r*.34,y+r*.28);g.lineTo(x+r*.25,y-r*.16);g.stroke();
+  }else{
+   g.fillStyle='#263d49';g.beginPath();
+   for(let n=0;n<7;n++){const a=n*TAU/7;
+    const px=x+Math.cos(a)*r*(n%2?.85:1.05),py=y+Math.sin(a)*r*(n%2?.86:1.05);
+    if(n)g.lineTo(px,py);else g.moveTo(px,py);
+   }g.closePath();g.fill();
+   g.strokeStyle='#9ad4bb7d';g.lineWidth=3;g.stroke();
+   g.strokeStyle='#f3e6c27d';g.lineWidth=2;
+   g.beginPath();g.moveTo(x-r*.5,y-r*.11);g.lineTo(x-r*.08,y-r*.51);g.lineTo(x+r*.36,y-r*.3);g.stroke();
+  }
+ }
  for(const base of E.HOME){
   g.fillStyle='#061e2dd2';g.beginPath();g.arc(base.x,base.y,176,0,TAU);g.fill();
   g.strokeStyle='#ccd0ac';g.lineWidth=13;g.beginPath();g.arc(base.x,base.y,156,0,TAU);g.stroke();
