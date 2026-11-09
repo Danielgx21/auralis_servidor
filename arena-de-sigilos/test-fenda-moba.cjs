@@ -42,9 +42,9 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=4.9')&&
- html.includes('fenda-team-ai.js?v=4.9')&&
- html.includes('fenda-view.js?v=4.9'),'O site deve carregar todos os sistemas da 4.9.');
+assert.ok(html.includes('fenda-engine.js?v=5.0')&&
+ html.includes('fenda-team-ai.js?v=5.0')&&
+ html.includes('fenda-view.js?v=5.0'),'O site deve carregar todos os sistemas da 5.0.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -122,11 +122,22 @@ assert.ok(terrainSource.includes('drawBasePaving(g)')&&terrainSource.includes('d
  'Plataforma de base não foi desenhada');
 assert.ok(!terrainSource.includes("g.arc(base.x,base.y,176"),
  'A rotatória antiga continua aparecendo no mapa');
-assert.ok(terrainSource.includes('Pedra irregular'),
- 'A lane ainda não usa pavimentação irregular');
+assert.ok(terrainSource.includes('As pistas se estreitam ao entrar nas bases'),
+ 'A pista não se estreita na região da base');
+assert.ok(!terrainSource.includes('for(let iy=-3;iy<8;iy++)for(let ix=-4;ix<11;ix++)'),
+ 'Grade de grandes quadrados permaneceu na fonte');
+assert.ok(!terrainSource.includes('for(let t=.012;t<.99;t+=.011)'),
+ 'Grade de cinco colunas permaneceu nas rotas');
+assert.ok(terrainSource.includes('g.quadraticCurveTo(p[0],p[1]'),
+ 'O pátio deve ter limites curvos em vez de um polígono rígido');
+assert.ok(terrainSource.includes('g.arc(0,0,r1,a0,a1)'),
+ 'O piso do pátio não foi organizado em arcos');
 const sourceCss=read('fenda.css');
 assert.ok(sourceCss.includes('.stage.fenda-on .mobile-controls #joy'),
  'Joystick não está oculto no modo desktop');
+assert.ok(sourceCss.includes('@media (hover:none), (pointer:coarse)')&&
+ sourceCss.includes('.stage.fenda-on #fireBtn {display:flex!important;pointer-events:auto!important;}'),
+ 'Ataque básico deve continuar visível e acionável no celular');
 // Contexto neutro e composição completa: avaliar engage.
 E.start('lyria');
 const allies=state.units.filter(u=>u.kind==='hero'&&u.side===0);
