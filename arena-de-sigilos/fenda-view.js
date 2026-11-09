@@ -22,7 +22,12 @@ stage.appendChild(shop);
 const mm=$('fendaMinimap'),mc=mm.getContext('2d');
 let vw=900,vh=460,dpr=1,terrain=null,last=performance.now(),hudCountdown=0,endedShown=false;
 const keys=new Set(),joy={ptr:null,x:0,y:0,sx:0,sy:0},pointers={aa:null,skill:null};
-let aimPreview=null,desktopScheme='wasd',clickDestination=null;
+let aimPreview=null,desktopScheme='arrows',clickDestination=null;
+let lastWarningAt=-100;
+function warn(text){
+ const now=performance.now()/1000;
+ if(now-lastWarningAt>.75){lastWarningAt=now;E.announce(text,1.2)}
+}
 const clamp=E.clamp,dist=E.dist,TAU=E.TAU;
 function resize(){
  const r=stage.getBoundingClientRect();vw=Math.max(320,r.width);vh=Math.max(220,r.height);
@@ -297,7 +302,7 @@ function minimap(){
 function hudUpdate(){
  const h=S.hero;if(!h)return;
  const time=Math.floor(S.time);
- $('fendaTopScore').textContent='✦ '+S.kills[0]+' AZUL × '+S.kills[1]+' RUBRO';
+ $('fendaTopScore').textContent='✦ '+S.kills[0]+' AZUL × '+S.kills[1]+' RUBRO · '+h.kills+'/'+h.deaths+'/'+h.cs+' CS';
  $('fendaGold').textContent='✦ '+Math.round(h.gold)+' OURO';
  $('fendaTime').textContent=String(Math.floor(time/60)).padStart(2,'0')+':'+String(time%60).padStart(2,'0');
  $('fendaName').textContent=C.heroes[h.id].name+' · NV '+h.level+(h.hp<=0?' · RESSURGE '+Math.ceil(h.respawn)+'s':'');
@@ -345,19 +350,19 @@ function chooseHero(){
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice();
- $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 4.0</div><h2>FENDA DOS SIGILOS</h2>'+
+ $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 4.1</div><h2>FENDA DOS SIGILOS</h2>'+
  '<p>Três rotas, tropas, obeliscos, selva e Núcleos Sigilares. Jogue de verdade: farme, evolua, compre itens e destrua a base rubra.</p>'+
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
  '<div class="teamfight-tip">5×5 com aliados e inimigos de IA · 3 rotas · torres · ondas de tropas · ouro e XP · loja · recall · objetivos astrais · minimapa.</div>'+
  '<div class="actions" style="margin-top:10px"><button class="primary" id="playFenda">▶ JOGAR FENDA 5×5</button><button class="secondary" id="playClassic">MODO ARENA RÁPIDA</button></div>'+
- '<p style="font-size:10px;margin:9px 0 0">Celular: joystick e Q/W/E/R. PC: WASD mover, Espaço AA, 1/2/3/4 habilidades, B retorno e P loja. TAB troca para setas + Q/W/E/R.</p>';
+ '<p style="font-size:10px;margin:9px 0 0">Celular: joystick e Q/W/E/R. PC: clique direito para andar, Q/W/E/R habilidades, Espaço AA. B retorno, P loja. TAB alterna para WASD + 1/2/3/4.</p>';
  for(const b of $('modalContent').querySelectorAll('[data-hero]'))b.onclick=()=>{C.setHeroChoice(b.dataset.hero);chooseHero()};
  $('playFenda').onclick=startGame;
  $('playClassic').onclick=()=>{S.mode='classic';stage.classList.remove('fenda-on');C.showClassic()};
 }
 function startGame(){
- E.start(C.getHeroChoice());endedShown=false;clickDestination=null;stage.classList.add('fenda-on');cv.style.display='block';
+ E.start(C.getHeroChoice());endedShown=false;clickDestination=null;keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
  shop.classList.remove('open');$('overlay').classList.add('hidden');$('missionShelf').hidden=true;
  resize();drawTerrain();last=performance.now();hudCountdown=0;hudUpdate();
  if(stage.requestFullscreen&&!document.fullscreenElement){
@@ -379,6 +384,10 @@ function endScreen(){
 function pause(){
  if(S.mode!=='playing')return;
  S.showPause=!S.showPause;
+ if(S.showPause){
+  S.shopOpen=false;shop.classList.remove('open');
+  joy.x=joy.y=0;joy.ptr=null;keys.clear();pointers.aa=null;pointers.skill=null;aimPreview=null;
+ }
  if(!S.showPause){$('overlay').classList.add('hidden');return}
  $('overlay').classList.remove('hidden','picker-open','hero-open','arsenal-open');$('missionShelf').hidden=true;
  $('modalContent').innerHTML='<div class="eyebrow">FENDA DOS SIGILOS</div><h2>PARTIDA PAUSADA</h2>'+
@@ -407,7 +416,9 @@ function aimData(p){
 function skillStart(e,index){
  if(S.mode!=='playing'||S.showPause||S.shopOpen||pointers.skill||!S.hero||S.hero.hp<=0)return;
  const id=C.heroes[S.hero.id].skills.concat([C.heroes[S.hero.id].ultimate])[index],def=E.skillDef(id);
- if(S.hero.cooldowns[id]>.02||S.hero.energy<def.cost||def.ultimate&&S.hero.level<5)return;
+ if(def.ultimate&&S.hero.level<5){warn('ULTIMATE LIBERADA NO NÍVEL 5');return}
+ if(S.hero.cooldowns[id]>.02){warn('HABILIDADE EM RECARGA');return}
+ if(S.hero.energy<def.cost){warn('ENERGIA INSUFICIENTE');return}
  e.preventDefault();e.stopPropagation();
  if(def.aim==='self'){E.cast(S.hero,id);hudUpdate();return}
  pointers.skill={id,ptr:e.pointerId,sx:e.clientX,sy:e.clientY,x:e.clientX,y:e.clientY,
@@ -425,14 +436,15 @@ function skillEnd(e){
   // Deslizar para o canto superior direito cancela sem consumir energia.
   const cancel=p.dragged&&e.clientX>vw*.77&&e.clientY<vh*.20;
   if(cancel)E.announce('HABILIDADE CANCELADA',1.2);
-  else E.cast(S.hero,p.id,aimData(p));
+  else if(!E.cast(S.hero,p.id,aimData(p)))warn('NÃO FOI POSSÍVEL LANÇAR A HABILIDADE');
  }
  pointers.skill=null;aimPreview=null;
 }
 function aaStart(e){
  if(S.mode!=='playing'||S.shopOpen||S.showPause||!S.hero||S.hero.hp<=0)return;
  e.preventDefault();e.stopPropagation();
- pointers.aa=e.pointerId;E.autoAttack(S.hero);
+ pointers.aa=e.pointerId;
+ if(!E.autoAttack(S.hero))warn(S.hero.attackCd>.01?'ATAQUE BÁSICO RECARREGANDO':'NENHUM ALVO NO ALCANCE');
  try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_){}
 }
 function aaEnd(e){if(pointers.aa===e.pointerId)pointers.aa=null}
@@ -467,8 +479,11 @@ function worldEnd(e){
  $('joy').classList.remove('active');$('joyKnob').style.transform='translate(-50%,-50%)';
 }
 function keyDown(e){
- if(S.mode!=='playing'||S.showPause||S.shopOpen)return;
+ if(S.mode!=='playing')return;
  const k=e.key.toLowerCase();
+ if(k==='p'&&S.shopOpen||k==='escape'&&S.shopOpen){e.preventDefault();toggleShop();return}
+ if(k==='escape'&&S.showPause){e.preventDefault();pause();return}
+ if(S.showPause||S.shopOpen)return;
  if(k==='tab'){
   e.preventDefault();desktopScheme=desktopScheme==='wasd'?'arrows':'wasd';
   keys.clear();clickDestination=null;
@@ -478,16 +493,16 @@ function keyDown(e){
  keys.add(k);
  if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();
  if(e.repeat)return;
- if(k===' '){E.autoAttack(S.hero);return}
+ if(k===' '){if(!E.autoAttack(S.hero))warn('NENHUM ALVO DISPONÍVEL PARA AA');return}
  const slots=desktopScheme==='wasd'?
   {'1':0,'2':1,'3':2,'4':3,q:0,e:2,r:3}:
   {'1':0,'2':1,'3':2,'4':3,q:0,w:1,e:2,r:3};
  const i=slots[k];
  if(i!==undefined){
   const kit=C.heroes[S.hero.id].skills.concat([C.heroes[S.hero.id].ultimate]);
-  E.cast(S.hero,kit[i]);return;
+  if(!E.cast(S.hero,kit[i]))warn('HABILIDADE INDISPONÍVEL OU EM RECARGA');return;
  }
- if(k==='b')E.recall();
+ if(k==='b'){if(!E.recall())warn('RETORNO INDISPONÍVEL');}
  else if(k==='p')toggleShop();
  else if(k==='escape')pause();
 }
