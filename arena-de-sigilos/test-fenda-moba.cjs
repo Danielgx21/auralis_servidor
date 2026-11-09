@@ -22,11 +22,29 @@ const state=E.start('lyria');
 assert.equal(state.units.filter(u=>u.kind==='hero').length,10);
 assert.equal(state.structures.filter(u=>u.kind==='tower').length,18);
 assert.equal(E.LANE_HALF_WIDTH*2,216);
+assert.equal(E.CORE.length,2,'Cada lado tem um Núcleo independente da fonte');
+assert.equal(E.BASE_GATE.length,2,'Saídas próprias das duas equipes');
+for(let side=0;side<2;side++){
+ const fountain=E.HOME[side],nexus=E.CORE[side];
+ assert.ok(distance(fountain,nexus)>250,
+  'A fonte não deve ser sobreposta ao Núcleo');
+ const allGates=E.BASE_GATE[side];
+ for(let lane=0;lane<3;lane++){
+  const gate=side===0?E.PATHS[lane][0]:E.PATHS[lane][E.PATHS[lane].length-1];
+  assert.ok(distance(gate,allGates[lane])<.01,
+   'Cada rota deve chegar ao portão correto da base');
+  assert.ok(E.routeProjection(lane,nexus).distance>92,
+   'O núcleo não pode bloquear o eixo de uma lane');
+ }
+ const ownTowers=state.structures.filter(t=>t.kind==='tower'&&t.side===side);
+ assert.ok(ownTowers.every(t=>distance(t,nexus)>180),
+  'Núcleo demasiado próximo de uma torre');
+}
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=4.8')&&
- html.includes('fenda-team-ai.js?v=4.8')&&
- html.includes('fenda-view.js?v=4.8'),'O site deve carregar todos os sistemas da 4.8.');
+assert.ok(html.includes('fenda-engine.js?v=4.9')&&
+ html.includes('fenda-team-ai.js?v=4.9')&&
+ html.includes('fenda-view.js?v=4.9'),'O site deve carregar todos os sistemas da 4.9.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -97,6 +115,18 @@ for(const camp of state.camps){
  assert.ok(Math.min(...[0,1,2].map(l=>E.routeProjection(l,camp).distance))>=170,
  'Monstro ocupando uma lane: '+camp.id);
 }
+// O cenário deve desenhar uma fonte menor, piso da base e passagens distintas;
+ // não pode continuar com os círculos gigantes de pavimentação antiga.
+const terrainSource=read('fenda-view.js');
+assert.ok(terrainSource.includes('drawBasePaving(g)')&&terrainSource.includes('drawBaseDetails(g)'),
+ 'Plataforma de base não foi desenhada');
+assert.ok(!terrainSource.includes("g.arc(base.x,base.y,176"),
+ 'A rotatória antiga continua aparecendo no mapa');
+assert.ok(terrainSource.includes('Pedra irregular'),
+ 'A lane ainda não usa pavimentação irregular');
+const sourceCss=read('fenda.css');
+assert.ok(sourceCss.includes('.stage.fenda-on .mobile-controls #joy'),
+ 'Joystick não está oculto no modo desktop');
 // Contexto neutro e composição completa: avaliar engage.
 E.start('lyria');
 const allies=state.units.filter(u=>u.kind==='hero'&&u.side===0);
