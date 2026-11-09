@@ -8,7 +8,7 @@ cv.setAttribute('aria-label','Fenda dos Sigilos: mapa MOBA de três rotas');
 stage.insertBefore(cv,stage.firstChild.nextSibling);
 const ctx=cv.getContext('2d',{alpha:false});
 const hud=document.createElement('div');hud.id='fendaHUD';
-hud.innerHTML='<div class="fenda-meta"><div id="fendaTopScore">✦ AZUL 0 × 0 RUBRO</div><div id="fendaGold">✦ 0 OURO</div><div id="fendaTime">00:00</div></div>'+
+hud.innerHTML='<div class="fenda-meta"><button id="fendaScoreBtn" type="button" title="Abrir o placar da partida (TAB)" aria-label="Abrir placar dos dois times"><span id="fendaTopScore">AZUL 0 × 0 RUBRO</span> <span class="fenda-score-icon">☷</span></button><span id="fendaPlayerStats">K/D/A 0/0/0 · FARM 0</span><div id="fendaGold">✦ 0 OURO</div><div id="fendaTime">00:00</div></div>'+
 '<div class="fenda-personal"><div class="fenda-name" id="fendaName">CAMPEÃO · NV 1</div><div class="fenda-bar"><i id="fendaHP"></i></div><div class="fenda-bar mana"><i id="fendaMana"></i><span id="fendaManaText">MANA 320/320</span></div><div class="fenda-bar xp"><i id="fendaXP"></i></div></div>'+
 '<div class="fenda-actions"><button id="fendaShopBtn">⚒ LOJA</button><button id="fendaRecallBtn">⌂ RETORNO</button><button id="fendaPauseBtn">Ⅱ</button></div>'+
 '<button id="fendaTowerBtn" title="Priorizar obelisco no AA" aria-label="Atacar torre ou núcleo com o ataque básico">⬡<small>TORRE</small></button>'+
@@ -16,6 +16,14 @@ hud.innerHTML='<div class="fenda-meta"><div id="fendaTopScore">✦ AZUL 0 × 0 R
 '<div id="fendaInfo">3 ROTAS · DESTRUA O NÚCLEO INIMIGO</div><div id="fendaObjectives">SERPE · TITÃ</div><div id="fendaNotice"></div>'+
 '<button id="fendaWardBtn" aria-label="Colocar sentinela de visão" title="Coloca visão à frente do campeão · Tecla V">◉<small>VISÃO</small><em id="fendaWardCD"></em></button>';
 stage.appendChild(hud);
+const scoreboard=document.createElement('section');scoreboard.id='fendaScoreboard';
+scoreboard.setAttribute('role','dialog');
+scoreboard.setAttribute('aria-label','Placar de jogadores e estatísticas da partida');
+scoreboard.setAttribute('aria-modal','false');
+scoreboard.innerHTML='<div class="fenda-scoreboard-head"><div><strong>PLACAR DA FENDA</strong><small>Equipes · K/D/A · Farm · Ouro · Itens</small></div><button id="fendaScoreClose" type="button" aria-label="Fechar placar">✕</button></div>'+
+ '<div id="fendaScoreboardTeams" class="fenda-scoreboard-teams"></div>'+
+ '<div class="fenda-scoreboard-foot">Toque na pontuação para fechar · TAB no PC</div>';
+stage.appendChild(scoreboard);
 const shop=document.createElement('div');shop.id='fendaShop';
 shop.innerHTML='<div class="fenda-shop-head"><strong>⚒ ARSENAL DO SANTUÁRIO</strong><button id="fendaShopClose">✕</button></div>'+
 '<p>Compre equipamentos com ouro perto da base azul.</p><div class="fenda-shop-gold" id="fendaShopGold"></div>'+
@@ -38,6 +46,7 @@ let fogAt=-1,fogCamX=-99999,fogCamY=-99999;
 const keys=new Set(),joy={ptr:null,x:0,y:0,sx:0,sy:0},pointers={aa:null,skill:null};
 let aimPreview=null,desktopScheme='arrows',clickDestination=null;
 let wardAim=null,cameraPeek=null,cameraPeekUntil=0;
+let scoreboardVisible=false,scoreboardHeld=false,scoreboardLastUpdate=-1;
 let lastWarningAt=-100;
 function warn(text){
  const now=performance.now()/1000;
@@ -309,6 +318,13 @@ function bar(x,y,r,hp,max,side,width=46){
  ctx.fillStyle=side===0?'#79ebc9':'#fb89a3';ctx.fillRect(x-width/2,y-r-20,width*pct,6);
  ctx.strokeStyle='#ddf8dd84';ctx.lineWidth=.8;ctx.strokeRect(x-width/2,y-r-20,width,6);
 }
+function manaBar(x,y,r,mana,max,width=55){
+ // A barra azul acompanha o campeão exatamente abaixo da barra de vida.
+ const pct=clamp((mana||0)/Math.max(1,max),0,1),left=x-width/2,top=y-r-13;
+ ctx.fillStyle='#081729e7';ctx.fillRect(left,top,width,5);
+ ctx.fillStyle='#4d9ced';ctx.fillRect(left,top,width*pct,5);
+ ctx.strokeStyle='#c8d9f180';ctx.lineWidth=.7;ctx.strokeRect(left,top,width,5);
+}
 function drawStructure(o,t){
  if(!visible(o.x,o.y,118))return;
  const x=o.x,y=o.y,col=E.SIDE[o.side],alive=o.hp>0;
@@ -431,6 +447,7 @@ function drawHero(u,t){
  }
  ctx.restore();
  bar(x,y,r+2,u.hp,u.maxHp,u.side,55);
+ manaBar(x,y,r,u.mana,E.maxMana(u),55);
  ctx.save();ctx.textAlign='center';ctx.font='900 10px system-ui';
  ctx.shadowColor='#00111a';ctx.shadowBlur=5;ctx.fillStyle=u.side===0?'#d4fff2':'#ffdde5';
  ctx.fillText((u.controlled?'✦ ':'')+h.name+' · '+u.level,x,y-r-26);ctx.restore();
@@ -655,7 +672,8 @@ function minimap(){
 function hudUpdate(){
  const h=S.hero;if(!h)return;
  const time=Math.floor(S.time);
- $('fendaTopScore').textContent='✦ '+S.kills[0]+' AZUL × '+S.kills[1]+' RUBRO · '+h.kills+'/'+h.deaths+'/'+h.cs+' CS';
+ $('fendaTopScore').textContent='✦ '+S.kills[0]+' AZUL × '+S.kills[1]+' RUBRO';
+ $('fendaPlayerStats').textContent='K/D/A '+h.kills+'/'+h.deaths+'/'+(h.assists||0)+' · FARM '+h.cs;
  $('fendaGold').textContent='✦ '+Math.round(h.gold)+' OURO';
  $('fendaTime').textContent=String(Math.floor(time/60)).padStart(2,'0')+':'+String(time%60).padStart(2,'0');
  $('fendaName').textContent=C.heroes[h.id].name+' · NV '+h.level+(h.hp<=0?' · RESSURGE '+Math.ceil(h.respawn)+'s':'');
@@ -710,7 +728,9 @@ function hudUpdate(){
  wardBtn.disabled=h.hp<=0||h.visionCd>0;
  wardBtn.classList.toggle('available',h.hp>0&&h.visionCd<=0);
  $('fendaWardCD').textContent=h.visionCd>0?Math.ceil(h.visionCd)+'s':'';
-
+ if(scoreboardVisible&&S.time-scoreboardLastUpdate>.42){
+  scoreboardLastUpdate=S.time;renderScoreboard();
+ }
 }
 function shopRender(){
  const h=S.hero;if(!h)return;
@@ -733,7 +753,7 @@ function toggleShop(){
  if(S.shopOpen)shopRender();
 }
 function chooseHero(){
- S.mode='menu';S.shopOpen=false;stage.classList.remove('fenda-on');cv.style.display='none';
+ S.mode='menu';S.shopOpen=false;setScoreboardVisible(false);stage.classList.remove('fenda-on');cv.style.display='none';
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice();
@@ -750,7 +770,7 @@ function chooseHero(){
 }
 function startGame(){
  C.suspendClassic?.();
- E.start(C.getHeroChoice());endedShown=false;clickDestination=null;cameraPeek=null;cameraPeekUntil=0;wardAim=null;keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
+ E.start(C.getHeroChoice());setScoreboardVisible(false);endedShown=false;clickDestination=null;cameraPeek=null;cameraPeekUntil=0;wardAim=null;keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
  shop.classList.remove('open');$('overlay').classList.add('hidden');$('missionShelf').hidden=true;
  resize();drawTerrain();last=performance.now();hudCountdown=0;hudUpdate();
  if(stage.requestFullscreen&&!document.fullscreenElement){
@@ -758,7 +778,7 @@ function startGame(){
  }
 }
 function endScreen(){
- if(endedShown)return;endedShown=true;S.shopOpen=false;shop.classList.remove('open');
+ if(endedShown)return;endedShown=true;setScoreboardVisible(false);S.shopOpen=false;shop.classList.remove('open');
  $('overlay').classList.remove('hidden','arsenal-open','hero-open','picker-open');$('missionShelf').hidden=true;
  $('modalContent').innerHTML='<div class="eyebrow">FENDA DOS SIGILOS</div><h2>'+(S.win===0?'VITÓRIA AZUL!':'DERROTA AZUL')+'</h2>'+
  '<p>'+(S.win===0?'O Núcleo Sigilar rubro foi destruído!':'Os inimigos destruíram seu Núcleo. Reorganize sua equipe e tente novamente.')+'</p>'+
@@ -773,6 +793,7 @@ function pause(){
  if(S.mode!=='playing')return;
  S.showPause=!S.showPause;
  if(S.showPause){
+  setScoreboardVisible(false);
   S.shopOpen=false;shop.classList.remove('open');
   joy.x=joy.y=0;joy.ptr=null;keys.clear();pointers.aa=null;pointers.skill=null;wardAim=null;cameraPeek=null;aimPreview=null;
  }
