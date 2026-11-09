@@ -36,13 +36,27 @@ const art={};
 for(const [key,file] of Object.entries({stone:'stone-paving.svg',
  fountain:'fountain.svg',grass:'grass-ground.svg',tree:'tree-canopy.svg',
  tower:'sigil-tower.svg',core:'nexus-spire.svg',
- rock:'rune-rock.svg',flower:'moonflower-bush.svg',inlay:'base-inlay.svg'})){
+ rock:'rune-rock.svg',flower:'moonflower-bush.svg',inlay:'base-inlay.svg',
+ painted:'painted-sprite-atlas.webp'})){
  const image=new Image();image.decoding='async';
  image.onload=()=>{terrain=null};image.onerror=()=>console.warn('Arte indisponível:',file);
- image.src='art/'+file+'?v=5.5';art[key]=image;
+ image.src='art/'+file+'?v=5.6';art[key]=image;
 }
 const artReady=key=>Boolean(art[key]?.complete&&art[key]?.naturalWidth);
 const artPattern=(g,key)=>artReady(key)?g.createPattern(art[key],'repeat'):null;
+// Pre-made raster artwork, backed by a real WebP file, NOT geometric illustrations.
+const ART_SIZE=256;
+function paintedPattern(g,col,row=0){
+ if(!artReady('painted'))return null;
+ const tile=document.createElement('canvas');tile.width=tile.height=ART_SIZE;
+ tile.getContext('2d').drawImage(art.painted,col*ART_SIZE,row*ART_SIZE,ART_SIZE,ART_SIZE,0,0,ART_SIZE,ART_SIZE);
+ return g.createPattern(tile,'repeat');
+}
+function paintedSprite(g,col,row,x,y,w,h){
+ if(!artReady('painted'))return false;
+ g.drawImage(art.painted,col*ART_SIZE,row*ART_SIZE,ART_SIZE,ART_SIZE,x,y,w,h);
+ return true;
+}
 const fogCanvas=document.createElement('canvas'),fogContext=fogCanvas.getContext('2d');
 let fogAt=-1,fogCamX=-99999,fogCamY=-99999;
 const keys=new Set(),joy={ptr:null,x:0,y:0,sx:0,sy:0},pointers={aa:null,skill:null};
@@ -94,17 +108,12 @@ function drawBasePaving(g){
   bg.addColorStop(1,'#465e55');
   g.fillStyle=bg;g.fill();
   g.save();baseBoundary(g);g.clip();
-  const p=artPattern(g,'stone');
+  const p=paintedPattern(g,0)||artPattern(g,'stone');
   if(p){g.fillStyle=p;g.globalAlpha=.94;g.fillRect(-195,-195,700,580);g.globalAlpha=1;}
   const glaze=g.createLinearGradient(-180,-160,415,305);
   glaze.addColorStop(0,'#b2c1a71b');glaze.addColorStop(1,'#142d2a20');
   g.fillStyle=glaze;g.fillRect(-195,-195,700,580);
-  if(artReady('inlay')){
-   g.save();g.globalAlpha=.69;
-   // Piso rúnico arquitetônico pintado no arquivo, não mosaico gerado por laços.
-   g.drawImage(art.inlay,-237,-183,600,600);
-   g.restore();
-  }
+  // Base visual sem rosácea de SVG gigante: arte já está no pavimento.
   g.restore();
   // Muralha e borda da praça continuam elementos arquitetônicos simples.
   g.strokeStyle='#263f3b';g.lineWidth=13;baseBoundary(g);g.stroke();
@@ -132,7 +141,7 @@ function laneOutline(g,lane,margin){
  g.closePath();
 }
 function drawPaintedLanes(g){
- const p=artPattern(g,'stone');
+ const p=paintedPattern(g,2)||artPattern(g,'stone');
  for(let lane=0;lane<3;lane++){
   for(const [margin,color] of [[12,'#253b3b'],[4,'#4b655f'],[-9,'#768c7f']]){
    laneOutline(g,lane,margin);g.fillStyle=color;g.fill();
@@ -181,26 +190,13 @@ function drawBaseDetails(g){
   g.save();baseSpace(g,side);
   const ux=side===0?core.x-source.x:source.x-core.x;
   const vy=side===0?source.y-core.y:core.y-source.y;
-  // Fonte pintada à mão recortada do atlas (sem HUD nem personagens).
-  if(artReady('fountain')){
-   g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
-   g.drawImage(art.fountain,-106,-106,212,212);
-  }else{
-   g.fillStyle='#183d44';g.beginPath();g.arc(0,0,74,0,TAU);g.fill();
-   g.strokeStyle='#b3c4a7';g.lineWidth=7;g.beginPath();g.arc(0,0,67,0,TAU);g.stroke();
-   g.fillStyle='#67bdbe';g.beginPath();g.arc(0,0,34,0,TAU);g.fill();
+  // Imagem pronta da fonte em escala 1:1, sem círculos gerados em tempo de jogo.
+  if(!paintedSprite(g,2,1,-112,-112,224,224)){
+   if(artReady('fountain'))g.drawImage(art.fountain,-106,-106,212,212);
   }
-  // A base do Núcleo tem seu próprio piso, sem recobrir a fonte.
+  // Plataforma do núcleo: composição com arte raster, sem anéis desenhados.
   g.save();g.translate(ux,vy);
-  g.fillStyle='#233b44';g.beginPath();g.arc(0,0,67,0,TAU);g.fill();
-  g.strokeStyle=side===0?'#83ded2':'#d89fa6';g.lineWidth=6;
-  g.beginPath();g.arc(0,0,61,0,TAU);g.stroke();
-  g.strokeStyle='#d4c9a17c';g.lineWidth=2;
-  for(let a=0;a<8;a++){
-   const p=a*TAU/8;
-   g.beginPath();g.moveTo(Math.cos(p)*39,Math.sin(p)*39);
-   g.lineTo(Math.cos(p)*59,Math.sin(p)*59);g.stroke();
-  }
+  paintedSprite(g,2,1,-68,-68,136,136);
   g.restore();
   // Barreira baixa na borda externa, interrompida antes das saídas das lanes.
   const segments=[
@@ -278,7 +274,6 @@ function drawTerrain(){
   // Solo natural de acesso, sem faixas rodoviárias.
  }
  drawPaintedLanes(g);
- drawLaneCircuitry(g);
  drawBasePaving(g);
  // Plataformas defensivas no ombro da lane, deixando o eixo central livre para a wave.
  for(const t of S.structures){
@@ -875,7 +870,7 @@ function chooseHero(){
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice();
- $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 5.5</div><h2>FENDA DOS SIGILOS</h2>'+
+ $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 5.6</div><h2>FENDA DOS SIGILOS</h2>'+
  '<p>Rotas de curvas suaves, tropas em formação e torres nas laterais. IA de teamfight coordenada: iniciação, proteção, flanco e recuo.</p>'+
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
