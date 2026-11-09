@@ -9,7 +9,7 @@ stage.insertBefore(cv,stage.firstChild.nextSibling);
 const ctx=cv.getContext('2d',{alpha:false});
 const hud=document.createElement('div');hud.id='fendaHUD';
 hud.innerHTML='<div class="fenda-meta"><div id="fendaTopScore">✦ AZUL 0 × 0 RUBRO</div><div id="fendaGold">✦ 0 OURO</div><div id="fendaTime">00:00</div></div>'+
-'<div class="fenda-personal"><div class="fenda-name" id="fendaName">CAMPEÃO · NV 1</div><div class="fenda-bar"><i id="fendaHP"></i></div><div class="fenda-bar mana"><i id="fendaMana"></i></div><div class="fenda-bar xp"><i id="fendaXP"></i></div></div>'+
+'<div class="fenda-personal"><div class="fenda-name" id="fendaName">CAMPEÃO · NV 1</div><div class="fenda-bar"><i id="fendaHP"></i></div><div class="fenda-bar mana"><i id="fendaMana"></i><span id="fendaManaText">MANA 320/320</span></div><div class="fenda-bar xp"><i id="fendaXP"></i></div></div>'+
 '<div class="fenda-actions"><button id="fendaShopBtn">⚒ LOJA</button><button id="fendaRecallBtn">⌂ RETORNO</button><button id="fendaPauseBtn">Ⅱ</button></div>'+
 '<button id="fendaTowerBtn" title="Priorizar obelisco no AA" aria-label="Atacar torre ou núcleo com o ataque básico">⬡<small>TORRE</small></button>'+
 '<canvas id="fendaMinimap" width="220" height="152" aria-label="Minimapa tático"></canvas>'+
@@ -37,6 +37,7 @@ const fogCanvas=document.createElement('canvas'),fogContext=fogCanvas.getContext
 let fogAt=-1,fogCamX=-99999,fogCamY=-99999;
 const keys=new Set(),joy={ptr:null,x:0,y:0,sx:0,sy:0},pointers={aa:null,skill:null};
 let aimPreview=null,desktopScheme='arrows',clickDestination=null;
+let wardAim=null,cameraPeek=null,cameraPeekUntil=0;
 let lastWarningAt=-100;
 function warn(text){
  const now=performance.now()/1000;
@@ -570,10 +571,17 @@ function view(dt){
  if(!terrain)drawTerrain();
  const h=S.hero;
  if(h){
-  const wantX=clamp(h.x-vw*.5,0,Math.max(0,E.W-vw));
-  const wantY=clamp(h.y-vh*.56,0,Math.max(0,E.H-vh));
-  S.camera.x+=(wantX-S.camera.x)*Math.min(1,dt*5);
-  S.camera.y+=(wantY-S.camera.y)*Math.min(1,dt*5);
+  const observing=cameraPeek&&(cameraPeek.ptr!==null||S.time<cameraPeekUntil);
+  const focus=observing?cameraPeek:h;
+  const wantX=clamp(focus.x-vw*.5,0,Math.max(0,E.W-vw));
+  const wantY=clamp(focus.y-vh*.56,0,Math.max(0,E.H-vh));
+  const snap=h.cameraSnapAt&&S.time-h.cameraSnapAt<.23&&!observing;
+  if(snap){S.camera.x=wantX;S.camera.y=wantY;}
+  else{
+   S.camera.x+=(wantX-S.camera.x)*Math.min(1,dt*(observing?18:5));
+   S.camera.y+=(wantY-S.camera.y)*Math.min(1,dt*(observing?18:5));
+  }
+  if(cameraPeek&&cameraPeek.ptr===null&&S.time>=cameraPeekUntil)cameraPeek=null;
  }
  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,vw,vh);
  ctx.save();ctx.translate(-S.camera.x,-S.camera.y);ctx.drawImage(terrain,0,0);
@@ -627,7 +635,8 @@ function hudUpdate(){
  $('fendaTime').textContent=String(Math.floor(time/60)).padStart(2,'0')+':'+String(time%60).padStart(2,'0');
  $('fendaName').textContent=C.heroes[h.id].name+' · NV '+h.level+(h.hp<=0?' · RESSURGE '+Math.ceil(h.respawn)+'s':'');
  $('fendaHP').style.width=(h.hp/h.maxHp*100)+'%';
- $('fendaMana').style.width=(h.energy/(100+h.items.filter(i=>i==='cell').length*30)*100)+'%';
+ $('fendaMana').style.width=(h.mana/E.maxMana(h)*100)+'%';
+ $('fendaManaText').textContent='MANA '+Math.ceil(h.mana)+'/'+E.maxMana(h);
  $('fendaXP').style.width=(h.level<12?h.xp/(42+h.level*24)*100:100)+'%';
  const towerList=S.structures.filter(s=>s.kind==='tower'&&s.hp>0);
  const bossStatus=id=>{
@@ -654,7 +663,7 @@ function hudUpdate(){
   const b=$(['dashBtn','pulseBtn','shieldBtn','ultBtn'][i]),id=kit[i],def=E.skillDef(id),
     lock=def.ultimate&&h.level<5,cd=h.cooldowns[id]||0;
   b.querySelector('b').textContent=def.icon;b.querySelector('small').textContent=lock?'NV 5':def.short;
-  b.classList.toggle('oncd',cd>.03||lock||h.energy<def.cost||h.hp<=0);
+  b.classList.toggle('oncd',cd>.03||lock||h.mana<def.cost||h.hp<=0);
   const el=b.querySelector('.cd-text');el.hidden=cd<=.03&&!lock;el.textContent=lock?'🔒':cd>.03?Math.ceil(cd):'';
  }
  $('fireBtn').querySelector('b').textContent='➤';
@@ -716,7 +725,7 @@ function chooseHero(){
 }
 function startGame(){
  C.suspendClassic?.();
- E.start(C.getHeroChoice());endedShown=false;clickDestination=null;keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
+ E.start(C.getHeroChoice());endedShown=false;clickDestination=null;cameraPeek=null;cameraPeekUntil=0;wardAim=null;keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
  shop.classList.remove('open');$('overlay').classList.add('hidden');$('missionShelf').hidden=true;
  resize();drawTerrain();last=performance.now();hudCountdown=0;hudUpdate();
  if(stage.requestFullscreen&&!document.fullscreenElement){
@@ -772,7 +781,7 @@ function skillStart(e,index){
  const id=C.heroes[S.hero.id].skills.concat([C.heroes[S.hero.id].ultimate])[index],def=E.skillDef(id);
  if(def.ultimate&&S.hero.level<5){warn('ULTIMATE LIBERADA NO NÍVEL 5');return}
  if(S.hero.cooldowns[id]>.02){warn('HABILIDADE EM RECARGA');return}
- if(S.hero.energy<def.cost){warn('ENERGIA INSUFICIENTE');return}
+ if(S.hero.mana<def.cost){warn('MANA INSUFICIENTE');return}
  e.preventDefault();e.stopPropagation();
  if(def.aim==='self'){E.cast(S.hero,id);hudUpdate();return}
  pointers.skill={id,ptr:e.pointerId,sx:e.clientX,sy:e.clientY,x:e.clientX,y:e.clientY,
