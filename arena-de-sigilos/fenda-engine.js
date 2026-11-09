@@ -180,6 +180,15 @@ function damage(victim,amount,source=null){
  const dmg=Math.max(1,Math.round(raw));
  if(state.camps.includes(victim)){damageCreep(victim,dmg,source);return dmg}
  victim.hp=Math.max(0,victim.hp-dmg);victim.lastDamage=state.time;
+ victim.lastAttacker=source||null;
+ if(source&&source.kind==='hero'&&victim.kind==='hero'&&source.side!==victim.side){
+  // Aggro dos obeliscos: atacar um campeão debaixo da torre muda o alvo para o agressor.
+  for(const tower of state.structures){
+   if(tower.hp>0&&tower.side===victim.side&&dist(source,tower)<tower.range+source.r){
+    tower.aggroTarget=source;tower.aggroUntil=state.time+2.5;
+   }
+  }
+ }
  if(victim.recall)victim.recall=0;
  if(victim.casting&&victim.kind==='hero'&&victim.stun>0)victim.casting=null;
  addEffect(victim.x,victim.y,'#f4b5b9',12,.15,'hit');
@@ -272,6 +281,10 @@ function autoAttack(u){
  return true;
 }
 function chooseEnemyForStructure(t){
+ const aggro=t.aggroTarget;
+ if(aggro&&aggro.hp>0&&state.time<(t.aggroUntil||0)&&
+     dist(t,aggro)<t.range+aggro.r)return aggro;
+ t.aggroTarget=null;
  const enemies=living(1-t.side);
  const inRange=enemies.filter(u=>dist(u,t)<t.range+u.r);
  const minions=inRange.filter(u=>u.kind==='minion');
@@ -286,7 +299,7 @@ function structureStep(dt){
   if(t.attackCd>0)continue;
   const target=chooseEnemyForStructure(t);
   if(target){
-   const damageVal=t.kind==='core'?56:61;
+   const damageVal=t.kind==='core'?56:65;
    missile(t,target,damageVal,t.kind==='core'?'core':'tower',470);
    t.attackCd=t.kind==='core'?1.08:1.2;
    addEffect(t.x,t.y,t.side===0?'#82e8ef':'#f3a4b6',t.r+12,.25);
@@ -305,7 +318,7 @@ function moveToward(u,p,dt,speedFactor=1){
 function moveMinion(m,dt){
  if(m.stun>0)return;
  m.senseTimer=(m.senseTimer||0)-dt;
- if(m.senseTimer<=0||!m.aiEnemy||m.aiEnemy.hp<=0||dist(m,m.aiEnemy)>360){
+ if(m.senseTimer<=0||(m.aiEnemy&&(m.aiEnemy.hp<=0||dist(m,m.aiEnemy)>360))){
   m.aiEnemy=laneTarget(m,m.ranged?235:145);
   m.senseTimer=.14+(m.uid%6)*.017;
  }
