@@ -82,7 +82,7 @@ function makeHero(id,side,controlled=false){
  stun:0,slow:0,shield:0,guard:0,invuln:0,marked:0,attackAnim:0,
  vision:350,death:0,respawn:0,recall:0,lastDamage:0,focus:null,
  aiTimer:rando(.6,1.8),kills:0,deaths:0,cs:0,dash:null,
- healthRegen:1.3,homeBuff:0,botLane:roles[id],isRanged:!['vexor','orun'].includes(id)};
+ healthRegen:1.3,homeBuff:0,botLane:roles[id],cs:0,isRanged:!['vexor','orun'].includes(id)};
 }
 function createMinion(side,lane,type=0){
  const p=pathPos(lane,side===0?.007:.993),ranged=type===1,siege=type===2;
@@ -138,7 +138,7 @@ function onDeath(victim,source){
  addEffect(victim.x,victim.y,victim.side===0?'#76e8dc':'#fe9ea8',52,.7,'burst');
  if(victim.kind==='hero'){
   victim.deaths++;victim.respawn=8+Math.round(victim.level*1.4);
-  if(source&&source.side!==victim.side){
+  if(source&&(source.side===0||source.side===1)&&source.side!==victim.side){
    state.kills[source.side]++;
    if(source.kind==='hero'){source.kills++;source.gold+=210;xpGain(source,90);}
   }
@@ -146,7 +146,7 @@ function onDeath(victim,source){
  }else if(victim.kind==='minion'){
   if(source&&source.side!==victim.side){
    const g=source.kind==='hero'?(victim.id==='siege'?80:34):0;
-   if(g){source.gold+=g;if(source.controlled)state.score+=g}
+   if(g){source.gold+=g;source.cs=(source.cs||0)+1;if(source.controlled)state.score+=g}
    grantNearbyXP(victim,victim.side===0?1:0,victim.id==='siege'?28:15);
   }
  }else if(victim.kind==='creep'){
@@ -168,6 +168,7 @@ function damage(victim,amount,source=null){
  if(victim.guard>0){const ab=Math.min(victim.guard,raw);victim.guard-=ab;raw-=ab;}
  if(raw<=0){addEffect(victim.x,victim.y,'#a8d8fe',23,.22);return 0}
  const dmg=Math.max(1,Math.round(raw));
+ if(state.camps.includes(victim)){damageCreep(victim,dmg,source);return dmg}
  victim.hp=Math.max(0,victim.hp-dmg);victim.lastDamage=state.time;
  if(victim.recall)victim.recall=0;
  if(victim.casting&&victim.kind==='hero'&&victim.stun>0)victim.casting=null;
@@ -281,12 +282,28 @@ function moveMinion(m,dt){
 function respawn(u){
  const home=HOME[u.side];
  u.x=home.x+rando(-25,25);u.y=home.y+rando(-25,25);
- u.hp=u.maxHp;u.energy=maxEnergy(u);u.shield=0;u.guard=0;u.casting=null;
+ u.hp=u.maxHp;u.energy=maxEnergy(u);u.shield=0;
+ if(!u.controlled)botShop(u);u.guard=0;u.casting=null;
  u.attackCd=0;u.stun=0;u.slow=0;u.dash=null;u.recall=0;
  u.death=0;u.respawn=0;u.focus=null;u.aiTimer=.5;
  addEffect(u.x,u.y,u.side===0?'#82f0e1':'#f8aac3',85,.62);
 }
+function botShop(u){
+ if(u.controlled||u.hp<=0||u.items.length>=6||dist(u,HOME[u.side])>200)return;
+ const role=u.id;
+ const priority=role==='orun'?['ward','stride','core','lens','cell','prism']:
+  role==='seris'?['cell','core','ward','stride','prism','lens']:
+  role==='lyria'?['lens','stride','prism','core','ward','cell']:
+  role==='nyra'?['prism','core','cell','ward','lens','stride']:
+  ['stride','lens','ward','prism','core','cell'];
+ const item=priority.map(id=>ITEMS.find(i=>i.id===id)).find(i=>i&&!u.items.includes(i.id)&&u.gold>=i.price);
+ if(!item)return;
+ u.items.push(item.id);u.gold-=item.price;
+ if(item.id==='ward'){u.maxHp+=85;u.hp+=85}
+ if(item.id==='cell'){u.maxEnergy=maxEnergy(u);u.energy=Math.min(maxEnergy(u),u.energy+30)}
+}
 function botHero(u,dt){
+ botShop(u);
  if(u.stun>0||u.casting||u.dash)return;
  if(u.hp/u.maxHp<.25&&dist(u,HOME[u.side])>160){
   u.aiRetreat=true;
