@@ -186,7 +186,11 @@ function damage(victim,amount,source=null){
  victim.hp=Math.max(0,victim.hp-dmg);victim.lastDamage=state.time;
  if(victim.kind==='tower'||victim.kind==='core'){
   addEffect(victim.x,victim.y,victim.side===0?'#7cf9d9':'#ffd696',victim.r+10,.29);
-  if(source&&source.controlled)announce('OBELISCO: -'+dmg+' PV · '+Math.ceil(victim.hp)+' RESTANTES',.65);
+  if(source&&source.controlled){
+   announce('OBELISCO: -'+dmg+' PV · '+Math.ceil(victim.hp)+' RESTANTES',.85);
+   state.effects.push({x:victim.x,y:victim.y-victim.r-15,r:20,
+    value:dmg,color:'#ffe7a4',life:1.0,maxLife:1.0,kind:'damageNumber'});
+  }
  }
  victim.lastAttacker=source||null;
  if(source&&source.kind==='hero'&&victim.kind==='hero'&&source.side!==victim.side){
