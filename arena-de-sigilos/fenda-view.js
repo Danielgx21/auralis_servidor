@@ -478,8 +478,11 @@ function hudUpdate(){
  const blueBuff=S.teamBuffs[0],buffNames=[];
  if(blueBuff.serpe>S.time)buffNames.push('SERPE '+Math.ceil(blueBuff.serpe-S.time)+'s');
  if(blueBuff.titan>S.time)buffNames.push('TITÃ '+Math.ceil(blueBuff.titan-S.time)+'s');
+ const tactic=S.teamAI?.[0];
+ const tacticalLabel=tactic&&E.dist(h,tactic.center)<570?
+   (tactic.mode==='engage'?' · TIME: AVANÇAR':tactic.mode==='retreat'?' · TIME: RECUAR':' · TIME: PROTEGER'):'';
  $('fendaObjectives').textContent='SERPE '+bossStatus('serpe')+' · TITÃ '+bossStatus('titan')+
-   (buffNames.length?' · BÊNÇÃO '+buffNames.join(' / '):'');
+   (buffNames.length?' · BÊNÇÃO '+buffNames.join(' / '):'')+tacticalLabel;
  const towers=towerList;
  $('fendaInfo').textContent='OBELISCOS · AZUL '+towers.filter(t=>t.side===0).length+
    ' / RUBRO '+towers.filter(t=>t.side===1).length+' · '+h.cs+' tropas';
@@ -538,11 +541,11 @@ function chooseHero(){
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice();
- $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 4.4</div><h2>FENDA DOS SIGILOS</h2>'+
- '<p>Três rotas, tropas, obeliscos e grandes objetivos na selva. Explore a névoa, esconda-se nas moitas, instale sentinelas de visão e derrube os Núcleos.</p>'+
+ $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 4.5</div><h2>FENDA DOS SIGILOS</h2>'+
+ '<p>Três rotas, tropas, obeliscos e grandes objetivos na selva. IA 5×5 coordenada: o tanque inicia, o assassino flanqueia e a retaguarda protege os carregadores.</p>'+
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
- '<div class="teamfight-tip">5×5 com IA · 3 rotas · névoa de guerra · moitas · visão (V) · jungle e ganks · buffs da Serpe e do Titã · loja · ouro e XP.</div>'+
+ '<div class="teamfight-tip">5×5 com IA tática · composição de equipe · foco conjunto · recuo e iniciação · névoa de guerra · jungle e ganks · objetivos · loja e XP.</div>'+
  '<div class="actions" style="margin-top:10px"><button class="primary" id="playFenda">▶ JOGAR FENDA 5×5</button><button class="secondary" id="playClassic">MODO ARENA RÁPIDA</button></div>'+
  '<p style="font-size:10px;margin:9px 0 0">Celular: joystick e Q/W/E/R. PC: clique direito para andar, Q/W/E/R habilidades, Espaço AA. B retorno, P loja, V sentinela de visão. TAB alterna para WASD + 1/2/3/4.</p>';
  for(const b of $('modalContent').querySelectorAll('[data-hero]'))b.onclick=()=>{C.setHeroChoice(b.dataset.hero);chooseHero()};
