@@ -12,7 +12,7 @@ const LANE_HALF_WIDTH=108,LANE_MINION_SPREAD=26;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const norm=(x,y)=>{const n=Math.hypot(x,y)||1;return{x:x/n,y:y/n}};
 const SIDE=['#69e6e4','#ed829e'];
-const HOME=[{x:220,y:1680},{x:2530,y:220}];
+const HOME=[{x:185,y:1720},{x:2565,y:180}];
 const CORE=[{x:360,y:1530},{x:2390,y:370}];
 const TOP_PATH=[
  {x:380,y:1320},{x:390,y:1080},{x:390,y:790},{x:390,y:500},
