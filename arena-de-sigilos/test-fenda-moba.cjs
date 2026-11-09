@@ -42,9 +42,9 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=5.2')&&
- html.includes('fenda-team-ai.js?v=5.2')&&
- html.includes('fenda-view.js?v=5.2'),'O site deve carregar todos os sistemas da 5.0.');
+assert.ok(html.includes('fenda-engine.js?v=5.3')&&
+ html.includes('fenda-team-ai.js?v=5.3')&&
+ html.includes('fenda-view.js?v=5.3'),'O site deve carregar todos os sistemas da 5.0.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -150,6 +150,63 @@ assert.ok(sourceCss.includes('.stage.fenda-on .mobile-controls #joy'),
 assert.ok(sourceCss.includes('@media (hover:none), (pointer:coarse)')&&
  sourceCss.includes('.stage.fenda-on #fireBtn {display:flex!important;pointer-events:auto!important;}'),
  'Ataque básico deve continuar visível e acionável no celular');
+// Fenda 5.3: AA proporcional à lane, habilidades e reserva de mana real.
+E.start('lyria');
+const rangeHero=state.hero;
+assert.equal(E.attackRange(rangeHero),173,'AA de Lyria em escala reduzida');
+assert.ok(E.attackRange(rangeHero)<E.LANE_HALF_WIDTH*2,'AA não pode superar a largura da rota');
+assert.equal(E.skillDef('lyria_pierce').range,345);
+assert.equal(E.skillDef('lyria_rain').range,212);
+assert.equal(E.skillDef('nyra_bolt').range,341);
+assert.equal(E.skillDef('seris_bloom').range,211);
+assert.equal(E.WARD_RANGE,280);
+assert.equal(rangeHero.mana,320);
+assert.equal(E.maxMana(rangeHero),320);
+const manaCost=E.skillDef('lyria_pierce').cost;
+assert.equal(E.cast(rangeHero,'lyria_pierce'),true);
+assert.equal(rangeHero.mana,320-manaCost,'Casting não está gastando mana');
+rangeHero.mana=0;
+assert.equal(E.cast(rangeHero,'lyria_rain'),false,'Habilidade foi usada com mana zero');
+assert.ok(view.includes("$('fendaManaText').textContent='MANA '"),
+ 'Exibir mana em números no HUD');
+// Ward arrastável, alcance definido e campo de visão ativado.
+E.start('lyria');
+const wardHero=state.hero;wardHero.x=950;wardHero.y=920;
+assert.equal(E.placeWard(wardHero,wardHero.x+350,wardHero.y).ok,false);
+assert.equal(E.placeWard(wardHero,wardHero.x+270,wardHero.y).ok,true);
+assert.ok(E.isPointVisible(0,{x:wardHero.x+490,y:wardHero.y}),
+ 'Visão de ward não deve depender do alcance do herói');
+// Visão compartilhada por campeões, tropas e torres, não apenas pelo jogador.
+E.start('lyria');E.makeWave();
+const friendMinion=state.units.find(u=>u.side===0&&u.kind==='minion');
+friendMinion.x=1620;friendMinion.y=870;E.refreshVision(true);
+assert.ok(state.sight[0].some(s=>s.x===friendMinion.x&&s.y===friendMinion.y),
+ 'Tropa não está contribuindo com visão de equipe');
+assert.ok(E.isPointVisible(0,{x:friendMinion.x+115,y:friendMinion.y}),
+ 'A tropa não ilumina seu entorno');
+const towerVision=state.structures.find(o=>o.side===0&&o.kind==='tower');
+assert.ok(state.sight[0].some(s=>s.x===towerVision.x&&s.y===towerVision.y),
+ 'Torre não contribui com visão de equipe');
+assert.ok(view.includes("fogContext.globalCompositeOperation='destination-out'")&&
+ view.includes('for(const src of S.sight[0]||[])'),
+ 'A névoa não remove o sombreado de cada fonte aliada');
+// Regressão: recall negativo (truthy) bloqueava para sempre a movimentação.
+E.start('lyria');
+const recalled=state.hero;recalled.x=1040;recalled.y=900;
+assert.equal(E.recall(),true);
+for(let i=0;i<73;i++)E.step(.05,{x:0,y:0});
+assert.equal(recalled.recall,0,'O retorno deixou um tempo negativo ativo');
+assert.ok(distance(recalled,E.HOME[0])<95,'Retorno para o ponto da fonte');
+const beforeWalk={x:recalled.x,y:recalled.y};
+for(let i=0;i<42;i++)E.step(.05,{x:1,y:0});
+assert.ok(distance(recalled,beforeWalk)>95,'Jogador permanece preso após retornar');
+assert.ok(recalled.cameraSnapAt>0,'Câmera não recentra após retorno');
+assert.ok(view.includes('cameraPeek')&&view.includes("mm.addEventListener('pointermove',minimapMove)"),
+ 'Minimapa não permite visualizar ao tocar/arrastar');
+assert.ok(view.includes('wardPoint(wardAim)')&&view.includes('wardStart')&&
+ view.includes('wardEnd'),'Sentinela não permite segurar e posicionar');
+assert.ok(css.includes('touch-action:none;user-select:none'),
+ 'Minimapa não libera arraste touch');
 // Contexto neutro e composição completa: avaliar engage.
 E.start('lyria');
 const allies=state.units.filter(u=>u.kind==='hero'&&u.side===0);
