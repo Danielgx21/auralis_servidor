@@ -1407,7 +1407,9 @@ function tickUnit(u,dt){
   u.hp=Math.min(u.maxHp,u.hp+dt*(dist(u,HOME[u.side])<150?24:1.15+
    (state.teamBuffs[u.side].serpe>state.time?1.65:0)));
   if(u.recall>0){
-   if(u.controlled){u.recall-=dt;if(u.recall<=0){const home=HOME[u.side];
+   if(u.controlled){u.recall-=dt;if(u.recall<=0){
+     u.recall=0; // Um tempo negativo ainda é truthy em JS e bloqueava os controles.
+     const home=HOME[u.side];
      const direction=u.side===0?1:-1;
      u.x=home.x+direction*38;u.y=home.y-direction*33;
      pushOutsideSolids(u);
