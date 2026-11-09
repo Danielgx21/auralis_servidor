@@ -822,6 +822,13 @@ function aoe(x,y,r,damageVal,source,stun=0,slow=0){
  }
  return hits;
 }
+// Colisão contínua: não depende de o projétil terminar exatamente sobre o alvo.
+function segmentHit(ax,ay,bx,by,cx,cy,r){
+ const dx=bx-ax,dy=by-ay,den=dx*dx+dy*dy;
+ const t=den>0?clamp(((cx-ax)*dx+(cy-ay)*dy)/den,0,1):0;
+ const px=ax+dx*t,py=ay+dy*t;
+ return (px-cx)*(px-cx)+(py-cy)*(py-cy)<=r*r?t:null;
+}
 function tickProjectiles(dt){
  const arr=state.projectiles;
  for(const p of arr){
@@ -834,13 +841,37 @@ function tickProjectiles(dt){
     p.x=p.target.x;p.y=p.target.y;p.life=0;damage(p.target,p.damage,p.source);
    }else{p.x+=dx/d*step;p.y+=dy/d*step}
   }else if(p.kind==='skillline'){
-   const px=p.x,py=p.y;
-   p.x+=p.vx*dt;p.y+=p.vy*dt;p.travel+=Math.hypot(p.x-px,p.y-py);
-   const foe=living(1-p.side).find(u=>Math.hypot(u.x-p.x,u.y-p.y)<u.r+p.r);
-   const creep=state.camps.find(c=>c.hp>0&&(!c.unlock||state.time>=c.unlock)&&dist(c,p)<p.r+26);
-   if(foe){damage(foe,p.damage,p.source);foe.stun=Math.max(foe.stun,p.stun||0);foe.slow=Math.max(foe.slow,p.slow||0);p.life=0;}
-   else if(creep){damageCreep(creep,p.damage,p.source);p.life=0}
-   else if(p.travel>p.range)p.life=0;
+   const ax=p.x,ay=p.y,bx=p.x+p.vx*dt,by=p.y+p.vy*dt;
+   const length=Math.hypot(bx-ax,by-ay),remaining=Math.max(0,p.range-p.travel);
+   const fraction=length>0?Math.min(1,remaining/length):1;
+   const endX=ax+(bx-ax)*fraction,endY=ay+(by-ay)*fraction;
+   let first=null,firstT=Infinity;
+   for(const u of living(1-p.side)){
+    const hit=segmentHit(ax,ay,endX,endY,u.x,u.y,u.r+p.r);
+    if(hit!==null&&hit<firstT){firstT=hit;first={kind:'unit',target:u}}
+   }
+   for(const c of state.camps){
+    if(c.hp<=0||c.unlock&&state.time<c.unlock)continue;
+    const hit=segmentHit(ax,ay,endX,endY,c.x,c.y+(c.hover||0),28+p.r);
+    if(hit!==null&&hit<firstT){firstT=hit;first={kind:'creep',target:c}}
+   }
+   // Rochas e árvores interceptam feitiços, mas não roubam a mira de AA travado.
+   for(const o of nearSolids(ax,ay,length+35)){
+    if(o.kind!=='rock'&&o.kind!=='tree')continue;
+    const hit=segmentHit(ax,ay,endX,endY,o.x,o.y,o.r+p.r*.60);
+    if(hit!==null&&hit<firstT){firstT=hit;first={kind:'terrain',target:o}}
+   }
+   p.x=first?ax+(endX-ax)*firstT:endX;
+   p.y=first?ay+(endY-ay)*firstT:endY;
+   p.travel+=Math.hypot(p.x-ax,p.y-ay);
+   if(first){
+    if(first.kind==='unit'){
+     damage(first.target,p.damage,p.source);
+     first.target.stun=Math.max(first.target.stun,p.stun||0);
+     first.target.slow=Math.max(first.target.slow,p.slow||0);
+    }else if(first.kind==='creep')damageCreep(first.target,p.damage,p.source);
+    addEffect(p.x,p.y,p.color,p.r+14,.23,'hit');p.life=0;
+   }else if(p.travel>=p.range-.01)p.life=0;
   }else{
    const dx=p.tx-p.x,dy=p.ty-p.y,d=Math.hypot(dx,dy)||1,step=p.speed*dt;
    if(d<=step+7){
