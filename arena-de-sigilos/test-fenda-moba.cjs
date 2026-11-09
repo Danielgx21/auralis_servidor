@@ -42,9 +42,9 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=5.9')&&
- html.includes('fenda-team-ai.js?v=5.9')&&
- html.includes('fenda-view.js?v=5.9'),'O site deve carregar todos os sistemas da 5.0.');
+assert.ok(html.includes('fenda-engine.js?v=6.0')&&
+ html.includes('fenda-team-ai.js?v=6.0')&&
+ html.includes('fenda-view.js?v=6.0'),'O site deve carregar todos os sistemas da 5.0.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -109,54 +109,55 @@ assert.equal(player.commandTarget,null,'Comando de ataque não cancelado');
 // Espaçamento e posicionamento estrutural: a torre deve permanecer fora da pista.
 E.start('lyria');
 for(const t of state.structures.filter(o=>o.kind==='tower')){
- assert.ok(E.routeProjection(t.lane,t).distance>=119,'Torre sobre a rota: '+t.id);
+ assert.ok(E.routeProjection(t.lane,t).distance>=60,'Torre bloqueia o centro da rota: '+t.id);
 }
 for(const camp of state.camps){
  assert.ok(Math.min(...[0,1,2].map(l=>E.routeProjection(l,camp).distance))>=170,
  'Monstro ocupando uma lane: '+camp.id);
 }
-// Fenda 5.9: mapa do mesmo estilo da Teamfight, sem imagens pré-renderizadas.
+// Fenda 6.0: imagem aprovada é o cenário integral, não um mosaico ou simulação.
 const terrainSource=read('fenda-view.js');
-assert.ok(terrainSource.includes('function drawTerrain(){')&&
- terrainSource.includes('function techPolygon(g,x,y,r,sides=6')&&
- terrainSource.includes('function techRoute(g,points)')&&
- terrainSource.includes('function techObstacle(g,o)')&&
- terrainSource.includes('function techBase(g,side)'),
- 'Fenda deve usar formas nativas de Canvas, como a Arena Teamfight');
-assert.ok(terrainSource.includes('const pts=E.ROUTE_PATHS[lane]')&&
- terrainSource.includes('techRoute(g,pts);')&&
- terrainSource.includes("for(let lane=0;lane<3;lane++)"),
- 'O mapa deve desenhar três lanes contínuas e coerentes com a física');
-assert.ok(terrainSource.includes("for(let side=0;side<2;side++)techBase(g,side);")&&
- terrainSource.includes('const home=E.HOME[side],core=E.CORE[side]'),
- 'Duas bases separadas e proporcionais ao mapa');
-assert.ok(terrainSource.includes('for(const o of S.obstacles)techObstacle(g,o);'),
- 'Cada obstáculo do cenário deve ser um obstáculo verdadeiro do motor');
-assert.ok(terrainSource.includes('for(const camp of S.camps)')&&
- terrainSource.includes('for(const b of S.brushes)'),
- 'Os acampamentos e campos de camuflagem continuam representados');
-assert.ok(!terrainSource.includes('new Image(')&&
- !terrainSource.includes('artReady(')&&
- !terrainSource.includes('paintedSprite(')&&
- !terrainSource.includes('drawImage(art.'),
- 'Não carregar imagens de fundo nem estruturas prontas na versão Teamfight');
+assert.ok(terrainSource.includes("MAP_ART.src='art/fenda-6-0-map-full.webp?v=6.0'"),
+ 'A imagem específica aprovada não está carregada no jogo');
+assert.ok(terrainSource.includes('MAP_ART.onload=()=>{mapArtReady=true;terrain=null;}'),
+ 'O canvas precisa redesenhar o terreno quando a imagem terminar de carregar');
+assert.ok(terrainSource.includes("if(mapArtReady&&MAP_ART.naturalWidth)")&&
+ terrainSource.includes('g.drawImage(MAP_ART,0,0,E.W,E.H);')&&
+ terrainSource.includes('terrain=c;return;'),
+ 'O fundo deve ser desenhado com uma imagem única e inteira');
+assert.ok(terrainSource.includes('const hpYOffset=isCore?79:53')&&
+ terrainSource.includes('A torre e o Núcleo JÁ ESTÃO NA IMAGEM'),
+ 'Não duplicar torre ou Núcleo sobre os elementos já pintados');
+assert.ok(terrainSource.includes("if(o.hp<=0)")&&
+ terrainSource.includes("circle(o.x,o.y,45,'#0b1a2c'"),
+ 'A destruição das torres precisa ser visível sobre a imagem');
 assert.ok(terrainSource.includes('function drawHero(u,t){')&&
- terrainSource.includes('function drawMinion(u,t){')&&
- terrainSource.includes('function drawStructure(o,t){'),
- 'Personagens, tropas e construções continuam independentes e interativos');
+ terrainSource.includes('function drawMinion(u,t){'),
+ 'Manter as artes dos personagens e tropas originais');
+// As três rotas e as bases precisam se localizar exatamente sobre a arte.
+assert.ok(read('fenda-engine.js').includes('const PATH_PIXELS=')&&
+ read('fenda-engine.js').includes('const TOWER_PIXELS=')&&
+ read('fenda-engine.js').includes('const mapPoint=(x,y)=>'),
+ 'Geometria do motor não está coordenada com a arte');
 E.start('lyria');
-assert.equal(state.obstacles.length,32,'Cenário continua com 32 obstáculos físicos');
-for(let i=0;i<state.obstacles.length;i+=2){
- const a=state.obstacles[i],b=state.obstacles[i+1];
- assert.ok(Math.abs(a.x+b.x-E.W)<.001&&Math.abs(a.y+b.y-E.H)<.001,
-  'Obstáculos devem continuar em pares simétricos');
- assert.equal(a.kind,b.kind);
-}
+assert.equal(state.structures.filter(s=>s.kind==='tower').length,18);
+assert.ok(state.obstacles.length>=8&&state.obstacles.length<=20,
+ 'Objetos físicos demais ou poucos para as rochas que aparecem no mapa');
 assert.equal(state.brushes.length,6);
 for(let i=0;i<6;i+=2){
  const a=state.brushes[i],b=state.brushes[i+1];
- assert.ok(Math.abs(a.x+b.x-E.W)<.001&&Math.abs(a.y+b.y-E.H)<.001&&a.r===b.r,
-  'Campos devem continuar simétricos');
+ assert.ok(Math.abs(a.x+b.x-E.W)<1.1&&Math.abs(a.y+b.y-E.H)<1.1&&a.r===b.r,
+  'Campos de camuflagem precisam ser simétricos');
+}
+const mapped=(x,y)=>({x:Math.round(x*E.W/1448),y:Math.round(y*E.H/1086)});
+assert.ok(distance(E.CORE[0],mapped(183,853))<2&&
+ distance(E.CORE[1],mapped(1217,150))<2,
+ 'Núcleos precisam coincidir com os cristais centrais da imagem');
+assert.ok(distance(E.PATHS[1][3],mapped(720,539))<2,
+ 'A rota central não segue a passagem horizontal da imagem');
+for(const s of state.structures.filter(x=>x.kind==='tower')){
+ assert.ok(E.routeProjection(s.lane,s).distance>=60,
+  'Torre bloqueia o centro da rota: '+s.id);
 }
 const sourceCss=read('fenda.css');
 assert.ok(sourceCss.includes('.stage.fenda-on .mobile-controls #joy'),
