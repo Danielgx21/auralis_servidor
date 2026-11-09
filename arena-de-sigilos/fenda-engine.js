@@ -14,10 +14,14 @@ const JUNGLE_LINKS=[
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const norm=(x,y)=>{const n=Math.hypot(x,y)||1;return{x:x/n,y:y/n}};
 const SIDE=['#69e6e4','#ed829e'],HOME=[{x:205,y:1675},{x:2545,y:210}];
+// A fonte de surgimento e o Núcleo são estruturas espacialmente distintas.
+const CORE=[{x:390,y:1415},{x:2360,y:485}];
+const BASE_GATE=[[{x:255,y:1510},{x:345,y:1580},{x:365,y:1735}],
+                 [{x:2445,y:265},{x:2410,y:330},{x:2505,y:390}]];
 const PATHS=[
- [{x:230,y:1640},{x:235,y:1280},{x:235,y:790},{x:255,y:440},{x:435,y:248},{x:1090,y:245},{x:1770,y:245},{x:2470,y:235}],
- [{x:240,y:1645},{x:640,y:1360},{x:1070,y:1060},{x:1540,y:725},{x:2040,y:385},{x:2475,y:235}],
- [{x:240,y:1645},{x:780,y:1645},{x:1450,y:1645},{x:2050,y:1640},{x:2470,y:1510},{x:2480,y:1080},{x:2480,y:600},{x:2475,y:235}]
+ [{x:255,y:1510},{x:235,y:1280},{x:235,y:790},{x:255,y:440},{x:435,y:248},{x:1090,y:245},{x:1770,y:245},{x:2445,y:265}],
+ [{x:345,y:1580},{x:640,y:1360},{x:1070,y:1060},{x:1540,y:725},{x:2040,y:385},{x:2410,y:330}],
+ [{x:365,y:1735},{x:780,y:1645},{x:1450,y:1645},{x:2050,y:1640},{x:2470,y:1510},{x:2480,y:1080},{x:2480,y:600},{x:2505,y:390}]
 ];
 const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1};
 const ITEMS=[
@@ -183,13 +187,14 @@ function buildMap(){
   {id:'thicket-n',x:1920,y:670,r:112},{id:'thicket-s',x:1900,y:1190,r:115}
  ];
  for(let side=0;side<2;side++){
-  const base=HOME[side];
-  state.structures.push({kind:'core',side,x:base.x,y:base.y,maxHp:1850,hp:1850,r:56,atk:53,range:375,attackCd:0,id:'core'+side});
+  const base=CORE[side];
+  state.structures.push({kind:'core',side,x:base.x,y:base.y,maxHp:1850,hp:1850,r:46,atk:53,range:375,attackCd:0,id:'core'+side});
   for(let lane=0;lane<3;lane++){
    // tier 1: externa, mais próxima do meio; tier 2: intermediária; tier 3: interna.
    // A ordem física precisa acompanhar a ordem de vulnerabilidade das torres.
    // A torre externa rubra da rota inferior deve ficar depois da curva, fora do corredor.
-   const fractions=side===0?[.37,.23,.095]:(lane===2?[.67,.77,.905]:[.63,.77,.905]);
+   const fractions=side===0?(lane===0?[.37,.23,.14]:[.37,.23,.095]):
+    (lane===2?[.67,.77,.86]:[.63,.77,.905]);
    for(let i=0;i<fractions.length;i++){
     // Defesa no ombro da rota: a onda passa pelo eixo livre da lane.
     const t=fractions[i],p=pathPos(lane,t);
@@ -237,7 +242,7 @@ function buildMap(){
     return Math.hypot(x-a.x-t*dx,y-a.y-t*dy)<r+40;
   });
   if(onRoad(x,y,r+LANE_HALF_WIDTH+15)||onJunglePath||
-     HOME.some(h=>Math.hypot(h.x-x,h.y-y)<210)||
+     HOME.some(h=>Math.hypot(h.x-x,h.y-y)<230)||
      state.structures.some(t=>Math.hypot(t.x-x,t.y-y)<r+t.r+53)||
      state.camps.some(c=>Math.hypot(c.x-x,c.y-y)<r+115)||
      state.obstacles.some(o=>Math.hypot(o.x-x,o.y-y)<r+o.r+25))continue;
@@ -1477,7 +1482,7 @@ function recall(){
  addEffect(p.x,p.y,'#c5ecfa',70,3.2,'recall');
  return true;
 }
-window.FendaEngine={state,W,H,TAU,HOME,PATHS,SIDE,ITEMS,hData,skillDef,
+window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,hData,skillDef,
  start,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,isAttackCommandValid,buyItem,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
 })();
