@@ -270,7 +270,7 @@ const itemDefs={
  ward:{name:'Couraça Rúnica',icon:'⬡',desc:'Aumenta a vida máxima em cada duelo.',unlock:0},
  stride:{name:'Botas do Vento',icon:'➤',desc:'Mais velocidade para desviar de tiros.',unlock:1},
  cell:{name:'Capacitor',icon:'ϟ',desc:'Recupera energia mais rapidamente.',unlock:2},
- prism:{name:'Prisma',icon:'◇',desc:'Faz um disparo ricochetear uma vez nos pilares.',unlock:3},
+ prism:{name:'Prisma',icon:'◇',desc:'Após um ataque básico certeiro, o projétil salta para outro adversário próximo.',unlock:3},
  core:{name:'Núcleo Ágil',icon:'✦',desc:'Reduz a recarga de todas as habilidades.',unlock:4}
 };
 let arsenal={credits:45,skillLevels:{},itemLevels:{},items:['lens','ward']},arsenalTab='items',itemSlot=0;
@@ -411,7 +411,7 @@ function createUnit(heroId,team,index,controlled=false){
   x:spawnX+rnd(-8,8),y:spawnY+rnd(-5,5),r:melee?(heroId==='orun'?19:17):15,
   hp,maxHp:hp,damage:Math.round(h.damage*(controlled?1:.70)*(team===1?1+selected*.05:1)),
   speed:h.move*(team===1?1+selected*.006:1),range:unitRange({heroId}),vx:0,vy:0,angle:team===0?0:Math.PI,
-  energy:100,maxEnergy:100,shoot:rnd(.25,.95),windup:0,windupTarget:null,
+  energy:100,maxEnergy:100,shoot:controlled?0:rnd(.25,.95),windup:0,windupTarget:null,
   cool:Object.fromEntries(h.skills.map(id=>[id,controlled?0:rnd(1.7,3.4)])),casting:null,aiGoal:null,focusTime:0,
   hit:0,shield:0,barrier:0,invuln:0,dash:0,dashVx:0,dashVy:0,dashSkill:null,
   stun:0,slowTimer:0,marked:0,markBonus:0,empowered:false,hitCombo:0,attackAnim:0,
@@ -492,7 +492,7 @@ function renderArsenal(){
   const lvl=itemLevel(id);
   return {lens:'+'+2*lvl+' dano básico',ward:'+'+(10+10*lvl)+' PV',
    stride:'+'+(4.5*lvl).toFixed(1)+'% movimento',cell:'+'+12*lvl+'% energia',
-   prism:'1 ricochete · +'+2*lvl+' dano',core:'-'+(6*lvl).toFixed(1)+'% recarga'}[id];
+   prism:'1 salto em inimigos · +'+2*lvl+' dano',core:'-'+(6*lvl).toFixed(1)+'% recarga'}[id];
  };
  const fixed=isSkill?heroSkillIds().map((id,i)=>'<div class="fixed-skill">PODER '+(i+1)+'<small>'+skillDefs[id].name+'</small><span>FIXO</span></div>').join(''):
   slots.map((id,i)=>'<button data-action="slot" data-index="'+i+'" class="'+(itemSlot===i?'selected':'')+'">ITEM '+(i+1)+'<small>'+itemDefs[id].name+'</small></button>').join('');
@@ -652,7 +652,7 @@ function shootPlayer(_dir){
    x:spawnX,y:spawnY,vx:dir.x*speed,vy:dir.y*speed,
    r:h.role==='MAGA'?6.5:5.3,life:6,lockedTarget:target,homing:true,
    speed,side:'player',team:0,source:player,heroId:player.heroId,damage,
-   bounces:0,color:empowered?'#ffdf98':h.color,trail:[]
+   bounces:0,chain:equippedItem('prism')?1:0,color:empowered?'#ffdf98':h.color,trail:[]
   });
   burst(spawnX,spawnY,h.color,6,70);
   tone(player.heroId==='nyra'?520:420,.065,'triangle',.026);
@@ -1432,6 +1432,19 @@ function tick(dt){
     b.x=target.x;b.y=target.y;b.life=0;
     if(b.source===player)onBasicHit(b.damage,target);
     else damageUnit(target,b.damage,b.source||null);
+    if(b.chain>0&&mode==='playing'){
+     const next=living(b.team===0?1:0)
+      .filter(u=>u!==target&&dist(u,target)<=160)
+      .sort((a,b)=>dist(a,target)-dist(b,target))[0];
+     if(next){
+      const d=unit(next.x-target.x,next.y-target.y),speed=(b.speed||500)*1.13;
+      bullets.push({x:target.x,y:target.y,vx:d.x*speed,vy:d.y*speed,
+       r:4.3,life:6,lockedTarget:next,homing:true,speed,side:b.side,team:b.team,
+       source:b.source,heroId:b.heroId,damage:Math.round(6+4*itemLevel('prism')),
+       color:'#d7f9ef',trail:[],chain:0,bounces:0});
+      addWave(target.x,target.y,22,.24,'#b6fff1',1.8);
+     }
+    }
    }else{
     b.x+=vector.x*step;b.y+=vector.y*step;
     b.trail.push({x:b.x,y:b.y});if(b.trail.length>6)b.trail.shift();
