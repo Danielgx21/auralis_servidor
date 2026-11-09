@@ -53,8 +53,13 @@ function baseSpace(g,side){
 function baseBoundary(g){
  const pts=[[-170,-88],[-135,-156],[70,-174],[245,-146],[395,-40],
   [414,116],[305,260],[145,317],[-35,302],[-169,174]];
- g.beginPath();
- pts.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));
+ // Curva contínua de muralha/pátio, sem o contorno poligonal da versão anterior.
+ const last=pts[pts.length-1],first=pts[0];
+ g.beginPath();g.moveTo((last[0]+first[0])*.5,(last[1]+first[1])*.5);
+ for(let i=0;i<pts.length;i++){
+  const p=pts[i],n=pts[(i+1)%pts.length];
+  g.quadraticCurveTo(p[0],p[1],(p[0]+n[0])*.5,(p[1]+n[1])*.5);
+ }
  g.closePath();
 }
 function drawBasePaving(g){
@@ -67,18 +72,34 @@ function drawBasePaving(g){
   stone.addColorStop(.76,'#84958a');stone.addColorStop(1,'#425b56');
   g.fillStyle=stone;g.fill();
   g.save();baseBoundary(g);g.clip();
-  // Placas de pedra irregulares: transições orgânicas, não asfalto com faixa central.
-  for(let iy=-3;iy<8;iy++)for(let ix=-4;ix<11;ix++){
-   const x=ix*51+(iy%2)*25,y=iy*49+((ix*13)%9);
-   const n=(ix*29+iy*19+91)%7;
-   g.fillStyle=n%3===0?'#d4d0b41a':n%3===1?'#193f421c':'#faf0cb0d';
-   g.fillRect(x+3,y+2,45+(n%3),43);
-   g.strokeStyle='#142e334a';g.lineWidth=2;
-   g.strokeRect(x+4,y+3,45+(n%3),42);
-   if(n%4===0){
-    g.strokeStyle='#a4c2aa4b';g.beginPath();
-    g.moveTo(x+10,y+16);g.lineTo(x+25,y+26);g.lineTo(x+38,y+23);g.stroke();
+  // Mosaico radial de lajes: juntas em arcos e placas de cores próximas.
+  // A base vira uma praça com profundidade, não um tabuleiro de quadrados claros.
+  g.save();g.translate(65,81);
+  for(let ring=0;ring<7;ring++){
+   const inner=ring===0?24:36+(ring-1)*41;
+   const outer=ring===0?36:36+ring*41;
+   const sections=ring===0?8:Math.round(12+ring*5);
+   for(let j=0;j<sections;j++){
+    const wobble=(j*11+ring*7)%5;
+    const a0=j*TAU/sections+ring*.12+.018;
+    const a1=(j+1)*TAU/sections+ring*.12-.018;
+    const r0=inner+2+wobble*.25,r1=outer-2-wobble*.35;
+    g.beginPath();g.arc(0,0,r1,a0,a1);
+    g.arc(0,0,r0,a1,a0,true);g.closePath();
+    const k=(j*13+ring*17)%6;
+    g.fillStyle=['#83948b','#798c84','#71867b','#8c9b8d','#667e76','#98a59a'][k];
+    g.globalAlpha=.32+(k%3)*.05;g.fill();
+    g.globalAlpha=.67;g.strokeStyle='#304d4b78';g.lineWidth=1.2;g.stroke();
    }
+  }
+  g.restore();
+  // Pequenos musgos nas juntas: detalhe ambiental, não uma faixa contínua.
+  for(let i=0;i<110;i++){
+   const x=-170+((i*83)%590),y=-171+((i*59)%481);
+   const k=(i*17)%7;
+   if(k>3)continue;
+   g.fillStyle=i%2?'#2e62504a':'#91ad7652';
+   g.beginPath();g.ellipse(x,y,2+k*.6,1.4+k*.35,i*.8,0,TAU);g.fill();
   }
   // Esplanada de saída: três caminhos convergem, com bordas de alvenaria desgastada.
   g.strokeStyle='#d6d1ad54';g.lineWidth=9;
@@ -192,44 +213,51 @@ function drawTerrain(){
   }
   g.setLineDash([8,22]);g.strokeStyle='#e0d2a665';g.lineWidth=2;g.stroke();g.setLineDash([]);
  }
+ // As pistas se estreitam ao entrar nas bases. A região da fonte permanece um pátio
+ // com saídas separadas, em vez de três autoestradas sobrepostas.
  for(let lane=0;lane<3;lane++){
-  const pts=E.ROUTE_PATHS[lane];g.beginPath();
-  pts.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y));
-  const laneW=E.LANE_HALF_WIDTH*2;
-  for(const [w,stroke] of [[laneW+21,'#183a3b'],[laneW+6,'#4b645e'],
-    [laneW-10,'#677e73']]){
-   g.lineWidth=w;g.strokeStyle=stroke;g.stroke();
+  const steps=110;
+  for(let j=0;j<steps;j++){
+   const t0=j/steps,t1=(j+1)/steps,t=(t0+t1)*.5;
+   const p=E.pathPos(lane,t0),q=E.pathPos(lane,t1);
+   const nearBase=Math.min(t,1-t);
+   const transition=clamp((nearBase-.015)/.15,0,1);
+   const smooth=transition*transition*(3-2*transition);
+   const width=102+(E.LANE_HALF_WIDTH*2-102)*smooth;
+   g.beginPath();g.moveTo(p.x,p.y);g.lineTo(q.x,q.y);
+   g.lineCap='round';g.lineJoin='round';
+   for(const [w,color] of [[width+16,'#234642'],[width+4,'#4c6860'],[width-14,'#70877a']]){
+    g.strokeStyle=color;g.lineWidth=w;g.stroke();
+   }
   }
-  // Pedra irregular em vez da antiga estrada com linhas tracejadas.
-  for(let t=.012;t<.99;t+=.011){
-   const p=E.pathPos(lane,t),a=E.pathPos(lane,Math.max(0,t-.003)),
-    b=E.pathPos(lane,Math.min(1,t+.003));
-   const angle=Math.atan2(b.y-a.y,b.x-a.x);
+  // Lajes espaçadas, sem repetição de um grid retangular ou faixas de trânsito.
+  for(let t=.075;t<.94;t+=.025){
+   const p=E.pathPos(lane,t);
+   const prev=E.pathPos(lane,Math.max(0,t-.003));
+   const next=E.pathPos(lane,Math.min(1,t+.003));
+   const angle=Math.atan2(next.y-prev.y,next.x-prev.x);
+   const transition=clamp((Math.min(t,1-t)-.015)/.15,0,1);
+   const nCols=transition<.55?2:3;
    g.save();g.translate(p.x,p.y);g.rotate(angle);
-   for(let col=-2;col<=2;col++){
-    const seed=(Math.floor(t*10000)+col*43+lane*29);
-    const len=28+(seed%7),width=31+((seed+31)%11);
-    const offset=col*36+((seed%3)-1)*3;
-    g.fillStyle=seed%5===0?'#a2aa95':seed%5===1?'#849c91':
-      seed%5===2?'#91a298':seed%5===3?'#657d74':'#bac1a9';
-    g.fillRect(-len*.5+((seed%5)-2)*2,offset-width*.5,len,width);
-    g.strokeStyle='#2446416b';g.lineWidth=1.6;
-    g.strokeRect(-len*.5+((seed%5)-2)*2,offset-width*.5,len,width);
-    if(seed%9===0){
-     g.strokeStyle='#385d4b';g.lineWidth=2;
-     g.beginPath();g.moveTo(-8,offset-3);g.lineTo(2,offset+5);
-     g.lineTo(10,offset+2);g.stroke();
+   for(let col=0;col<nCols;col++){
+    const k=(Math.floor(t*10000)*13+lane*29+col*47)%17;
+    const x=(k%5-2)*5,y=(col-(nCols-1)/2)*55+(k%3-1)*5;
+    const length=48+(k%4)*5,half=18+(k%3)*4;
+    g.beginPath();
+    g.moveTo(x-length*.5+5,y-half);
+    g.lineTo(x+length*.5-7,y-half+2);
+    g.lineTo(x+length*.5,y+half-4);
+    g.lineTo(x-length*.5+2,y+half);
+    g.closePath();
+    g.fillStyle=k%4===0?'#a7b1a193':k%4===1?'#a2b09a72':
+      k%4===2?'#617e7478':'#7a958487';
+    g.fill();g.strokeStyle='#33584d76';g.lineWidth=1.4;g.stroke();
+    if(k%7===0){
+     g.strokeStyle='#4b7b5c73';g.beginPath();
+     g.moveTo(x-13,y-3);g.lineTo(x-3,y+5);g.lineTo(x+7,y+3);g.stroke();
     }
    }
    g.restore();
-  }
-  // Runas esparsas no pavimento, sem a aparência de uma faixa de trânsito.
-  for(let t=.11;t<.92;t+=.13){
-   const p=E.pathPos(lane,t);
-   g.save();g.translate(p.x,p.y);g.rotate(Math.PI/4);
-   g.strokeStyle='#dbeac071';g.lineWidth=2;
-   g.strokeRect(-8,-8,16,16);
-   g.beginPath();g.moveTo(-4,0);g.lineTo(4,0);g.stroke();g.restore();
   }
  }
  // Plataformas defensivas no ombro da lane, deixando o eixo central livre para a wave.
