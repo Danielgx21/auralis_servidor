@@ -289,7 +289,8 @@ function focusTower(u,requested=null){
  const towers=state.structures.filter(t=>t.side!==u.side&&t.hp>0&&
   (t.kind==='tower'||t.kind==='core')&&dist(u,t)<=attackRange(u)+t.r+2)
   .sort((a,b)=>dist(a,u)-dist(b,u));
- const t=requested&&towers.includes(requested)?requested:towers[0];
+ if(requested&&!towers.includes(requested))return {ok:false,reason:'TORRE FORA DO ALCANCE DO AA'};
+ const t=requested||towers[0];
  if(!t)return {ok:false,reason:'TORRE FORA DO ALCANCE DO AA'};
  if(!structureExposed(t))return {ok:false,reason:t.kind==='core'?
   'NÚCLEO PROTEGIDO: DESTRUA OS OBELISCOS DE UMA ROTA':
