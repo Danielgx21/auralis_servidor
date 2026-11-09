@@ -3,6 +3,8 @@
 const C=window.SigilsCore;
 if(!C){console.error('Fenda: núcleo de campeões não carregado');return;}
 const W=2750,H=1900,TAU=Math.PI*2;
+// Um deslocamento base-a-base deve durar ~27–30 s, não 11–13 s como na v4.1.
+const MOBA_WALK_SCALE=.55;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const norm=(x,y)=>{const n=Math.hypot(x,y)||1;return{x:x/n,y:y/n}};
 const SIDE=['#69e6e4','#ed829e'],HOME=[{x:205,y:1675},{x:2545,y:210}];
@@ -76,7 +78,7 @@ function buildMap(){
 function makeHero(id,side,controlled=false){
  const h=hData(id),start=HOME[side],offset=side===0?1:-1;
  return {uid:++state.seq,kind:'hero',id,side,controlled,x:start.x+rando(-35,35)*offset,
- y:start.y+rando(-35,35)*offset,r:id==='orun'?23:19,speed:h.move*1.25,atk:h.damage*.82,
+ y:start.y+rando(-35,35)*offset,r:id==='orun'?23:19,speed:h.move*MOBA_WALK_SCALE,atk:h.damage*.82,
  baseHp:h.hp*1.3,maxHp:Math.round(h.hp*1.3),hp:Math.round(h.hp*1.3),
  energy:100,maxEnergy:100,level:1,xp:0,gold:controlled?550:350,items:[],
  lane:roles[id],waypoint:side===0?0:PATHS[roles[id]].length-1,attackCd:0,casting:null,
@@ -84,7 +86,7 @@ function makeHero(id,side,controlled=false){
  stun:0,slow:0,shield:0,guard:0,invuln:0,marked:0,attackAnim:0,
  vision:350,death:0,respawn:0,recall:0,lastDamage:0,focus:null,
  aiTimer:rando(.6,1.8),kills:0,deaths:0,cs:0,dash:null,
- healthRegen:1.3,homeBuff:0,botLane:roles[id],cs:0,isRanged:!['vexor','orun'].includes(id)};
+ healthRegen:1.3,homeBuff:0,botLane:roles[id],cs:0,focusTarget:null,focusUntil:0,isRanged:!['vexor','orun'].includes(id)};
 }
 function createMinion(side,lane,type=0,slot=0){
  const p=pathPos(lane,side===0?.007:.993),ranged=type>=1,siege=type===2;
@@ -182,6 +184,10 @@ function damage(victim,amount,source=null){
  const dmg=Math.max(1,Math.round(raw));
  if(state.camps.includes(victim)){damageCreep(victim,dmg,source);return dmg}
  victim.hp=Math.max(0,victim.hp-dmg);victim.lastDamage=state.time;
+ if(victim.kind==='tower'||victim.kind==='core'){
+  addEffect(victim.x,victim.y,victim.side===0?'#7cf9d9':'#ffd696',victim.r+10,.29);
+  if(source&&source.controlled)announce('OBELISCO: -'+dmg+' PV · '+Math.ceil(victim.hp)+' RESTANTES',.65);
+ }
  victim.lastAttacker=source||null;
  if(source&&source.kind==='hero'&&victim.kind==='hero'&&source.side!==victim.side){
   // Aggro dos obeliscos: atacar um campeão debaixo da torre muda o alvo para o agressor.
@@ -268,10 +274,29 @@ function laneTarget(u,range){
 }
 function findAA(u){
  if(!u||u.hp<=0)return null;
- const range=attackRange(u),target=u.kind==='minion'?laneTarget(u,range):nearestEnemy(u,range,true);
+ const range=attackRange(u);
+ // Seleção explícita de torre mantém o foco do AA durante o cerco.
+ const chosen=u.controlled&&u.focusTarget&&u.focusUntil>state.time?u.focusTarget:null;
+ if(chosen&&chosen.hp>0&&chosen.side!==u.side&&dist(chosen,u)<=range+chosen.r+2&&
+     (chosen.kind!=='tower'&&chosen.kind!=='core'||structureExposed(chosen)))return chosen;
+ const target=u.kind==='minion'?laneTarget(u,range):nearestEnemy(u,range,true);
  if(target)return target;
  if(u.controlled)return enemyCreep(u,range);
  return null;
+}
+function focusTower(u,requested=null){
+ if(!u||u.kind!=='hero'||u.hp<=0)return {ok:false,reason:'CAMPEÃO INDISPONÍVEL'};
+ const towers=state.structures.filter(t=>t.side!==u.side&&t.hp>0&&
+  (t.kind==='tower'||t.kind==='core')&&dist(u,t)<=attackRange(u)+t.r+2)
+  .sort((a,b)=>dist(a,u)-dist(b,u));
+ const t=requested&&towers.includes(requested)?requested:towers[0];
+ if(!t)return {ok:false,reason:'TORRE FORA DO ALCANCE DO AA'};
+ if(!structureExposed(t))return {ok:false,reason:t.kind==='core'?
+  'NÚCLEO PROTEGIDO: DESTRUA OS OBELISCOS DE UMA ROTA':
+  'OBELISCO PROTEGIDO: DESTRUA A TORRE EXTERNA PRIMEIRO'};
+ u.focusTarget=t;u.focusUntil=state.time+5;
+ const attack=autoAttack(u);
+ return {ok:true,attacked:attack,tower:t};
 }
 function missile(source,target,damageValue,kind='aa',speed=410){
  if(!source||!target)return;
@@ -282,9 +307,16 @@ function autoAttack(u){
  if(u.hp<=0||u.attackCd>0||u.casting||u.stun>0)return false;
  const target=findAA(u);if(!target)return false;
  if(u.recall>0){u.recall=0;if(u.controlled)announce('RETORNO CANCELADO: ATAQUE',1.2)}
- u.attackCd=u.kind==='hero'?(hData(u.id).attackTime+Math.max(0,5-u.level)*.018):u.id==='siege'?2.15:u.ranged?1.5:1.25;
+ const attackFactor=u.kind!=='hero'?1:u.id==='vexor'?1.15:u.id==='lyria'?1.10:
+  u.id==='orun'?1.06:u.id==='nyra'?.96:1.04;
+ u.attackCd=u.kind==='hero'?(hData(u.id).attackTime*attackFactor+Math.max(0,5-u.level)*.018):u.id==='siege'?2.15:u.ranged?1.5:1.25;
  u.attackAnim=.23;
- const damageVal=attackDamage(u)+(u.homeBuff>state.time?4:0);
+ let damageVal=attackDamage(u)+(u.homeBuff>state.time?4:0);
+ // Os AAs de campeões devem causar dano perceptível em torres;
+ // sentinelas de cerco também possuem bônus contra estruturas.
+ if(target.kind==='tower'||target.kind==='core')
+  damageVal=Math.round(damageVal*(u.kind==='hero'?1.60:u.id==='siege'?1.45:1.0));
+ if(u.controlled&&(target.kind==='tower'||target.kind==='core'))u.focusUntil=state.time+5;
  if(attackRange(u)<=75){
   damage(target,damageVal,u);addEffect(target.x,target.y,u.side===0?'#84ead9':'#f7a3b0',25,.24);
  }else missile(u,target,damageVal,'aa',u.kind==='hero'?530:380);
@@ -753,6 +785,6 @@ function recall(){
  return true;
 }
 window.FendaEngine={state,W,H,TAU,HOME,PATHS,SIDE,ITEMS,hData,skillDef,
- start,step,cast,autoAttack,buyItem,recall,damage,heal,announce,makeWave,
+ start,step,cast,autoAttack,focusTower,buyItem,recall,damage,heal,announce,makeWave,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect};
 })();
