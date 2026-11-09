@@ -1217,8 +1217,8 @@ function botLaunchArea(u,c,damage,effect='',power=0){
  const d=dist(u,p),duration=clamp(.19+d/950,.25,.51);
  abilityShots.push({type:'area',which:c.which,team:u.team,source:u,x:u.x,y:u.y,
   fromX:u.x,fromY:u.y,tx:p.x,ty:p.y,t:0,duration,damage,
-  radius:def.radius||70,color,slow:c.which==='nyra_rift'?1.7:c.which==='lyria_rain'?1.0:0,
-  stun:c.which==='nyra_rift'?.3:0,
+  radius:def.radius||70,color,slow:c.which==='nyra_rift'?1.7:c.which==='lyria_rain'?1.0:c.which==='lyria_ult'?1.75:c.which==='nyra_ult'?1.45:0,
+  stun:c.which==='nyra_rift'?.3:c.which==='nyra_ult'?.5:0,
   effect,heal:effect==='heal'?power:0,shieldDuration:1.25,
   life:duration+.12,size:9,trail:[]});
  burst(u.x,u.y,color,9,85);
@@ -1243,23 +1243,37 @@ function resolveBotSkill(u,c){
  if(!c||u.hp<=0||mode!=='playing')return;
  const id=c.which,h=heroes[u.heroId],def=skillDefs[id],foes=living(u.team===0?1:0);
  const friendlies=living(u.team);
- if(id==='lyria_step'||id==='vexor_lunge'||id==='orun_charge'){
+ if(id==='lyria_step'||id==='vexor_lunge'||id==='orun_charge'||id==='vexor_ult'){
   const range=def.range,duration=.24;
   u.dash=duration;u.dashVx=c.dir.x*range/duration;u.dashVy=c.dir.y*range/duration;
-  u.invuln=Math.max(u.invuln,id==='lyria_step'?.16:.10);
-  u.dashSkill={which:id,damage:id==='lyria_step'?0:id==='vexor_lunge'?24:25,
-   width:def.radius||20,stun:id==='orun_charge'?.35:.13,hitTargets:new Set(),color:h.color};
+  u.invuln=Math.max(u.invuln,id==='lyria_step'?.16:id==='vexor_ult'?.28:.10);
+  u.dashSkill={which:id,damage:id==='lyria_step'?0:id==='vexor_ult'?67:id==='vexor_lunge'?24:25,
+   width:def.radius||20,stun:id==='orun_charge'?.35:id==='vexor_ult'?.25:.13,hitTargets:new Set(),color:h.color};
   emitFragments(u.x,u.y,h.color,7,100,.25,'dash');
  }else if(['lyria_pierce','nyra_bolt','seris_tether'].includes(id)){
   botLaunchLine(u,c,id==='nyra_bolt'?32:id==='lyria_pierce'?30:21);
- }else if(['lyria_rain','nyra_rift','vexor_mark','seris_bloom'].includes(id)){
-  botLaunchArea(u,c,id==='seris_bloom'?0:id==='vexor_mark'?12:25,
+ }else if(['lyria_rain','nyra_rift','vexor_mark','seris_bloom','lyria_ult','nyra_ult'].includes(id)){
+  botLaunchArea(u,c,id==='seris_bloom'?0:id==='vexor_mark'?12:id==='lyria_ult'?42:id==='nyra_ult'?48:25,
    id==='seris_bloom'?'heal':'',id==='seris_bloom'?46:0);
  }else if(id==='orun_guard'||id==='nyra_barrier'){
   u.shield=Math.max(u.shield,1.15);
   if(id==='orun_guard')healUnit(u,14,u);
   addWave(u.x,u.y,47,.32,h.color,3);
   emitFragments(u.x,u.y,h.color,10,90,.32,'shield');
+ }else if(id==='orun_ult'){
+  for(const friend of friendlies)if(dist(u,friend)<def.radius+friend.r){
+   friend.shield=Math.max(friend.shield,1.55);healUnit(friend,15,u);
+  }
+  skillRadiusDamage(u,def.radius,29,'#d9d7ff',0,.49,u.team,u);
+  addWave(u.x,u.y,def.radius+13,.52,'#ffe0a0',5.5);
+  emitFragments(u.x,u.y,'#ccd5ff',24,155,.48,'shield');
+ }else if(id==='seris_ult'){
+  for(const f of friendlies)if(dist(u,f)<def.radius+f.r){
+   healUnit(f,52,u);f.shield=Math.max(f.shield,1.18);f.slowTimer=0;
+   addWave(f.x,f.y,f.r+17,.37,'#ffe5c0',2);
+  }
+  addWave(u.x,u.y,def.radius,.64,'#ffddb2',5);
+  emitFragments(u.x,u.y,'#ffd6c5',25,160,.57,'shield');
  }else if(id==='seris_aegis'){
   for(const f of friendlies)if(dist(u,f)<def.radius+f.r){
    f.shield=Math.max(f.shield,1.25);healUnit(f,6,u);
@@ -1283,6 +1297,18 @@ function botChooseSkill(u,target){
  const enemiesNear=(center,radius)=>foes.filter(e=>dist(center,e)<radius+e.r).length;
  const alliesNear=(center,radius)=>friends.filter(f=>dist(center,f)<radius+f.r).length;
  let candidates=[];
+ const ultimate=heroes[u.heroId].ultimate,ult=skillDefs[ultimate];
+ if(ready(ultimate)&&plan.engaged){
+  const clustered=enemiesNear(target,ult.radius||90);
+  const lowAllies=friends.filter(f=>f.hp/f.maxHp<.64&&dist(u,f)<ult.radius+f.r).length;
+  let useUlt=false,point=null;
+  if(u.heroId==='lyria')useUlt=d<ult.range&&clustered>=2;
+  else if(u.heroId==='nyra')useUlt=d<ult.range&&clustered>=2;
+  else if(u.heroId==='vexor')useUlt=d<ult.range+15&&(target.hp/target.maxHp<.68||enemiesNear(u,165)>=2);
+  else if(u.heroId==='orun')useUlt=enemiesNear(u,ult.radius)>=2||lowAllies>=2;
+  else if(u.heroId==='seris')useUlt=lowAllies>=2||friends.some(f=>dist(u,f)<ult.radius&&f.hp/f.maxHp<.30);
+  if(useUlt&&beginBotSkill(u,ultimate,target,point))return true;
+ }
  if(u.heroId==='seris'){
   if(friendInNeed&&ready('seris_bloom')){
    candidates.push({id:'seris_bloom',point:friendInNeed});
