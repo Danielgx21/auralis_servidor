@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="288" height="352" viewBox="0 0 288 352">
+<defs>
+ <linearGradient id="stone" x1=".1" y1="0" x2=".9" y2="1"><stop stop-color="#b9c8be"/><stop offset=".21" stop-color="#718e88"/><stop offset=".56" stop-color="#354f57"/><stop offset="1" stop-color="#142f40"/></linearGradient>
+ <linearGradient id="metal" x1="0" y1="0" x2=".85" y2="1"><stop stop-color="#fff1bd"/><stop offset=".18" stop-color="#d5ba83"/><stop offset=".53" stop-color="#776647"/><stop offset="1" stop-color="#ddbf7c"/></linearGradient>
+ <linearGradient id="glass" x1="0" y1="0" x2=".85" y2="1"><stop stop-color="#d6ffff"/><stop offset=".27" stop-color="#7bffff"/><stop offset=".65" stop-color="#15b9d2"/><stop offset="1" stop-color="#087091"/></linearGradient>
+ <radialGradient id="aura"><stop stop-color="#42e5f6" stop-opacity=".45"/><stop offset=".5" stop-color="#11e2e7" stop-opacity=".15"/><stop offset="1" stop-color="#1be4f8" stop-opacity="0"/></radialGradient>
+ <filter id="blur"><feGaussianBlur stdDeviation="10"/></filter>
+</defs>
+<ellipse cx="146" cy="311" rx="99" ry="29" fill="#031e29" opacity=".55" filter="url(#blur)"/>
+<ellipse cx="144" cy="272" rx="125" ry="57" fill="url(#aura)"/>
+<path d="M48 270L79 240L212 240L246 271L219 297L80 297Z" fill="#182f3b" stroke="#7ca8a2" stroke-width="6"/>
+<ellipse cx="144" cy="265" rx="91" ry="29" fill="#1c3e4e" stroke="url(#metal)" stroke-width="10"/>
+<ellipse cx="144" cy="260" rx="72" ry="21" fill="#0d4253" stroke="#2a9cae" stroke-width="5"/>
+<path d="M86 251L100 209L120 137L114 84L141 56L168 84L162 138L182 211L198 250L175 271L111 271Z" fill="url(#stone)" stroke="#112c36" stroke-width="7" stroke-linejoin="round"/>
+<path d="M114 84L142 60L142 263L103 250L120 179Z" fill="#bfd6c1" opacity=".19"/>
+<path d="M169 88L177 153L190 233L171 265L142 263L143 61Z" fill="#082f44" opacity=".42"/>
+<path d="M117 148L143 87L168 148L159 221L143 250L127 221Z" fill="#073e57" stroke="#bcb994" stroke-width="5"/>
+<path d="M142 101L157 147L148 213L141 237L133 212L127 147Z" fill="url(#glass)" stroke="#5de5e5" stroke-width="3"/>
+<path d="M142 100L143 233L130 184L128 147Z" fill="#cafffa" opacity=".38"/>
+<path d="M113 185L124 196L113 232L96 246L86 232Z" fill="url(#metal)" stroke="#263e43" stroke-width="3"/>
+<path d="M174 185L163 196L175 232L194 246L202 232Z" fill="url(#metal)" stroke="#263e43" stroke-width="3"/>
+<path d="M113 85L142 48L171 85L161 106L142 91L122 106Z" fill="url(#metal)" stroke="#223b41" stroke-width="4"/>
+<path d="M131 72L142 31L153 72L143 96Z" fill="url(#glass)" stroke="#e0fff6" stroke-width="3"/>
+<path d="M143 30L143 94L131 71Z" fill="#f1ffed" opacity=".62"/>
+<path d="M98 248L113 258L127 250L145 274L163 249L179 260L195 247" fill="none" stroke="#f1d9a0" stroke-width="5" stroke-linecap="round"/>
+<path d="M91 273Q144 306 197 273" fill="none" stroke="#54d9e1" stroke-width="4" opacity=".85"/>
+<g stroke="#98fff7" stroke-width="3" fill="none" opacity=".75">
+ <path d="M125 154L136 145L147 155L140 167L130 167Z"/>
+ <path d="M156 190l6 8-6 9-5-9z"/>
+ <path d="M105 215l-3 7 9 5"/>
+</g>
+<circle cx="143" cy="113" r="18" fill="url(#aura)"/>
+<circle cx="144" cy="91" r="7" fill="#e7ffff"/>
+<path d="M83 271L67 269M207 271L224 270" stroke="#fff0c3" stroke-width="6" stroke-linecap="round"/>
+</svg>
