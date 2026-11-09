@@ -34,10 +34,12 @@ let vw=900,vh=460,dpr=1,terrain=null,last=performance.now(),hudCountdown=0,ended
 // Imagens nítidas e independentes: nenhuma ampliação de atlas 112x112.
 const art={};
 for(const [key,file] of Object.entries({stone:'stone-paving.svg',
- fountain:'fountain.svg',grass:'grass-ground.svg',tree:'tree-canopy.svg'})){
+ fountain:'fountain.svg',grass:'grass-ground.svg',tree:'tree-canopy.svg',
+ tower:'sigil-tower.svg',rock:'rune-rock.svg',flower:'moonflower-bush.svg',
+ inlay:'base-inlay.svg'})){
  const image=new Image();image.decoding='async';
  image.onload=()=>{terrain=null};image.onerror=()=>console.warn('Arte indisponível:',file);
- image.src='art/'+file+'?v=5.2';art[key]=image;
+ image.src='art/'+file+'?v=5.5';art[key]=image;
 }
 const artReady=key=>Boolean(art[key]?.complete&&art[key]?.naturalWidth);
 const artPattern=(g,key)=>artReady(key)?g.createPattern(art[key],'repeat'):null;
@@ -97,6 +99,12 @@ function drawBasePaving(g){
   const glaze=g.createLinearGradient(-180,-160,415,305);
   glaze.addColorStop(0,'#b2c1a71b');glaze.addColorStop(1,'#142d2a20');
   g.fillStyle=glaze;g.fillRect(-195,-195,700,580);
+  if(artReady('inlay')){
+   g.save();g.globalAlpha=.69;
+   // Piso rúnico arquitetônico pintado no arquivo, não mosaico gerado por laços.
+   g.drawImage(art.inlay,-237,-183,600,600);
+   g.restore();
+  }
   g.restore();
   // Muralha e borda da praça continuam elementos arquitetônicos simples.
   g.strokeStyle='#263f3b';g.lineWidth=13;baseBoundary(g);g.stroke();
@@ -133,6 +141,37 @@ function drawPaintedLanes(g){
    g.save();laneOutline(g,lane,-12);g.clip();
    // Lajes de 512px repetidas em tamanho natural; nenhuma distorção não uniforme.
    g.globalAlpha=.94;g.fillStyle=p;g.fillRect(0,0,E.W,E.H);g.restore();
+  }
+ }
+}
+function drawLaneCircuitry(g){
+ // Filetes luminosos integrados às juntas da pedra, inspirados na arquitetura da base.
+ // Não alteram nenhuma rota ou colisão.
+ for(let lane=0;lane<3;lane++)for(const s of [-1,1]){
+  g.beginPath();
+  for(let j=0;j<=118;j++){
+   const t=j/118,p=E.pathPos(lane,t),
+     a=E.pathPos(lane,Math.max(0,t-.003)),
+     b=E.pathPos(lane,Math.min(1,t+.003));
+   const v=E.norm(b.x-a.x,b.y-a.y);
+   const taper=clamp((Math.min(t,1-t)-.018)/.16,0,1);
+   const smooth=taper*taper*(3-2*taper);
+   const offset=s*(44+(E.LANE_HALF_WIDTH-52)*smooth);
+   const x=p.x-v.y*offset,y=p.y+v.x*offset;
+   if(j===0)g.moveTo(x,y);else g.lineTo(x,y);
+  }
+  g.strokeStyle='#d5c9a35c';g.lineWidth=4.4;g.lineCap='round';g.stroke();
+  g.strokeStyle='#55e7ed8b';g.lineWidth=1.9;g.stroke();
+ }
+ for(let lane=0;lane<3;lane++){
+  for(const t of [.18,.33,.52,.71,.88]){
+   const p=E.pathPos(lane,t),a=E.pathPos(lane,t-.004),b=E.pathPos(lane,t+.004);
+   const angle=Math.atan2(b.y-a.y,b.x-a.x);
+   g.save();g.translate(p.x,p.y);g.rotate(angle+Math.PI/4);
+   g.strokeStyle='#7be7eb66';g.lineWidth=2;
+   g.strokeRect(-10,-10,20,20);
+   g.strokeStyle='#e6d0a44a';g.strokeRect(-5,-5,10,10);
+   g.restore();
   }
  }
 }
@@ -239,6 +278,7 @@ function drawTerrain(){
   // Solo natural de acesso, sem faixas rodoviárias.
  }
  drawPaintedLanes(g);
+ drawLaneCircuitry(g);
  drawBasePaving(g);
  // Plataformas defensivas no ombro da lane, deixando o eixo central livre para a wave.
  for(const t of S.structures){
@@ -269,6 +309,16 @@ function drawTerrain(){
    g.beginPath();g.moveTo(bx-4,by+7);g.lineTo(bx,by-7-(n%4)*2);g.lineTo(bx+4,by+5);g.stroke();
   }
  }
+ // Flores e arbustos das bordas, arte estática independente da hitbox.
+ if(artReady('flower')){
+  for(let i=0;i<135;i++){
+   const x=45+rand()*(E.W-90),y=43+rand()*(E.H-86),w=35+rand()*62;
+   if(nearRoute(x,y,E.LANE_HALF_WIDTH+17)||S.camps.some(k=>dist(k,{x,y})<40))continue;
+   g.save();g.translate(x,y);g.rotate((rand()-.5)*.55);
+   g.globalAlpha=.55+rand()*.35;
+   g.drawImage(art.flower,-w*.5,-w*.55,w,w*.83);g.restore();
+  }
+ }
  // Bosques ilustrados, sem centenas de círculos artificiais.
  if(artReady('tree')){
   for(let i=0;i<210;i++){
@@ -291,7 +341,13 @@ function drawTerrain(){
  for(const o of S.obstacles){
   const r=o.r,x=o.x,y=o.y;
   g.fillStyle='#020e17a3';g.beginPath();g.ellipse(x+7,y+12,r*1.14,r*.61,0,0,TAU);g.fill();
-  if(o.kind==='tree'){
+  if(o.kind==='tree'&&artReady('tree')){
+   g.save();g.translate(x,y);g.rotate(((x+y)%53-26)*.009);
+   g.drawImage(art.tree,-r*1.62,-r*1.62,r*3.24,r*3.24);
+   g.restore();
+  }else if(o.kind==='rock'&&artReady('rock')){
+   g.drawImage(art.rock,x-r*1.42,y-r*1.36,r*2.84,r*2.49);
+  }else if(o.kind==='tree'){
    g.fillStyle='#28483d';g.beginPath();g.arc(x,y,r+5,0,TAU);g.fill();
    g.fillStyle='#13504b';g.beginPath();g.arc(x,y,r,0,TAU);g.fill();
    g.fillStyle='#297964';g.beginPath();g.arc(x-r*.23,y-r*.22,r*.68,0,TAU);g.fill();
@@ -806,7 +862,7 @@ function chooseHero(){
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice();
- $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 5.4</div><h2>FENDA DOS SIGILOS</h2>'+
+ $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 5.5</div><h2>FENDA DOS SIGILOS</h2>'+
  '<p>Rotas de curvas suaves, tropas em formação e torres nas laterais. IA de teamfight coordenada: iniciação, proteção, flanco e recuo.</p>'+
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
