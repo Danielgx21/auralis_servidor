@@ -1153,31 +1153,48 @@ function resolveBotSkill(u,c){
 }
 function botChooseSkill(u,target){
  if(!target||u.actionClock>0||u.casting||u.dash>0||u.stun>0)return false;
- const h=heroes[u.heroId],d=dist(u,target),skills=h.skills;
+ const d=dist(u,target),plan=teamPlans[u.team],friends=living(u.team);
+ const foes=living(u.team===0?1:0);
  const ready=id=>id&&u.cool[id]<=.01&&u.energy>=skillDefs[id].cost;
- const weakest=closestAllyTo(u),hurt=weakest&&weakest.hp/weakest.maxHp<.78;
- const nearbyThreats=living(u.team===0?1:0).filter(e=>dist(u,e)<145);
+ const closestThreat=foes.filter(e=>dist(u,e)<145).sort((a,b)=>dist(u,a)-dist(u,b))[0];
+ const friendInNeed=friends.filter(f=>f.hp/f.maxHp<.76&&dist(u,f)<350)
+  .sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
+ const enemiesNear=(center,radius)=>foes.filter(e=>dist(center,e)<radius+e.r).length;
+ const alliesNear=(center,radius)=>friends.filter(f=>dist(center,f)<radius+f.r).length;
  let candidates=[];
  if(u.heroId==='seris'){
-  if(hurt)candidates.push({id:'seris_bloom',point:weakest});
-  if(nearbyThreats.length)candidates.push({id:'seris_aegis'});
-  candidates.push({id:'seris_tether',point:target});
+  if(friendInNeed&&ready('seris_bloom')){
+   candidates.push({id:'seris_bloom',point:friendInNeed});
+  }
+  if(ready('seris_aegis')&&(friends.filter(f=>dist(u,f)<150&&f.hp/f.maxHp<.75).length>=1||
+     (closestThreat&&alliesNear(u,150)>=2))){
+   candidates.push({id:'seris_aegis'});
+  }
+  if(d<skillDefs.seris_tether.range) candidates.push({id:'seris_tether'});
  }else if(u.heroId==='orun'){
-  if(u.hp/u.maxHp<.73)candidates.push({id:'orun_guard'});
-  if(d<145)candidates.push({id:'orun_quake'});
-  if(d>60&&d<220)candidates.push({id:'orun_charge'});
+  if(u.hp/u.maxHp<.68) candidates.push({id:'orun_guard'});
+  if(enemiesNear(u,skillDefs.orun_quake.radius)>=2||
+    (d<skillDefs.orun_quake.radius&&target.casting))candidates.push({id:'orun_quake'});
+  if(plan.peel&&dist(u,plan.peel)<225)candidates.push({id:'orun_charge',point:plan.peel});
+  if(d>63&&d<200&&plan.engaged)candidates.push({id:'orun_charge'});
  }else if(u.heroId==='vexor'){
-  if(d>55&&d<230)candidates.push({id:'vexor_lunge'});
-  if(d<115)candidates.push({id:'vexor_whirl'});
-  if(d<265)candidates.push({id:'vexor_mark',point:target});
+  // Marca antecede a investida; o combo é especialmente eficaz num alvo controlado.
+  if(d<240&&(!target.marked||target.marked<=0))candidates.push({id:'vexor_mark'});
+  if(d>53&&d<205&&(target.marked>0||target.stun>0||target.slowTimer>0||
+      target.hp/target.maxHp<.53||plan.engaged))candidates.push({id:'vexor_lunge'});
+  if(enemiesNear(u,skillDefs.vexor_whirl.radius)>=2||d<97)candidates.push({id:'vexor_whirl'});
  }else if(u.heroId==='lyria'){
-  if(d<100)candidates.push({id:'lyria_step',point:{x:u.x-(target.x-u.x),y:u.y-(target.y-u.y)}});
-  if(d<335)candidates.push({id:'lyria_rain',point:target});
-  if(d<500)candidates.push({id:'lyria_pierce'});
+  if(d<118)candidates.push({id:'lyria_step',point:{x:u.x-(target.x-u.x),y:u.y-(target.y-u.y)}});
+  if(d<skillDefs.lyria_rain.range&&
+     (enemiesNear(target,skillDefs.lyria_rain.radius)>=2||target.stun>0))
+   candidates.push({id:'lyria_rain'});
+  if(d<skillDefs.lyria_pierce.range)candidates.push({id:'lyria_pierce'});
  }else if(u.heroId==='nyra'){
-  if(u.hp/u.maxHp<.52)candidates.push({id:'nyra_barrier'});
-  if(d<300)candidates.push({id:'nyra_rift',point:target});
-  if(d<490)candidates.push({id:'nyra_bolt'});
+  if(u.hp/u.maxHp<.61||closestThreat&&d<125)candidates.push({id:'nyra_barrier'});
+  if(d<skillDefs.nyra_rift.range&&
+    (enemiesNear(target,skillDefs.nyra_rift.radius)>=2||target.stun>0||target.slowTimer>0))
+   candidates.push({id:'nyra_rift'});
+  if(d<skillDefs.nyra_bolt.range)candidates.push({id:'nyra_bolt'});
  }
  for(const c of candidates){
   if(ready(c.id)&&beginBotSkill(u,c.id,target,c.point||null))return true;
@@ -1187,7 +1204,7 @@ function botChooseSkill(u,target){
 function botBasicAttack(u,target){
  if(!target||u.hp<=0||target.hp<=0||u.stun>0)return;
  const h=heroes[u.heroId],direction=unit(target.x-u.x,target.y-u.y);
- if(dist(u,target)>unitRange(u)+target.r+2)return;
+ // O ataque foi iniciado dentro do alcance: após o windup o AA segue o alvo travado.
  u.angle=Math.atan2(direction.y,direction.x);
  let damage=u.damage;
  u.hitCombo++;
@@ -1214,22 +1231,44 @@ function botBasicAttack(u,target){
 }
 function moveBot(u,dt,target){
  if(!target)return;
- const dx=target.x-u.x,dy=target.y-u.y,d=Math.hypot(dx,dy)||1;
- const dirX=dx/d,dirY=dy/d,melee=meleeClass(u.heroId);
- const desired=melee?46:(u.heroId==='seris'?238:u.heroId==='nyra'?217:222);
- let inward=d>desired+18?1:d<desired-20?-1:0;
- if(!melee&&u.hp/u.maxHp<.33)inward=Math.min(inward,0);
- const strafe=melee?0.12:0.37,side=u.team===0?1:-1;
- let mx=dirX*inward-dirY*strafe*side;
- let my=dirY*inward+dirX*strafe*side;
- const m=Math.hypot(mx,my);if(m>1){mx/=m;my/=m}
- // A conjuração diminui deslocamento, mas não para o personagem sem necessidade.
+ const d=dist(u,target)||1,melee=meleeClass(u.heroId),plan=teamPlans[u.team];
+ const vx=(target.x-u.x)/d,vy=(target.y-u.y)/d;
+ const ideal=melee?48:(u.heroId==='seris'?240:u.heroId==='nyra'?222:226);
+ let inward=d>ideal+18?1:d<ideal-20?-1:0;
+ if(!melee&&u.hp/u.maxHp<.38)inward=Math.min(inward,0);
+ if(melee&&!plan.engaged&&!plan.peel&&elapsed<6){
+  // Tanques aguardam o grupo chegar, evitando iniciar uma teamfight 1x5.
+  const backup=living(u.team).filter(f=>f!==u&&dist(f,u)<270).length;
+  if(backup<=1)inward=Math.min(inward,.40);
+ }
+ let mx=vx*inward-vy*(melee?0.10:0.35)*(u.team===0?1:-1);
+ let my=vy*inward+vx*(melee?.10:.35)*(u.team===0?1:-1);
+ if(u.heroId==='seris'){
+  const protectedAlly=plan.protector&&plan.protector.hp>0?plan.protector:
+   living(u.team).filter(f=>f!==u).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
+  if(protectedAlly){
+   const gap=dist(u,protectedAlly)||1;
+   const threatened=living(u.team===0?1:0).find(e=>dist(e,u)<140);
+   if(threatened){
+    const away=unit(u.x-threatened.x,u.y-threatened.y);
+    mx=away.x;my=away.y;
+   }else if(gap>120){
+    mx=(protectedAlly.x-u.x)/gap*.80;my=(protectedAlly.y-u.y)/gap*.80;
+   }else if(d<170){
+    mx=-vx*.9;my=-vy*.9;
+   }else{
+    mx*=.27;my*=.27;
+   }
+  }
+ }
+ const magnitude=Math.hypot(mx,my);
+ if(magnitude>1){mx/=magnitude;my/=magnitude}
  const factor=u.casting?0.36:(u.windup>0?0.45:1);
  const speed=u.speed*(u.slowTimer>0?0.62:1)*factor;
  u.vx=lerp(u.vx,mx*speed,clamp(dt*5,0,1));
  u.vy=lerp(u.vy,my*speed,clamp(dt*5,0,1));
  u.x+=u.vx*dt;u.y+=u.vy*dt;
- u.angle=Math.atan2(dy,dx);
+ u.angle=Math.atan2(vy,vx);
 }
 function tickBot(u,dt){
  if(!u||u.hp<=0)return;
@@ -1255,7 +1294,8 @@ function tickBot(u,dt){
  if(u.windup>0){
   u.windup=Math.max(0,u.windup-dt);
   if(u.windup<=0&&u.stun<=0){
-   botBasicAttack(u,u.windupTarget||target);
+   const locked=u.windupTarget&&u.windupTarget.hp>0?u.windupTarget:target;
+   botBasicAttack(u,locked);
    u.windupTarget=null;u.shoot=heroes[u.heroId].attackTime*(u.team===1?1.07:1.02);
   }
  }
