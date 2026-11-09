@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-// Coordenador tático da Fenda 4.5. Não move o campeão controlado pelo jogador.
+// Coordenador tático da Fenda 4.6. Não move o campeão controlado pelo jogador.
 const E=window.FendaEngine,C=window.SigilsCore;
 if(!E||!C){console.error('Fenda Team AI: dependências ausentes');return}
 const S=E.state,clamp=E.clamp,dist=E.dist,norm=E.norm;
@@ -25,19 +25,23 @@ function scan(){
   let best=null,bestScore=-Infinity;
   for(const anchor of allies){
    const enemies=foes.filter(e=>dist(anchor,e)<440);
-   if(enemies.length<2)continue;
+   if(enemies.length<1)continue;
    const center={x:enemies.reduce((v,e)=>v+e.x,0)/enemies.length,
      y:enemies.reduce((v,e)=>v+e.y,0)/enemies.length};
    const friends=allies.filter(a=>dist(a,center)<475);
    const rivals=foes.filter(e=>dist(e,center)<400);
-   if(friends.length<2||rivals.length<2||!friends.some(a=>!a.controlled))continue;
-   const alliedPower=friends.reduce((s,a)=>s+strength(a),0);
+   if(friends.length<2||rivals.length<1||!friends.some(a=>!a.controlled))continue;
+   const frontline=friends.some(a=>a.id==='orun');
+   const sustain=friends.some(a=>a.id==='seris');
+   const dps=friends.some(a=>a.id==='lyria'||a.id==='nyra');
+   const synergy=1+(frontline&&dps?0.09:0)+(sustain&&friends.length>=3?0.08:0);
+   const alliedPower=friends.reduce((s,a)=>s+strength(a),0)*synergy;
    const enemyPower=rivals.reduce((s,a)=>s+strength(a),0);
    const ratio=alliedPower/Math.max(.1,enemyPower);
    const wave=E.living(side,'minion').some(m=>dist(m,center)<225);
    const enemyTurret=S.structures.some(t=>t.hp>0&&t.side!==side&&
      (t.kind==='tower'||t.kind==='core')&&dist(t,center)<t.range+45&&!wave);
-   let mode=ratio<.80?'retreat':ratio>=(enemyTurret?1.47:.96)?'engage':'hold';
+   let mode=ratio<.80?'retreat':ratio>=(enemyTurret?1.57:1.02)?'engage':'hold';
    // Quando o tanque está ausente, uma iniciação 2v2 fica mais conservadora.
    if(mode==='engage'&&!friends.some(a=>a.id==='orun')&&ratio<1.17&&friends.length<3)
      mode='hold';
@@ -53,7 +57,7 @@ function scan(){
    bestScore=score;
    best={mode,center,focusUid:focus.uid,
      participants:friends.map(a=>a.uid),allies:friends.length,enemies:rivals.length,
-     ratio,towerDive:enemyTurret,until:S.time+1};
+     ratio,towerDive:enemyTurret,synergy,until:S.time+1};
   }
   S.teamAI[side]=best;
  }
@@ -73,7 +77,11 @@ function defensiveCast(u,friends,nearest){
   if(needsHelp&&canCast(u,'seris_ult')&&
      friends.filter(a=>dist(a,u)<190&&hp(a)<.75).length>=2)
     return E.cast(u,'seris_ult');
-  if(needsHelp&&canCast(u,'seris_bloom'))return E.cast(u,'seris_bloom');
+  if(needsHelp&&canCast(u,'seris_bloom')){
+   const wounded=friends.filter(a=>dist(a,u)<295&&hp(a)<.72)
+     .sort((a,b)=>hp(a)-hp(b))[0];
+   if(wounded)return E.cast(u,'seris_bloom',null,wounded);
+  }
   if(needsHelp&&canCast(u,'seris_aegis'))return E.cast(u,'seris_aegis');
  }else if(u.id==='orun'&&dist(u,nearest)<185&&canCast(u,'orun_guard')){
   return E.cast(u,'orun_guard');
@@ -104,15 +112,34 @@ function handleBot(u,dt){
   stepBack(u,nearest,dt,175);
   return true;
  }
- if(p.towerDive&&p.mode==='hold'){
+ if(p.mode==='hold'){
+  // Sem vantagem, segurar posição para que o tanque não inicie sozinho.
+  if(u.id==='vexor'){
+   const guard=front||carry||friends.find(a=>a!==u);
+   if(guard&&dist(u,guard)>145)move(u,guard,dt,.72);
+  }else if(u.id==='orun'){
+   const guard=carry||friends.find(a=>a!==u);
+   if(guard&&dist(u,guard)>155)move(u,guard,dt,.70);
+   defensiveCast(u,friends,nearest);
+  }else if(u.id==='seris'){
+   defensiveCast(u,friends,nearest);
+   const guard=carry||front;
+   if(guard&&dist(u,guard)>150)move(u,guard,dt,.70);
+  }else{
+   if(dist(u,nearest)<170)stepBack(u,nearest,dt,120);
+   else if(front&&dist(u,front)>260)move(u,front,dt,.63);
+   if(dist(u,focus)<=E.attackRange(u)+focus.r)E.botUseSkill(u,focus);
+  }
+  if(p.towerDive){
   const turret=S.structures.filter(t=>t.hp>0&&t.side!==u.side&&
     dist(t,focus)<t.range+60).sort((a,b)=>dist(a,u)-dist(b,u))[0];
   if(turret){
    const v=norm(u.x-turret.x,u.y-turret.y);
    move(u,{x:u.x+v.x*115,y:u.y+v.y*115},dt,.75);
    defensiveCast(u,friends,nearest);
-   return true;
   }
+  }
+  return true;
  }
  if(u.id==='orun'){
   // Orun é a linha de frente; intercepta investidas no carregador.
