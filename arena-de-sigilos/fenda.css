@@ -113,3 +113,103 @@
  .stage.fenda-on .mobile-controls .joy {display:block!important;}
  .stage.fenda-on .mobile-controls .skill-controls {transform:none!important;}
 }
+
+
+/* 5.4 — barra de mana no personagem (canvas), K/D/A e FARM fixos, placar TAB. */
+.stage.fenda-on #fendaHUD #fendaScoreBtn{pointer-events:auto}
+#fendaScoreBtn{
+ display:flex;align-items:center;gap:5px;white-space:nowrap;
+ border:1px solid #7cd8c747;border-radius:8px;padding:3px 5px;
+ background:#122c3b99;color:#a6f0e6;font:inherit;cursor:pointer;
+}
+#fendaScoreBtn:active,#fendaScoreBtn[aria-expanded="true"]{
+ background:#2a5b61;border-color:#a8f7db;
+}
+.fenda-score-icon{color:#fff1bf;font-size:13px}
+#fendaPlayerStats{color:#f0e7c2;font-weight:850;white-space:nowrap}
+#fendaScoreboard{
+ display:none;position:absolute;top:50%;left:50%;
+ transform:translate(-50%,-50%);z-index:25;
+ width:min(1100px,calc(100% - 24px));max-height:calc(100% - 26px);
+ box-sizing:border-box;flex-direction:column;
+ background:linear-gradient(145deg,#112739f7,#081726f9);
+ border:1px solid #76b7bca3;border-radius:15px;
+ box-shadow:0 0 0 600px #010c1a8c,0 14px 40px #000d;
+ color:#e8f8f3;overflow:hidden;pointer-events:auto;
+}
+.stage.fenda-on #fendaScoreboard.open{display:flex}
+.fenda-scoreboard-head{
+ display:flex;align-items:center;justify-content:space-between;
+ padding:10px 13px;border-bottom:1px solid #9ac8c044;gap:12px;
+ background:linear-gradient(90deg,#204f59a3,#163044);
+}
+.fenda-scoreboard-head>div{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.fenda-scoreboard-head strong{font-size:13px;letter-spacing:.09em;color:#e8ffed}
+.fenda-scoreboard-head small{font-size:10px;color:#b8cfd5}
+#fendaScoreClose{background:#153d4a;border:1px solid #7aaebc80;border-radius:8px;
+ color:#fff0e1;padding:5px 10px;font-size:13px;font-weight:900;cursor:pointer}
+.fenda-scoreboard-teams{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:11px;padding:10px;min-height:0;overflow:auto}
+.fenda-scoreboard-team{min-width:0;overflow-x:auto;
+ background:#0b1f30aa;border:1px solid #81a6ae43;border-radius:10px;padding:7px}
+.fenda-scoreboard-team.azul{border-top:3px solid #60dfd7}
+.fenda-scoreboard-team.rubro{border-top:3px solid #f88ba0}
+.fenda-scoreboard-teamhead{display:flex;justify-content:space-between;gap:9px;align-items:center;
+ border-bottom:1px solid #81a6aa44;padding:2px 3px 7px}
+.fenda-scoreboard-teamhead strong{font-size:11px;letter-spacing:.03em}
+.fenda-scoreboard-teamhead em{font-size:10px;color:#f9e5af;font-style:normal}
+.fenda-scoreboard-teamhead>span{font-size:9px;color:#b3c8cc;white-space:nowrap}
+.fenda-scoreboard-colheads,.fenda-scoreboard-player{
+ display:grid;grid-template-columns:28px minmax(69px,1fr) 53px 41px 45px minmax(93px,.92fr);
+ gap:4px;align-items:center;min-width:334px;
+}
+.fenda-scoreboard-colheads{font-size:8px;color:#88adb6;text-align:center;
+ padding:7px 4px 5px;font-weight:800}
+.fenda-scoreboard-colheads span:nth-child(2){text-align:left}
+.fenda-scoreboard-player{
+ border-top:1px solid #577c8150;min-height:36px;padding:4px;
+ font-variant-numeric:tabular-nums;background:#0f2b3d66;
+}
+.fenda-scoreboard-player:nth-child(odd){background:#16384a47}
+.fenda-scoreboard-player.is-self{background:#305849aa;box-shadow:inset 3px 0 #e3d596}
+.fenda-scoreboard-player.is-dead{opacity:.61}
+.fenda-scoreboard-role{font-size:8px;color:#a4bac1;text-align:center}
+.fenda-scoreboard-champion{display:flex;align-items:center;gap:5px;min-width:0}
+.fenda-scoreboard-symbol{display:grid;place-items:center;flex:none;
+ width:23px;height:23px;font-size:17px;border:1px solid #9cc2c855;
+ border-radius:50%;background:#14303f}
+.fenda-scoreboard-champion>span:last-child{display:flex;flex-direction:column;min-width:0}
+.fenda-scoreboard-champion strong{font-size:10px;overflow:hidden;text-overflow:ellipsis}
+.fenda-scoreboard-champion small{font-size:8px;color:#a6b8c5;white-space:nowrap}
+.fenda-scoreboard-kda,.fenda-scoreboard-cs,.fenda-scoreboard-gold{
+ text-align:center;white-space:nowrap;font-size:10px;font-weight:900}
+.fenda-scoreboard-cs small{font-size:7px;color:#a6bbc0}
+.fenda-scoreboard-gold{color:#e8c984;font-size:9px}
+.fenda-scoreboard-items{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:2px;min-width:0}
+.fenda-scoreboard-item{height:21px;min-width:0;border-radius:4px;
+ display:grid;place-items:center;font-size:12px;color:#f6e1a9;
+ background:linear-gradient(140deg,#2b4956,#122636);
+ border:1px solid #b1b89e69}
+.fenda-scoreboard-item.empty{color:#63828c;background:#0a1e2c99;border-color:#50717b30}
+.fenda-scoreboard-foot{padding:5px 13px 8px;text-align:center;
+ font-size:9px;color:#acc9cb;border-top:1px solid #80adad35}
+@media(max-width:760px){
+ .fenda-scoreboard-teams{grid-template-columns:minmax(0,1fr);gap:6px}
+ .fenda-scoreboard-team{padding:5px}
+ #fendaScoreboard{max-height:calc(100% - 10px)}
+ .fenda-scoreboard-head{padding:6px 9px}
+}
+@media(max-height:430px){
+ #fendaScoreboard{max-height:calc(100% - 12px)}
+ .fenda-scoreboard-teams{padding:6px;gap:6px}
+ .fenda-scoreboard-teamhead{padding-bottom:4px}
+ .fenda-scoreboard-player{min-height:31px;padding:2px 3px}
+ .fenda-scoreboard-colheads{padding:4px 3px}
+ .fenda-scoreboard-head{padding:5px 10px}
+ .fenda-scoreboard-item{height:18px;font-size:11px}
+ .fenda-scoreboard-foot{padding:3px;font-size:8px}
+}
+@media(max-height:510px){
+ #fendaPlayerStats{font-size:9px}
+ #fendaScoreBtn{padding:2px 3px;gap:3px}
+}
