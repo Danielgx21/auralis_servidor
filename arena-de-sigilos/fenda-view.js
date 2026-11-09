@@ -31,14 +31,8 @@ shop.innerHTML='<div class="fenda-shop-head"><strong>⚒ ARSENAL DO SANTUÁRIO</
 stage.appendChild(shop);
 const mm=$('fendaMinimap'),mc=mm.getContext('2d');
 let vw=900,vh=460,dpr=1,terrain=null,last=performance.now(),hudCountdown=0,endedShown=false;
-// Fenda 6.0: o cenário é a imagem completa aprovada, não azulejos ou linhas
-// reconstruídos por código. As unidades, visão, colisões e HUD continuam dinâmicas.
-const MAP_ART=new Image();
-let mapArtReady=false;
-MAP_ART.onload=()=>{mapArtReady=true;terrain=null;};
-MAP_ART.onerror=()=>{mapArtReady=false;console.warn('Arte da Fenda 6.0 indisponível; usando cenário de emergência');};
-MAP_ART.decoding='async';
-MAP_ART.src='art/fenda-6-0-map-full.webp?v=6.0';
+// Fenda 6.1: mapa 100% Canvas no estilo da Arena Teamfight.
+ // Somente três rotas; paredes/obstáculos provêm das hitboxes do motor.
 const fogCanvas=document.createElement('canvas'),fogContext=fogCanvas.getContext('2d');
 let fogAt=-1,fogCamX=-99999,fogCamY=-99999;
 const keys=new Set(),joy={ptr:null,x:0,y:0,sx:0,sy:0},pointers={aa:null,skill:null};
@@ -83,21 +77,43 @@ function techRing(g,x,y,r,color,width=2){
 function techBase(g,side){
  const home=E.HOME[side],core=E.CORE[side],color=E.SIDE[side];
  g.save();
- // Fonte: plataforma compacta com a mesma linguagem dos pilares da Teamfight.
- techPolygon(g,home.x,home.y,151,8,Math.PI/8);
- g.fillStyle='#11293b';g.fill();g.strokeStyle='#3d7081';g.lineWidth=8;g.stroke();
- techPolygon(g,home.x,home.y,133,8,Math.PI/8);
- g.fillStyle='#1c3e51';g.fill();g.strokeStyle='#79b7b8';g.lineWidth=2.5;g.stroke();
- techRing(g,home.x,home.y,95,color,4);
- techRing(g,home.x,home.y,77,'#7ac0d24d',1.5);
- techPolygon(g,home.x,home.y,40,6,Math.PI/6);
- g.fillStyle='#0d293d';g.fill();g.strokeStyle=color;g.lineWidth=3;g.stroke();
- techPolygon(g,home.x,home.y,18,4,Math.PI/4);
- g.fillStyle=color;g.globalAlpha=.85;g.fill();g.globalAlpha=1;
- // Plataforma do núcleo separada da fonte, sem colidir com a entrada das lanes.
- techPolygon(g,core.x,core.y,77,8,Math.PI/8);
- g.fillStyle='#102c3c';g.fill();g.strokeStyle='#547d8a';g.lineWidth=6;g.stroke();
- techRing(g,core.x,core.y,61,color,2.5);
+ // Praça de nascimento geométrica, nunca cobre os acessos às três lanes.
+ techPolygon(g,home.x,home.y,135,8,Math.PI/8);
+ g.fillStyle='#102a3d';g.fill();g.strokeStyle='#6b9bad';g.lineWidth=5;g.stroke();
+ techPolygon(g,home.x,home.y,113,8,Math.PI/8);
+ g.fillStyle='#1b4154';g.fill();g.strokeStyle='#a5c5bd';g.lineWidth=2;g.stroke();
+ techRing(g,home.x,home.y,82,color,3);
+ techRing(g,home.x,home.y,63,color+'50',1.6);
+ techPolygon(g,home.x,home.y,31,6,Math.PI/6);
+ g.fillStyle='#113344';g.fill();g.strokeStyle=color;g.lineWidth=2.7;g.stroke();
+ techPolygon(g,home.x,home.y,15,4,Math.PI/4);
+ g.fillStyle=color;g.fill();
+ // Plataforma do Núcleo, sem desenhá-lo duas vezes: o objeto é renderizado
+ // dinamicamente por drawStructure() e pode ser destruído durante a partida.
+ techPolygon(g,core.x,core.y,67,8,Math.PI/8);
+ g.fillStyle='#102d40';g.fill();g.strokeStyle='#416f84';g.lineWidth=4.5;g.stroke();
+ techRing(g,core.x,core.y,51,color,2);
+ g.restore();
+}
+function techWall(g,w){
+ // A geometria pintada é EXATAMENTE o segmento físico verificado pelo motor.
+ const x0=w.ax,y0=w.ay,x1=w.bx,y1=w.by,half=w.halfWidth;
+ g.save();g.lineCap='round';g.lineJoin='round';
+ g.beginPath();g.moveTo(x0+3,y0+6);g.lineTo(x1+3,y1+6);
+ g.strokeStyle='#03152294';g.lineWidth=half*2+14;g.stroke();
+ g.beginPath();g.moveTo(x0,y0);g.lineTo(x1,y1);
+ g.strokeStyle='#7393a1';g.lineWidth=half*2+7;g.stroke();
+ g.strokeStyle='#223d52';g.lineWidth=half*2+1;g.stroke();
+ g.strokeStyle='#426476';g.lineWidth=half*1.20;g.stroke();
+ g.strokeStyle='#7cbdc5aa';g.lineWidth=2;g.stroke();
+ for(const p of [{x:x0,y:y0},{x:x1,y:y1}]){
+  techPolygon(g,p.x,p.y,half+6,6,Math.PI/6);
+  g.fillStyle='#193447';g.fill();g.strokeStyle='#6d91a2';g.lineWidth=2;g.stroke();
+  techPolygon(g,p.x,p.y,half*.45,4,Math.PI/4);
+  g.fillStyle='#4dabb7';g.fill();
+  techPolygon(g,p.x,p.y,half*.19,4,Math.PI/4);
+  g.fillStyle='#c3f0d9';g.fill();
+ }
  g.restore();
 }
 function techObstacle(g,o){
@@ -126,57 +142,56 @@ function techObstacle(g,o){
 function drawTerrain(){
  const c=document.createElement('canvas');c.width=E.W;c.height=E.H;
  const g=c.getContext('2d');
- if(mapArtReady&&MAP_ART.naturalWidth){
-  // Exatamente a composição original, sem repetir elementos do cenário.
-  g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
-  g.drawImage(MAP_ART,0,0,E.W,E.H);
-  terrain=c;return;
- }
- // Geometria da Teamfight mantida apenas como fallback offline.
- const glow=g.createRadialGradient(E.W*.5,E.H*.5,120,E.W*.5,E.H*.5,1950);
- glow.addColorStop(0,'#173448');glow.addColorStop(.54,'#0e2537');glow.addColorStop(1,'#081727');
- g.fillStyle=glow;g.fillRect(0,0,E.W,E.H);
- // Grelha extremamente discreta: navegação visível sem virar piso de ladrilhos.
- g.save();g.strokeStyle='#81bfdc0a';g.lineWidth=1;
- for(let x=0;x<E.W;x+=96){g.beginPath();g.moveTo(x,0);g.lineTo(x,E.H);g.stroke();}
- for(let y=0;y<E.H;y+=96){g.beginPath();g.moveTo(0,y);g.lineTo(E.W,y);g.stroke();}
+ // Fundo da arena clássica: azul-marinho, profundidade discreta e grade sutil.
+ const bg=g.createRadialGradient(E.W*.5,E.H*.50,50,E.W*.5,E.H*.50,1850);
+ bg.addColorStop(0,'#1c4152');bg.addColorStop(.52,'#102b3b');bg.addColorStop(1,'#081a2b');
+ g.fillStyle=bg;g.fillRect(0,0,E.W,E.H);
+ g.save();g.strokeStyle='#91c7d512';g.lineWidth=1;
+ for(let x=48;x<E.W;x+=96){g.beginPath();g.moveTo(x,0);g.lineTo(x,E.H);g.stroke();}
+ for(let y=48;y<E.H;y+=96){g.beginPath();g.moveTo(0,y);g.lineTo(E.W,y);g.stroke();}
  g.restore();
+ // Somente as três faixas jogáveis da Rift. Nenhuma estrada extra na selva.
  g.lineCap='round';g.lineJoin='round';
- // Conexões de selva: corredores secundários, desenhados SOB as lanes.
- for(const link of E.JUNGLE_LINKS){
-  const start=E.pathPos(link.lane,link.t);
-  for(const [width,color] of [[95,'#091e2e'],[79,'#294757'],[70,'#203a4c']]){
-   g.beginPath();g.moveTo(start.x,start.y);g.lineTo(link.x,link.y);
-   g.strokeStyle=color;g.lineWidth=width;g.stroke();
-  }
- }
- // Cada rota é uma faixa contínua. Não há placas enormes nem sprites repetidos.
  for(let lane=0;lane<3;lane++){
   const pts=E.ROUTE_PATHS[lane];
-  for(const [width,color] of [[246,'#091b2d'],[233,'#4f7d89'],[223,'#264553'],[207,'#425d6e']]){
+  for(const [width,color] of [
+   [242,'#132d3d'],[231,'#5c8593'],[221,'#25465a'],[210,'#385569']
+  ]){
    techRoute(g,pts);g.lineWidth=width;g.strokeStyle=color;g.stroke();
   }
- }
- // Postos de selva em posições exatas dos acampamentos (não são colisões).
- for(const camp of S.camps){
-  const r=camp.kind==='boss'?65:48;
-  techRing(g,camp.x,camp.y,r,'#628b9a64',3);
-  techRing(g,camp.x,camp.y,r*.73,'#58a8b84d',1.5);
-  techPolygon(g,camp.x,camp.y,r*.36,6);
-  g.fillStyle='#173345';g.fill();g.strokeStyle='#7bc1c05a';g.lineWidth=2;g.stroke();
- }
- for(let side=0;side<2;side++)techBase(g,side);
- // Campos de camuflagem são áreas translúcidas, não construções grandes.
- for(const b of S.brushes){
-  g.beginPath();g.arc(b.x,b.y,b.r,0,TAU);
-  g.fillStyle='#2da9a112';g.fill();g.strokeStyle='#65d7d045';g.lineWidth=2;g.stroke();
-  for(let i=0;i<6;i++){
-   const a=TAU*i/6;
-   techPolygon(g,b.x+Math.cos(a)*b.r*.67,b.y+Math.sin(a)*b.r*.67,5,4,Math.PI/4);
-   g.fillStyle='#6ecfc54d';g.fill();
+  // Detalhe de sinalização muito discreto, poucas marcas por rota.
+  for(const t of [.20,.45,.70,.89]){
+   const p=E.pathPos(lane,t),a=E.pathPos(lane,Math.max(0,t-.004)),
+      b=E.pathPos(lane,Math.min(1,t+.004));
+   const angle=Math.atan2(b.y-a.y,b.x-a.x);
+   g.save();g.translate(p.x,p.y);g.rotate(angle+Math.PI/4);
+   g.strokeStyle='#b5dbc37d';g.lineWidth=1.7;
+   g.strokeRect(-9,-9,18,18);g.restore();
   }
  }
- // O próprio motor determina quais objetos existem, e cada um é desenhado uma vez.
+ // Acampamentos no chão da selva, não vias adicionais.
+ for(const camp of S.camps){
+  const r=camp.kind==='boss'?53:39;
+  techRing(g,camp.x,camp.y,r,'#5c9daa8c',2);
+  techPolygon(g,camp.x,camp.y,r*.65,6,Math.PI/6);
+  g.fillStyle='#1a3b4c';g.fill();g.strokeStyle='#74b6bf76';g.lineWidth=1.5;g.stroke();
+  techPolygon(g,camp.x,camp.y,r*.20,4,Math.PI/4);
+  g.fillStyle='#6ad4c558';g.fill();
+ }
+ for(let side=0;side<2;side++)techBase(g,side);
+ // Os campos de camuflagem permanecem baixos e não tapam corredores.
+ for(const b of S.brushes){
+  g.beginPath();g.arc(b.x,b.y,b.r,0,TAU);
+  g.fillStyle='#4f9a8818';g.fill();
+  g.strokeStyle='#67b3a54c';g.lineWidth=1.7;g.stroke();
+  for(let i=0;i<5;i++){
+   const a=TAU*i/5,px=b.x+Math.cos(a)*b.r*.60,py=b.y+Math.sin(a)*b.r*.60;
+   techPolygon(g,px,py,7,6,Math.PI/6);
+   g.fillStyle='#70b5a75b';g.fill();
+  }
+ }
+ // Primeiro as paredes CONTÍNUAS que bloqueiam fisicamente; depois pilares isolados.
+ for(const w of S.walls)techWall(g,w);
  for(const o of S.obstacles)techObstacle(g,o);
  terrain=c;
 }
@@ -196,31 +211,6 @@ function manaBar(x,y,r,mana,max,width=55){
 function drawStructure(o,t){
  if(!visible(o.x,o.y,120))return;
  const col=E.SIDE[o.side],isCore=o.kind==='core';
- if(mapArtReady&&MAP_ART.naturalWidth){
-  // A torre e o Núcleo JÁ ESTÃO NA IMAGEM: não criar cópia por cima.
-  // Só o estado interativo (vida/dano/destruição) é desenhado em tempo real.
-  ctx.save();
-  if(o.hp<=0){
-   if(o.kind==='tower'){
-    ctx.globalAlpha=.92;
-    circle(o.x,o.y,45,'#0b1a2c','#657787',2);
-    ctx.beginPath();ctx.moveTo(o.x-16,o.y-15);ctx.lineTo(o.x+15,o.y+17);
-    ctx.moveTo(o.x+15,o.y-15);ctx.lineTo(o.x-16,o.y+17);
-    ctx.lineWidth=4;ctx.strokeStyle='#7c7f87';ctx.stroke();
-   }else{
-    circle(o.x,o.y,60,'#071a2aee','#de8da6',3);
-   }
-  }else{
-   // Pequena indicação de funcionamento; o cristal é da arte original.
-   const hpYOffset=isCore?79:53;
-   bar(o.x,o.y-hpYOffset,0,o.hp,o.maxHp,o.side,isCore?96:66);
-   if(o.hp<o.maxHp){
-    circle(o.x,o.y,isCore?55:30,null,col+'99',2);
-   }
-  }
-  ctx.restore();
-  return;
- }
  if(o.kind==='tower'&&o.hp<=0)return;
  const r=isCore?44:28;
  if(o.side!==S.hero?.side&&o.hp>0&&S.hero?.hp>0&&dist(S.hero,o)<o.range+135){
@@ -696,7 +686,7 @@ function chooseHero(){
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice();
- $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 6.0</div><h2>FENDA DOS SIGILOS</h2>'+
+ $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 6.1</div><h2>FENDA DOS SIGILOS</h2>'+
  '<p>Rotas de curvas suaves, tropas em formação e torres nas laterais. IA de teamfight coordenada: iniciação, proteção, flanco e recuo.</p>'+
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
