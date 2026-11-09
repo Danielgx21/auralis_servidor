@@ -35,8 +35,8 @@ let vw=900,vh=460,dpr=1,terrain=null,last=performance.now(),hudCountdown=0,ended
 const art={};
 for(const [key,file] of Object.entries({stone:'stone-paving.svg',
  fountain:'fountain.svg',grass:'grass-ground.svg',tree:'tree-canopy.svg',
- tower:'sigil-tower.svg',rock:'rune-rock.svg',flower:'moonflower-bush.svg',
- inlay:'base-inlay.svg'})){
+ tower:'sigil-tower.svg',core:'nexus-spire.svg',
+ rock:'rune-rock.svg',flower:'moonflower-bush.svg',inlay:'base-inlay.svg'})){
  const image=new Image();image.decoding='async';
  image.onload=()=>{terrain=null};image.onerror=()=>console.warn('Arte indisponível:',file);
  image.src='art/'+file+'?v=5.5';art[key]=image;
@@ -393,7 +393,13 @@ function drawStructure(o,t){
   ctx.restore();
  }
  ctx.save();ctx.translate(x,y);
- if(o.kind==='core'){
+ if(o.kind==='core'&&artReady('core')){
+  ctx.save();
+  if(o.side===1)ctx.filter='hue-rotate(142deg) saturate(.77)';
+  ctx.drawImage(art.core,-65,-126,130,148);
+  ctx.restore();
+  bar(0,-120,0,o.hp,o.maxHp,o.side,98);
+ }else if(o.kind==='core'){
   circle(0,9,58,'#071923a0');
   ctx.save();ctx.rotate(t*.12);
   circle(0,0,47,'#1b3643',col,6);
@@ -407,6 +413,13 @@ function drawStructure(o,t){
   ctx.fillStyle=alive?col:'#435161';ctx.fill();ctx.strokeStyle='#fff1c4';ctx.lineWidth=3;ctx.stroke();
   circle(0,0,12,'#f7ffdb');
   bar(0,0,54,o.hp,o.maxHp,o.side,100);
+ }else if(artReady('tower')){
+  // A torre usa sprite detalhado; a posição e hitbox permanecem no motor.
+  ctx.save();
+  if(o.side===1)ctx.filter='hue-rotate(145deg) saturate(.77)';
+  ctx.drawImage(art.tower,-50,-100,100,122);
+  ctx.restore();
+  bar(0,-102,0,o.hp,o.maxHp,o.side,74);
  }else{
   circle(4,10,38,'#071622b3');
   circle(0,0,30,'#243b4b',col,3);
