@@ -412,7 +412,7 @@ function laneTarget(u,range){
 function findAA(u){
  if(!u||u.hp<=0)return null;
  const range=attackRange(u);
- if(u.jungler&&u.jungleGoal&&u.jungleGoal.hp>0&&
+ if(u.kind==='hero'&&!u.controlled&&u.jungleGoal&&u.jungleGoal.hp>0&&
      (!u.jungleGoal.unlock||state.time>=u.jungleGoal.unlock)&&
      dist(u,u.jungleGoal)<=range+solidRadius(u.jungleGoal)+2)return u.jungleGoal;
  // Seleção explícita de torre mantém o foco do AA durante o cerco.
@@ -773,7 +773,7 @@ function botJungler(u,dt){
  }
  const nearbyThreat=living(1-u.side,'hero')
   .some(e=>visibleTo(u.side,e)&&dist(e,u)<225);
- if(nearbyThreat){u.gankUntil=Math.max(u.gankUntil||0,state.time+7);return false}
+ if(nearbyThreat){u.jungleGoal=null;u.gankUntil=Math.max(u.gankUntil||0,state.time+7);return false}
  const boss=openBoss();
  const healthy=living(u.side,'hero').filter(h=>h.hp/h.maxHp>.53);
  const supports=healthy.filter(h=>!h.jungler&&dist(h,boss||u)<880);
@@ -820,6 +820,8 @@ function botSupportBoss(u,dt){
  u.jungleGoal=boss;approachCreep(u,boss,dt);
  if(u.id==='orun'&&dist(u,boss)<138&&u.cooldowns.orun_quake<=0)
   cast(u,'orun_quake',null,boss);
+ if(u.id==='nyra'&&dist(u,boss)<325&&u.cooldowns.nyra_bolt<=0)
+  cast(u,'nyra_bolt',null,boss);
  if(u.id==='seris'&&u.cooldowns.seris_aegis<=0&&u.energy>=skillDef('seris_aegis').cost){
   const teammates=living(u.side,'hero').filter(h=>dist(h,u)<200&&h.hp/h.maxHp<.68);
   if(teammates.length)cast(u,'seris_aegis',null,teammates[0]);
@@ -908,7 +910,7 @@ function jungleStep(dt){
    continue;
   }
   if(c.unlock&&state.time<c.unlock)continue;
-  c.attackCd=Math.max(0,(c.attackCd||1)-dt);
+  c.attackCd=Math.max(0,(c.attackCd===undefined?1:c.attackCd)-dt);
   let target=c.aggroTarget;
   if(!target||target.hp<=0||dist(target,c)>240||state.time>(c.aggroUntil||0)){
    target=living(null,'hero').filter(u=>dist(u,c)<95)
