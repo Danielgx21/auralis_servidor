@@ -159,8 +159,8 @@ assert.ok(terrainSource.includes("g.drawImage(art.flower,")&&
  terrainSource.includes("g.drawImage(art.tree,")&&
  terrainSource.includes("g.drawImage(art.rock,"),
  'Flora e pedras da selva devem usar imagens ilustradas');
-assert.ok(terrainSource.includes("g.drawImage(art.tower,-50,-100,100,122)")&&
- terrainSource.includes("g.drawImage(art.core,-65,-126,130,148)"),
+assert.ok(terrainSource.includes("ctx.drawImage(art.tower,-50,-100,100,122)")&&
+ terrainSource.includes("ctx.drawImage(art.core,-65,-126,130,148)"),
  'Torres e nucleos devem usar seus recursos de arte');
 assert.ok(terrainSource.includes("function drawHero(u,t){")&&
  terrainSource.includes("function drawMinion(u,t){"),
