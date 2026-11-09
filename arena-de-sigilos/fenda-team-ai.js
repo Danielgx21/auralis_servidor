@@ -9,7 +9,7 @@ let nextScan=0;
 const living=(side)=>E.living(side,'hero');
 const visibleFoes=(side)=>living(1-side).filter(e=>E.visibleTo(side,e));
 const hp=h=>h.hp/Math.max(1,h.maxHp);
-const canCast=(h,id)=>h.cooldowns[id]<=.01&&h.energy>=E.skillDef(id).cost&&h.stun<=0&&
+const canCast=(h,id)=>h.cooldowns[id]<=.01&&h.mana>=E.skillDef(id).cost&&h.stun<=0&&
   (!E.skillDef(id).ultimate||h.level>=5);
 function strength(h){
  const ult=C.heroes[h.id].ultimate;
