@@ -47,10 +47,10 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=6.3')&&
- html.includes('fenda-team-ai.js?v=6.3')&&
- html.includes('fenda-scenery.js?v=6.3')&&
- html.includes('fenda-view.js?v=6.3'),'O site precisa carregar o cenário procedural antes da câmera.');
+assert.ok(html.includes('fenda-engine.js?v=7.0')&&
+ html.includes('fenda-team-ai.js?v=7.0')&&
+ html.includes('fenda-scenery.js?v=7.0')&&
+ html.includes('fenda-view.js?v=7.0'),'O site precisa carregar o cenário procedural antes da câmera.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -121,26 +121,31 @@ for(const camp of state.camps){
  assert.ok(Math.min(...[0,1,2].map(l=>E.routeProjection(l,camp).distance))>=170,
  'Monstro ocupando uma lane: '+camp.id);
 }
-// Fenda 6.3: cenário absolutamente sem imagens de fora, geometria e física unificadas.
+// Fenda 7.0: restaurar visual da Teamfight, sem avenidas pintadas.
 const terrainSource=read('fenda-view.js'),scenerySource=read('fenda-scenery.js');
 vm.runInNewContext(scenerySource,sandbox);
 assert.ok(sandbox.window.FendaScenery,'Módulo de paisagem Canvas não carregou');
 assert.equal(E.ROUTE_PATHS.length,3);
 assert.ok(terrainSource.includes('function drawTerrain(){terrain=window.FendaScenery.drawTerrain(E,S);}')&&
- scenerySource.includes('function drawBase(g,E,side)')&&
- scenerySource.includes('function drawWall(g,w)')&&
- scenerySource.includes('function drawRiver(g,E)')&&
- scenerySource.includes('function drawVegetation(g,E,S)'),
- 'Base, rios e paredões precisam ser desenhados no Canvas');
-assert.ok(scenerySource.includes('for(let i=0;i<3;i++)drawRoute(g,E,i)')&&
- scenerySource.includes('const path=E.ROUTE_PATHS[lane]'),
- 'As únicas rotas devem ser aquelas percorridas pelos minions');
-assert.ok([".png",".svg",".webp","new Image(","createElement('img')","spritePaths","drawSprite","MAP_ART"].every(term=>
+ scenerySource.includes('function base(g,E,side)')&&
+ scenerySource.includes('function wall(g,w)')&&
+ scenerySource.includes('function jungleCamp(g,o)'),
+ 'Bases, selvas e paredões precisam ser desenhados no Canvas');
+assert.ok(!scenerySource.includes('drawRoute')&&
+ !scenerySource.includes('drawGateBridges')&&
+ !scenerySource.includes('strokeStyle=\'#626e68\''),
+ 'Não desenhar pistas falsas; as lanes existem por obstáculos reais e IA');
+assert.ok(["new Image(","createElement('img')","spritePaths","drawSprite","MAP_ART"].every(term=>
  !terrainSource.includes(term)&&!scenerySource.includes(term)),
  'É PROIBIDO usar arquivos de imagem, atlas ou sprites no mapa');
-assert.ok(scenerySource.includes('for(const w of S.walls)drawWall(g,w)')&&
- scenerySource.includes('for(const o of S.obstacles)drawRock(g,o)'),
+assert.ok(scenerySource.includes('for(const w of S.walls)wall(g,w)')&&
+ scenerySource.includes('for(const o of S.obstacles)rock(g,o)'),
  'Toda barreira desenhada precisa ser uma hitbox real');
+assert.ok(scenerySource.includes('function fond(g,E)')&&
+ scenerySource.includes('function base(g,E,side)')&&
+ scenerySource.includes('hex(g,')&&
+ scenerySource.includes('ring(g,'),
+ 'Identidade da Arena original: grade sutil, hexágonos e círculos');
 assert.ok(terrainSource.includes('ctx.scale(cameraZoom,cameraZoom)')&&
  terrainSource.includes('S.camera.x+worldVW')&&
  terrainSource.includes('worldVW,worldVH'),
@@ -163,10 +168,15 @@ assert.ok(read('fenda-engine.js').includes('const TOP_PATH=[')&&
 E.start('lyria');
 assert.equal(state.structures.filter(s=>s.kind==='tower').length,18);
 assert.equal(state.structures.filter(s=>s.kind==='core').length,2);
-assert.equal(state.walls.length,14,'Mapeamento precisa de 14 paredes de verdade');
+assert.equal(state.walls.length,20,'Mapeamento precisa de 20 paredes de verdade');
 assert.equal(state.brushes.length,8);
-assert.ok(state.obstacles.length>=2&&state.obstacles.length<=8,
- 'Selva não deve ficar lotada de obstáculos');
+assert.equal(state.obstacles.filter(o=>o.kind==='gate').length,12,
+ 'Os seis portões precisam ser formados por doze pilares sólidos');
+for(const gate of state.obstacles.filter(o=>o.kind==='gate')){
+ assert.ok(E.routeProjection(gate.lane,gate).distance>=75,
+  'Coluna de portão bloqueia sua lane');
+ assert.ok(E.solidBodies().includes(gate),'Portão decorativo sem colisão real');
+}
 for(let i=0;i<state.walls.length;i+=2){
  const a=state.walls[i],b=state.walls[i+1];
  assert.ok(Math.abs(a.ax+b.ax-E.W)<.01&&Math.abs(a.ay+b.ay-E.H)<.01&&
@@ -400,4 +410,4 @@ for(let j=0;j<1000;j++){
 }
 assert.equal(invalid,0,'Erro de posição projetada em uma rota.');
 assert.ok(overlaps<=3,'Ondas de tropas estão se sobrepondo excessivamente.');
-console.log('OK: mapa procedural sem imagens, 3 portoes, torres separadas, jungle fisica, câmera, colisões e combate 5x5.');
+console.log('OK: estilo Teamfight sem estradas/imagens, portoes solidos, jungles fisicas, torres e 5x5.');
