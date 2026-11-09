@@ -125,6 +125,11 @@ assert.ok(!terrainSource.includes("g.arc(base.x,base.y,176"),
 // 5.6: texturas e construções vêm de um atlas raster WebP já pronto.
 assert.ok(terrainSource.includes("painted:'painted-sprite-atlas.webp'"),
  'Atlas WebP pré-renderizado não conectado ao jogo');
+assert.ok(terrainSource.includes("world:'world-illustrated.webp'") &&
+ terrainSource.includes("if(artReady('world')){") &&
+ terrainSource.includes("g.drawImage(art.world,0,0,E.W,E.H);") &&
+ terrainSource.includes("terrain=c;") ,
+ 'Mapa inteiro deve ser pré-pintado em imagem WebP única, sem construções canvas');
 assert.ok(terrainSource.includes("image.src='art/'+file+'?v=5.6'"),
  'Cache de arte não renovado para a versão 5.6');
 assert.ok(terrainSource.includes("const ART_SIZE=256") &&
