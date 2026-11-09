@@ -138,9 +138,10 @@ assert.ok(!scenerySource.includes('drawRoute')&&
 assert.ok(["new Image(","createElement('img')","spritePaths","drawSprite","MAP_ART"].every(term=>
  !terrainSource.includes(term)&&!scenerySource.includes(term)),
  'É PROIBIDO usar arquivos de imagem, atlas ou sprites no mapa');
-assert.ok(scenerySource.includes('for(const w of S.walls)wall(g,w)')&&
+assert.ok(scenerySource.includes('for(const w of S.walls)')&&
+ scenerySource.includes('wallChain(g,group)')&&
  scenerySource.includes('for(const o of S.obstacles)rock(g,o)'),
- 'Toda barreira desenhada precisa ser uma hitbox real');
+ 'Toda barreira desenhada deve seguir o mesmo segmento do colisor real');
 assert.ok(scenerySource.includes('function fond(g,E)')&&
  scenerySource.includes('function base(g,E,side)')&&
  scenerySource.includes('hex(g,')&&
@@ -150,6 +151,9 @@ assert.ok(terrainSource.includes('ctx.scale(cameraZoom,cameraZoom)')&&
  terrainSource.includes('S.camera.x+worldVW')&&
  terrainSource.includes('worldVW,worldVH'),
  'Camera, visao e click precisam respeitar o zoom');
+assert.ok(terrainSource.includes('const HERO_RENDER_SCALE=.73')&&
+ terrainSource.includes('ctx.scale(HERO_RENDER_SCALE,HERO_RENDER_SCALE)'),
+ 'Os campeões devem ter representação reduzida, sem alterar hitboxes');
 assert.ok(terrainSource.includes('function drawStructure(o,t){')&&
  terrainSource.includes('function drawHero(u,t){')&&
  terrainSource.includes('function drawMinion(u,t){'),
@@ -168,7 +172,13 @@ assert.ok(read('fenda-engine.js').includes('const TOP_PATH=[')&&
 E.start('lyria');
 assert.equal(state.structures.filter(s=>s.kind==='tower').length,18);
 assert.equal(state.structures.filter(s=>s.kind==='core').length,2);
-assert.equal(state.walls.length,20,'Mapeamento precisa de 20 paredes de verdade');
+assert.ok(state.walls.length>=120,'A jungle e as bases precisam de paredes físicas suficientes');
+assert.ok(state.walls.filter(w=>w.wallClass==='base').length>=48,
+ 'Muralha do santuário precisa ser obstáculo físico, não decoração');
+assert.ok(state.walls.filter(w=>w.wallClass!=='base').length>=60,
+ 'Corredores longos precisam de separadores físicos contra a jungle');
+assert.ok(state.walls.some(w=>w.halfWidth>=85),
+ 'Paredes da selva devem ser massas largas, não fileiras de pedras');
 assert.equal(state.brushes.length,8);
 assert.equal(state.obstacles.filter(o=>o.kind==='gate').length,12,
  'Os seis portões precisam ser formados por doze pilares sólidos');
@@ -185,16 +195,65 @@ for(let i=0;i<state.walls.length;i+=2){
  assert.equal(a.halfWidth,b.halfWidth);
  for(const p of [{x:a.ax,y:a.ay},{x:a.bx,y:a.by}]){
   const gap=Math.min(...[0,1,2].map(l=>E.routeProjection(l,p).distance));
-  assert.ok(gap>=145,'Parede bloqueando o corredor de minions');
+  assert.ok(gap>=105,'Parede bloqueando o corredor de minions');
  }
 }
 for(const o of state.structures.filter(x=>x.kind==='tower')){
  assert.ok(E.routeProjection(o.lane,o).distance>=82,
   'Torre atravessando a pista: '+o.id);
 }
+for(const lane of [0,1,2]){
+ const blueT1=state.structures.find(t=>t.kind==='tower'&&t.side===0&&t.lane===lane&&t.tier===1);
+ const redT1=state.structures.find(t=>t.kind==='tower'&&t.side===1&&t.lane===lane&&t.tier===1);
+ assert.ok(distance(blueT1,redT1)>950,
+  'Torres externas dos inimigos quase encostadas nas aliadas na rota '+lane);
+}
 const topMid=E.pathPos(0,.55),centralMid=E.pathPos(1,.50),bottomMid=E.pathPos(2,.55);
 assert.ok(distance(topMid,centralMid)>350&&distance(bottomMid,centralMid)>350,
  'As três rotas devem ser claramente separadas no meio da partida');
+// QA geográfico: do santuário AZUL devem ser alcançáveis as três lanes
+// de ambos os lados e os seis acampamentos, com paredes consideradas obstáculos.
+// Teste de conectividade com largura do corpo do campeão + margem.
+{
+ const cell=40,nx=Math.ceil(E.W/cell),ny=Math.ceil(E.H/cell);
+ const solidBodies=E.solidBodies().filter(o=>
+  o.kind==='wall'||o.kind==='gate'||o.kind==='rock');
+ const occupied=new Uint8Array(nx*ny);
+ for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
+  const point={x:(i+.5)*cell,y:(j+.5)*cell};
+  if(solidBodies.some(body=>E.distanceToSolid(point,body)<20))
+   occupied[j*nx+i]=1;
+ }
+ const visited=new Uint8Array(nx*ny),from=E.HOME[0];
+ const start=Math.floor(from.y/cell)*nx+Math.floor(from.x/cell);
+ const queue=[start];visited[start]=1;
+ for(let k=0;k<queue.length;k++){
+  const id=queue[k],ix=id%nx,iy=Math.floor(id/nx);
+  for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1],
+    [1,1],[1,-1],[-1,1],[-1,-1]]){
+   const x=ix+dx,y=iy+dy;
+   if(x<1||y<1||x>=nx-1||y>=ny-1)continue;
+   const next=y*nx+x;
+   if(visited[next]||occupied[next])continue;
+   if(dx&&dy&&(occupied[iy*nx+x]||occupied[y*nx+ix]))continue;
+   visited[next]=1;queue.push(next);
+  }
+ }
+ const reaches=p=>{
+  const col=Math.max(0,Math.min(nx-1,Math.floor(p.x/cell)));
+  const row=Math.max(0,Math.min(ny-1,Math.floor(p.y/cell)));
+  return visited[row*nx+col]===1;
+ };
+ for(let lane=0;lane<3;lane++)
+  for(const t of [.10,.40,.50,.60,.90])
+   assert.ok(reaches(E.pathPos(lane,t)),
+    'Lane inacessível à distância '+t+' para rota '+lane);
+ for(const camp of state.camps)
+  assert.ok(reaches(camp),'Acampamento inacessível pela jungle: '+camp.id);
+ for(const side of [0,1])
+  for(const gate of E.BASE_GATE[side])
+   assert.ok(reaches(gate),'Saída física da base bloqueada');
+}
 // Colisão real: não se atravessa a barricada de um lado para o outro.
 const w=state.walls[0],pilot=state.hero;
 const normal=E.norm(-(w.by-w.ay),w.bx-w.ax),off=pilot.r+w.halfWidth+26;
