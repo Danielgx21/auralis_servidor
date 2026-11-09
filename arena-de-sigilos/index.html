@@ -612,51 +612,59 @@ function hitText(x,y,n,color){floaters.push({x,y,txt:String(Math.round(n)),life:
 function addWave(x,y,max,life,color,lineWidth=3){waves.push({x,y,max,life,full:life,color,lineWidth})}
 function wallCollision(o){const margin=o.r+12;o.x=clamp(o.x,margin,W-margin);o.y=clamp(o.y,Math.min(82,H*.22)+margin,H-margin-6);for(const p of obstacles){let dx=o.x-p.x,dy=o.y-p.y,d=Math.hypot(dx,dy),min=o.r+p.r+3;if(d<min){const n=unit(dx||1,dy||0);o.x+=n.x*(min-d);o.y+=n.y*(min-d)}}}
 function moveVec(){let x=0,y=0;if(keys.has('w')||keys.has('arrowup'))y--;if(keys.has('s')||keys.has('arrowdown'))y++;if(keys.has('a')||keys.has('arrowleft'))x--;if(keys.has('d')||keys.has('arrowright'))x++;x+=joy.x;y+=joy.y;const len=Math.hypot(x,y);return len>1?{x:x/len,y:y/len}:{x,y}}
-function targetDirection(){
- if(touchAim.active&&touchAim.dragged)return{x:touchAim.x,y:touchAim.y};
- const target=refreshTarget();
- if(!target)return{x:1,y:0};
- const isMobile=matchMedia('(pointer:coarse)').matches||W<580;
- if(isMobile||!aim.active)return unit(target.x-player.x,target.y-player.y);
- return unit(aim.x-player.x,aim.y-player.y);
+// Autoataque é alvo travado, não skillshot: verifica alcance no clique e segue o inimigo.
+function findAutoTarget(u,preferred=null){
+ if(!u||u.hp<=0)return null;
+ const range=unitRange(u),opponents=living(u.team===0?1:0);
+ const inRange=t=>t&&t.hp>0&&t.team!==u.team&&dist(u,t)<=range+t.r+2;
+ if(inRange(preferred))return preferred;
+ const targets=opponents.filter(inRange);
+ if(!targets.length)return null;
+ const focus=teamPlans?.[u.team]?.focus;
+ if(inRange(focus))return focus;
+ targets.sort((x,y)=>dist(u,x)-dist(u,y)+(x.hp/x.maxHp-y.hp/y.maxHp)*14);
+ return targets[0];
 }
-function shootPlayer(dir){
- if(mode!=='playing'||!player||player.hp<=0||player.shoot>.005||player.casting||player.stun>0)return;
- const h=chosenHero(),direction=unit(dir.x,dir.y),origin=player.r+13;
- player.angle=Math.atan2(direction.y,direction.x);
+function targetDirection(){
+ const enemyTarget=findAutoTarget(player)||refreshTarget();
+ return enemyTarget?unit(enemyTarget.x-player.x,enemyTarget.y-player.y):{x:1,y:0};
+}
+function shootPlayer(_dir){
+ if(mode!=='playing'||!player||player.hp<=0||player.shoot>.005||player.casting||player.stun>0)return false;
+ const target=findAutoTarget(player);
+ if(!target)return false; // Fora do alcance: não desperdiça AA nem começa recarga.
+ const h=chosenHero(),dir=unit(target.x-player.x,target.y-player.y),origin=player.r+13;
+ player.angle=Math.atan2(dir.y,dir.x);
  let damage=h.damage+(equippedItem('lens')?2*itemLevel('lens'):0);
  const empowered=player.heroId==='vexor'&&player.empowered;
  if(empowered){damage+=13;player.empowered=false}
  player.shoot=h.attackTime;player.attackAnim=.26;
  if(meleeClass(player.heroId)){
-  // Melees não lançam bolinhas: o ataque básico é um corte com alcance curto.
-  const target=living(1).filter(u=>{
-   const dx=u.x-player.x,dy=u.y-player.y,d=Math.hypot(dx,dy);
-   return d<=unitRange(player)+u.r&&((dx*direction.x+dy*direction.y)/(d||1))>.25;
-  }).sort((a,b)=>dist(a,player)-dist(b,player))[0];
-  addWave(player.x+direction.x*24,player.y+direction.y*24,37,.25,h.color,2.3);
-  emitFragments(player.x+direction.x*29,player.y+direction.y*29,h.color,7,85,.24,'dash');
-  if(target)onBasicHit(damage,target);
+  addWave(player.x+dir.x*24,player.y+dir.y*24,37,.25,h.color,2.3);
+  emitFragments(target.x,target.y,h.color,7,85,.24,'dash');
+  onBasicHit(damage,target); // Melee dentro do alcance sempre acerta.
   tone(player.heroId==='orun'?260:360,.08,'triangle',.036);
  }else{
-  const speed=h.projectile;
+  // Projétil rastreador: a distância é validada no lançamento; nunca atravessa outro alvo.
+  const speed=h.projectile,spawnX=player.x+dir.x*origin,spawnY=player.y+dir.y*origin;
   bullets.push({
-   x:player.x+direction.x*origin,y:player.y+direction.y*origin,
-   vx:direction.x*speed,vy:direction.y*speed,r:h.role==='MAGA'?6.5:5.3,
-   life:Math.min(h.range,460)/speed,side:'player',team:0,source:player,
-   heroId:player.heroId,damage,bounces:equippedItem('prism')?1:0,
-   color:empowered?'#ffdf98':h.color,trail:[]
+   x:spawnX,y:spawnY,vx:dir.x*speed,vy:dir.y*speed,
+   r:h.role==='MAGA'?6.5:5.3,life:6,lockedTarget:target,homing:true,
+   speed,side:'player',team:0,source:player,heroId:player.heroId,damage,
+   bounces:0,color:empowered?'#ffdf98':h.color,trail:[]
   });
-  burst(player.x+direction.x*origin,player.y+direction.y*origin,h.color,6,70);
+  burst(spawnX,spawnY,h.color,6,70);
   tone(player.heroId==='nyra'?520:420,.065,'triangle',.026);
  }
+ return true;
 }
-function queueSingleShot(dir){
+function queueSingleShot(_dir){
  if(mode!=='playing'||!player||player.hp<=0)return;
- const d=unit(dir.x,dir.y);
+ const available=findAutoTarget(player);
+ if(!available){shotQueue.length=0;return}
  shotQueue.length=0;
- if(player.shoot<=.005&&!player.casting)shootPlayer(d);
- else shotQueue.push(d);
+ if(player.shoot<=.005&&!player.casting)shootPlayer();
+ else shotQueue.push(true); // No máximo um ataque pendente, que verifica alcance novamente.
 }
 function onBasicHit(damage,target=enemy){
  if(!target||target.hp<=0)return;
@@ -1101,7 +1109,7 @@ function botChooseSkill(u,target){
 function botBasicAttack(u,target){
  if(!target||u.hp<=0||target.hp<=0||u.stun>0)return;
  const h=heroes[u.heroId],direction=unit(target.x-u.x,target.y-u.y);
- if(dist(u,target)>unitRange(u)+target.r+12)return;
+ if(dist(u,target)>unitRange(u)+target.r+2)return;
  u.angle=Math.atan2(direction.y,direction.x);
  let damage=u.damage;
  u.hitCombo++;
@@ -1121,7 +1129,7 @@ function botBasicAttack(u,target){
   const speed=h.projectile*.88,origin=u.r+12;
   bullets.push({x:u.x+direction.x*origin,y:u.y+direction.y*origin,
    vx:direction.x*speed,vy:direction.y*speed,r:u.heroId==='nyra'?6.7:5,
-   life:unitRange(u)/speed+.14,side:u.team===0?'player':'enemy',
+   life:6,homing:true,lockedTarget:target,speed,side:u.team===0?'player':'enemy',
    team:u.team,source:u,heroId:u.heroId,damage,color:h.color,trail:[],bounces:0});
   burst(u.x+direction.x*origin,u.y+direction.y*origin,h.color,4,60);
  }
@@ -1246,7 +1254,7 @@ function tick(dt){
    if(c.remaining<=0&&player.stun<=0){player.casting=null;finishAbility(c)}
   }
   if(shotQueue.length&&player.shoot<=0&&!player.casting&&player.stun<=0){
-   shootPlayer(shotQueue.shift());
+   shotQueue.length=0;shootPlayer();
   }
  }
  for(const u of [...allies.slice(1),...enemies]){
@@ -1294,6 +1302,25 @@ function tick(dt){
  if(mode!=='playing')return;
  for(const b of bullets){
   if(b.life<=0)continue;
+  if(b.homing){
+   const target=b.lockedTarget;
+   if(!target||target.hp<=0){b.life=0;continue}
+   const vector=unit(target.x-b.x,target.y-b.y);
+   const speed=b.speed||500,step=speed*dt;
+   b.vx=vector.x*speed;b.vy=vector.y*speed;
+   const gap=dist(target,b);
+   if(gap<=step+target.r+b.r){
+    b.x=target.x;b.y=target.y;b.life=0;
+    if(b.source===player)onBasicHit(b.damage,target);
+    else damageUnit(target,b.damage,b.source||null);
+   }else{
+    b.x+=vector.x*step;b.y+=vector.y*step;
+    b.trail.push({x:b.x,y:b.y});if(b.trail.length>6)b.trail.shift();
+    b.life-=dt;
+   }
+   if(mode!=='playing')break;
+   continue; // AA ignora obstáculos e outras unidades; alvo já foi travado em range.
+  }
   const px=b.x,py=b.y;
   b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;
   b.trail.push({x:b.x,y:b.y});if(b.trail.length>6)b.trail.shift();
@@ -1492,23 +1519,24 @@ function drawEnemyWindup(t){
  }
 }
 function drawAimGuide(t){
- if(!player||mode!=='playing'||!touchAim.active||player.casting||(skillTouch&&skillTouch.active))return; // Prioridade visual à habilidade.
- const d=targetDirection(),sx=player.x+d.x*(player.r+13),sy=player.y+d.y*(player.r+13);
- const desired=meleeClass(player.heroId)?unitRange(player)+20:Math.min(chosenHero().range,Math.max(260,Math.min(390,Math.min(W,H)*1.02)));
- let length=desired;
- if(d.x>.0001)length=Math.min(length,(W-10-sx)/d.x);else if(d.x<-.0001)length=Math.min(length,(10-sx)/d.x);
- if(d.y>.0001)length=Math.min(length,(H-10-sy)/d.y);else if(d.y<-.0001)length=Math.min(length,(10-sy)/d.y);
- length=Math.max(0,length);
- const ex=sx+d.x*length,ey=sy+d.y*length;
- ctx.save();ctx.shadowBlur=10;ctx.shadowColor='#5ef6ec';
- ctx.setLineDash([11,7]);line(sx,sy,ex,ey,'#b9fff6',3,.94);ctx.setLineDash([]);ctx.shadowBlur=0;
- // A guia começa no mesmo ponto e usa o mesmo vetor que a bolinha disparada.
- circle(sx,sy,4,'#ebfffd',.95);ring(ex,ey,11,'#baffef',.86,2);
- line(ex-18,ey,ex-7,ey,'#e7ffff',2,.92);line(ex+7,ey,ex+18,ey,'#e7ffff',2,.92);
- line(ex,ey-18,ex,ey-7,'#e7ffff',2,.92);line(ex,ey+7,ex,ey+18,'#e7ffff',2,.92);
+ if(!player||player.hp<=0||mode!=='playing'||!touchAim.active||player.casting||(skillTouch&&skillTouch.active))return;
+ const selected=findAutoTarget(player);
+ const radius=unitRange(player);
+ ctx.save();
+ ring(player.x,player.y,radius,'#69f1dc',.31,2);
+ if(selected){
+  const direction=unit(selected.x-player.x,selected.y-player.y);
+  const sx=player.x+direction.x*(player.r+11),sy=player.y+direction.y*(player.r+11);
+  ctx.setLineDash([9,7]);line(sx,sy,selected.x,selected.y,'#b9fff6',2.5,.85);ctx.setLineDash([]);
+  ring(selected.x,selected.y,selected.r+11,'#b9fff6',.93,3);
+  circle(selected.x,selected.y,3,'#f0fffb',.95);
+ }else{
+  ctx.font='800 10px system-ui';ctx.textAlign='center';ctx.fillStyle='#b9fff6';
+  ctx.shadowColor='#000';ctx.shadowBlur=5;
+  ctx.fillText('FORA DE ALCANCE',clamp(player.x,75,W-75),clamp(player.y-50,40,H-40));
+ }
  ctx.restore();
 }
-
 
 function drawSkillGuide(t){
  if(mode!=='playing'||!player)return;
@@ -1707,7 +1735,7 @@ function beginFireTouch(e,captureElement){
  if(mode!=='playing'||!player||player.hp<=0||firePointer!==null)return;
  e.preventDefault();fireTouch=true;firePointer=e.pointerId;
  // Um toque simples usa a mira automática; arrastar ativa a direção manual.
- const initial=unit(enemy.x-player.x,enemy.y-player.y);
+ const initial=targetDirection();
  touchAim={id:e.pointerId,active:false,pressed:true,dragged:false,x:initial.x,y:initial.y,startX:e.clientX,startY:e.clientY,currentX:e.clientX,currentY:e.clientY,startTime:performance.now()};
  const r=stage.getBoundingClientRect(),half=47;
  aimPad.style.left=clamp(e.clientX-r.left,half,Math.max(half,r.width-half))+'px';
@@ -1753,7 +1781,7 @@ function beginSkillTouch(e,index){
  e.preventDefault();
  if(skillAimKind(which)==='self'){ability(which);return}
  if(player.cool[which]>.01||player.energy<def.cost){tone(170,.05,'sine',.019);return}
- const button=$(abilityButtons[index]),auto=unit(enemy.x-player.x,enemy.y-player.y);
+ const button=$(abilityButtons[index]),currentTarget=refreshTarget(),auto=currentTarget?unit(currentTarget.x-player.x,currentTarget.y-player.y):{x:1,y:0};
  skillPointer=e.pointerId;
  skillTouch={
   id:e.pointerId,which,button,active:false,dragged:false,
