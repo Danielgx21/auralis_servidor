@@ -66,25 +66,48 @@ function jungleCamp(g,o){
  ring(g,o.x,o.y,r*.54,o.color+'48',2.1);
  for(let i=0;i<6;i++){let a=i*TAU/6,x=o.x+Math.cos(a)*(r-18),y=o.y+Math.sin(a)*(r-18);hex(g,x,y,4,4,Math.PI/4);g.fillStyle=o.color+'8b';g.fill();}
 }
-function wall(g,w){
- const dx=w.bx-w.ax,dy=w.by-w.ay,L=Math.hypot(dx,dy),h=w.halfWidth;
- g.save();g.translate(w.x,w.y);g.rotate(Math.atan2(dy,dx));
- // Volumes sólidos CONTÍNUOS, idênticos à linha de colisão, com chanfros técnicos.
- const x=-L/2,y=L/2;g.beginPath();g.moveTo(x+15,-h);g.lineTo(y-15,-h);g.lineTo(y+3,-h+15);
- g.lineTo(y+3,h-15);g.lineTo(y-15,h);g.lineTo(x+15,h);g.lineTo(x-3,h-15);g.lineTo(x-3,-h+15);g.closePath();
- g.save();g.translate(4,11);g.fillStyle='#020e19a6';g.fill();g.restore();
- let grad=g.createLinearGradient(0,-h,0,h);grad.addColorStop(0,'#436d80');grad.addColorStop(.35,'#213d56');grad.addColorStop(1,'#0e283f');
- g.fillStyle=grad;g.fill();g.strokeStyle='#79b5c270';g.lineWidth=3.2;g.stroke();
- // Uma costura superior contínua, não fileira de pedrinhas decorativas.
- g.beginPath();g.moveTo(x+15,-h+8);g.lineTo(y-15,-h+8);
- g.strokeStyle='#a2e9df44';g.lineWidth=2;g.stroke();
- for(let t=-L/2+38;t<L/2-20;t+=94){g.beginPath();g.moveTo(t,-h+10);g.lineTo(t+17,-1);g.lineTo(t+9,h-7);g.strokeStyle='#77bfcb21';g.lineWidth=1.3;g.stroke();}
- for(let a of [x,y]){
-  hex(g,a,0,h*.62,6,Math.PI/6);g.fillStyle='#09283a';g.fill();g.strokeStyle='#74b9c6aa';g.lineWidth=2.2;g.stroke();
-  hex(g,a,0,h*.27,4,Math.PI/4);g.fillStyle='#85ded2b8';g.fill();
+function wallChain(g,ws){
+ if(!ws.length)return;
+ // Colisores curtos formam UMA muralha contínua por cadeia.
+ // A mesma polilinha da física é usada como geometria de pintura,
+ // sem capitéis/ícones repetidos em toda emenda.
+ const pts=[{x:ws[0].ax,y:ws[0].ay},...ws.map(w=>({x:w.bx,y:w.by}))];
+ const half=ws[0].halfWidth;
+ const path=(ox=0,oy=0)=>{
+  g.beginPath();
+  pts.forEach((p,i)=>i?g.lineTo(p.x+ox,p.y+oy):g.moveTo(p.x+ox,p.y+oy));
+ };
+ g.save();g.lineCap='round';g.lineJoin='round';
+ path(5,13);g.strokeStyle='#000c19be';g.lineWidth=2*half+21;g.stroke();
+ path();g.strokeStyle='#051726';g.lineWidth=2*half+12;g.stroke();
+ path();g.strokeStyle='#47788b';g.lineWidth=2*half+4;g.stroke();
+ path();g.strokeStyle='#204158';g.lineWidth=2*half-12;g.stroke();
+ path(-3,-5);g.strokeStyle='#86b7bf77';g.lineWidth=3;g.stroke();
+ // Faces geométricas integradas à massa, com poucas juntas espaçadas.
+ const total=pts.slice(1).reduce((sum,p,k)=>sum+Math.hypot(p.x-pts[k].x,p.y-pts[k].y),0);
+ let walked=0,nextJoint=110;
+ for(let k=1;k<pts.length;k++){
+  const a=pts[k-1],b=pts[k],length=Math.hypot(b.x-a.x,b.y-a.y);
+  while(walked+length>=nextJoint){
+   const t=(nextJoint-walked)/length,x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;
+   g.save();g.translate(x,y);g.rotate(Math.atan2(b.y-a.y,b.x-a.x));
+   g.beginPath();g.moveTo(-9,-half*.65);g.lineTo(8,-half*.12);
+   g.lineTo(-3,half*.68);g.strokeStyle='#76b9c347';g.lineWidth=1.7;g.stroke();
+   g.restore();
+   nextJoint+=135;
+  }
+  walked+=length;
+ }
+ // Só as extremidades verdadeiras levam pilares hexagonais.
+ for(const p of [pts[0],pts[pts.length-1]]){
+  hex(g,p.x,p.y,half*.64,6,Math.PI/6);
+  g.fillStyle='#102d42';g.fill();g.strokeStyle='#8cc9ca9c';g.lineWidth=2.1;g.stroke();
+  hex(g,p.x,p.y,half*.28,4,Math.PI/4);
+  g.fillStyle='#7ce3d4aa';g.fill();
  }
  g.restore();
 }
+function wall(g,w){wallChain(g,[w]);}
 function rock(g,o){
  const r=o.r||24;
  g.save();g.translate(o.x,o.y);g.shadowColor='#0af0f01a';g.shadowBlur=10;
@@ -113,7 +136,15 @@ function terrain(E,S){
  for(let side=0;side<2;side++)base(g,E,side);
  for(const camp of S.camps)jungleCamp(g,camp);
  for(const b of S.brushes)brush(g,b);
- for(const w of S.walls)wall(g,w);
+ // Agrupar segmentos colineares da MESMA muralha visual, mantendo cada
+ // trecho individualmente sólido para colisão, projéteis e navegação.
+ const chains=new Map();
+ for(const w of S.walls){
+  const name=w.chain||w.id;
+  if(!chains.has(name))chains.set(name,[]);
+  chains.get(name).push(w);
+ }
+ for(const group of chains.values())wallChain(g,group);
  for(const o of S.obstacles)rock(g,o);
  return c;
 }
