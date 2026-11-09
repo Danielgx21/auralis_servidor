@@ -5,7 +5,12 @@ if(!C){console.error('Fenda: núcleo de campeões não carregado');return;}
 const W=2750,H=1900,TAU=Math.PI*2;
 // Um deslocamento base-a-base deve durar ~27–30 s, não 11–13 s como na v4.1.
 const MOBA_WALK_SCALE=.55;
-const LANE_HALF_WIDTH=97,LANE_MINION_SPREAD=24;
+// Largura de rota proporcional ao personagem: ~6 diâmetros por corredor.
+const LANE_HALF_WIDTH=108,LANE_MINION_SPREAD=26;
+const JUNGLE_LINKS=[
+ {lane:0,t:.55,x:870,y:610},{lane:1,t:.35,x:930,y:1320},
+ {lane:1,t:.67,x:1730,y:620},{lane:2,t:.43,x:1700,y:1310}
+];
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const norm=(x,y)=>{const n=Math.hypot(x,y)||1;return{x:x/n,y:y/n}};
 const SIDE=['#69e6e4','#ed829e'],HOME=[{x:205,y:1675},{x:2545,y:210}];
@@ -143,9 +148,16 @@ function buildMap(){
    // A ordem física precisa acompanhar a ordem de vulnerabilidade das torres.
    const fractions=side===0?[.37,.23,.095]:[.63,.77,.905];
    for(let i=0;i<fractions.length;i++){
-    // Torre alinhada ao centro real da rota, com passagem pelas laterais.
-    const p=pathPos(lane,fractions[i]);
-    state.structures.push({kind:'tower',side,lane,tier:i+1,x:p.x,y:p.y,
+    // Defesa no ombro da rota: a onda passa pelo eixo livre da lane.
+    const t=fractions[i],p=pathPos(lane,t);
+    const before=pathPos(lane,Math.max(0,t-.004)),after=pathPos(lane,Math.min(1,t+.004));
+    const tangent=norm(after.x-before.x,after.y-before.y);
+    const normal={x:-tangent.y,y:tangent.x};
+    const recess=side===0?-22:22,lateral=(side===0?1:-1)*83;
+    const towerX=p.x+tangent.x*recess+normal.x*lateral;
+    const towerY=p.y+tangent.y*recess+normal.y*lateral;
+    state.structures.push({kind:'tower',side,lane,tier:i+1,
+      x:clamp(towerX,55,W-55),y:clamp(towerY,55,H-55),
       r:27,hp:880,maxHp:880,atk:58,range:360,attackCd:0,
       id:'tower'+side+'-'+lane+'-'+i});
    }
@@ -174,7 +186,15 @@ function buildMap(){
  for(let attempt=0;attempt<900&&state.obstacles.length<48;attempt++){
   const x=140+rand()*(W-280),y=135+rand()*(H-270);
   const r=22+rand()*21;
-  if(onRoad(x,y,r+LANE_HALF_WIDTH+15)||HOME.some(h=>Math.hypot(h.x-x,h.y-y)<210)||
+  // Passagens reais entre selva e rotas: sem rochas bloqueando o corredor.
+  const onJunglePath=JUNGLE_LINKS.some(link=>{
+    const a=pathPos(link.lane,link.t),b=link;
+    const dx=b.x-a.x,dy=b.y-a.y;
+    const t=clamp(((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy),0,1);
+    return Math.hypot(x-a.x-t*dx,y-a.y-t*dy)<r+40;
+  });
+  if(onRoad(x,y,r+LANE_HALF_WIDTH+15)||onJunglePath||
+     HOME.some(h=>Math.hypot(h.x-x,h.y-y)<210)||
      state.camps.some(c=>Math.hypot(c.x-x,c.y-y)<r+115)||
      state.obstacles.some(o=>Math.hypot(o.x-x,o.y-y)<r+o.r+25))continue;
   state.obstacles.push({kind:rand()>.35?'tree':'rock',x,y,r,solid:true});
@@ -189,7 +209,7 @@ function makeHero(id,side,controlled=false){
  const spawnOffset=95+(state.seq%3)*12;
  return {uid:++state.seq,kind:'hero',id,side,controlled,
  x:start.x+d.x*spawnOffset+rando(-11,11),
- y:start.y+d.y*spawnOffset+rando(-11,11),r:id==='orun'?23:19,speed:h.move*MOBA_WALK_SCALE,atk:h.damage*.82,
+ y:start.y+d.y*spawnOffset+rando(-11,11),r:id==='orun'?21:17.5,speed:h.move*MOBA_WALK_SCALE,atk:h.damage*.82,
  baseHp:h.hp*1.3,maxHp:Math.round(h.hp*1.3),hp:Math.round(h.hp*1.3),
  energy:100,maxEnergy:100,level:1,xp:0,gold:controlled?550:350,items:[],
  lane:roles[id],waypoint:side===0?0:PATHS[roles[id]].length-1,attackCd:0,casting:null,
@@ -200,11 +220,16 @@ function makeHero(id,side,controlled=false){
  healthRegen:1.3,homeBuff:0,botLane:roles[id],cs:0,focusTarget:null,focusUntil:0,isRanged:!['vexor','orun'].includes(id)};
 }
 function createMinion(side,lane,type=0,slot=0){
- const p=pathPos(lane,side===0?.035:.965),ranged=type>=1,siege=type===2;
+ const t=side===0?.035:.965,p=pathPos(lane,t),ranged=type>=1,siege=type===2;
+ const a=pathPos(lane,t-.006),b=pathPos(lane,t+.006),axis=norm(b.x-a.x,b.y-a.y);
+ const forward=side===0?1:-1,offset=(slot-1.5)*LANE_MINION_SPREAD;
+ const depth=type===0?23:type===1?-12:-44;
+ const spawnX=p.x+axis.x*forward*depth-axis.y*offset;
+ const spawnY=p.y+axis.y*forward*depth+axis.x*offset;
  const wavePower=1+Math.min(1.45,state.time/680);
  let hp=Math.round((siege?340:ranged?117:165)*wavePower);
  return{uid:++state.seq,kind:'minion',id:siege?'siege':ranged?'caster':'guard',side,lane,
- x:p.x+rando(-9,9),y:p.y+rando(-9,9),r:siege?19:ranged?12:14,
+ x:spawnX+rando(-2.5,2.5),y:spawnY+rando(-2.5,2.5),r:siege?17.5:ranged?11:13,
  hp,maxHp:hp,atk:Math.round((siege?34:ranged?20:19)*wavePower),
  speed:siege?59:ranged?74:83,attackCd:rando(.1,.5),ranged,site:type,slot,
  pathIndex:side===0?0:PATHS[lane].length-1,focus:null,
@@ -1349,6 +1374,6 @@ function recall(){
  return true;
 }
 window.FendaEngine={state,W,H,TAU,HOME,PATHS,SIDE,ITEMS,hData,skillDef,
- start,step,cast,autoAttack,focusTower,buyItem,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,
+ start,step,cast,autoAttack,focusTower,buyItem,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,JUNGLE_LINKS,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
 })();
