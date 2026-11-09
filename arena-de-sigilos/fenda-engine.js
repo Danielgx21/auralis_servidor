@@ -43,12 +43,12 @@ const JUNGLE_LINKS=[
 // Cada segmento usa a mesma curva pela qual os minions transitam, só que
 // deslocado para o lado da selva. A rotação de 180° preserva equilíbrio.
 const WALL_RIBBONS=[
- {name:'superior',lane:0,sign:1,offset:212,spans:[
-  [.075,.185],[.255,.375],[.44,.56],[.625,.755],[.825,.92]]},
- {name:'central-norte',lane:1,sign:-1,offset:215,spans:[
-  [.13,.27],[.33,.45]]},
- {name:'central-sul',lane:1,sign:1,offset:215,spans:[
-  [.13,.27],[.33,.45]]}
+ {name:'superior',lane:0,sign:1,offset:288,spans:[
+  [.08,.23],[.28,.49],[.55,.74],[.79,.93]]},
+ {name:'central-norte',lane:1,sign:-1,offset:288,spans:[
+  [.10,.23],[.30,.45]]},
+ {name:'central-sul',lane:1,sign:1,offset:288,spans:[
+  [.10,.23],[.30,.45]]}
 ];
 const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1};
 const ITEMS=[
@@ -269,7 +269,7 @@ function buildMap(){
  // ou mais entradas por setor. Toda a separação é uma hitbox real.
  // Fragmentos contíguos possuem a mesma identificação 'chain' para que
  // o desenho fique liso sem dezenas de ícones nas emendas.
- const wallHalf=36;
+ const wallHalf=92;
  function wallPoint(cfg,t){
   const p=pathPos(cfg.lane,t),
    a=pathPos(cfg.lane,clamp(t-.003,0,1)),
@@ -338,6 +338,54 @@ function buildMap(){
    const x=gate.x+perpendicular.x*84*sign;
    const y=gate.y+perpendicular.y*84*sign;
    state.obstacles.push({kind:'gate',side,lane,x,y,r:22,solid:true});
+  }
+ }
+ // Perímetro REAL do santuário. O desenho externo não é mais apenas
+ // decorativo: há paredes sólidas com três aberturas onde o jogador e as
+ // tropas realmente cruzam a fronteira da base.
+ const baseCenter={x:(HOME[0].x+CORE[0].x)/2,y:(HOME[0].y+CORE[0].y)/2};
+ const baseVertices=Array.from({length:8},(_,i)=>{
+  const a=Math.PI/8+i*TAU/8;
+  return{x:baseCenter.x+322*Math.cos(a),y:baseCenter.y+322*Math.sin(a)};
+ });
+ function intersection(a,b,c,d){
+  const rx=b.x-a.x,ry=b.y-a.y,sx=d.x-c.x,sy=d.y-c.y;
+  const cross=rx*sy-ry*sx;if(Math.abs(cross)<.0001)return null;
+  const ax=c.x-a.x,ay=c.y-a.y,t=(ax*sy-ay*sx)/cross;
+  const u=(ax*ry-ay*rx)/cross;
+  if(t<0||t>1||u<0||u>1)return null;
+  return{x:a.x+rx*t,y:a.y+ry*t};
+ }
+ const openings=BASE_GATE[0].map(gate=>{
+  for(let k=0;k<baseVertices.length;k++){
+   const point=intersection(HOME[0],gate,baseVertices[k],baseVertices[(k+1)%8]);
+   if(point)return point;
+  }
+  return gate;
+ });
+ for(let edge=0;edge<baseVertices.length;edge++){
+  const a=baseVertices[edge],b=baseVertices[(edge+1)%8];
+  const parts=9;let chain=0,previousWasWall=false;
+  for(let i=0;i<parts;i++){
+   const p={x:a.x+(b.x-a.x)*i/parts,y:a.y+(b.y-a.y)*i/parts},
+    q={x:a.x+(b.x-a.x)*(i+1)/parts,y:a.y+(b.y-a.y)*(i+1)/parts};
+   const midpoint={x:(p.x+q.x)/2,y:(p.y+q.y)/2};
+   // Deixar livre pelo menos 170 unidades em cada portão. Os vãos
+   // também abrem as quinas adjacentes quando necessário.
+   if(openings.some(o=>segmentDistance(o,p,q)<96)){
+    previousWasWall=false;continue;
+   }
+   if(!previousWasWall)chain++;
+   previousWasWall=true;
+   for(let side=0;side<2;side++){
+    const v=side===0?p:rotateHalf(p),z=side===0?q:rotateHalf(q);
+    state.walls.push({kind:'wall',wallClass:'base',side,
+     ax:v.x,ay:v.y,bx:z.x,by:z.y,
+     x:(v.x+z.x)/2,y:(v.y+z.y)/2,halfWidth:26,
+     r:dist(v,z)/2+26,solid:true,
+     chain:'base-'+edge+'-'+chain+'-'+side,
+     id:'basewall-'+edge+'-'+chain+'-'+i+'-'+side});
+   }
   }
  }
  rebuildSolidIndex();
