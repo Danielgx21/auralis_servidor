@@ -2000,14 +2000,18 @@ function draw(t){ctx.save();ctx.clearRect(0,0,W,H);if(shake>0&&mode==='playing')
  drawParticles()}else{ // attract mode
  const cx=W*.36,cy=H*.53,ex=W*.68,ey=H*.48;drawEntity({heroId:heroChoice,x:cx,y:cy,r:18,angle:Math.atan2(ey-cy,ex-cx),hit:0,shield:0,invuln:0},true,t);drawEntity({heroId:missions[selected].hero,x:ex,y:ey,r:19,angle:Math.atan2(cy-ey,cx-ex),hp:1,maxHp:1,hit:0},false,t);for(let i=0;i<6;i++){const p=(t*.24+i/6)%1,cx1=lerp(cx,ex,p),cy1=lerp(cy,ey,p);circle(cx1,cy1,3,'#83f5e6',.15+.4*Math.sin(p*Math.PI))}
  }ctx.restore()}
-function loop(now){let dt=Math.min(.04,(now-last)/1000||.016);last=now;maybeActivateAim(now);maybeActivateSkillAim(now);tick(dt);draw(sceneTime);requestAnimationFrame(loop)}
+function loop(now){
+ if(stage.classList.contains('fenda-on')){last=now;requestAnimationFrame(loop);return}
+ let dt=Math.min(.04,(now-last)/1000||.016);last=now;
+ maybeActivateAim(now);maybeActivateSkillAim(now);tick(dt);draw(sceneTime);requestAnimationFrame(loop)
+}
 function pointInCanvas(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 canvas.addEventListener('pointermove',e=>{if(e.pointerType==='mouse'){aim={...pointInCanvas(e),active:true}}});
 canvas.addEventListener('pointerdown',e=>{if(mode==='playing'&&e.pointerType==='mouse'){e.preventDefault();aim={...pointInCanvas(e),active:true};queueSingleShot(targetDirection());canvas.setPointerCapture(e.pointerId)}});
 canvas.addEventListener('pointerup',()=>{});canvas.addEventListener('pointercancel',()=>{});
 
-window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' ','q','e','r','1','2','3','escape'].includes(k))e.preventDefault();if(k==='escape'){showPause();return}if(mode!=='playing')return;keys.add(k);if(!e.repeat){if(k==='q'||k==='1')ability(heroSkillIds()[0]);if(k==='w'||k==='2')ability(heroSkillIds()[1]);if(k==='e'||k==='3')ability(heroSkillIds()[2]);if(k==='r'||k==='4')ability(heroUltimateId());if(k===' ')queueSingleShot(targetDirection())}});
-window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{if(mode==='playing')showPause();keys.clear();shotQueue.length=0});
+window.addEventListener('keydown',e=>{if(stage.classList.contains('fenda-on'))return;const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' ','q','e','r','1','2','3','escape'].includes(k))e.preventDefault();if(k==='escape'){showPause();return}if(mode!=='playing')return;keys.add(k);if(!e.repeat){if(k==='q'||k==='1')ability(heroSkillIds()[0]);if(k==='w'||k==='2')ability(heroSkillIds()[1]);if(k==='e'||k==='3')ability(heroSkillIds()[2]);if(k==='r'||k==='4')ability(heroUltimateId());if(k===' ')queueSingleShot(targetDirection())}});
+window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{if(mode==='playing'&&!stage.classList.contains('fenda-on'))showPause();keys.clear();shotQueue.length=0});
 $('fullscreenBtn').onclick=()=>{if(document.fullscreenElement&&document.exitFullscreen){document.exitFullscreen()}else enterImmersive()};
 $('rotateFullscreen').onclick=enterImmersive;
 document.addEventListener('fullscreenchange',()=>{$('fullscreenBtn').textContent=document.fullscreenElement?'⛶':'⛶';resize()});
@@ -2167,6 +2171,8 @@ window.SigilsCore={
  getHeroChoice:()=>heroChoice,
  setHeroChoice:id=>{if(heroes[id]){heroChoice=id;saveHero()}},
  showClassic:showMenu,
+ suspendClassic:()=>{mode='menu';shotQueue.length=0;keys.clear();joy.id=null;
+  touchAim.pressed=false;firePointer=null;skillPointer=null;skillTouch=null;},
  classicMode:()=>mode,
  getArsenal:()=>arsenal
 };
