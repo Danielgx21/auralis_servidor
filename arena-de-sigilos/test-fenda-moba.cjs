@@ -24,6 +24,11 @@ assert.equal(state.structures.filter(u=>u.kind==='tower').length,18);
 assert.equal(E.LANE_HALF_WIDTH*2,216);
 assert.equal(E.CORE.length,2,'Cada lado tem um Núcleo independente da fonte');
 assert.equal(E.BASE_GATE.length,2,'Saídas próprias das duas equipes');
+assert.ok(E.W>=3300&&E.H>=2500,'Mapa pequeno demais para separar as rotas');
+for(const gates of E.BASE_GATE){
+ assert.ok(distance(gates[0],gates[1])>450&&distance(gates[1],gates[2])>450,
+  'Saídas da base amontoadas como antes');
+}
 for(let side=0;side<2;side++){
  const fountain=E.HOME[side],nexus=E.CORE[side];
  assert.ok(distance(fountain,nexus)>250,
@@ -42,9 +47,9 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=6.1')&&
- html.includes('fenda-team-ai.js?v=6.1')&&
- html.includes('fenda-view.js?v=6.1'),'O site deve carregar todos os sistemas da 5.0.');
+assert.ok(html.includes('fenda-engine.js?v=6.2')&&
+ html.includes('fenda-team-ai.js?v=6.2')&&
+ html.includes('fenda-view.js?v=6.2'),'O site deve carregar todos os sistemas da 5.0.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -115,13 +120,13 @@ for(const camp of state.camps){
  assert.ok(Math.min(...[0,1,2].map(l=>E.routeProjection(l,camp).distance))>=170,
  'Monstro ocupando uma lane: '+camp.id);
 }
-// Fenda 6.1: somente top, meio e bot, com visual da Arena Teamfight.
+// Fenda 6.2: rotas realmente separadas, jungle física, assets e câmera tática.
 const terrainSource=read('fenda-view.js');
 assert.equal(E.ROUTE_PATHS.length,3,'A Fenda tem somente três rotas');
 assert.ok(terrainSource.includes('function techWall(g,w)')&&
  terrainSource.includes('function techBase(g,side)')&&
  terrainSource.includes('function drawTerrain(){'),
- 'Cenário deve ser Canvas geométrico no estilo da Teamfight');
+ 'Cenário deve continuar com objetos e hitboxes sincronizados');
 assert.ok(terrainSource.includes('for(let lane=0;lane<3;lane++){')&&
  terrainSource.includes('const pts=E.ROUTE_PATHS[lane];')&&
  terrainSource.includes('techRoute(g,pts);'),
@@ -130,7 +135,15 @@ assert.ok(!terrainSource.includes('MAP_ART.src=')&&
  !terrainSource.includes('new Image(')&&
  !terrainSource.includes('g.drawImage(MAP_ART')&&
  !terrainSource.includes('for(const link of E.JUNGLE_LINKS)'),
- 'Não usar a arte da 6.0 nem abrir estradas extras na selva');
+ 'Não usar a arte de mapa inteiro da 6.0 nem abrir estradas extras na selva');
+assert.ok(terrainSource.includes("ground:'grass-ground.svg'")&&
+ terrainSource.includes("bush:'moonflower-bush.svg'")&&
+ terrainSource.includes("tower:'sigil-tower.svg'")&&
+ terrainSource.includes("drawSprite(g,'fountain'")&&
+ terrainSource.includes("ctx.scale(cameraZoom,cameraZoom)")&&
+ terrainSource.includes("S.camera.x+worldVW")&&
+ terrainSource.includes("worldVW,worldVH"),
+ 'Mapa deve usar elementos da arena original e câmera com zoom sem distorcer cliques');
 assert.ok(terrainSource.includes('for(const w of S.walls)techWall(g,w);')&&
  terrainSource.includes('for(const o of S.obstacles)techObstacle(g,o);'),
  'Paredes e obstáculos devem corresponder à colisão verdadeira');
@@ -145,8 +158,8 @@ assert.ok(read('fenda-engine.js').includes('const TOP_PATH=[')&&
 E.start('lyria');
 assert.equal(state.structures.filter(s=>s.kind==='tower').length,18);
 assert.equal(state.structures.filter(s=>s.kind==='core').length,2);
-assert.equal(state.walls.length,12,'Mapeamento precisa de 12 paredes de verdade');
-assert.equal(state.brushes.length,6);
+assert.equal(state.walls.length,14,'Mapeamento precisa de 14 paredes de verdade');
+assert.equal(state.brushes.length,8);
 assert.ok(state.obstacles.length>=2&&state.obstacles.length<=8,
  'Selva não deve ficar lotada de obstáculos');
 for(let i=0;i<state.walls.length;i+=2){
