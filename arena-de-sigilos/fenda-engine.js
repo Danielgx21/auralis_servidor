@@ -503,7 +503,9 @@ function separateUnits(){
    if(!others)continue;
    for(const v of others){
     if(v.uid<=u.uid)continue;
-    const padding=u.side===v.side?2:4;
+    const friendlyMinions=u.side===v.side&&u.kind==='minion'&&v.kind==='minion';
+    // Companheiros de onda se afastam suavemente, mas conseguem atravessar filas.
+    const padding=friendlyMinions?9:(u.side===v.side?3:4);
     const minDist=Math.max(9,u.r+v.r-padding);
     const dx=v.x-u.x,dy=v.y-u.y;
     if(Math.abs(dx)>=minDist||Math.abs(dy)>=minDist)continue;
@@ -511,7 +513,7 @@ function separateUnits(){
     if(d2>=minDist*minDist)continue;
     const d=Math.sqrt(d2);
     const dir=d>.001?{x:dx/d,y:dy/d}:{x:Math.cos(v.uid*2.1),y:Math.sin(v.uid*2.1)};
-    const strength=Math.min(12,(minDist-d)*.72);
+    const strength=Math.min(12,(minDist-d)*(friendlyMinions?.47:.72));
     const uMass=u.kind==='hero'?2.8:1,vMass=v.kind==='hero'?2.8:1;
     const total=uMass+vMass;
     const amountU=strength*vMass/total,amountV=strength*uMass/total;
