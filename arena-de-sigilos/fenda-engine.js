@@ -86,7 +86,7 @@ function makeHero(id,side,controlled=false){
 }
 function createMinion(side,lane,type=0){
  const p=pathPos(lane,side===0?.007:.993),ranged=type===1,siege=type===2;
- const wavePower=1+Math.min(1.1,state.time/840);
+ const wavePower=1+Math.min(1.45,state.time/680);
  let hp=Math.round((siege?380:ranged?130:190)*wavePower);
  return{uid:++state.seq,kind:'minion',id:siege?'siege':ranged?'caster':'guard',side,lane,
  x:p.x+rando(-20,20),y:p.y+rando(-16,16),r:siege?19:ranged?12:14,
@@ -163,6 +163,16 @@ function onDeath(victim,source){
 function damage(victim,amount,source=null){
  if(!victim||victim.hp<=0||state.mode!=='playing')return 0;
  if(victim.invuln>0)return 0;
+ // Para avançar rumo ao núcleo, conquiste uma rota e derrube seus obeliscos em ordem.
+ if(victim.kind==='tower'&&victim.tier>1&&
+    state.structures.some(t=>t.kind==='tower'&&t.side===victim.side&&t.lane===victim.lane&&t.tier<victim.tier&&t.hp>0)){
+  addEffect(victim.x,victim.y,'#d8e1ba',victim.r+14,.20);return 0;
+ }
+ if(victim.kind==='core'&&!Array.from({length:3},(_,lane)=>lane).some(lane=>
+    state.structures.filter(t=>t.kind==='tower'&&t.side===victim.side&&t.lane===lane)
+      .every(t=>t.hp<=0))){
+  addEffect(victim.x,victim.y,'#d8e1ba',victim.r+18,.23);return 0;
+ }
  let raw=Math.max(1,amount);
  if(victim.shield>0){const absorbed=Math.min(victim.shield,raw);victim.shield-=absorbed;raw-=absorbed;}
  if(victim.guard>0){const ab=Math.min(victim.guard,raw);victim.guard-=ab;raw-=ab;}
@@ -519,6 +529,7 @@ function tickUnit(u,dt){
  u.attackCd=Math.max(0,u.attackCd-dt);u.attackAnim=Math.max(0,(u.attackAnim||0)-dt);
  if(u.kind==='hero')for(const id in u.cooldowns)u.cooldowns[id]=Math.max(0,u.cooldowns[id]-dt);
  if(u.kind==='hero'){
+  u.gold=Math.min(20000,u.gold+dt*1.15);
   u.energy=clamp(u.energy+dt*(u.homeBuff>state.time?19:12),0,maxEnergy(u));
   u.aiTimer-=dt;
   u.hp=Math.min(u.maxHp,u.hp+dt*(dist(u,HOME[u.side])<150?24:1.15));
@@ -552,7 +563,10 @@ function makeWave(){
  state.wave++;
  for(let side=0;side<2;side++)for(let lane=0;lane<3;lane++){
   for(let i=0;i<4;i++)state.units.push(createMinion(side,lane,i<2?0:1));
-  if(state.wave%3===0)state.units.push(createMinion(side,lane,2));
+  if(state.wave%3===0||state.time>550)state.units.push(createMinion(side,lane,2));
+  // Tropas de cerco mais fortes após uma rota perder todos os obeliscos.
+  if(state.time>480&&state.structures.filter(t=>t.kind==='tower'&&t.side===1-side&&t.lane===lane).every(t=>t.hp<=0))
+   state.units.push(createMinion(side,lane,2));
  }
  if(state.wave===1)announce('AS SENTINELAS RÚNICAS PARTIRAM PARA AS ROTAS',3);
 }
