@@ -23,13 +23,16 @@ shop.innerHTML='<div class="fenda-shop-head"><strong>⚒ ARSENAL DO SANTUÁRIO</
 stage.appendChild(shop);
 const mm=$('fendaMinimap'),mc=mm.getContext('2d');
 let vw=900,vh=460,dpr=1,terrain=null,last=performance.now(),hudCountdown=0,endedShown=false;
-// Texturas ilustradas, em arquivo independente: 0..112 fonte, 112..224 pedra.
-// Renderiza apenas o cenário. Campeões, UI, névoa, torres e colisões continuam dinâmicos.
-const sceneryAtlas=new Image();
-let sceneryReady=false;
-sceneryAtlas.onload=()=>{sceneryReady=true;terrain=null;};
-sceneryAtlas.onerror=()=>{sceneryReady=false;};
-sceneryAtlas.src='fenda-art-atlas.webp?v=5.1';
+// Imagens nítidas e independentes: nenhuma ampliação de atlas 112x112.
+const art={};
+for(const [key,file] of Object.entries({stone:'stone-paving.svg',
+ fountain:'fountain.svg',grass:'grass-ground.svg',tree:'tree-canopy.svg'})){
+ const image=new Image();image.decoding='async';
+ image.onload=()=>{terrain=null};image.onerror=()=>console.warn('Arte indisponível:',file);
+ image.src='art/'+file+'?v=5.2';art[key]=image;
+}
+const artReady=key=>Boolean(art[key]?.complete&&art[key]?.naturalWidth);
+const artPattern=(g,key)=>artReady(key)?g.createPattern(art[key],'repeat'):null;
 const fogCanvas=document.createElement('canvas'),fogContext=fogCanvas.getContext('2d');
 let fogAt=-1,fogCamX=-99999,fogCamY=-99999;
 const keys=new Set(),joy={ptr:null,x:0,y:0,sx:0,sy:0},pointers={aa:null,skill:null};
@@ -79,16 +82,11 @@ function drawBasePaving(g){
   bg.addColorStop(1,'#465e55');
   g.fillStyle=bg;g.fill();
   g.save();baseBoundary(g);g.clip();
-  if(sceneryReady){
-   // Um único recorte pintado e ampliado evita costuras repetidas de ladrilhos.
-   g.globalAlpha=.72;
-   g.drawImage(sceneryAtlas,112,0,112,112,-190,-190,650,545);
-   g.globalAlpha=1;
-   const glaze=g.createLinearGradient(-190,-170,410,320);
-   glaze.addColorStop(0,'#27463b22');glaze.addColorStop(.6,'#465e4d20');
-   glaze.addColorStop(1,'#233e352d');
-   g.fillStyle=glaze;g.fillRect(-205,-190,670,560);
-  }
+  const p=artPattern(g,'stone');
+  if(p){g.fillStyle=p;g.globalAlpha=.94;g.fillRect(-195,-195,700,580);g.globalAlpha=1;}
+  const glaze=g.createLinearGradient(-180,-160,415,305);
+  glaze.addColorStop(0,'#b2c1a71b');glaze.addColorStop(1,'#142d2a20');
+  g.fillStyle=glaze;g.fillRect(-195,-195,700,580);
   g.restore();
   // Muralha e borda da praça continuam elementos arquitetônicos simples.
   g.strokeStyle='#263f3b';g.lineWidth=13;baseBoundary(g);g.stroke();
@@ -116,24 +114,15 @@ function laneOutline(g,lane,margin){
  g.closePath();
 }
 function drawPaintedLanes(g){
- let pattern=null;
- if(sceneryReady){
-  const tile=document.createElement('canvas');tile.width=112;tile.height=112;
-  tile.getContext('2d').drawImage(sceneryAtlas,112,0,112,112,0,0,112,112);
-  pattern=g.createPattern(tile,'repeat');
- }
+ const p=artPattern(g,'stone');
  for(let lane=0;lane<3;lane++){
-  for(const [margin,color] of [[12,'#253e3a'],[4,'#4b665a'],[-9,'#70867c']]){
+  for(const [margin,color] of [[12,'#253b3b'],[4,'#4b655f'],[-9,'#768c7f']]){
    laneOutline(g,lane,margin);g.fillStyle=color;g.fill();
   }
-  if(pattern){
+  if(p){
    g.save();laneOutline(g,lane,-12);g.clip();
-   // A imagem é uma textura suave sob os personagens; não redesenha
-   // as bordas nem acrescenta linhas de trânsito ou anéis repetidos.
-   g.globalAlpha=.34;
-   g.scale(2.15,2.15);
-   g.fillStyle=pattern;g.fillRect(0,0,E.W/2.15,E.H/2.15);
-   g.restore();
+   // Lajes de 512px repetidas em tamanho natural; nenhuma distorção não uniforme.
+   g.globalAlpha=.94;g.fillStyle=p;g.fillRect(0,0,E.W,E.H);g.restore();
   }
  }
 }
@@ -144,8 +133,9 @@ function drawBaseDetails(g){
   const ux=side===0?core.x-source.x:source.x-core.x;
   const vy=side===0?source.y-core.y:core.y-source.y;
   // Fonte pintada à mão recortada do atlas (sem HUD nem personagens).
-  if(sceneryReady){
-   g.drawImage(sceneryAtlas,0,0,112,112,-112,-112,224,224);
+  if(artReady('fountain')){
+   g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
+   g.drawImage(art.fountain,-106,-106,212,212);
   }else{
    g.fillStyle='#183d44';g.beginPath();g.arc(0,0,74,0,TAU);g.fill();
    g.strokeStyle='#b3c4a7';g.lineWidth=7;g.beginPath();g.arc(0,0,67,0,TAU);g.stroke();
@@ -182,9 +172,13 @@ function drawTerrain(){
  const c=document.createElement('canvas');c.width=E.W;c.height=E.H;
  const g=c.getContext('2d');let seed=9127;
  function rand(){seed=(seed*16807)%2147483647;return(seed-1)/2147483646}
- const color=g.createLinearGradient(0,0,E.W,E.H);
- color.addColorStop(0,'#193932');color.addColorStop(.48,'#14382f');color.addColorStop(1,'#243344');
- g.fillStyle=color;g.fillRect(0,0,E.W,E.H);
+ const grass=artPattern(g,'grass');
+ if(grass){g.fillStyle=grass;g.fillRect(0,0,E.W,E.H);}
+ else{
+  const color=g.createLinearGradient(0,0,E.W,E.H);
+  color.addColorStop(0,'#193932');color.addColorStop(.48,'#14382f');color.addColorStop(1,'#243344');
+  g.fillStyle=color;g.fillRect(0,0,E.W,E.H);
+ }
  const nearRoute=(x,y,pad)=>{
   for(const pts of E.ROUTE_PATHS)for(let i=0;i<pts.length-1;i++){
    const a=pts[i],b=pts[i+1],vx=b.x-a.x,vy=b.y-a.y;
@@ -257,20 +251,21 @@ function drawTerrain(){
    g.beginPath();g.moveTo(bx-4,by+7);g.lineTo(bx,by-7-(n%4)*2);g.lineTo(bx+4,by+5);g.stroke();
   }
  }
- // Bosques densos, flores rúnicas e ruínas de pedra em vez de prédios genéricos.
- for(let i=0;i<960;i++){
-  const x=40+rand()*(E.W-80),y=40+rand()*(E.H-80);
-  if(nearRoute(x,y,E.LANE_HALF_WIDTH+55)||S.camps.some(k=>dist(k,{x,y})<78))continue;
-  const r=9+rand()*19;
-  g.fillStyle='#061b22a2';g.beginPath();g.ellipse(x+5,y+8,r*1.15,r*.65,0,0,TAU);g.fill();
-  if(rand()>.22){
-   g.beginPath();g.arc(x,y,r,0,TAU);g.fillStyle=rand()>.5?'#185b58':'#245b4b';g.fill();
-   g.beginPath();g.arc(x-r*.26,y-r*.26,r*.64,0,TAU);g.fillStyle='#6ca7857b';g.fill();
-   g.strokeStyle='#b2c39b47';g.lineWidth=2;g.beginPath();g.arc(x,y,r*.77,.45,2.5);g.stroke();
-  }else{
-   g.fillStyle='#6e837d';g.beginPath();g.moveTo(x-r,y+r*.42);g.lineTo(x-r*.6,y-r*.65);
-   g.lineTo(x+r*.6,y-r);g.lineTo(x+r,y+r*.3);g.closePath();g.fill();
-   g.strokeStyle='#bacbb188';g.stroke();
+ // Bosques ilustrados, sem centenas de círculos artificiais.
+ if(artReady('tree')){
+  for(let i=0;i<210;i++){
+   const x=48+rand()*(E.W-96),y=48+rand()*(E.H-96);
+   const w=80+rand()*70;
+   if(nearRoute(x,y,E.LANE_HALF_WIDTH+w*.48)||S.camps.some(k=>dist(k,{x,y})<w*.65))continue;
+   g.save();g.translate(x,y);g.rotate((rand()-.5)*.65);
+   g.globalAlpha=.75+rand()*.23;
+   g.drawImage(art.tree,-w/2,-w/2,w,w);g.restore();
+  }
+ }else{
+  for(let i=0;i<100;i++){
+   const x=48+rand()*(E.W-96),y=48+rand()*(E.H-96);
+   if(nearRoute(x,y,E.LANE_HALF_WIDTH+65))continue;
+   g.beginPath();g.arc(x,y,28,0,TAU);g.fillStyle='#23594d';g.fill();
   }
  }
  // Obstáculos com colisão: símbolos e pedras visíveis nas mesmas coordenadas da física.
@@ -700,7 +695,7 @@ function chooseHero(){
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice();
- $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 5.1</div><h2>FENDA DOS SIGILOS</h2>'+
+ $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 5.2</div><h2>FENDA DOS SIGILOS</h2>'+
  '<p>Rotas de curvas suaves, tropas em formação e torres nas laterais. IA de teamfight coordenada: iniciação, proteção, flanco e recuo.</p>'+
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
