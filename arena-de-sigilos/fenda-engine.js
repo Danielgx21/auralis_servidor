@@ -517,6 +517,7 @@ function tickUnit(u,dt){
  u.invuln=Math.max(0,u.invuln-dt);u.shield=Math.max(0,u.shield-dt*.01);
  u.guard=Math.max(0,u.guard-dt*.02);
  u.attackCd=Math.max(0,u.attackCd-dt);u.attackAnim=Math.max(0,(u.attackAnim||0)-dt);
+ if(u.kind==='hero')for(const id in u.cooldowns)u.cooldowns[id]=Math.max(0,u.cooldowns[id]-dt);
  if(u.kind==='hero'){
   u.energy=clamp(u.energy+dt*(u.homeBuff>state.time?19:12),0,maxEnergy(u));
   u.aiTimer-=dt;
