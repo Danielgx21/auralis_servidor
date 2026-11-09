@@ -159,8 +159,17 @@ assert.ok(terrainSource.includes('function drawStructure(o,t){')&&
  terrainSource.includes('function drawMinion(u,t){'),
  'Torres, campeões e tropas continuam dinâmicos');
 const allTowers=state.structures.filter(s=>s.kind==='tower');
-assert.ok(allTowers.every(t=>distance(t,E.CORE[t.side])>410),
- 'Torres foram amontoadas dentro da base');
+assert.ok(allTowers.every(t=>distance(t,E.CORE[t.side])>355),
+ 'Torres colidiram com o núcleo dentro da base');
+assert.ok(allTowers.filter(t=>t.tier===1).every(t=>
+ distance(t,E.CORE[t.side])>820),'Torres EXTERNAS precisam ficar longe do núcleo');
+for(const side of [0,1])for(const lane of [0,1,2]){
+ const ts=allTowers.filter(t=>t.side===side&&t.lane===lane)
+  .sort((a,b)=>a.tier-b.tier);
+ assert.ok(distance(ts[0],E.CORE[side])>distance(ts[1],E.CORE[side])&&
+  distance(ts[1],E.CORE[side])>distance(ts[2],E.CORE[side]),
+  'Torres T1, T2, T3 fora da ordem correta');
+}
 for(let i=0;i<allTowers.length;i++)for(let j=i+1;j<allTowers.length;j++){
  assert.ok(distance(allTowers[i],allTowers[j])>250,
   'Torres do mapa estão próximas demais');
