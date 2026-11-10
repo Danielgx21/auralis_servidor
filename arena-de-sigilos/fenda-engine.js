@@ -919,12 +919,39 @@ function separateUnits(){
  }
  for(const u of units)pushOutsideSolids(u);
 }
-function moveToward(u,p,dt,speedFactor=1){
+function moveToward(u,p,dt,speedFactor=1,waypointMode=false){
  const dx=p.x-u.x,dy=p.y-u.y,d=Math.hypot(dx,dy);
- if(d<4)return true;
+ if(d<4){u.autoNav=null;return true}
  const step=Math.min(d,moveSpeed(u)*dt*speedFactor);
- const solids=nearSolids(u.x,u.y,(u.r||18)+100);
- const dir=steerAround(u,{x:dx/d,y:dy/d},p,solids);
+ const solids=nearSolids(u.x,u.y,(u.r||18)+155);
+ let target=p;
+ // A* já existia para os junglers; agora o movimento dos demais bots
+ // também o usa quando uma parede interrompe o caminho.
+ // Joystick manual continua com física direta e sem piloto automático.
+ if(!waypointMode&&d>90){
+  const probe={x:u.x+dx/d*Math.min(130,d),y:u.y+dy/d*Math.min(130,d)};
+  const wallAhead=solids.some(o=>o.kind==='wall'&&
+   distanceToSolid(probe,o)<(u.r||18)+16);
+  if(u.autoNav&&dist(u.autoNav.goal,p)>150)u.autoNav=null;
+  if(!u.autoNav&&wallAhead&&state.time>=(u.navRetryAfter||0)){
+   const path=findJunglePath(u,p);
+   if(path.length){
+    u.autoNav={path,index:0,goal:{x:p.x,y:p.y},until:state.time+4};
+   }else u.navRetryAfter=state.time+1.4;
+  }
+  if(u.autoNav){
+   if(state.time>u.autoNav.until)u.autoNav=null;
+   else{
+    const nav=u.autoNav;
+    while(nav.index<nav.path.length-1&&dist(u,nav.path[nav.index])<34)
+     nav.index++;
+    target=nav.path[Math.min(nav.index,nav.path.length-1)];
+    if(dist(u,p)<90&&!wallAhead){u.autoNav=null;target=p;}
+   }
+  }
+ }
+ const tx=target.x-u.x,ty=target.y-u.y,td=Math.hypot(tx,ty)||1;
+ const dir=steerAround(u,{x:tx/td,y:ty/td},target,solids);
  movePhysical(u,dir.x*step,dir.y*step,solids);
  u.facing=Math.atan2(dir.y,dir.x);
  return dist(u,p)<Math.max(9,step+7);
@@ -975,7 +1002,7 @@ function moveMinion(m,dt){
  }
 }
 function respawn(u){
- u.jungleGoal=null;u.gankUntil=0;u.navPath=null;
+ u.jungleGoal=null;u.gankUntil=0;u.navPath=null;u.autoNav=null;
  const home=HOME[u.side];
  // Spawn na praça livre, evitando a hitbox do Núcleo e do obelisco interior.
  const direction=u.side===0?1:-1;
@@ -1140,7 +1167,7 @@ function moveViaJungle(u,goal,dt){
  let point=u.navPath[u.navIndex];
  while(point&&dist(u,point)<24){u.navIndex++;point=u.navPath[u.navIndex]}
  if(!point)point=goal;
- moveToward(u,point,dt,.91);
+ moveToward(u,point,dt,.91,true);
 }
 function approachCreep(u,c,dt){
  if(!c||c.hp<=0)return false;
