@@ -36,8 +36,8 @@ let vw=900,vh=460,dpr=1,terrain=null,last=performance.now(),hudCountdown=0,ended
 let cameraZoom=1.30,worldVW=vw/cameraZoom,worldVH=vh/cameraZoom;
 // Câmera adaptável: a torre precisa aparecer ANTES de poder acertar.
 // A escala visual do campeão não altera o seu raio de colisão.
-const HERO_RENDER_SCALE=.80;
-const CAMERA_MIN_WORLD_HEIGHT=530;
+let HERO_RENDER_SCALE=1.0;
+const CAMERA_MIN_WORLD_HEIGHT=700;
 // Não há texturas, atlas ou sprites nesta arena. Toda a paisagem é Canvas procedural.
 // Fenda 6.3: paisagem 100% procedural, com geometria e camera próprias.
  // Somente três rotas; paredes/obstáculos provêm das hitboxes do motor.
@@ -58,7 +58,9 @@ function resize(){
  dpr=Math.min(window.devicePixelRatio||1,1.65);
  cv.width=Math.round(vw*dpr);cv.height=Math.round(vh*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
  const comfortableZoom=vw>=1250?1.15:vw>=750?1.07:.98;
- // A dimensão curta do celular precisa mostrar toda a zona perigosa.
+ // A escala visual é independente da hitbox. Compensar o zoom de
+ // segurança no celular para não transformar o campeão num ponto.
+ HERO_RENDER_SCALE=vw>=1250?1.0:1.18;
  cameraZoom=Math.min(comfortableZoom,vh/CAMERA_MIN_WORLD_HEIGHT);
  worldVW=vw/cameraZoom;worldVH=vh/cameraZoom;
  fogCanvas.width=Math.ceil(vw*.64);fogCanvas.height=Math.ceil(vh*.64);fogAt=-1;
@@ -411,12 +413,12 @@ function view(dt){
   // O campeão fica perto do centro sem ficar encoberto pelos controles.
   // Pan tático temporário via minimapa não altera o zoom da batalha.
   const wantX=clamp(focus.x-worldVW*.47,0,Math.max(0,E.W-worldVW));
-  const wantY=clamp(focus.y-worldVH*.53,0,Math.max(0,E.H-worldVH));
+  const wantY=clamp(focus.y-worldVH*.50,0,Math.max(0,E.H-worldVH));
   const snap=h.cameraSnapAt&&S.time-h.cameraSnapAt<.23&&!observing;
   if(snap){S.camera.x=wantX;S.camera.y=wantY;}
   else{
-   S.camera.x+=(wantX-S.camera.x)*Math.min(1,dt*(observing?18:9));
-   S.camera.y+=(wantY-S.camera.y)*Math.min(1,dt*(observing?18:9));
+   S.camera.x+=(wantX-S.camera.x)*Math.min(1,dt*(observing?18:12));
+   S.camera.y+=(wantY-S.camera.y)*Math.min(1,dt*(observing?18:12));
   }
   if(cameraPeek&&cameraPeek.ptr===null&&S.time>=cameraPeekUntil)cameraPeek=null;
  }
