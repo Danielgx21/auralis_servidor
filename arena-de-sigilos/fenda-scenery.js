@@ -74,43 +74,20 @@ function jungleCamp(g,o){
 }
 function wallChain(g,ws){
  if(!ws.length)return;
- // Colisores curtos formam UMA muralha contínua por cadeia.
- // A mesma polilinha da física é usada como geometria de pintura,
- // sem capitéis/ícones repetidos em toda emenda.
+ // Silhueta contínua com acabamento único, sem riscos e fragmentos
+ // decorativos que parecem caminhos falsos ou "garranchos".
  const pts=[{x:ws[0].ax,y:ws[0].ay},...ws.map(w=>({x:w.bx,y:w.by}))];
  const half=ws[0].halfWidth;
- const path=(ox=0,oy=0)=>{
+ function line(ox=0,oy=0){
   g.beginPath();
   pts.forEach((p,i)=>i?g.lineTo(p.x+ox,p.y+oy):g.moveTo(p.x+ox,p.y+oy));
- };
+ }
  g.save();g.lineCap='round';g.lineJoin='round';
- path(5,13);g.strokeStyle='#000c19be';g.lineWidth=2*half+21;g.stroke();
- path();g.strokeStyle='#051726';g.lineWidth=2*half+12;g.stroke();
- path();g.strokeStyle='#47788b';g.lineWidth=2*half+4;g.stroke();
- path();g.strokeStyle='#204158';g.lineWidth=2*half-12;g.stroke();
- path(-3,-5);g.strokeStyle='#86b7bf77';g.lineWidth=3;g.stroke();
- // Faces geométricas integradas à massa, com poucas juntas espaçadas.
- const total=pts.slice(1).reduce((sum,p,k)=>sum+Math.hypot(p.x-pts[k].x,p.y-pts[k].y),0);
- let walked=0,nextJoint=110;
- for(let k=1;k<pts.length;k++){
-  const a=pts[k-1],b=pts[k],length=Math.hypot(b.x-a.x,b.y-a.y);
-  while(walked+length>=nextJoint){
-   const t=(nextJoint-walked)/length,x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;
-   g.save();g.translate(x,y);g.rotate(Math.atan2(b.y-a.y,b.x-a.x));
-   g.beginPath();g.moveTo(-9,-half*.65);g.lineTo(8,-half*.12);
-   g.lineTo(-3,half*.68);g.strokeStyle='#76b9c347';g.lineWidth=1.7;g.stroke();
-   g.restore();
-   nextJoint+=135;
-  }
-  walked+=length;
- }
- // Só as extremidades verdadeiras levam pilares hexagonais.
- for(const p of [pts[0],pts[pts.length-1]]){
-  hex(g,p.x,p.y,half*.64,6,Math.PI/6);
-  g.fillStyle='#102d42';g.fill();g.strokeStyle='#8cc9ca9c';g.lineWidth=2.1;g.stroke();
-  hex(g,p.x,p.y,half*.28,4,Math.PI/4);
-  g.fillStyle='#7ce3d4aa';g.fill();
- }
+ line(5,12);g.strokeStyle='#010e1abf';g.lineWidth=half*2+18;g.stroke();
+ line();g.strokeStyle='#0b263a';g.lineWidth=half*2+7;g.stroke();
+ line();g.strokeStyle=ws[0].wallClass==='base'?'#23495f':'#1c455a';
+ g.lineWidth=half*2-2;g.stroke();
+ line(-2,-4);g.strokeStyle='#5aa0b05e';g.lineWidth=3;g.stroke();
  g.restore();
 }
 function wall(g,w){wallChain(g,[w]);}
