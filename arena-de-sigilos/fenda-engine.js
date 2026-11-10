@@ -262,7 +262,7 @@ function buildMap(){
    const p=pathPos(lane,t),a=pathPos(lane,Math.max(0,t-.004)),b=pathPos(lane,Math.min(1,t+.004));
    const direction=norm(b.x-a.x,b.y-a.y);
    const sign=lane===0?1:lane===2?-1:side===0?1:-1;
-   const offset=66;
+   const offset=94;
    const x=p.x-direction.y*offset*sign,y=p.y+direction.x*offset*sign;
    state.structures.push({kind:'tower',side,lane,tier:tier+1,x,y,
     r:27,hp:880,maxHp:880,atk:58,range:TURRET_RANGE,attackCd:0,
