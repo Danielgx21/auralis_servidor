@@ -27,14 +27,18 @@ jobs:
       - name: Detect Android SDK from GitHub runner
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
-          command -v sdkmanager
           test -d "$ANDROID_HOME"
+          ls -la "$ANDROID_HOME/platforms" || true
+          find "$ANDROID_HOME/cmdline-tools" -maxdepth 3 -type f -name sdkmanager -print
       - name: Gradle 8.11.1
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
       - name: Install Android platform
-        run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+        run: |
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -maxdepth 3 -type f -name sdkmanager | head -n 1)
+          test -n "$SDKMANAGER"
+          "$SDKMANAGER" --install "platforms;android-35" "build-tools;35.0.0"
       - name: Assemble APK
         working-directory: dgx-android
         run: gradle --no-daemon assembleDebug --stacktrace
