@@ -27,6 +27,30 @@ function fond(g,E){
  hex(g,x,y,30,3,-Math.PI/2);g.strokeStyle='#7bd9d550';g.stroke();
  g.fillStyle='#9bf6dfaa';g.beginPath();g.arc(x,y,5,0,TAU);g.fill();
 }
+function jungleZones(g,E){
+ // Quatro áreas reconhecíveis de jungle, sem criar estradas nem falsos
+ // obstáculos. O limite jogável é SOMENTE a geometria de S.walls.
+ const halfFields=[
+  [[650,645],[1050,495],[1490,560],[1590,950],
+   [1340,1200],[920,1230],[625,1050]],
+  [[900,2040],[1110,1840],[1540,1530],[1850,1810],
+   [1910,2090],[1510,2150],[1130,2135]]
+ ];
+ for(const base of halfFields)for(const side of [0,1]){
+  const polygon=base.map(([x,y])=>side===0?{x,y}:{x:E.W-x,y:E.H-y});
+  const cx=polygon.reduce((a,p)=>a+p.x,0)/polygon.length;
+  const cy=polygon.reduce((a,p)=>a+p.y,0)/polygon.length;
+  g.save();
+  g.beginPath();polygon.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y));g.closePath();
+  g.fillStyle='#183a4a31';g.fill();
+  g.strokeStyle='#4e849028';g.lineWidth=2.5;g.stroke();
+  // Uma única inscrição rúnica ampla por setor, herdada do protótipo.
+  hex(g,cx,cy,72,6,Math.PI/6);
+  g.strokeStyle='#68bdcb1e';g.lineWidth=1.8;g.stroke();
+  ring(g,cx,cy,42,'#91d4dc16',1.3);
+  g.restore();
+ }
+}
 function base(g,E,side){
  const h=E.HOME[side],c=E.CORE[side],col=E.SIDE[side];
  g.save();
@@ -113,7 +137,7 @@ function brush(g,b){
 }
 function terrain(E,S){
  const c=document.createElement('canvas');c.width=E.W;c.height=E.H;
- const g=c.getContext('2d',{alpha:false});fond(g,E);
+ const g=c.getContext('2d',{alpha:false});fond(g,E);jungleZones(g,E);
  // Camada de chão antes dos sólidos: portões reais e pilares não ficam
  // escondidos sob a decoração da praça.
  for(let side=0;side<2;side++)base(g,E,side);
