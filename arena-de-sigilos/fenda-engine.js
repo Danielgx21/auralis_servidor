@@ -42,18 +42,19 @@ const JUNGLE_LINKS=[
 // Nove maciços por lado: uma borda externa, quatro divisórias da rota
 // lateral e quatro barreiras da mid; os vãos são passagens de gank.
 // Cada vértice serve igualmente para física, minimapa e Canvas.
+// Geometria mínima no estilo da arena original.
+// As rotas são definidas por poucos anteparos FÍSICOS de espessura discreta.
+// Sem muralha na borda: os limites do próprio mundo já bloqueiam a passagem.
+// Espelhamento de 180 graus produz os setores equivalentes do outro time.
 const JUNGLE_RIDGES=[
- {id:'limite-externo',half:46,pts:[
-  [132,1880],[132,1450],[132,950],[132,670],[225,415],
-  [380,230],[660,30],[1580,30],[2360,30]]},
- {id:'top-interno-1',half:78,pts:[[635,1550],[635,1320]]},
- {id:'top-interno-2',half:78,pts:[[635,1000],[635,750],[740,560],[960,525]]},
- {id:'top-interno-3',half:82,pts:[[1250,520],[1700,520]]},
- {id:'top-interno-4',half:80,pts:[[2000,520],[2180,515]]},
- {id:'mid-norte-1',half:70,pts:[[805,1585],[1020,1420]]},
- {id:'mid-norte-2',half:70,pts:[[1210,1270],[1450,1085]]},
- {id:'mid-sul-1',half:70,pts:[[1095,1970],[1335,1790]]},
- {id:'mid-sul-2',half:70,pts:[[1560,1615],[1680,1525]]}
+ {id:'top-1',half:31,pts:[[635,1550],[635,1320]]},
+ {id:'top-2',half:31,pts:[[635,1000],[635,750],[740,560],[960,525]]},
+ {id:'top-3',half:34,pts:[[1250,520],[1700,520]]},
+ {id:'top-4',half:33,pts:[[2000,520],[2180,515]]},
+ {id:'mid-1',half:30,pts:[[805,1585],[1020,1420]]},
+ {id:'mid-2',half:30,pts:[[1210,1270],[1450,1085]]},
+ {id:'mid-3',half:30,pts:[[1095,1970],[1335,1790]]},
+ {id:'mid-4',half:30,pts:[[1560,1615],[1680,1525]]}
 ];
 const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1};
 const ITEMS=[
