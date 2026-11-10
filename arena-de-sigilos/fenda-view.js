@@ -428,10 +428,19 @@ function minimap(){
   mc.beginPath();path.forEach((p,i)=>i?mc.lineTo(p.x,p.y):mc.moveTo(p.x,p.y));
   mc.strokeStyle='#9dc8c8';mc.lineWidth=65;mc.stroke();
  }
- // Barricadas realmente presentes na física, não ícones arbitrários.
+ // Mesmas silhuetas físicas do cenário, sem desenhar 278 peças soltas.
+ // Agrupar reduz trabalho por quadro e torna o mapa estratégico legível.
+ const wallChains=new Map();
  for(const w of S.walls){
-  mc.beginPath();mc.moveTo(w.ax,w.ay);mc.lineTo(w.bx,w.by);
-  mc.strokeStyle='#577889';mc.lineWidth=w.halfWidth*2+5;mc.stroke();
+  const k=w.chain||w.id;
+  if(!wallChains.has(k))wallChains.set(k,[]);
+  wallChains.get(k).push(w);
+ }
+ for(const pieces of wallChains.values()){
+  mc.beginPath();mc.moveTo(pieces[0].ax,pieces[0].ay);
+  for(const piece of pieces)mc.lineTo(piece.bx,piece.by);
+  mc.strokeStyle=pieces[0].wallClass==='base'?'#3e667c':'#315d72';
+  mc.lineWidth=pieces[0].halfWidth*2+7;mc.stroke();
  }
  // Sem visão não aparecem inimigos nem objetivo; mapa explorado fica escurecido.
  const step=E.VISION_CELL*3;
