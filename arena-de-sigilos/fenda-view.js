@@ -440,7 +440,9 @@ function minimap(){
  // Minimapa fiel à geometria jogável: só as três rotas, sem caminhos de selva.
  for(const path of E.ROUTE_PATHS){
   mc.beginPath();path.forEach((p,i)=>i?mc.lineTo(p.x,p.y):mc.moveTo(p.x,p.y));
-  mc.strokeStyle='#9dc8c8';mc.lineWidth=65;mc.stroke();
+  // Apenas no minimapa: a faixa representa o corredor navegável real,
+  // não uma estrada decorativa desenhada dentro da partida.
+  mc.strokeStyle='#9dc8c85c';mc.lineWidth=E.LANE_HALF_WIDTH*2;mc.stroke();
  }
  // Mesmas silhuetas físicas do cenário, sem desenhar 278 peças soltas.
  // Agrupar reduz trabalho por quadro e torna o mapa estratégico legível.
