@@ -9,7 +9,7 @@
 .stage.fenda-on #fendaHUD .fenda-actions,.stage.fenda-on #fendaMinimap{pointer-events:auto}
 .fenda-meta{position:absolute;top:8px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;white-space:nowrap;background:#061626df;border:1px solid #8bc4bd50;border-radius:12px;padding:7px 11px;color:#dbf7f3;box-shadow:0 4px 16px #0007;font-weight:850;font-size:11px}
 #fendaTopScore{color:#9de9e0}#fendaGold{color:#ffe0a0}#fendaTime{font-variant-numeric:tabular-nums;color:#a5c9d8}
-.fenda-personal{position:absolute;top:10px;left:14px;width:clamp(125px,22vw,215px);background:#061a2ec7;border:1px solid #71b9b04f;padding:8px 10px;border-radius:10px;box-shadow:0 5px 13px #0008}
+.fenda-personal{position:absolute;top:10px;left:14px;width:clamp(125px,16vw,180px);background:#061a2ec7;border:1px solid #71b9b04f;padding:8px 10px;border-radius:10px;box-shadow:0 5px 13px #0008}
 .fenda-name{font-weight:900;letter-spacing:.03em;font-size:clamp(9px,2vh,12px);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fenda-bar{height:7px;background:#081427;border:1px solid #a7dbd850;border-radius:20px;overflow:hidden;margin-top:3px}
 .fenda-bar i{display:block;height:100%;background:linear-gradient(90deg,#2ea7b4,#85f2d3);transition:width .11s}
@@ -39,7 +39,7 @@
 .fenda-hero{display:grid;gap:3px;place-items:center;padding:8px 2px;border-radius:10px;border:1px solid #689a9c88;background:#112739;color:#e1f4f3;min-width:0}
 .fenda-hero.picked{border-color:#ffdd9b;background:#3e4350;box-shadow:0 0 11px #f6cf8955}
 .fenda-hero span{font-size:22px}.fenda-hero strong{font-size:9px}.fenda-hero small{font-size:8px;color:#9bb5c9;white-space:nowrap;overflow:hidden;max-width:95%}
-@media(max-height:510px){.fenda-meta{top:5px;gap:6px;font-size:9px;padding:4px 7px}.fenda-personal{top:5px;left:8px;padding:5px 7px}.fenda-actions{top:5px;right:6px;gap:4px}.fenda-actions button{font-size:9px;padding:5px 7px}#fendaMinimap{top:62px;left:9px;width:clamp(104px,18vw,142px)}#fendaInfo{top:32px;font-size:8px}#fendaShop{top:31px;bottom:5px;padding:9px}}
+@media(max-height:510px){.fenda-meta{top:5px;gap:6px;font-size:9px;padding:4px 7px}.fenda-personal{top:5px;left:8px;padding:5px 7px}.fenda-actions{top:5px;right:6px;gap:4px}.fenda-actions button{font-size:9px;padding:5px 7px}#fendaMinimap{top:61px;left:9px;width:clamp(104px,16vw,132px)}#fendaInfo{top:32px;font-size:8px}#fendaShop{top:31px;bottom:5px;padding:9px}}
 @media(max-width:580px){.fenda-meta{left:50%;font-size:8px}.fenda-personal{width:119px}.fenda-actions button{padding:4px 5px;font-size:8px}.fenda-shop-list{gap:4px}#fendaShop{width:83vw}}
 
 /* Ataque específico às estruturas, no agrupamento de controles do AA (v4.2). */
