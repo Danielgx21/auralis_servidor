@@ -47,10 +47,10 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=8.2')&&
- html.includes('fenda-team-ai.js?v=8.2')&&
- html.includes('fenda-scenery.js?v=8.2')&&
- html.includes('fenda-view.js?v=8.2'),'O site precisa carregar o cenário procedural antes da câmera.');
+assert.ok(html.includes('fenda-engine.js?v=8.3')&&
+ html.includes('fenda-team-ai.js?v=8.3')&&
+ html.includes('fenda-scenery.js?v=8.3')&&
+ html.includes('fenda-view.js?v=8.3'),'O site precisa carregar o cenário procedural antes da câmera.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
