@@ -9,7 +9,7 @@ const MOBA_WALK_SCALE=.55;
 const LANE_HALF_WIDTH=98,LANE_MINION_SPREAD=26;
 // Mesma escala física para câmera, ataques básicos e defesa de estruturas.
 // O maior alcance defensivo é inferior ao espaço mínimo exibido no celular.
-const TURRET_RANGE=178,CORE_RANGE=188;
+const TURRET_RANGE=245,CORE_RANGE=255;
 // Fenda 6.3: desenho 100% procedural de três lanes realmente independentes.
 // Cada trajeto começa fora do santuário e termina na outra base. Simetria rotacional.
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -96,8 +96,8 @@ const skillDef=id=>{
 const living=(side,kind)=>state.units.filter(u=>u.hp>0&&(side==null||u.side===side)&&(!kind||u.kind===kind));
 const maxMana=u=>320+Math.max(0,(u.level||1)-1)*16+(u.items||[]).filter(i=>i==='cell').length*85;
 const WARD_RANGE=280;
-const attackRange=u=>u.kind==='minion'?(u.id==='siege'?162:u.ranged?116:34):u.kind==='creep'?45:
- (u.id==='orun'?55:u.id==='vexor'?58:u.id==='lyria'?136:u.id==='nyra'?131:123);
+const attackRange=u=>u.kind==='minion'?(u.id==='siege'?190:u.ranged?136:34):u.kind==='creep'?45:
+ (u.id==='orun'?55:u.id==='vexor'?58:u.id==='lyria'?158:u.id==='nyra'?151:143);
 const moveSpeed=u=>u.speed*(1+(u.items||[]).filter(i=>i==='stride').length*.17)*(u.slow>0?.62:1);
 const attackDamage=u=>u.atk+(u.items||[]).filter(i=>i==='lens').length*13;
 const spellPower=u=>1+(u.items||[]).filter(i=>i==='prism').length*.19;
@@ -259,7 +259,7 @@ function buildMap(){
    const p=pathPos(lane,t),a=pathPos(lane,Math.max(0,t-.004)),b=pathPos(lane,Math.min(1,t+.004));
    const direction=norm(b.x-a.x,b.y-a.y);
    const sign=lane===0?1:lane===2?-1:side===0?1:-1;
-   const offset=94;
+   const offset=66;
    const x=p.x-direction.y*offset*sign,y=p.y+direction.x*offset*sign;
    state.structures.push({kind:'tower',side,lane,tier:tier+1,x,y,
     r:27,hp:880,maxHp:880,atk:58,range:TURRET_RANGE,attackCd:0,
