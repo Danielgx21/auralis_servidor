@@ -36,7 +36,7 @@ let vw=900,vh=460,dpr=1,terrain=null,last=performance.now(),hudCountdown=0,ended
 let cameraZoom=1.30,worldVW=vw/cameraZoom,worldVH=vh/cameraZoom;
 // O anel gráfico anterior ocupava ~85px em 1720px de largura.
 // Redução visual ~27%, sem adulterar colisão, hitbox ou alcance.
-const HERO_RENDER_SCALE=.73;
+const HERO_RENDER_SCALE=.68;
 // Não há texturas, atlas ou sprites nesta arena. Toda a paisagem é Canvas procedural.
 // Fenda 6.3: paisagem 100% procedural, com geometria e camera próprias.
  // Somente três rotas; paredes/obstáculos provêm das hitboxes do motor.
@@ -56,8 +56,8 @@ function resize(){
  const r=stage.getBoundingClientRect();vw=Math.max(320,r.width);vh=Math.max(220,r.height);
  dpr=Math.min(window.devicePixelRatio||1,1.65);
  cv.width=Math.round(vw*dpr);cv.height=Math.round(vh*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
- cameraZoom=vw>=1250?1.43:vw>=750?1.35:1.26;
- if(vh<385)cameraZoom=Math.min(cameraZoom,1.29);
+ cameraZoom=vw>=1250?1.24:vw>=750?1.20:1.16;
+ if(vh<385)cameraZoom=Math.min(cameraZoom,1.16);
  worldVW=vw/cameraZoom;worldVH=vh/cameraZoom;
  fogCanvas.width=Math.ceil(vw*.64);fogCanvas.height=Math.ceil(vh*.64);fogAt=-1;
 }
