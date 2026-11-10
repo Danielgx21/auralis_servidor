@@ -262,7 +262,8 @@ function buildMap(){
      :(side===0?[.27,.16,.05]:[.73,.84,.95]))[tier];
    const p=pathPos(lane,t),a=pathPos(lane,Math.max(0,t-.004)),b=pathPos(lane,Math.min(1,t+.004));
    const direction=norm(b.x-a.x,b.y-a.y);
-   const sign=lane===0?1:lane===2?-1:side===0?1:-1;
+   // Mid usa o lado oposto ao Bot: impede amontoar T3 das duas lanes.
+   const sign=lane===0?1:lane===2?-1:side===0?-1:1;
    const offset=165;
    const x=p.x-direction.y*offset*sign,y=p.y+direction.x*offset*sign;
    state.structures.push({kind:'tower',side,lane,tier:tier+1,x,y,
