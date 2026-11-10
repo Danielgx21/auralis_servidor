@@ -602,4 +602,38 @@ for(let j=0;j<1000;j++){
 }
 assert.equal(invalid,0,'Erro de posição projetada em uma rota.');
 assert.ok(overlaps<=3,'Ondas de tropas estão se sobrepondo excessivamente.');
+// Pressionar ataque e mover o joystick ao mesmo tempo é comportamento-base.
+// O input da mão esquerda não cancela o ataque da direita.
+E.start('lyria');
+{
+ const h=state.hero,enemy=state.units.find(u=>u.kind==='hero'&&u.side===1);
+ state.units=[h,enemy];state.structures=[];state.walls=[];
+ state.camps=[];state.obstacles=[];state.nextWave=999;
+ h.x=1300;h.y=1600;enemy.x=1420;enemy.y=1600;
+ enemy.stun=8;
+ E.refreshVision(true);
+ const origin={x:h.x,y:h.y},hp=enemy.hp;
+ let successful=0;
+ for(let i=0;i<50;i++){
+  E.step(.05,{x:0,y:-1});
+  if(E.autoAttack(h))successful++;
+ }
+ assert.ok(distance(h,origin)>150,'AA bloqueou o movimento contínuo do joystick');
+ assert.ok(successful>=1&&enemy.hp<hp,
+  'Movimentar-se cancelou o ataque básico');
+}
+// Os nove bots devem sair da base e executar rota/combate sem congelar.
+E.start('lyria');
+{
+ const bots=state.units.filter(u=>u.kind==='hero'&&!u.controlled);
+ const origin=new Map(bots.map(u=>[u.uid,{x:u.x,y:u.y}]));
+ const maxMoved=new Map(bots.map(u=>[u.uid,0]));
+ for(let i=0;i<1200;i++){
+  E.step(.05,{x:0,y:0});
+  if(i%10===0)for(const bot of bots)
+   maxMoved.set(bot.uid,Math.max(maxMoved.get(bot.uid),distance(bot,origin.get(bot.uid))));
+ }
+ assert.ok(bots.filter(bot=>maxMoved.get(bot.uid)>350).length>=8,
+  'Bots ficaram parados por um minuto após a mudança na IA');
+}
 console.log('OK: estilo Teamfight sem estradas/imagens, portoes solidos, jungles fisicas, torres e 5x5.');
