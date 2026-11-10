@@ -2049,6 +2049,8 @@ function endFireTouch(e){
  fireBtn.classList.remove('aiming');aimPad.classList.remove('active');aimThumb.style.transform='translate(-50%,-50%)';
 }
 function beginFireTouch(e,captureElement){
+ // O modo Fenda possui seu próprio AA multitouch; não capturar os dedos dele.
+ if(stage.classList.contains('fenda-on'))return;
  if(mode!=='playing'||!player||player.hp<=0||firePointer!==null)return;
  e.preventDefault();fireTouch=true;firePointer=e.pointerId;
  aaRangeFlash=.20;fireBtn.classList.add('aiming');
@@ -2093,6 +2095,8 @@ function maybeActivateSkillAim(now){
  updateSkillVector();
 }
 function beginSkillTouch(e,index){
+ // Não disputar pointer capture com as habilidades de Fenda.
+ if(stage.classList.contains('fenda-on'))return;
  if(mode!=='playing'||!player||player.hp<=0||skillPointer!==null)return;
  const which=fullHeroKit()[index],def=skillDefs[which];
  if(!def)return;
@@ -2147,6 +2151,7 @@ function resetJoy(e){if(e&&joy.id!==e.pointerId)return;
  joy.x=joy.y=0;joy.id=null;joyel.classList.remove('active');$('joyKnob').style.transform='translate(-50%,-50%)';
 }
 stage.addEventListener('pointerdown',e=>{
+ if(stage.classList.contains('fenda-on'))return;
  if(mode!=='playing'||e.pointerType==='mouse')return;
  const r=stage.getBoundingClientRect();
  if(e.target.closest('button'))return;
@@ -2163,8 +2168,14 @@ stage.addEventListener('pointerdown',e=>{
  try{stage.setPointerCapture(e.pointerId)}catch(_){};
  joystickMove(e);
 });
-stage.addEventListener('pointermove',e=>{joystickMove(e);updateTouchAim(e)});
-for(const ev of ['pointerup','pointercancel','lostpointercapture'])stage.addEventListener(ev,e=>{resetJoy(e);endFireTouch(e)});
+stage.addEventListener('pointermove',e=>{
+ if(stage.classList.contains('fenda-on'))return;
+ joystickMove(e);updateTouchAim(e);
+});
+for(const ev of ['pointerup','pointercancel','lostpointercapture'])stage.addEventListener(ev,e=>{
+ if(stage.classList.contains('fenda-on'))return;
+ resetJoy(e);endFireTouch(e);
+});
 window.addEventListener('resize',resize);if(window.ResizeObserver)new ResizeObserver(resize).observe(stage);
 window.SigilsCore={
  heroes,skills:skillDefs,items:itemDefs,
