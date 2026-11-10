@@ -175,7 +175,10 @@ function refreshVision(force=false){
    sight.push(createSightSource(u.x,u.y,u.kind==='hero'?u.vision||350:u.id==='siege'?235:210));
   }
   for(const obj of state.structures)
-   if(obj.hp>0&&obj.side===team)sight.push(createSightSource(obj.x,obj.y,obj.kind==='core'?300:250));
+   if(obj.hp>0&&obj.side===team)
+    // A visão defensiva precisa cobrir TODA a área de ataque,
+    // inclusive a borda oposta da lane e o raio do campeão.
+    sight.push(createSightSource(obj.x,obj.y,obj.range+95));
   for(const ward of state.wards)if(ward.side===team)sight.push(createSightSource(ward.x,ward.y,ward.r,true));
   state.sight[team]=sight;
   const memory=state.seen[team];
