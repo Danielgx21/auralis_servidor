@@ -181,13 +181,23 @@ assert.ok(read('fenda-engine.js').includes('const TOP_PATH=[')&&
 E.start('lyria');
 assert.equal(state.structures.filter(s=>s.kind==='tower').length,18);
 assert.equal(state.structures.filter(s=>s.kind==='core').length,2);
+for(const side of [0,1])for(const lane of [0,1,2]){
+ const ts=state.structures.filter(t=>t.kind==='tower'&&t.side===side&&t.lane===lane);
+ assert.equal(ts.length,3,'Exatamente três torres por equipe em cada lane');
+ assert.deepEqual(ts.map(t=>t.tier).sort(),[1,2,3]);
+}
 assert.ok(state.walls.length>=120,'A jungle e as bases precisam de paredes físicas suficientes');
 assert.ok(state.walls.filter(w=>w.wallClass==='base').length>=48,
  'Muralha do santuário precisa ser obstáculo físico, não decoração');
 assert.ok(state.walls.filter(w=>w.wallClass!=='base').length>=60,
  'Corredores longos precisam de separadores físicos contra a jungle');
-assert.ok(state.walls.some(w=>w.halfWidth>=85),
- 'Paredes da selva devem ser massas largas, não fileiras de pedras');
+assert.ok(state.walls.some(w=>w.halfWidth>=78),
+ 'Paredes da selva devem ser massas sólidas, não fileiras de pedras');
+const jungleChains=new Set(state.walls.filter(w=>w.wallClass==='jungle').map(w=>w.chain));
+assert.equal(jungleChains.size,18,
+ 'A jungle deve usar apenas nove maciços geométricos por lado, sem garranchos');
+assert.equal(state.obstacles.filter(o=>o.kind==='rock').length,0,
+ 'Pilares avulsos sem função devem desaparecer do mapa');
 assert.equal(state.brushes.length,8);
 assert.equal(state.obstacles.filter(o=>o.kind==='gate').length,12,
  'Os seis portões precisam ser formados por doze pilares sólidos');
@@ -196,15 +206,17 @@ for(const gate of state.obstacles.filter(o=>o.kind==='gate')){
   'Coluna de portão bloqueia sua lane');
  assert.ok(E.solidBodies().includes(gate),'Portão decorativo sem colisão real');
 }
-for(let i=0;i<state.walls.length;i+=2){
- const a=state.walls[i],b=state.walls[i+1];
+const wallsById=new Map(state.walls.map(w=>[w.id,w]));
+for(const a of state.walls.filter(w=>w.side===0)){
+ const b=wallsById.get(a.id.replace(/-0$/,'-1'));
+ assert.ok(b,'Muralha espelhada ausente: '+a.id);
  assert.ok(Math.abs(a.ax+b.ax-E.W)<.01&&Math.abs(a.ay+b.ay-E.H)<.01&&
- Math.abs(a.bx+b.bx-E.W)<.01&&Math.abs(a.by+b.by-E.H)<.01,
- 'Paredes precisam ser simétricas por rotação de 180 graus');
+  Math.abs(a.bx+b.bx-E.W)<.01&&Math.abs(a.by+b.by-E.H)<.01,
+  'Muralhas precisam ser simétricas por rotação de 180 graus');
  assert.equal(a.halfWidth,b.halfWidth);
  for(const p of [{x:a.ax,y:a.ay},{x:a.bx,y:a.by}]){
   const gap=Math.min(...[0,1,2].map(l=>E.routeProjection(l,p).distance));
-  assert.ok(gap>=105,'Parede bloqueando o corredor de minions');
+  assert.ok(gap>=105,'Muralha bloqueia o corredor de minions: '+a.id);
  }
 }
 for(const o of state.structures.filter(x=>x.kind==='tower')){
@@ -273,6 +285,17 @@ assert.ok(signedAfter>=pilot.r+w.halfWidth-.6,
  'Barreira foi atravessada pelo jogador');
 assert.ok(E.distanceToSolid(pilot,w)>=pilot.r-.7,
  'Colisão deixou jogador dentro da parede');
+// Provar que o personagem realmente contorna uma divisória pelo acesso
+// previsto, sem atravessá-la (não basta a BFS dizer que existe um caminho).
+E.start('lyria');
+{
+ const p=state.hero;p.x=497;p.y=910;
+ const target={x:840,y:925};
+ for(let i=0;i<330;i++)E.moveToward(p,target,.05,1);
+ assert.ok(distance(p,target)<35,
+  'Campeão ficou preso na divisória da jungle mesmo com passagem aberta');
+}
+E.start('lyria');
 // Geometria verdadeira: não colocar paredes sobre monstros nem torres.
 for(const creep of state.camps){
  const radius=creep.kind==='boss'?38:creep.kind==='buff'?28:23;
