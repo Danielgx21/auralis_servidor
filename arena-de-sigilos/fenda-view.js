@@ -116,10 +116,12 @@ function drawStructure(o,t){
   const player=S.hero,d=dist(player,o),radius=o.range+player.r;
   // Perímetro de aggro aparece antes do ataque; quando o disparo
   // mira o campeão, uma linha curta aponta a origem.
-  if(d<radius+125){
+  if(d<radius+48){
    const danger=d<radius,aggro=o.aggroTarget===player;
-   ctx.save();ctx.globalAlpha=danger?.57:.28;
-   circle(o.x,o.y,radius,null,danger?'#ff849b':'#eac9b3',danger?2.7:1.6);
+   // A referência de alcance é discreta; não cobrir a arena com
+   // anéis enormes permanentes. O disparo ativo ganha destaque.
+   ctx.save();ctx.globalAlpha=aggro?.64:danger?.32:.14;
+   circle(o.x,o.y,radius,null,danger?'#ff849b':'#eac9b3',aggro?2.3:1.4);
    if(aggro){
     ctx.beginPath();ctx.moveTo(o.x,o.y);ctx.lineTo(player.x,player.y);
     ctx.lineWidth=1.6;ctx.strokeStyle='#ff8ba6';ctx.stroke();
