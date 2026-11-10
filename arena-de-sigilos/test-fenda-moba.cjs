@@ -232,6 +232,27 @@ for(const [width,height] of viewportCases){
 assert.ok(terrainSource.includes('mc.lineWidth=E.LANE_HALF_WIDTH*2'),
  'A largura representada no minimapa diverge da largura real da lane');
 
+ // Uma torre ou núcleo não pode atirar 1 unidade além do alcance declarado,
+ // mas deve reagir assim que o adversário entra nele.
+for(const kind of ['tower','core']){
+ E.start('lyria');
+ const targetTower=state.structures.find(t=>t.kind===kind&&t.side===1);
+ const champion=state.hero;
+ state.structures=[targetTower];state.units=[champion];
+ state.camps=[];state.obstacles=[];state.walls=[];state.nextWave=999;
+ champion.x=targetTower.x-targetTower.range-champion.r-24;
+ champion.y=targetTower.y;
+ E.step(.05,{x:0,y:0});
+ assert.equal(state.projectiles.filter(p=>p.source===targetTower).length,0,
+  'Estrutura disparou antes do limite definido: '+kind);
+ champion.x=targetTower.x-targetTower.range-champion.r+6;
+ E.step(.05,{x:0,y:0});
+ assert.ok(state.projectiles.some(p=>p.source===targetTower),
+  'Estrutura não atacou ao entrar no alcance: '+kind);
+}
+E.start('lyria');
+
+
 for(const side of [0,1])for(const lane of [0,1,2]){
  const ts=state.structures.filter(t=>t.kind==='tower'&&t.side===side&&t.lane===lane);
  assert.equal(ts.length,3,'Exatamente três torres por equipe em cada lane');
