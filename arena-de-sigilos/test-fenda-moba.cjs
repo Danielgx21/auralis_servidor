@@ -176,7 +176,7 @@ assert.ok(terrainSource.includes('ctx.scale(cameraZoom,cameraZoom)')&&
  terrainSource.includes('S.camera.x+worldVW')&&
  terrainSource.includes('worldVW,worldVH'),
  'Camera, visao e click precisam respeitar o zoom');
-assert.ok(terrainSource.includes('const HERO_RENDER_SCALE=.73')&&
+assert.ok(terrainSource.includes('const HERO_RENDER_SCALE=.80')&&
  terrainSource.includes('ctx.scale(HERO_RENDER_SCALE,HERO_RENDER_SCALE)'),
  'Os campeões devem ter representação reduzida, sem alterar hitboxes');
 assert.ok(terrainSource.includes('function drawStructure(o,t){')&&
@@ -206,6 +206,32 @@ assert.ok(read('fenda-engine.js').includes('const TOP_PATH=[')&&
 E.start('lyria');
 assert.equal(state.structures.filter(s=>s.kind==='tower').length,18);
 assert.equal(state.structures.filter(s=>s.kind==='core').length,2);
+
+assert.equal(E.TURRET_RANGE,178,'Torre ainda tem range amplo demais para a câmera');
+assert.equal(E.CORE_RANGE,188,'Núcleo ataca de fora da tela');
+const rangedHeroes=state.units.filter(u=>u.kind==='hero'&&u.isRanged);
+for(const u of rangedHeroes)assert.ok(E.attackRange(u)<E.TURRET_RANGE,
+ 'AA ultrapassa alcance de torre: '+u.id);
+for(const t of state.structures){
+ assert.equal(t.range,t.kind==='core'?E.CORE_RANGE:E.TURRET_RANGE,
+ 'Alcance da estrutura não usa a mesma unidade física da câmera');
+}
+assert.ok(terrainSource.includes('CAMERA_MIN_WORLD_HEIGHT=530')&&
+ terrainSource.includes('vh/CAMERA_MIN_WORLD_HEIGHT')&&
+ terrainSource.includes('d<radius+125')&&
+ terrainSource.includes("danger?'#ff849b'"),
+ 'A câmera e a indicação de perigo não previnem ataques invisíveis');
+const viewportCases=[[924,416],[800,360],[1800,830],[420,300]];
+for(const [width,height] of viewportCases){
+ const comfortable=width>=1250?1.15:width>=750?1.07:.98;
+ const zoom=Math.min(comfortable,height/530);
+ const bottomClearance=.47*(height/zoom);
+ assert.ok(bottomClearance>E.CORE_RANGE+21+34,
+  'A estrutura pode atingir um campeão invisível no viewport '+width+' × '+height);
+}
+assert.ok(terrainSource.includes('mc.lineWidth=E.LANE_HALF_WIDTH*2'),
+ 'A largura representada no minimapa diverge da largura real da lane');
+
 for(const side of [0,1])for(const lane of [0,1,2]){
  const ts=state.structures.filter(t=>t.kind==='tower'&&t.side===side&&t.lane===lane);
  assert.equal(ts.length,3,'Exatamente três torres por equipe em cada lane');
@@ -360,7 +386,7 @@ assert.ok(sourceCss.includes('@media (hover:none), (pointer:coarse)')&&
 // Fenda 5.3: AA proporcional à lane, habilidades e reserva de mana real.
 E.start('lyria');
 const rangeHero=state.hero;
-assert.equal(E.attackRange(rangeHero),173,'AA de Lyria em escala reduzida');
+assert.equal(E.attackRange(rangeHero),136,'AA de Lyria proporcional ao alcance da torre');
 assert.ok(E.attackRange(rangeHero)<E.LANE_HALF_WIDTH*2,'AA não pode superar a largura da rota');
 assert.equal(E.skillDef('lyria_pierce').range,345);
 assert.equal(E.skillDef('lyria_rain').range,212);
