@@ -37,7 +37,7 @@ let cameraZoom=1.30,worldVW=vw/cameraZoom,worldVH=vh/cameraZoom;
 // Câmera adaptável: a torre precisa aparecer ANTES de poder acertar.
 // A escala visual do campeão não altera o seu raio de colisão.
 let HERO_RENDER_SCALE=1.0;
-const CAMERA_MIN_WORLD_HEIGHT=700;
+const CAMERA_MIN_WORLD_HEIGHT=840;
 // Não há texturas, atlas ou sprites nesta arena. Toda a paisagem é Canvas procedural.
 // Fenda 6.3: paisagem 100% procedural, com geometria e camera próprias.
  // Somente três rotas; paredes/obstáculos provêm das hitboxes do motor.
@@ -57,10 +57,10 @@ function resize(){
  const r=stage.getBoundingClientRect();vw=Math.max(320,r.width);vh=Math.max(220,r.height);
  dpr=Math.min(window.devicePixelRatio||1,1.65);
  cv.width=Math.round(vw*dpr);cv.height=Math.round(vh*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
- const comfortableZoom=vw>=1250?1.15:vw>=750?1.07:.98;
- // A escala visual é independente da hitbox. Compensar o zoom de
- // segurança no celular para não transformar o campeão num ponto.
- HERO_RENDER_SCALE=vw>=1250?1.0:1.18;
+ const comfortableZoom=vw>=1250?1.14:vw>=750?1.07:.98;
+ // Proporção Wild Rift: campo mais amplo, heróis legíveis e sem ícones enormes.
+ // Escala visual NÃO altera a hitbox nem os ranges dos ataques.
+ HERO_RENDER_SCALE=vw>=1250?1.11:1.19;
  cameraZoom=Math.min(comfortableZoom,vh/CAMERA_MIN_WORLD_HEIGHT);
  worldVW=vw/cameraZoom;worldVH=vh/cameraZoom;
  fogCanvas.width=Math.ceil(vw*.64);fogCanvas.height=Math.ceil(vh*.64);fogAt=-1;
@@ -162,6 +162,7 @@ function drawMinion(u,t){
  if(!visible(u.x,u.y,32))return;
  const col=E.SIDE[u.side],x=u.x,r=u.r;
  const walking=u.walkUntil>S.time,hop=walking?Math.sin((u.walkPhase||0)*1.5)*1.7:0,y=u.y+hop;
+ ctx.save();ctx.translate(x,y);ctx.scale(1.16,1.16);ctx.translate(-x,-y);
  circle(x+3,y+6,r,'#031522a0');
  circle(x,y,r+1,'#173b48',col,2);
  if(u.id==='guard'){
@@ -183,6 +184,7 @@ function drawMinion(u,t){
   circle(x+Math.cos(u.facing||0)*(r+7),y+Math.sin(u.facing||0)*(r+7),5,'#f5e8c1');
   ctx.restore();
  }
+ ctx.restore();
  bar(x,u.y,r,u.hp,u.maxHp,u.side,30);
 }
 function drawHero(u,t){
@@ -376,7 +378,9 @@ function drawFog(){
   const y0=Math.max(0,Math.floor(y/cell)),y1=Math.min(E.VISION_ROWS-1,Math.ceil((y+worldVH)/cell));
   for(let cy=y0;cy<=y1;cy++)for(let cx=x0;cx<=x1;cx++){
    const discovered=S.seen[0]?.[cy*E.VISION_COLS+cx];
-   fogContext.fillStyle=discovered?'rgba(3,17,27,.63)':'rgba(2,11,24,.90)';
+   // A névoa esconde informação, mas não deve transformar o mapa num
+   // grande vazio preto ou em blocos escuros com bordas gritantes.
+   fogContext.fillStyle=discovered?'rgba(5,20,30,.33)':'rgba(5,17,28,.56)';
    fogContext.fillRect(cx*cell-1,cy*cell-1,cell+2,cell+2);
   }
   fogContext.globalCompositeOperation='destination-out';
@@ -385,8 +389,8 @@ function drawFog(){
    if(src.x+r<x||src.x-r>x+worldVW||src.y+r<y||src.y-r>y+worldVH)continue;
    const gradient=fogContext.createRadialGradient(src.x,src.y,0,src.x,src.y,r);
    gradient.addColorStop(0,'rgba(0,0,0,1)');
-   gradient.addColorStop(.80,'rgba(0,0,0,1)');
-   gradient.addColorStop(1,'rgba(0,0,0,.03)');
+   gradient.addColorStop(.68,'rgba(0,0,0,1)');
+   gradient.addColorStop(1,'rgba(0,0,0,.12)');
    fogContext.fillStyle=gradient;
    fogContext.beginPath();fogContext.arc(src.x,src.y,r,0,TAU);fogContext.fill();
   }
@@ -414,8 +418,8 @@ function view(dt){
   const focus=observing?cameraPeek:h;
   // O campeão fica perto do centro sem ficar encoberto pelos controles.
   // Pan tático temporário via minimapa não altera o zoom da batalha.
-  const wantX=clamp(focus.x-worldVW*.47,0,Math.max(0,E.W-worldVW));
-  const wantY=clamp(focus.y-worldVH*.50,0,Math.max(0,E.H-worldVH));
+  const wantX=clamp(focus.x-worldVW*.44,0,Math.max(0,E.W-worldVW));
+  const wantY=clamp(focus.y-worldVH*.55,0,Math.max(0,E.H-worldVH));
   const snap=h.cameraSnapAt&&S.time-h.cameraSnapAt<.23&&!observing;
   if(snap){S.camera.x=wantX;S.camera.y=wantY;}
   else{
