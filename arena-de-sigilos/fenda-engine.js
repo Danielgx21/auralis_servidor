@@ -5,11 +5,12 @@ if(!C){console.error('Fenda: núcleo de campeões não carregado');return;}
 const W=3300,H=2500,TAU=Math.PI*2;
 // Um deslocamento base-a-base deve durar ~27–30 s, não 11–13 s como na v4.1.
 const MOBA_WALK_SCALE=.55;
-// Largura de rota proporcional ao personagem: ~6 diâmetros por corredor.
-const LANE_HALF_WIDTH=98,LANE_MINION_SPREAD=26;
+// Escala compartilhada da pista, torres e câmera. Corredor largo o bastante
+// para movimentação lateral e legível em landscape; paredes ficam fora dele.
+const LANE_HALF_WIDTH=145,LANE_MINION_SPREAD=33;
 // Mesma escala física para câmera, ataques básicos e defesa de estruturas.
 // O maior alcance defensivo é inferior ao espaço mínimo exibido no celular.
-const TURRET_RANGE=245,CORE_RANGE=255;
+const TURRET_RANGE=330,CORE_RANGE=345;
 // Fenda 6.3: desenho 100% procedural de três lanes realmente independentes.
 // Cada trajeto começa fora do santuário e termina na outra base. Simetria rotacional.
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -96,8 +97,8 @@ const skillDef=id=>{
 const living=(side,kind)=>state.units.filter(u=>u.hp>0&&(side==null||u.side===side)&&(!kind||u.kind===kind));
 const maxMana=u=>320+Math.max(0,(u.level||1)-1)*16+(u.items||[]).filter(i=>i==='cell').length*85;
 const WARD_RANGE=280;
-const attackRange=u=>u.kind==='minion'?(u.id==='siege'?190:u.ranged?136:34):u.kind==='creep'?45:
- (u.id==='orun'?55:u.id==='vexor'?58:u.id==='lyria'?158:u.id==='nyra'?151:143);
+const attackRange=u=>u.kind==='minion'?(u.id==='siege'?215:u.ranged?146:38):u.kind==='creep'?48:
+ (u.id==='orun'?65:u.id==='vexor'?65:u.id==='lyria'?187:u.id==='nyra'?178:166);
 const moveSpeed=u=>u.speed*(1+(u.items||[]).filter(i=>i==='stride').length*.17)*(u.slow>0?.62:1);
 const attackDamage=u=>u.atk+(u.items||[]).filter(i=>i==='lens').length*13;
 const spellPower=u=>1+(u.items||[]).filter(i=>i==='prism').length*.19;
@@ -262,7 +263,7 @@ function buildMap(){
    const p=pathPos(lane,t),a=pathPos(lane,Math.max(0,t-.004)),b=pathPos(lane,Math.min(1,t+.004));
    const direction=norm(b.x-a.x,b.y-a.y);
    const sign=lane===0?1:lane===2?-1:side===0?1:-1;
-   const offset=94;
+   const offset=165;
    const x=p.x-direction.y*offset*sign,y=p.y+direction.x*offset*sign;
    state.structures.push({kind:'tower',side,lane,tier:tier+1,x,y,
     r:27,hp:880,maxHp:880,atk:58,range:TURRET_RANGE,attackCd:0,
