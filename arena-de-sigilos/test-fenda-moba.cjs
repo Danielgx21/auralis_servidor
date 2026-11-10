@@ -47,10 +47,10 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=7.1')&&
- html.includes('fenda-team-ai.js?v=7.1')&&
- html.includes('fenda-scenery.js?v=7.1')&&
- html.includes('fenda-view.js?v=7.1'),'O site precisa carregar o cenário procedural antes da câmera.');
+assert.ok(html.includes('fenda-engine.js?v=8.0')&&
+ html.includes('fenda-team-ai.js?v=8.0')&&
+ html.includes('fenda-scenery.js?v=8.0')&&
+ html.includes('fenda-view.js?v=8.0'),'O site precisa carregar o cenário procedural antes da câmera.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -125,6 +125,24 @@ for(const camp of state.camps){
 const terrainSource=read('fenda-view.js'),scenerySource=read('fenda-scenery.js');
 vm.runInNewContext(scenerySource,sandbox);
 assert.ok(sandbox.window.FendaScenery,'Módulo de paisagem Canvas não carregou');
+
+{
+ let images=0,drawn=0;
+ const gradient={addColorStop(){}};
+ const context=new Proxy({},{get(o,key){
+  if(key in o)return o[key];
+  if(key==='createRadialGradient'||key==='createLinearGradient')return()=>gradient;
+  return()=>{drawn++};
+ },set(o,key,value){o[key]=value;return true}});
+ sandbox.document={createElement(tag){
+  assert.equal(tag,'canvas','Cenário criou elemento de imagem ou DOM inesperado');
+  return{width:0,height:0,getContext(mode){assert.equal(mode,'2d');return context}};
+ }};
+ const actual=sandbox.window.FendaScenery.drawTerrain(E,state);
+ assert.equal(actual.width,E.W);assert.equal(actual.height,E.H);
+ assert.ok(drawn>150,'Cenário não gerou todos os elementos no Canvas');
+}
+
 assert.equal(E.ROUTE_PATHS.length,3);
 assert.ok(terrainSource.includes('function drawTerrain(){terrain=window.FendaScenery.drawTerrain(E,S);}')&&
  scenerySource.includes('function base(g,E,side)')&&
@@ -143,10 +161,11 @@ assert.ok(scenerySource.includes('for(const w of S.walls)')&&
  scenerySource.includes('for(const o of S.obstacles)rock(g,o)'),
  'Toda barreira desenhada deve seguir o mesmo segmento do colisor real');
 assert.ok(scenerySource.includes('function fond(g,E)')&&
+ scenerySource.includes('function jungleZones(g,E)')&&
  scenerySource.includes('function base(g,E,side)')&&
  scenerySource.includes('hex(g,')&&
  scenerySource.includes('ring(g,'),
- 'Identidade da Arena original: grade sutil, hexágonos e círculos');
+ 'Identidade da Arena original: grade, quatro jungles, hexágonos e círculos');
 assert.ok(terrainSource.includes('ctx.scale(cameraZoom,cameraZoom)')&&
  terrainSource.includes('S.camera.x+worldVW')&&
  terrainSource.includes('worldVW,worldVH'),
