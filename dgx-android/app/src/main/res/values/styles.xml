@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="DGXTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:colorAccent">#5BD9BA</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">#08101A</item>
+        <item name="android:navigationBarColor">#08101A</item>
+        <item name="android:windowBackground">#08101A</item>
+    </style>
+</resources>
