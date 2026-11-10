@@ -176,7 +176,7 @@ assert.ok(terrainSource.includes('ctx.scale(cameraZoom,cameraZoom)')&&
  terrainSource.includes('S.camera.x+worldVW')&&
  terrainSource.includes('worldVW,worldVH'),
  'Camera, visao e click precisam respeitar o zoom');
-assert.ok(terrainSource.includes('const HERO_RENDER_SCALE=.80')&&
+assert.ok(terrainSource.includes('let HERO_RENDER_SCALE=1.0')&&
  terrainSource.includes('ctx.scale(HERO_RENDER_SCALE,HERO_RENDER_SCALE)'),
  'Os campeões devem ter representação reduzida, sem alterar hitboxes');
 assert.ok(terrainSource.includes('function drawStructure(o,t){')&&
@@ -207,8 +207,8 @@ E.start('lyria');
 assert.equal(state.structures.filter(s=>s.kind==='tower').length,18);
 assert.equal(state.structures.filter(s=>s.kind==='core').length,2);
 
-assert.equal(E.TURRET_RANGE,178,'Torre ainda tem range amplo demais para a câmera');
-assert.equal(E.CORE_RANGE,188,'Núcleo ataca de fora da tela');
+assert.equal(E.TURRET_RANGE,245,'Torre não protege toda a largura da rota');
+assert.equal(E.CORE_RANGE,255,'Alcance do núcleo está desproporcional');
 const rangedHeroes=state.units.filter(u=>u.kind==='hero'&&u.isRanged);
 for(const u of rangedHeroes)assert.ok(E.attackRange(u)<E.TURRET_RANGE,
  'AA ultrapassa alcance de torre: '+u.id);
@@ -216,17 +216,31 @@ for(const t of state.structures){
  assert.equal(t.range,t.kind==='core'?E.CORE_RANGE:E.TURRET_RANGE,
  'Alcance da estrutura não usa a mesma unidade física da câmera');
 }
-assert.ok(terrainSource.includes('CAMERA_MIN_WORLD_HEIGHT=530')&&
+for(const tower of state.structures.filter(t=>t.kind==='tower')){
+ const projection=E.routeProjection(tower.lane,tower);
+ const t=projection.progress/E.ROUTE_TOTALS[tower.lane];
+ const origin=E.pathPos(tower.lane,t);
+ const a=E.pathPos(tower.lane,Math.max(0,t-.003));
+ const b=E.pathPos(tower.lane,Math.min(1,t+.003));
+ const tangent=E.norm(b.x-a.x,b.y-a.y);
+ for(const direction of [-1,1]){
+  const edge={x:origin.x-tangent.y*E.LANE_HALF_WIDTH*direction,
+   y:origin.y+tangent.x*E.LANE_HALF_WIDTH*direction};
+  assert.ok(distance(tower,edge)<tower.range+17.5,
+   'Torre deixa jogador passar pelo lado da lane: '+tower.id);
+ }
+}
+assert.ok(terrainSource.includes('CAMERA_MIN_WORLD_HEIGHT=700')&&
  terrainSource.includes('vh/CAMERA_MIN_WORLD_HEIGHT')&&
- terrainSource.includes('d<radius+125')&&
+ terrainSource.includes('d<radius+48')&&
  terrainSource.includes("danger?'#ff849b'"),
  'A câmera e a indicação de perigo não previnem ataques invisíveis');
 const viewportCases=[[924,416],[800,360],[1800,830],[420,300]];
 for(const [width,height] of viewportCases){
  const comfortable=width>=1250?1.15:width>=750?1.07:.98;
- const zoom=Math.min(comfortable,height/530);
- const bottomClearance=.47*(height/zoom);
- assert.ok(bottomClearance>E.CORE_RANGE+21+34,
+ const zoom=Math.min(comfortable,height/700);
+ const bottomClearance=.50*(height/zoom);
+ assert.ok(bottomClearance>E.CORE_RANGE+21+49,
   'A estrutura pode atingir um campeão invisível no viewport '+width+' × '+height);
 }
 assert.ok(terrainSource.includes('mc.lineWidth=E.LANE_HALF_WIDTH*2'),
@@ -407,7 +421,7 @@ assert.ok(sourceCss.includes('@media (hover:none), (pointer:coarse)')&&
 // Fenda 5.3: AA proporcional à lane, habilidades e reserva de mana real.
 E.start('lyria');
 const rangeHero=state.hero;
-assert.equal(E.attackRange(rangeHero),136,'AA de Lyria proporcional ao alcance da torre');
+assert.equal(E.attackRange(rangeHero),158,'AA de Lyria proporcional ao alcance da torre');
 assert.ok(E.attackRange(rangeHero)<E.LANE_HALF_WIDTH*2,'AA não pode superar a largura da rota');
 assert.equal(E.skillDef('lyria_pierce').range,345);
 assert.equal(E.skillDef('lyria_rain').range,212);
@@ -461,6 +475,21 @@ assert.ok(view.includes('wardPoint(wardAim)')&&view.includes('wardStart')&&
  view.includes('wardEnd'),'Sentinela não permite segurar e posicionar');
 assert.ok(css.includes('touch-action:none;user-select:none'),
  'Minimapa não libera arraste touch');
+
+ // Controle de duas mãos: a arena antiga não pode roubar a captura
+ // de pointers do modo Fenda. O botão AA repete em todo frame.
+assert.ok(html.includes("if(stage.classList.contains('fenda-on'))return;")&&
+ html.includes('stage.addEventListener(\'pointerdown\'')&&
+ html.includes('function beginFireTouch(e,captureElement)')&&
+ html.includes('function beginSkillTouch(e,index)'),
+ 'Toques da Fenda ainda são capturados pelos controles da primeira arena');
+assert.ok(view.includes('if(pointers.aa!==null&&S.hero?.hp>0&&!S.shopOpen)E.autoAttack(S.hero);')&&
+ view.includes('if(pointers.aa!==e.pointerId)return;')&&
+ view.includes('if(joy.ptr!==e.pointerId)return;')&&
+ view.includes('joy.ptr=e.pointerId')&&
+ view.includes('pointers.aa=e.pointerId'),
+ 'Joystick e AA devem manter pointers independentes e permitir ataque contínuo');
+
 // 5.4: placa de mana no mundo, K/D/A e farm sempre visiveis.
 assert.ok(view.includes('function manaBar(x,y,r,mana,max,width=55)')&&
  view.includes('manaBar(x,y,barRadius,u.mana,E.maxMana(u),44)'),
