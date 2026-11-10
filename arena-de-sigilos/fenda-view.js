@@ -317,7 +317,7 @@ function drawAim(){
   const structure=S.hero.focusTarget,radius=structure.r||(structure.kind==='boss'?38:28);
   ctx.save();circle(structure.x,structure.y,radius+15,null,'#f3e2a4a8',2.1);ctx.restore();
  }
- if(pointers.aa&&S.hero&&S.hero.hp>0){
+ if(pointers.aa!==null&&S.hero&&S.hero.hp>0){
   const r=E.attackRange(S.hero),target=E.findAA(S.hero);
   circle(S.hero.x,S.hero.y,r,null,'#a3e8d14a',1.5);
   if(target)circle(target.x,target.y,target.r+11,null,'#e7e2beaa',2.2);
@@ -738,11 +738,17 @@ function selectTowerAt(clientX,clientY){
 function aaStart(e){
  if(S.mode!=='playing'||S.shopOpen||S.showPause||!S.hero||S.hero.hp<=0)return;
  e.preventDefault();e.stopPropagation();
+ // Cada dedo conserva seu pointerId: o do joystick continua movendo,
+ // enquanto o da mão direita ataca durante a pressão prolongada.
+ if(pointers.aa!==null&&pointers.aa!==e.pointerId)return;
  pointers.aa=e.pointerId;
- if(!E.autoAttack(S.hero))warn(S.hero.attackCd>.01?'ATAQUE BÁSICO RECARREGANDO':'NENHUM ALVO NO ALCANCE');
+ E.autoAttack(S.hero);
  try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_){}
 }
-function aaEnd(e){if(pointers.aa===e.pointerId)pointers.aa=null}
+function aaEnd(e){
+ if(pointers.aa!==e.pointerId)return;
+ pointers.aa=null;
+}
 
 function pickAttackTarget(clientX,clientY){
  if(!S.hero)return null;
@@ -796,6 +802,7 @@ function worldDown(e){
 }
 function worldMove(e){
  if(joy.ptr!==e.pointerId)return;
+ e.preventDefault();
  const rect=cv.getBoundingClientRect();
  const dx=e.clientX-rect.left-joy.sx,dy=e.clientY-rect.top-joy.sy,n=Math.hypot(dx,dy);
  const a=Math.min(1,n/42);
@@ -803,7 +810,8 @@ function worldMove(e){
  $('joyKnob').style.transform='translate(calc(-50% + '+(joy.x*27)+'px),calc(-50% + '+(joy.y*27)+'px))';
 }
 function worldEnd(e){
- if(joy.ptr!==e.pointerId)return;joy.ptr=null;joy.x=joy.y=0;
+ if(joy.ptr!==e.pointerId)return;
+ e.preventDefault();joy.ptr=null;joy.x=joy.y=0;
  $('joy').classList.remove('active');$('joyKnob').style.transform='translate(-50%,-50%)';
 }
 function wardPoint(p){
@@ -927,6 +935,9 @@ function loop(now){
   if(pointers.skill&&performance.now()-pointers.skill.started>190)aimPreview=pointers.skill;
   if(!S.showPause){
    E.step(dt,movement());
+   // Wild Rift: AA continua enquanto o botão está pressionado. O motor
+   // respeita o cooldown e o joystick nunca é limpo ao atacar.
+   if(pointers.aa!==null&&S.hero?.hp>0&&!S.shopOpen)E.autoAttack(S.hero);
    if(S.hero?.commandTarget){
     const t=S.hero.commandTarget;
     if(!E.isAttackCommandValid(S.hero,t))E.clearAttackCommand(S.hero);
@@ -959,7 +970,9 @@ window.addEventListener('keyup',e=>{
  keys.delete(key);
  if(key==='tab'&&scoreboardHeld){e.preventDefault();setScoreboardVisible(false);}
 });
-window.addEventListener('blur',()=>{keys.clear();joy.ptr=null;joy.x=joy.y=0});
+window.addEventListener('blur',()=>{
+ keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;
+});
 $('fendaShopBtn').onclick=toggleShop;$('fendaShopClose').onclick=toggleShop;
 $('fendaScoreBtn').addEventListener('click',()=>setScoreboardVisible(!scoreboardVisible));
 $('fendaScoreClose').addEventListener('click',()=>setScoreboardVisible(false));
