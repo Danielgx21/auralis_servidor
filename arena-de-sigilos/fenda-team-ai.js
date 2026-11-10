@@ -41,7 +41,8 @@ function scan(){
    const wave=E.living(side,'minion').some(m=>dist(m,center)<225);
    const enemyTurret=S.structures.some(t=>t.hp>0&&t.side!==side&&
      (t.kind==='tower'||t.kind==='core')&&dist(t,center)<t.range+45&&!wave);
-   let mode=ratio<.80?'retreat':ratio>=(enemyTurret?1.57:1.02)?'engage':'hold';
+   // Não transformar lutas equilibradas em quatro bots esperando parados.
+   let mode=ratio<.71?'retreat':ratio>=(enemyTurret?1.40:.93)?'engage':'hold';
    // Quando o tanque está ausente, uma iniciação 2v2 fica mais conservadora.
    if(mode==='engage'&&!friends.some(a=>a.id==='orun')&&ratio<1.17&&friends.length<3)
      mode='hold';
@@ -113,7 +114,17 @@ function handleBot(u,dt){
   return true;
  }
  if(p.mode==='hold'){
-  // Sem vantagem, segurar posição para que o tanque não inicie sozinho.
+  // Sem vantagem, NÃO sequestrar a IA de rota: se não há alvo no alcance
+  // de ataque ou de aproximação, voltar ao farm e à movimentação normal.
+  const attackReach=E.attackRange(u)+nearest.r;
+  if(dist(u,nearest)>attackReach+75&&!p.towerDive)return false;
+  // Se há adversário disputando a rota, pressionar e atacar em vez de
+  // simplesmente observar o combate a poucos passos.
+  if(dist(u,nearest)>attackReach+8&&!p.towerDive){
+   move(u,nearest,dt,u.id==='orun'?.88:.80);
+  }
+  // O tanque aguarda apoio apenas quando necessário; o time todo
+  // continua podendo se reposicionar e dar AA no mesmo instante.
   if(u.id==='vexor'){
    const guard=front||carry||friends.find(a=>a!==u);
    if(guard&&dist(u,guard)>145)move(u,guard,dt,.72);
