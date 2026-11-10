@@ -21,7 +21,7 @@ const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const state=E.start('lyria');
 assert.equal(state.units.filter(u=>u.kind==='hero').length,10);
 assert.equal(state.structures.filter(u=>u.kind==='tower').length,18);
-assert.equal(E.LANE_HALF_WIDTH*2,196);
+assert.equal(E.LANE_HALF_WIDTH*2,290);
 assert.equal(E.CORE.length,2,'Cada lado tem um Núcleo independente da fonte');
 assert.equal(E.BASE_GATE.length,2,'Saídas próprias das duas equipes');
 assert.ok(E.W>=3300&&E.H>=2500,'Mapa pequeno demais para separar as rotas');
@@ -127,14 +127,14 @@ vm.runInNewContext(scenerySource,sandbox);
 assert.ok(sandbox.window.FendaScenery,'Módulo de paisagem Canvas não carregou');
 
 {
- let drawn=0,largeStrokes=0,fullScreenFills=0;
+ let drawn=0,largeStrokes=0,maxStroke=0,fullScreenFills=0;
  const gradient={addColorStop(){}};
  const context=new Proxy({},{get(o,key){
   if(key in o)return o[key];
   if(key==='createRadialGradient'||key==='createLinearGradient')return()=>gradient;
   if(key==='fillRect')return(x,y,w,h)=>{drawn++;if(w>=E.W*.75&&h>=E.H*.75)fullScreenFills++};
   return()=>{drawn++};
- },set(o,key,value){if(key==='lineWidth'&&value>95)largeStrokes++;o[key]=value;return true}});
+ },set(o,key,value){if(key==='lineWidth'){maxStroke=Math.max(maxStroke,value);if(value>95)largeStrokes++;}o[key]=value;return true}});
  sandbox.document={createElement(tag){
   assert.equal(tag,'canvas','Cenário criou elemento de imagem ou DOM inesperado');
   return{width:0,height:0,getContext(mode){assert.equal(mode,'2d');return context}};
@@ -142,7 +142,9 @@ assert.ok(sandbox.window.FendaScenery,'Módulo de paisagem Canvas não carregou'
  const actual=sandbox.window.FendaScenery.drawTerrain(E,state);
  assert.equal(actual.width,E.W);assert.equal(actual.height,E.H);
  assert.ok(drawn>100,'Cenário não gerou todos os elementos no Canvas');
- assert.equal(largeStrokes,0,'O cenário voltou a desenhar paredes gigantes');
+ assert.equal(largeStrokes,12,'As três lanes precisam ter piso amplo, com quatro camadas cada');
+ assert.ok(maxStroke<=E.LANE_HALF_WIDTH*2+95,
+  'Há muralha ou objeto decorativo maior que a faixa de combate');
  assert.equal(fullScreenFills,1,'Apenas o fundo deve preencher toda a tela');
  assert.ok(!scenerySource.includes('createRadialGradient')&&
   !scenerySource.includes('const halfFields='),
@@ -155,10 +157,10 @@ assert.ok(terrainSource.includes('function drawTerrain(){terrain=window.FendaSce
  scenerySource.includes('function wall(g,w)')&&
  scenerySource.includes('function jungleCamp(g,o)'),
  'Bases, selvas e paredões precisam ser desenhados no Canvas');
-assert.ok(!scenerySource.includes('drawRoute')&&
- !scenerySource.includes('drawGateBridges')&&
- !scenerySource.includes('strokeStyle=\'#626e68\''),
- 'Não desenhar pistas falsas; as lanes existem por obstáculos reais e IA');
+assert.ok(scenerySource.includes('function laneFloor(g,E,lane)')&&
+ scenerySource.includes('for(let lane=0;lane<3;lane++)laneFloor(g,E,lane)')&&
+ !scenerySource.includes('drawGateBridges'),
+ 'Cada rota deve ter piso de combate legível, sem avenidas extras na jungle');
 assert.ok(["new Image(","createElement('img')","spritePaths","drawSprite","MAP_ART"].every(term=>
  !terrainSource.includes(term)&&!scenerySource.includes(term)),
  'É PROIBIDO usar arquivos de imagem, atlas ou sprites no mapa');
@@ -207,8 +209,8 @@ E.start('lyria');
 assert.equal(state.structures.filter(s=>s.kind==='tower').length,18);
 assert.equal(state.structures.filter(s=>s.kind==='core').length,2);
 
-assert.equal(E.TURRET_RANGE,245,'Torre não protege toda a largura da rota');
-assert.equal(E.CORE_RANGE,255,'Alcance do núcleo está desproporcional');
+assert.equal(E.TURRET_RANGE,330,'Torre deve proteger ambos os lados da lane');
+assert.equal(E.CORE_RANGE,345,'O núcleo precisa defender sua plataforma');
 const rangedHeroes=state.units.filter(u=>u.kind==='hero'&&u.isRanged);
 for(const u of rangedHeroes)assert.ok(E.attackRange(u)<E.TURRET_RANGE,
  'AA ultrapassa alcance de torre: '+u.id);
@@ -230,21 +232,27 @@ for(const tower of state.structures.filter(t=>t.kind==='tower')){
    'Torre deixa jogador passar pelo lado da lane: '+tower.id);
  }
 }
-assert.ok(terrainSource.includes('CAMERA_MIN_WORLD_HEIGHT=700')&&
+assert.ok(terrainSource.includes('CAMERA_MIN_WORLD_HEIGHT=840')&&
  terrainSource.includes('vh/CAMERA_MIN_WORLD_HEIGHT')&&
  terrainSource.includes('d<radius+48')&&
  terrainSource.includes("danger?'#ff849b'"),
  'A câmera e a indicação de perigo não previnem ataques invisíveis');
 const viewportCases=[[924,416],[800,360],[1800,830],[420,300]];
 for(const [width,height] of viewportCases){
- const comfortable=width>=1250?1.15:width>=750?1.07:.98;
- const zoom=Math.min(comfortable,height/700);
- const bottomClearance=.50*(height/zoom);
- assert.ok(bottomClearance>E.CORE_RANGE+21+49,
+ const comfortable=width>=1250?1.14:width>=750?1.07:.98;
+ const zoom=Math.min(comfortable,height/840);
+ const bottomClearance=.45*(height/zoom);
+ assert.ok(bottomClearance>E.CORE_RANGE+21+8,
   'A estrutura pode atingir um campeão invisível no viewport '+width+' × '+height);
 }
 assert.ok(terrainSource.includes('mc.lineWidth=E.LANE_HALF_WIDTH*2'),
  'A largura representada no minimapa diverge da largura real da lane');
+assert.ok(terrainSource.includes("fogContext.fillStyle=discovered?'rgba(5,20,30,.33)':'rgba(5,17,28,.56)'"),
+ 'A névoa voltou a esconder o cenário com blocos pretos');
+assert.ok(terrainSource.includes('ctx.scale(1.16,1.16)')&&
+ terrainSource.includes('HERO_RENDER_SCALE=vw>=1250?1.11:1.19'),
+ 'Proporção dos campeões e minions difere do novo enquadramento');
+
 
  // Uma torre ou núcleo não pode atirar 1 unidade além do alcance declarado,
  // mas deve reagir assim que o adversário entra nele.
@@ -421,7 +429,7 @@ assert.ok(sourceCss.includes('@media (hover:none), (pointer:coarse)')&&
 // Fenda 5.3: AA proporcional à lane, habilidades e reserva de mana real.
 E.start('lyria');
 const rangeHero=state.hero;
-assert.equal(E.attackRange(rangeHero),158,'AA de Lyria proporcional ao alcance da torre');
+assert.equal(E.attackRange(rangeHero),187,'AA de Lyria proporcional ao corredor ampliado');
 assert.ok(E.attackRange(rangeHero)<E.LANE_HALF_WIDTH*2,'AA não pode superar a largura da rota');
 assert.equal(E.skillDef('lyria_pierce').range,345);
 assert.equal(E.skillDef('lyria_rain').range,212);
