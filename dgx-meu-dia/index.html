@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0d1623"><meta name="description" content="Seu painel pessoal: tempo, Corinthians, humor, calendário, plantas, despesas mensais e comandos de voz.">
-<link rel="manifest" href="/manifest.webmanifest"><link rel="stylesheet" href="/world_continuo.css"><title>DGX · Meu Dia</title>
+<link rel="manifest" href="/manifest.webmanifest"><title>DGX · Meu Dia</title>
 <style>
 :root{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#edf3fa;background:#08101a;color-scheme:dark}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at top left,#172a40 0,transparent 42%),#08101a}button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.45;cursor:default}a{color:#9ad7ed;text-decoration:none}a:hover{text-decoration:underline}
@@ -234,7 +234,7 @@ body.car-active{overflow:hidden}
 <header class="top app-header" aria-label="Cabeçalho do DGX">
   <div class="app-header-brand" aria-label="DGX Meu Dia"><span class="app-header-mark">D</span><div class="app-header-wordmark"><strong>DGX <span>Meu Dia</span></strong><small>Seu assistente pessoal</small></div></div>
   <span class="app-header-date today" id="todayDate"></span>
-  <span class="app-header-version" id="appVersion">v0.18.1</span>
+  <span class="app-header-version" id="appVersion">v0.19</span>
   <div class="app-header-controls">
     <button class="app-header-car" id="enterCar" type="button"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 11 1.7-5.1A2 2 0 0 1 8.6 4.5h6.8a2 2 0 0 1 1.9 1.4L19 11"/><rect x="3" y="11" width="18" height="7" rx="2"/><path d="M6 18v2M18 18v2M6.5 14.5h.01M17.5 14.5h.01"/></svg><span>Modo Carro</span></button>
     <button class="app-header-logout hide" id="logoutBtn" type="button" title="Sair da conta" aria-label="Sair da conta"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg><span>Sair</span></button>
@@ -246,7 +246,6 @@ body.car-active{overflow:hidden}
 <button class="tab" data-page="mood"><span>☺</span>Humor</button>
 <button class="tab" data-page="alerts"><span>🔔</span>Avisos</button>
 <button class="tab" data-page="voice"><span>🎙️</span>Voz</button>
-<button class="tab" data-page="world"><span>🌎</span>Aethera</button>
 </nav>
 <section class="section active" id="page-home">
 <div class="intro daily-learning" aria-label="Curiosidade do dia">
@@ -391,146 +390,6 @@ body.car-active{overflow:hidden}
 <p class="small" style="margin-top:15px">No painel <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener noreferrer">Spotify for Developers</a>, crie um aplicativo Web API e cadastre exatamente este endereço de retorno: <code>https://dgx-meu-dia.onrender.com/</code>. É necessário Spotify Premium para controlar a reprodução pela API.</p>
 <div class="note" style="margin-top:12px">Por segurança, configure a conta parado, antes de dirigir. A versão web não oferece escuta contínua garantida nem comandos com a tela bloqueada.</div></article></div></div></section>
 
-<section class="section" id="page-world">
-<div id="wcPage">
-  <header class="wc-hero">
-   <div class="wc-eyebrow">SUA SIMULAÇÃO DE CIVILIZAÇÕES · AETHERA</div>
-   <h1>Aethera <span class="wc-year" id="wcCurrentYear">Ano 1</span></h1>
-   <p>Um mundo fictício com 30 países, dez cores que formam nações e raros indivíduos roxos. As pessoas mudam, as economias crescem, recursos se esgotam e decisões coletivas transformam alianças e fronteiras de influência.</p>
-  </header>
-  <div class="wc-kpis" aria-label="Indicadores gerais do mundo">
-   <div class="wc-kpi"><small>População mundial</small><strong id="wcStatPop">—</strong></div>
-   <div class="wc-kpi"><small>Economia total</small><strong id="wcStatGdp">—</strong></div>
-   <div class="wc-kpi"><small>Índice social médio</small><strong id="wcStatSocial">—</strong></div>
-   <div class="wc-kpi"><small>Guerras ativas</small><strong id="wcStatWars">—</strong></div>
-   <div class="wc-kpi"><small>Alianças</small><strong id="wcStatAlliances">—</strong></div>
-  </div>
-  <div class="wc-toolbar" aria-label="Controle de simulação">
-    <button id="wcPlay" class="wc-primary" type="button">▶ Continuar Aethera</button>
-    <button id="wcOneYear" type="button">+ 1 ano</button>
-    <button id="wcTenYears" type="button">+ 10 anos</button>
-    <button id="wcNewGame" type="button" title="Reiniciar com as três potências equilibradas">↻ Novo jogo</button>
-    <label for="wcSpeed">Velocidade
-      <select id="wcSpeed" aria-label="Velocidade de evolução">
-        <option value="1" selected>1× · 8 s/ano</option><option value="2">2× · 4 s/ano</option><option value="4">4× · 2 s/ano</option>
-      </select>
-    </label>
-    <span class="wc-push" id="wcSaveStatus">Preparando o mundo...</span>
-    <div style="height:3px;flex-basis:100%;background:#29485c;border-radius:5px;overflow:hidden"><div id="wcProgress" style="height:100%;width:0%;background:#7ee2ce"></div></div>
-  </div>
-  <div class="wc-boards">
-    <article class="wc-card">
-      <div class="wc-card-head"><div><h2>🗺️ Mapa político de Aethera</h2><small>Toque em um país para explorar sua história</small></div>
-       <label class="wc-muted">Rotas
-        <select id="wcMapMode" class="wc-filter">
-          <option value="relations" selected>Relações do país</option>
-          <option value="trade">Comércio</option><option value="alliance">Alianças</option>
-          <option value="conflict">Tensões</option><option value="all">Todas</option>
-        </select>
-       </label>
-      </div>
-      <div class="wc-map-wrap" id="wcMapViewport">
-        <svg xmlns="http://www.w3.org/2000/svg" id="wcMapSvg" viewBox="0 0 1200 780" role="img" aria-label="Mapa interativo dos 30 países de Aethera"></svg>
-      </div>
-      <div class="wc-map-footer">
-        <span class="wc-muted" id="wcMapHint">Toque para selecionar</span>
-        <span class="wc-muted">No celular, deslize o mapa para ver todo o território.</span>
-      </div>
-      <div class="wc-map-legend">
-       <span style="color:#8ef5d1"><i></i> Aliança</span>
-       <span style="color:#fb7676"><i></i> Rivalidade</span>
-       <span style="color:#eacf7b"><i></i> Comércio</span>
-      </div>
-      <p class="wc-notice">Os países aparecem numerados até você definir os nomes. A cor predominante identifica sua cultura política e social, mas cada nação abriga pessoas de diversas cores. Os roxos não têm Estado próprio.</p>
-      <p class="wc-muted" id="wcGreenPopulation">Nações verdes: —</p>
-      <p class="wc-muted" id="wcStatTrade">Comércio: —</p>
-    </article>
-    <aside class="wc-card" id="wcNationPanel">
-      <div class="wc-card-head"><h2>FICHA NACIONAL</h2><span class="wc-ribbon neutral" id="wcYearBadge">Ano 1</span></div>
-      <div class="wc-name-head">
-        <i class="wc-color-dot" id="wcNationSwatch"></i>
-        <div style="min-width:0"><div class="wc-nation-heading"><span id="wcNationName">País 06</span> <small id="wcNationNumber" style="font-size:11px;color:#91b3c0">#06</small></div>
-        <div class="wc-nation-sub">Cultura predominante: <strong id="wcNationColor">Vermelho</strong></div></div>
-      </div>
-      <p id="wcNationDescription" class="wc-muted"></p>
-      <form id="wcRenameForm" class="wc-form">
-        <label for="wcRenameInput" class="wc-field-label" style="flex-basis:100%;margin:0">Dê um nome a este país</label>
-        <input id="wcRenameInput" maxlength="42" placeholder="Ex.: Reino de Eldora" aria-label="Nome deste país" required>
-        <button type="submit" class="wc-small-btn">Salvar nome</button>
-      </form>
-      <div class="wc-stats-grid" id="wcNationStats"></div>
-      <section class="wc-ai-nation" aria-labelledby="wcAIHeading">
-        <div class="wc-card-head"><h2 id="wcAIHeading">🧠 Inteligência nacional</h2><span id="wcAIStrategy" class="wc-ai-pill">Planejando</span></div>
-        <div id="wcAIGoals" class="wc-ai-goals" aria-label="Prioridades do governo"></div>
-        <div id="wcAIDecision" class="wc-ai-decision"></div>
-        <div id="wcAIMemory" class="wc-ai-memory"></div>
-      </section>
-      <label class="wc-field-label">Recursos estratégicos</label><div class="wc-tags" id="wcResources"></div>
-      <label class="wc-field-label">Composição das cores sociais</label>
-      <div class="wc-mix" id="wcNationMix" aria-label="Distribuição social da população"></div>
-      <div class="wc-tags" id="wcNationMixLegend"></div>
-      <p class="wc-muted" id="wcPurplePeople"></p>
-      <p class="wc-muted" id="wcNationWar">Sem guerra ativa</p>
-      <label class="wc-field-label">Vizinhos e parceiros</label><div id="wcRelations"></div>
-      <button type="button" class="wc-small-btn" id="wcGoSelected" style="margin-top:13px">Ver este país</button>
-    </aside>
-  </div>
-  <article class="wc-card wc-observatory">
-    <div class="wc-card-head"><h2>🔭 Observatório de Aethera</h2><small>30 países tomam decisões autônomas a cada ano</small></div>
-    <div id="wcAIStrategies" class="wc-ai-strategies"></div>
-    <div id="wcAIHighlights" class="wc-ai-highlights"></div>
-    <p class="wc-muted">Ações baseadas em recursos, necessidades, resultados anteriores e diplomacia. A simulação é autônoma: você apenas observa.</p>
-  </article>
-  <div class="wc-bottom-grid">
-   <article class="wc-card">
-     <div class="wc-card-head"><h2>📊 Economia, população e influência</h2><small id="wcTableCount">30 países</small></div>
-     <div class="wc-form" style="margin:8px 0 12px">
-       <label for="wcFilterColor" class="wc-muted">Cor</label>
-       <select id="wcFilterColor" class="wc-filter">
-        <option value="all">Todas</option>
-        <option value="vermelho">Vermelho</option><option value="azul">Azul</option><option value="amarelo">Amarelo</option>
-        <option value="verde">Verde</option><option value="preto">Preto</option><option value="rosa">Rosa</option>
-        <option value="laranja">Laranja</option><option value="turquesa">Turquesa</option>
-        <option value="cinza">Cinza</option><option value="marrom">Marrom</option>
-       </select>
-       <label for="wcSort" class="wc-muted">Ordenar</label>
-       <select id="wcSort" class="wc-filter">
-        <option value="influence">Influência</option><option value="gdp">Economia</option>
-        <option value="pop">População</option><option value="social">Índice social</option>
-        <option value="tech">Tecnologia</option>
-       </select>
-     </div>
-     <div class="wc-table-shell">
-      <table class="wc-table">
-       <thead><tr><th>Nº</th><th>País</th><th>Cor</th><th>Pop. (mi)</th><th>Economia (B)</th><th>Índ. social</th><th>Tecnologia</th><th>Influência</th></tr></thead>
-       <tbody id="wcTableRows"></tbody>
-      </table>
-     </div>
-     <div style="margin-top:19px">
-      <div class="wc-card-head"><h2>Evolução histórica</h2><small>Base comparativa: 100</small></div>
-      <div id="wcChart">Avance o tempo para ver os resultados.</div>
-     </div>
-   </article>
-   <article class="wc-card">
-    <div class="wc-card-head"><h2>📰 Acontecimentos do mundo</h2><small id="wcHistoryCount">1 acontecimento</small></div>
-    <label class="wc-muted" for="wcHistoryFilter">Filtrar eventos</label>
-    <select id="wcHistoryFilter" class="wc-filter" style="margin:4px 0 13px;display:block;width:100%">
-     <option value="all">Todos</option><option value="war">Guerras e paz</option>
-     <option value="alliance">Alianças</option><option value="economy">Crises econômicas</option>
-     <option value="society">Mudanças sociais</option><option value="technology">Ciência</option>
-     <option value="climate">Clima</option><option value="politics">Decisões nacionais</option>
-    </select>
-    <div id="wcHistory" class="wc-history" aria-live="polite"></div>
-   </article>
-  </div>
-  <article class="wc-card" style="margin-top:14px">
-   <div class="wc-card-head"><h2>🎨 As cores de Aethera</h2><small>Identidades podem mudar, principalmente durante a infância</small></div>
-   <p class="wc-notice"><strong>Vermelhos, azuis e amarelos</strong> são os três polos mais influentes no início. Os <strong>verdes</strong> são o grupo social mais numeroso. Personalidades descrevem tendências culturais, não regras: educação, migração, guerras e experiências mudam a trajetória de cada pessoa. Os <strong>roxos</strong> são raros, surgem da evolução de alguns vermelhos e vivem sobretudo entre vermelhos e azuis.</p>
-   <div class="wc-colors" id="wcColors"></div>
-  </article>
-  <p class="wc-muted" style="margin:14px 4px">Simulação fictícia. População em milhões; economia em bilhões de unidades monetárias de Aethera; índice social de 0 a 1. O mundo avança somente enquanto a aba estiver aberta e a simulação ativada. O progresso fica salvo em sua conta DGX.</p>
-</div>
-</section>
 </main>
 <div class="car-screen hide" id="carScreen" role="dialog" aria-modal="true" aria-label="Modo Carro">
 <div class="car-head"><div><div class="label">DGX Meu Dia</div><h1>🚘 Modo Carro</h1></div><button class="car-exit" id="carExit">✕ Sair</button></div>
@@ -559,7 +418,7 @@ function day(){return new Intl.DateTimeFormat("sv-SE",{timeZone:TZ,year:"numeric
 function dt(value){return new Date(value).toLocaleString("pt-BR",{timeZone:TZ,weekday:"short",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}
 function hour(){return Number(new Intl.DateTimeFormat("en-GB",{timeZone:TZ,hour:"2-digit",hour12:false}).format(new Date()))}
 function toast(t){var old=el("miniToast");if(old)old.remove();var x=document.createElement("div");x.id="miniToast";x.textContent=t;x.style.cssText="position:fixed;left:50%;transform:translateX(-50%);bottom:100px;background:#a1efd6;color:#102b30;padding:13px 17px;border-radius:14px;max-width:90%;z-index:25;font-weight:700;box-shadow:0 6px 30px #0008;font-size:13px";document.body.appendChild(x);setTimeout(function(){x.remove()},4500)}
-function go(page){document.querySelectorAll(".section").forEach(function(s){s.classList.toggle("active",s.id==="page-"+page)});document.querySelectorAll(".tab").forEach(function(t){t.classList.toggle("active",t.dataset.page===page)});window.scrollTo(0,0);if(page==="mood")renderHistory();if(page==="challenge"){if(window.DGXStore?.sync){window.DGXStore.sync("dgx_challenges_v1").then(renderChallenge).catch(function(){renderChallenge()})}else renderChallenge()}if(page==="alerts")renderReminders();if(page==="world")window.DGXworldOpen?.();if(page==="podcasts"&&window.DGXpodcastsSync)window.DGXpodcastsSync(false)}
+function go(page){document.querySelectorAll(".section").forEach(function(s){s.classList.toggle("active",s.id==="page-"+page)});document.querySelectorAll(".tab").forEach(function(t){t.classList.toggle("active",t.dataset.page===page)});window.scrollTo(0,0);if(page==="mood")renderHistory();if(page==="challenge"){if(window.DGXStore?.sync){window.DGXStore.sync("dgx_challenges_v1").then(renderChallenge).catch(function(){renderChallenge()})}else renderChallenge()}if(page==="alerts")renderReminders();if(page==="podcasts"&&window.DGXpodcastsSync)window.DGXpodcastsSync(false)}
 document.querySelectorAll("[data-page]").forEach(function(b){b.addEventListener("click",function(){go(b.dataset.page)})});document.querySelectorAll("[data-goto]").forEach(function(b){b.addEventListener("click",function(){go(b.dataset.goto)})});
 el("todayDate").textContent=new Intl.DateTimeFormat("pt-BR",{timeZone:TZ,weekday:"long",day:"numeric",month:"short"}).format(new Date());
 
@@ -960,9 +819,6 @@ else{el("micBtn").onclick=function(){toast("Reconhecimento de voz não disponív
 window.DGXsummaryData=function(){return {weather:weather,fixtures:fixtures,fixtureLabel:fixtureLabel}};window.DGXgoto=go;window.DGXtoast=toast;window.DGXrefresh=function(){restoreMoodForm();renderHistory();renderChallenge();renderReminders();renderHomeReminders()};
 })();
 </script>
-<script src="/world_ai.js" defer></script>
-<script src="/world_engine.js" defer></script>
-<script src="/world_continuo.js" defer></script>
 <script src="/features.js" defer></script>
 <script src="/payments.js" defer></script>
 <script src="/push_client.js" defer></script>

@@ -1,7 +1,7 @@
 {
   "name": "DGX Meu Dia",
-  "short_name": "Meu Dia",
-  "description": "Seu painel pessoal de previsão, Corinthians, desafios, humor e voz",
+  "short_name": "DGX",
+  "description": "Assistente pessoal: agenda, pagamentos, plantas, desafios, podcasts e voz",
   "lang": "pt-BR",
   "start_url": "/",
   "display": "standalone",
