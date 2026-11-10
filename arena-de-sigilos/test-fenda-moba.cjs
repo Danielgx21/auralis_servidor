@@ -127,20 +127,26 @@ vm.runInNewContext(scenerySource,sandbox);
 assert.ok(sandbox.window.FendaScenery,'Módulo de paisagem Canvas não carregou');
 
 {
- let images=0,drawn=0;
+ let drawn=0,largeStrokes=0,fullScreenFills=0;
  const gradient={addColorStop(){}};
  const context=new Proxy({},{get(o,key){
   if(key in o)return o[key];
   if(key==='createRadialGradient'||key==='createLinearGradient')return()=>gradient;
+  if(key==='fillRect')return(x,y,w,h)=>{drawn++;if(w>=E.W*.75&&h>=E.H*.75)fullScreenFills++};
   return()=>{drawn++};
- },set(o,key,value){o[key]=value;return true}});
+ },set(o,key,value){if(key==='lineWidth'&&value>95)largeStrokes++;o[key]=value;return true}});
  sandbox.document={createElement(tag){
   assert.equal(tag,'canvas','Cenário criou elemento de imagem ou DOM inesperado');
   return{width:0,height:0,getContext(mode){assert.equal(mode,'2d');return context}};
  }};
  const actual=sandbox.window.FendaScenery.drawTerrain(E,state);
  assert.equal(actual.width,E.W);assert.equal(actual.height,E.H);
- assert.ok(drawn>150,'Cenário não gerou todos os elementos no Canvas');
+ assert.ok(drawn>100,'Cenário não gerou todos os elementos no Canvas');
+ assert.equal(largeStrokes,0,'O cenário voltou a desenhar paredes gigantes');
+ assert.equal(fullScreenFills,1,'Apenas o fundo deve preencher toda a tela');
+ assert.ok(!scenerySource.includes('createRadialGradient')&&
+  !scenerySource.includes('const halfFields='),
+  'Remover halos e polígonos enormes da jungle');
 }
 
 assert.equal(E.ROUTE_PATHS.length,3);
@@ -210,11 +216,11 @@ assert.ok(state.walls.filter(w=>w.wallClass==='base').length>=48,
  'Muralha do santuário precisa ser obstáculo físico, não decoração');
 assert.ok(state.walls.filter(w=>w.wallClass!=='base').length>=60,
  'Corredores longos precisam de separadores físicos contra a jungle');
-assert.ok(state.walls.some(w=>w.halfWidth>=78),
- 'Paredes da selva devem ser massas sólidas, não fileiras de pedras');
+assert.ok(state.walls.filter(w=>w.wallClass==='jungle').every(w=>w.halfWidth<=35),
+ 'Parede da selva voltou a ser um bloco gigante');
 const jungleChains=new Set(state.walls.filter(w=>w.wallClass==='jungle').map(w=>w.chain));
-assert.equal(jungleChains.size,18,
- 'A jungle deve usar apenas nove maciços geométricos por lado, sem garranchos');
+assert.equal(jungleChains.size,16,
+ 'A jungle deve ter apenas oito barreiras discretas por lado');
 assert.equal(state.obstacles.filter(o=>o.kind==='rock').length,0,
  'Pilares avulsos sem função devem desaparecer do mapa');
 assert.equal(state.brushes.length,8);
