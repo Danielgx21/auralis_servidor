@@ -34,9 +34,10 @@ let vw=900,vh=460,dpr=1,terrain=null,last=performance.now(),hudCountdown=0,ended
 // A câmera usa pixels de tela separados de metros do mundo. Não reduzir o herói
 // para tentar encaixar 3 torres no mesmo enquadramento.
 let cameraZoom=1.30,worldVW=vw/cameraZoom,worldVH=vh/cameraZoom;
-// O anel gráfico anterior ocupava ~85px em 1720px de largura.
-// Redução visual ~27%, sem adulterar colisão, hitbox ou alcance.
-const HERO_RENDER_SCALE=.68;
+// Câmera adaptável: a torre precisa aparecer ANTES de poder acertar.
+// A escala visual do campeão não altera o seu raio de colisão.
+const HERO_RENDER_SCALE=.80;
+const CAMERA_MIN_WORLD_HEIGHT=530;
 // Não há texturas, atlas ou sprites nesta arena. Toda a paisagem é Canvas procedural.
 // Fenda 6.3: paisagem 100% procedural, com geometria e camera próprias.
  // Somente três rotas; paredes/obstáculos provêm das hitboxes do motor.
@@ -56,8 +57,9 @@ function resize(){
  const r=stage.getBoundingClientRect();vw=Math.max(320,r.width);vh=Math.max(220,r.height);
  dpr=Math.min(window.devicePixelRatio||1,1.65);
  cv.width=Math.round(vw*dpr);cv.height=Math.round(vh*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
- cameraZoom=vw>=1250?1.24:vw>=750?1.20:1.16;
- if(vh<385)cameraZoom=Math.min(cameraZoom,1.16);
+ const comfortableZoom=vw>=1250?1.15:vw>=750?1.07:.98;
+ // A dimensão curta do celular precisa mostrar toda a zona perigosa.
+ cameraZoom=Math.min(comfortableZoom,vh/CAMERA_MIN_WORLD_HEIGHT);
  worldVW=vw/cameraZoom;worldVH=vh/cameraZoom;
  fogCanvas.width=Math.ceil(vw*.64);fogCanvas.height=Math.ceil(vh*.64);fogAt=-1;
 }
@@ -108,8 +110,20 @@ function drawStructure(o,t){
  if(!visible(o.x,o.y,100)||o.hp<=0)return;
  const col=E.SIDE[o.side],core=o.kind==='core';
  const r=core?49:32;
- if(o.side!==S.hero?.side&&S.hero?.hp>0&&dist(S.hero,o)<o.range+135){
-  ctx.save();ctx.globalAlpha=.17;circle(o.x,o.y,o.range,null,'#f2a1aa',1.5);ctx.restore();
+ if(o.side!==S.hero?.side&&S.hero?.hp>0){
+  const player=S.hero,d=dist(player,o),radius=o.range+player.r;
+  // Perímetro de aggro aparece antes do ataque; quando o disparo
+  // mira o campeão, uma linha curta aponta a origem.
+  if(d<radius+125){
+   const danger=d<radius,aggro=o.aggroTarget===player;
+   ctx.save();ctx.globalAlpha=danger?.57:.28;
+   circle(o.x,o.y,radius,null,danger?'#ff849b':'#eac9b3',danger?2.7:1.6);
+   if(aggro){
+    ctx.beginPath();ctx.moveTo(o.x,o.y);ctx.lineTo(player.x,player.y);
+    ctx.lineWidth=1.6;ctx.strokeStyle='#ff8ba6';ctx.stroke();
+   }
+   ctx.restore();
+  }
  }
  ctx.save();ctx.translate(o.x,o.y);
  // Mesma linguagem top-down dos campeões originais: hexágonos,
