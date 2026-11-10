@@ -415,8 +415,8 @@ function view(dt){
   const snap=h.cameraSnapAt&&S.time-h.cameraSnapAt<.23&&!observing;
   if(snap){S.camera.x=wantX;S.camera.y=wantY;}
   else{
-   S.camera.x+=(wantX-S.camera.x)*Math.min(1,dt*(observing?18:5));
-   S.camera.y+=(wantY-S.camera.y)*Math.min(1,dt*(observing?18:5));
+   S.camera.x+=(wantX-S.camera.x)*Math.min(1,dt*(observing?18:9));
+   S.camera.y+=(wantY-S.camera.y)*Math.min(1,dt*(observing?18:9));
   }
   if(cameraPeek&&cameraPeek.ptr===null&&S.time>=cameraPeekUntil)cameraPeek=null;
  }
