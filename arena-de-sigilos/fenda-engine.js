@@ -7,6 +7,9 @@ const W=3300,H=2500,TAU=Math.PI*2;
 const MOBA_WALK_SCALE=.55;
 // Largura de rota proporcional ao personagem: ~6 diâmetros por corredor.
 const LANE_HALF_WIDTH=98,LANE_MINION_SPREAD=26;
+// Mesma escala física para câmera, ataques básicos e defesa de estruturas.
+// O maior alcance defensivo é inferior ao espaço mínimo exibido no celular.
+const TURRET_RANGE=178,CORE_RANGE=188;
 // Fenda 6.3: desenho 100% procedural de três lanes realmente independentes.
 // Cada trajeto começa fora do santuário e termina na outra base. Simetria rotacional.
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -93,8 +96,8 @@ const skillDef=id=>{
 const living=(side,kind)=>state.units.filter(u=>u.hp>0&&(side==null||u.side===side)&&(!kind||u.kind===kind));
 const maxMana=u=>320+Math.max(0,(u.level||1)-1)*16+(u.items||[]).filter(i=>i==='cell').length*85;
 const WARD_RANGE=280;
-const attackRange=u=>u.kind==='minion'?(u.id==='siege'?235:u.ranged?150:34):u.kind==='creep'?45:
- (u.id==='orun'?55:u.id==='vexor'?58:u.id==='lyria'?173:u.id==='nyra'?164:152);
+const attackRange=u=>u.kind==='minion'?(u.id==='siege'?162:u.ranged?116:34):u.kind==='creep'?45:
+ (u.id==='orun'?55:u.id==='vexor'?58:u.id==='lyria'?136:u.id==='nyra'?131:123);
 const moveSpeed=u=>u.speed*(1+(u.items||[]).filter(i=>i==='stride').length*.17)*(u.slow>0?.62:1);
 const attackDamage=u=>u.atk+(u.items||[]).filter(i=>i==='lens').length*13;
 const spellPower=u=>1+(u.items||[]).filter(i=>i==='prism').length*.19;
@@ -246,7 +249,7 @@ function buildMap(){
  for(let side=0;side<2;side++){
   const home=CORE[side];
   state.structures.push({kind:'core',side,x:home.x,y:home.y,maxHp:1850,hp:1850,
-   r:46,atk:53,range:375,attackCd:0,id:'core'+side});
+   r:46,atk:53,range:CORE_RANGE,attackCd:0,id:'core'+side});
   for(let lane=0;lane<3;lane++)for(let tier=0;tier<3;tier++){
    // T1 externa distante do centro; T2 e T3 recuam progressivamente à base.
    // Espaço central neutro suficiente para combate antes do alcance das torres.
@@ -259,7 +262,7 @@ function buildMap(){
    const offset=94;
    const x=p.x-direction.y*offset*sign,y=p.y+direction.x*offset*sign;
    state.structures.push({kind:'tower',side,lane,tier:tier+1,x,y,
-    r:27,hp:880,maxHp:880,atk:58,range:230,attackCd:0,
+    r:27,hp:880,maxHp:880,atk:58,range:TURRET_RANGE,attackCd:0,
     id:'tower'+side+'-'+lane+'-'+tier});
   }
  }
@@ -1688,6 +1691,6 @@ function recall(){
  return true;
 }
 window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,hData,skillDef,
- start,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,isAttackCommandValid,buyItem,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
+ start,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,isAttackCommandValid,buyItem,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
 })();
