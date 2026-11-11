@@ -370,11 +370,13 @@ for(const lane of [0,1,2]){
  const firstGap=distance(blueT1,redT1);
  const blueT2=state.structures.find(t=>t.kind==='tower'&&t.side===0&&t.lane===lane&&t.tier===2);
  const secondGap=distance(blueT1,blueT2);
- assert.ok(firstGap>=570&&firstGap<=800,
-  'Intervalo entre as T1 inimigas desproporcional na rota '+lane);
- assert.ok(secondGap>=600,
-  'Duas torres aliadas ainda aparecem amontoadas na mesma rota '+lane);
- assert.ok(secondGap>=firstGap*.9,
+ assert.ok(firstGap>=930&&firstGap<=1150,
+  'O encontro das tropas precisa de área neutra entre T1 na rota '+lane);
+ assert.ok(firstGap>E.TURRET_RANGE*2+260,
+  'Áreas de ataque das T1 adversárias estão perto demais na rota '+lane);
+ assert.ok(secondGap>=(lane===1?490:680),
+  'Duas torres aliadas ainda aparecem amontoadas na rota '+lane);
+ assert.ok(secondGap>=firstGap*.45,
   'Separação defensiva insuficiente em comparação às T1 '+lane);
 }
 const topMid=E.pathPos(0,.55),centralMid=E.pathPos(1,.50),bottomMid=E.pathPos(2,.55);
