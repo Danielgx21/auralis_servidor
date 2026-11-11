@@ -271,3 +271,178 @@
  .fenda-build-head strong{font-size:10px}
  .fenda-shop-equipped{padding:4px}
 }
+
+
+/* Fenda 8.6 — Loja MOBA: catálogo de ícones à esquerda, item/receita à direita.
+   Todos os ícones são CSS + caracteres do próprio jogo, sem imagens. */
+.stage.fenda-on #fendaShop{position:absolute;top:clamp(8px,2.4vh,24px);bottom:clamp(7px,2vh,16px);
+ left:50%;right:auto;transform:translateX(-50%);width:min(850px,97vw);max-width:none;
+ display:none;flex-direction:column;overflow:hidden;gap:5px;
+ padding:9px 11px 6px;background:linear-gradient(125deg,#081b2cf9 5%,#0b2535fb 52%,#061522fa);
+ border:1px solid #7098a7bf;box-shadow:0 14px 45px #000c,inset 0 1px #c0f7da35;
+ border-radius:10px;color:#eaf5e9;z-index:20}
+.stage.fenda-on #fendaShop.open{display:flex}
+#fendaShop .fenda-shop-head{display:flex;align-items:center;justify-content:space-between;
+ gap:8px;min-height:28px;padding-bottom:4px;border-bottom:1px solid #7195a356}
+#fendaShop .fenda-shop-head>div{display:flex;align-items:center;gap:7px}
+#fendaShop .fenda-shop-head strong{font-weight:950;font-size:13px;color:#ebdfad;letter-spacing:.035em}
+#fendaShop .fenda-shop-head small{font-size:9px;color:#a6b7c3}
+#fendaShop .fenda-shop-emblem{font-size:20px;color:#d4b86d;line-height:1}
+#fendaShop #fendaShopClose{font-size:14px;font-weight:800;padding:4px 9px}
+#fendaShop .fenda-shop-topline{display:flex;align-items:center;justify-content:space-between;
+ gap:8px;min-height:24px}
+#fendaShop .fenda-shop-gold{margin:0;font-size:12px;color:#f3d594;
+ text-shadow:0 1px 4px #0008;font-variant-numeric:tabular-nums}
+#fendaShopLocation{font-size:9px;letter-spacing:.015em}
+#fendaShopLocation.in-base{color:#a0f4c4}
+#fendaShopLocation.out-base{color:#dfb7a8}
+#fendaShop .fenda-shop-layout{display:grid;grid-template-columns:minmax(0,1.07fr) minmax(0,.93fr);
+ gap:8px;flex:1;min-height:0;overflow:hidden}
+#fendaShop .fenda-shop-browser,#fendaShop .fenda-shop-details{
+ min-height:0;min-width:0;border:1px solid #60869778;background:#0a2032d6;border-radius:7px}
+#fendaShop .fenda-shop-browser{display:flex;flex-direction:column;overflow:hidden}
+#fendaShop .fenda-shop-tabs{display:flex;flex-shrink:0;gap:2px;padding:4px 5px 0}
+#fendaShop .fenda-shop-tabs button{flex:1;min-width:0;border:1px solid #688b9775;
+ border-bottom:2px solid transparent;border-radius:5px 5px 0 0;background:#173447;
+ padding:6px 3px;color:#b7cdd1;font-size:9px;font-weight:800;white-space:nowrap}
+#fendaShop .fenda-shop-tabs button.selected{background:#2a4957;color:#fff0c5;
+ border-color:#c9aa66;border-bottom-color:#e7cf91}
+#fendaShop .fenda-shop-categories{display:flex;gap:3px;align-items:center;flex-wrap:wrap;
+ flex-shrink:0;background:#0e2b3b;padding:4px 5px;min-height:25px}
+#fendaShop .fenda-shop-categories button{font-weight:750;font-size:8px;padding:3px 5px;
+ background:#14384a;border:1px solid #6c98a073;border-radius:4px;color:#bfd4db}
+#fendaShop .fenda-shop-categories button.selected{color:#f5dbad;border-color:#e5c780;background:#345264}
+#fendaShop .fenda-shop-categories span{font-size:8px;letter-spacing:.055em;color:#85a9b2}
+#fendaShop #fendaShopItems{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;
+ flex:1;min-height:0;overflow-y:auto;align-content:start;padding:7px;scrollbar-width:thin;
+ scrollbar-color:#688d91 #0b2431}
+#fendaShop .fenda-shop-tile{display:flex;align-items:center;flex-direction:column;
+ justify-content:flex-start;gap:3px;position:relative;min-width:0;min-height:91px;
+ padding:5px 3px 4px;box-sizing:border-box;border:1px solid transparent;border-radius:6px;
+ color:#d8ebf1;background:#102b3b;touch-action:manipulation}
+#fendaShop .fenda-shop-tile.chosen{background:#274052;border-color:#f1d48b;
+ box-shadow:inset 0 0 10px #e3c98c12,0 0 0 1px #edcc7970}
+#fendaShop .fenda-shop-tile.equipped{background:#17392f}
+#fendaShop .fenda-shop-tile:active{background:#2f5263}
+#fendaShop .fenda-shop-tile strong{font-size:9px;line-height:1.1;text-align:center;
+ font-weight:760;max-width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+ overflow:hidden;min-height:19px}
+#fendaShop .fenda-shop-tile small{font-size:9px;color:#e6cd94;font-variant-numeric:tabular-nums}
+#fendaShop .fenda-shop-tileicon{position:relative;display:block}
+#fendaShop .fenda-tile-check{position:absolute;right:-6px;top:-5px;background:#1d754c;
+ color:#e1ffe8;font-size:9px;padding:2px 4px;border-radius:50%;font-style:normal}
+#fendaShop .fenda-tile-progress{position:absolute;left:2px;bottom:-2px;height:3px;
+ background:#f2d38b;border-radius:3px;box-shadow:0 0 7px #ecda99}
+#fendaShop .fenda-item-icon{display:inline-flex;align-items:center;justify-content:center;
+ position:relative;flex-shrink:0;width:43px;height:43px;border:2px solid #81a9b1;
+ box-shadow:inset 0 0 0 1px #e8dbb442,0 3px 7px #000b;
+ border-radius:5px;overflow:hidden;background:linear-gradient(145deg,#325a77,#11253d 60%,#091521)}
+#fendaShop .fenda-item-icon::before{content:'';position:absolute;inset:-20%;
+ background:linear-gradient(120deg,transparent 29%,#e8f8ff36 36%,transparent 47%);
+ transform:rotate(-14deg);pointer-events:none}
+#fendaShop .fenda-item-icon::after{content:'';position:absolute;inset:3px;
+ border:1px solid #ffffff29;border-radius:2px;pointer-events:none}
+#fendaShop .fenda-item-icon b{font-size:27px;color:#e6f0f4;line-height:1;
+ filter:drop-shadow(0 2px 2px #0017);z-index:1;font-family:Georgia,serif}
+#fendaShop .fenda-item-icon.attack{background:linear-gradient(135deg,#865940,#42212d 60%,#16172c);
+ border-color:#d19a63}
+#fendaShop .fenda-item-icon.attack b{color:#ffe1ab}
+#fendaShop .fenda-item-icon.magic{background:linear-gradient(135deg,#5b4e98,#222957 60%,#111d37);
+ border-color:#ab96e9}
+#fendaShop .fenda-item-icon.magic b{color:#e9d2ff}
+#fendaShop .fenda-item-icon.defense{background:linear-gradient(135deg,#55746c,#1e4147 60%,#0b2932);
+ border-color:#88d7be}
+#fendaShop .fenda-item-icon.defense b{color:#c7ffdd}
+#fendaShop .fenda-item-icon.speed{background:linear-gradient(135deg,#517f87,#1d4764 60%,#0b263e);
+ border-color:#8bd6e9}
+#fendaShop .fenda-item-icon.speed b{color:#d0faff}
+#fendaShop .fenda-item-icon.utility{background:linear-gradient(135deg,#876b41,#55513b 60%,#292326);
+ border-color:#e0bd78}
+#fendaShop .fenda-item-icon.utility b{color:#ffe4a0}
+#fendaShop .fenda-item-icon.large{width:55px;height:55px;border-width:2px}
+#fendaShop .fenda-item-icon.large b{font-size:36px}
+#fendaShop .fenda-shop-details{overflow-y:auto;scrollbar-width:thin;
+ padding:9px;display:flex;flex-direction:column;gap:7px}
+#fendaShop .fenda-shop-detail-top{display:flex;align-items:center;gap:10px}
+#fendaShop .fenda-shop-detail-top>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+#fendaShop .fenda-shop-detail-top h3{font-size:14px;line-height:1.12;margin:0;color:#f7ecd0}
+#fendaShop .fenda-shop-detail-top div span{font-size:9px;color:#90b4c6}
+#fendaShop .fenda-shop-detail-top div strong{font-size:12px;color:#f4d59a}
+#fendaShop .fenda-shop-detail-stats{font-size:11px;color:#8eecce;
+ font-weight:800;padding:6px 7px;background:#153a438c;border-left:3px solid #6ebaa4}
+#fendaShop .fenda-shop-detail-desc{font-size:10px;line-height:1.3;color:#c6ced8;margin:0}
+#fendaShop .fenda-shop-recipe-label{font-size:9px;letter-spacing:.06em;font-weight:900;
+ color:#9eb8bf;border-bottom:1px solid #79969a49;padding-bottom:4px}
+#fendaShop .fenda-shop-recipe-root{display:flex;align-items:center;justify-content:center;gap:8px;
+ padding:3px;color:#ebdfc0;font-size:11px;font-weight:850}
+#fendaShop .fenda-shop-recipe-branches{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:5px;position:relative;padding-top:8px}
+#fendaShop .fenda-shop-recipe-branches:before{content:'';position:absolute;top:0;left:16%;
+ width:68%;height:1px;background:#719caa8f}
+#fendaShop .fenda-recipe-node{position:relative;display:flex;align-items:center;
+ flex-direction:column;gap:3px;min-width:0;min-height:73px;text-align:center;
+ border:1px solid #6584918e;border-radius:6px;background:#173448;font-size:8px;
+ padding:4px 2px;touch-action:manipulation;color:#dce7ef}
+#fendaShop .fenda-recipe-node:before{content:'';position:absolute;top:-8px;left:50%;
+ width:1px;height:7px;background:#729dab9e}
+#fendaShop .fenda-recipe-node .fenda-item-icon{width:31px;height:31px;border-width:1px}
+#fendaShop .fenda-recipe-node .fenda-item-icon b{font-size:21px}
+#fendaShop .fenda-recipe-node span:not(.fenda-item-icon){font-size:8px;line-height:1.1}
+#fendaShop .fenda-recipe-node small{font-size:8px;color:#e9c58d}
+#fendaShop .fenda-recipe-node.owned{border-color:#6bc8a1;opacity:1;background:#1b423d}
+#fendaShop .fenda-recipe-node.owned small{color:#9ff3bf}
+#fendaShop .fenda-recipe-node:disabled:not(.owned){opacity:.6}
+#fendaShop .fenda-shop-buildsinto{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+#fendaShop .fenda-shop-buildsinto button{display:flex;align-items:center;gap:5px;min-width:0;
+ padding:4px;border:1px solid #668c9b8c;border-radius:4px;background:#19384a;color:#d6e9f2;
+ font-size:9px}
+#fendaShop .fenda-shop-buildsinto .fenda-item-icon{width:27px;height:27px}
+#fendaShop .fenda-shop-buildsinto .fenda-item-icon b{font-size:19px}
+#fendaShop .fenda-shop-detail-bottom{margin-top:auto;display:grid;gap:5px}
+#fendaShop .fenda-shop-progress{height:5px;background:#264353;border-radius:4px;overflow:hidden}
+#fendaShop .fenda-shop-progress span{display:block;height:100%;background:#d6c17d}
+#fendaShop .fenda-shop-cost{display:flex;justify-content:space-between;gap:5px;
+ font-size:9px;color:#a5b5c3}
+#fendaShop .fenda-shop-cost b{color:#ffe2a0}
+#fendaShop .fenda-shop-buy-actions{display:flex;gap:6px}
+#fendaShop .fenda-shop-buy{flex:1;background:#3a6858;color:#f5ffde;font-size:11px;
+ font-weight:900;min-height:33px;padding:7px 3px;border:1px solid #a7deab;border-radius:5px}
+#fendaShop .fenda-shop-buy:disabled{background:#273d47;color:#88979a;border-color:#596774}
+#fendaShop .fenda-shop-pin{min-width:77px;background:#1b374c;border:1px solid #b39a65;
+ border-radius:5px;padding:5px 6px;color:#e9cd88;font-size:9px;font-weight:800}
+#fendaShop .fenda-shop-pin.pinned{background:#675337;color:#fff2c5}
+#fendaShop .fenda-shop-equipped{display:flex;gap:9px;align-items:center;flex-shrink:0;
+ margin:0;padding:4px 8px;background:#0c1b2af7;border-color:#5f849079;min-height:42px}
+#fendaShop .fenda-shop-equipped>strong{display:flex;flex-direction:column;white-space:nowrap;
+ font-size:9px;gap:3px;min-width:72px;color:#d6c998;margin:0}
+#fendaShop .fenda-shop-equipped>strong small{font-size:8px;color:#9ba8ae}
+#fendaShop .fenda-shop-inventory{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
+ gap:5px;flex:1}
+#fendaShop .fenda-shop-slot{display:flex;align-items:center;justify-content:center;
+ position:relative;min-height:35px;min-width:0;border:1px solid #4d6878;border-radius:5px;
+ background:#0c2333}
+#fendaShop .fenda-shop-slot.filled{border-color:#799ea5}
+#fendaShop .fenda-shop-slot .fenda-item-icon{width:29px;height:29px}
+#fendaShop .fenda-shop-slot .fenda-item-icon b{font-size:21px}
+#fendaShop .fenda-slot-empty{color:#3f6273;font-size:12px}
+#fendaShop .fenda-shop-slot button{position:absolute;top:-4px;right:-4px;width:17px;height:17px;
+ padding:0;border-radius:50%;border:1px solid #e8c59e;background:#5c3440;color:#ffe0d2;
+ font-size:10px;font-weight:900;touch-action:manipulation}
+#fendaShop .fenda-shop-slot button:disabled{opacity:.4}
+#fendaShop .fenda-shop-hint{margin:0;font-size:8px;color:#8caab5;min-height:11px}
+#fendaShop .fenda-shop-nothing{grid-column:1/-1;font-size:10px;color:#b6c7c9;text-align:center}
+@media(max-width:700px){
+ .stage.fenda-on #fendaShop{width:98vw;padding:7px}
+ #fendaShop .fenda-shop-layout{grid-template-columns:48% 52%;gap:4px}
+ #fendaShop #fendaShopItems{grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;padding:4px}
+ #fendaShop .fenda-shop-tabs button{font-size:8px;padding:5px 2px}
+ #fendaShop .fenda-item-icon{width:35px;height:35px}
+ #fendaShop .fenda-item-icon b{font-size:23px}
+ #fendaShop .fenda-shop-tile{min-height:77px}
+ #fendaShop .fenda-shop-tile strong{font-size:8px}
+}
+@media(max-width:500px) and (orientation:portrait){
+ .stage.fenda-on #fendaShop{top:4px;bottom:4px;width:98vw}
+ #fendaShop .fenda-shop-layout{grid-template-columns:1fr;grid-template-rows:minmax(120px,43%) minmax(140px,57%)}
+ #fendaShop #fendaShopItems{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
