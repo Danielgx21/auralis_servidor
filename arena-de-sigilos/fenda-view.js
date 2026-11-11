@@ -679,6 +679,7 @@ function hudUpdate(){
  $('fendaMana').style.width=(h.mana/E.maxMana(h)*100)+'%';
  $('fendaManaText').textContent=h.manaFreeUntil>S.time?'∞ MANA LIVRE '+Math.ceil(h.manaFreeUntil-S.time)+'s':'MANA '+Math.ceil(h.mana)+'/'+E.maxMana(h);
  $('fendaXP').style.width=(h.level<15?h.xp/(42+h.level*24)*100:100)+'%';
+ desktopHeroUpdate(h);
  const towerList=S.structures.filter(s=>s.kind==='tower'&&s.hp>0);
  const bossStatus=id=>{
   const c=S.camps.find(o=>o.id===id);
@@ -707,6 +708,13 @@ function hudUpdate(){
   b.querySelector('b').textContent=def.icon;
   b.querySelector('small').textContent=lock?(def.ultimate&&h.level<5?'NV 5':'APRENDER'):def.short;
   b.classList.toggle('oncd',cd>.03||lock||(h.mana<def.cost&&h.manaFreeUntil<=S.time)||h.hp<=0);
+  const pc=$('pcSkill'+i);
+  pc.querySelector('b').textContent=def.icon;
+  pc.querySelector('small').textContent=lock?(def.ultimate&&h.level<5?'NV 5':'APRENDER'):def.short;
+  pc.querySelector('.pc-rank').textContent=rank+'/'+(def.ultimate?3:5);
+  pc.querySelector('.pc-cooldown').textContent=lock?'🔒':cd>.03?Math.ceil(cd):'';
+  pc.classList.toggle('oncd',lock||cd>.03||h.hp<=0||(h.mana<def.cost&&h.manaFreeUntil<=S.time));
+  pc.title=def.name+' · '+def.desc;
   const el=b.querySelector('.cd-text');el.hidden=cd<=.03&&!lock;
   el.textContent=lock?'🔒':cd>.03?Math.ceil(cd):'';
   let rankBadge=b.querySelector('.fenda-skill-rank');
@@ -715,7 +723,8 @@ function hudUpdate(){
   const upgrade=upgradeButtons[i],canUp=h.skillPoints>0&&rank<cap&&h.hp>0&&!S.shopOpen&&!S.showPause&&!scoreboardVisible;
   upgrade.hidden=!canUp;
   if(canUp){
-   const bounds=b.getBoundingClientRect(),stageBounds=stage.getBoundingClientRect();
+   const isDesktop=window.matchMedia?.('(hover: hover) and (pointer: fine)').matches;
+   const bounds=(isDesktop?$('pcSkill'+i):b).getBoundingClientRect(),stageBounds=stage.getBoundingClientRect();
    upgrade.style.left=Math.round(bounds.left-stageBounds.left+bounds.width*.70)+'px';
    upgrade.style.top=Math.max(5,Math.round(bounds.top-stageBounds.top-16))+'px';
   }
@@ -741,11 +750,22 @@ function hudUpdate(){
   b.querySelector('b').textContent=sp.icon;b.querySelector('small').textContent=sp.name.toUpperCase();
   b.querySelector('em').textContent=cd>.03?Math.ceil(cd):'';
   b.classList.toggle('oncd',cd>.03||h.hp<=0);b.title=sp.desc;
+  const pc=desktopBar.querySelector('[data-pc-spell="'+i+'"]');
+  pc.querySelector('b').textContent=sp.icon;
+  pc.querySelector('.pc-cooldown').textContent=cd>.03?Math.ceil(cd):'';
+  pc.title=sp.name+' · '+sp.desc;
+  pc.classList.toggle('oncd',cd>.03||h.hp<=0);
  }
  const wardBtn=$('fendaWardBtn');
  wardBtn.disabled=h.hp<=0||h.visionCd>0;
  wardBtn.classList.toggle('available',h.hp>0&&h.visionCd<=0);
  $('fendaWardCD').textContent=h.visionCd>0?Math.ceil(h.visionCd)+'s':'';
+ const pcWard=$('pcWard');
+ pcWard.classList.toggle('oncd',h.visionCd>0||h.hp<=0);
+ pcWard.querySelector('.pc-cooldown').textContent=h.visionCd>0?Math.ceil(h.visionCd):'';
+ if(!rosterCollapsed&&S.time-rosterLastUpdate>.42){
+  rosterLastUpdate=S.time;desktopRosterUpdate();
+ }
  if(scoreboardVisible&&S.time-scoreboardLastUpdate>.42){
   scoreboardLastUpdate=S.time;renderScoreboard();
  }
@@ -1033,7 +1053,7 @@ function chooseHero(){
 function startGame(){
  C.suspendClassic?.();
  shopTab='recommended';shopFilter='all';shopSelectedId=null;shopQueuedId=null;
- E.start(C.getHeroChoice(),pickedSummoners);setScoreboardVisible(false);endedShown=false;clickDestination=null;mouseFollow=null;cameraPeek=null;cameraPeekUntil=0;wardAim=null;keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
+ E.start(C.getHeroChoice(),pickedSummoners);setScoreboardVisible(false);endedShown=false;clickDestination=null;mouseFollow=null;rosterLastUpdate=-1;cameraPeek=null;cameraPeekUntil=0;wardAim=null;keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
  shop.classList.remove('open');$('overlay').classList.add('hidden');$('missionShelf').hidden=true;
  resize();drawTerrain();last=performance.now();hudCountdown=0;hudUpdate();
  if(stage.requestFullscreen&&!document.fullscreenElement){
@@ -1418,6 +1438,28 @@ for(const [i,rankBtn] of upgradeButtons.entries()){
  });
  rankBtn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation()});
 }
+// Desktop: botões horizontais usam as mesmas habilidades, regras de mana e mira.
+for(const btn of desktopBar.querySelectorAll('[data-pc-skill]')){
+ const i=Number(btn.dataset.pcSkill);
+ btn.addEventListener('pointerdown',e=>skillStart(e,i));
+ btn.addEventListener('pointermove',skillMove);
+ for(const type of ['pointerup','pointercancel','lostpointercapture'])btn.addEventListener(type,skillEnd);
+}
+for(const btn of desktopBar.querySelectorAll('[data-pc-spell]')){
+ btn.addEventListener('pointerdown',e=>{
+  e.preventDefault();e.stopPropagation();useSummoner(Number(btn.dataset.pcSpell));
+ });
+}
+$('pcWard').addEventListener('click',deployWard);
+$('pcShop').addEventListener('click',toggleShop);
+$('pcRecall').addEventListener('click',beginRecall);
+$('pcRosterToggle').addEventListener('click',()=>{
+ rosterCollapsed=!rosterCollapsed;
+ teamRoster.classList.toggle('collapsed',rosterCollapsed);
+ $('pcRosterToggle').setAttribute('aria-expanded',String(!rosterCollapsed));
+ $('pcRosterChevron').textContent=rosterCollapsed?'+':'−';
+ if(!rosterCollapsed){rosterLastUpdate=-1;desktopRosterUpdate();}
+});
 for(const btn of summonerPanel.querySelectorAll('button')){
  btn.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();useSummoner(Number(btn.dataset.slot))});
 }
