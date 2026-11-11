@@ -11,10 +11,13 @@ const visibleFoes=(side)=>living(1-side).filter(e=>E.visibleTo(side,e));
 const hp=h=>h.hp/Math.max(1,h.maxHp);
 const canCast=(h,id)=>h.cooldowns[id]<=.01&&(h.mana>=E.skillDef(id).cost||h.manaFreeUntil>S.time)&&
  h.stun<=0&&E.skillRank(h,id)>0;
+// Compara vantagem real: vida, níveis, equipamentos completos e ultimate.
 function strength(h){
- const ult=C.heroes[h.id].ultimate;
- return (.54+hp(h)*.69)*(1+h.level*.065)*
-  (canCast(h,ult)?1.20:1)*(h.id==='orun'?1.10:h.id==='seris'?1.07:1);
+ const ult=C.heroes[h.id].ultimate,role=roles[h.id];
+ const gear=h.items?.filter(id=>E.ITEMS.some(it=>it.id===id&&it.tier===2)).length||0;
+ const roleWeight=role==='tank'?1.10:role==='support'?1.07:role==='assassin'&&hp(h)<.38?.87:1;
+ return (.47+hp(h)*.78)*(1+h.level*.061+gear*.095)*
+  (canCast(h,ult)?1.16:1)*roleWeight;
 }
 function scan(){
  if(S.mode!=='playing'||S.time<nextScan)return;
@@ -33,7 +36,7 @@ function scan(){
    if(friends.length<2||rivals.length<1||!friends.some(a=>!a.controlled))continue;
    const frontline=friends.some(a=>['orun','brax','rokar'].includes(a.id));
    const sustain=friends.some(a=>a.id==='seris');
-   const dps=friends.some(a=>a.id==='lyria'||a.id==='nyra');
+   const dps=friends.some(a=>['lyria','nyra','tessa','kaelis'].includes(a.id));
    const synergy=1+(frontline&&dps?0.09:0)+(sustain&&friends.length>=3?0.08:0);
    const alliedPower=friends.reduce((s,a)=>s+strength(a),0)*synergy;
    const enemyPower=rivals.reduce((s,a)=>s+strength(a),0);
@@ -52,9 +55,13 @@ function scan(){
    if(mode==='engage'&&!friends.some(a=>['orun','brax','rokar'].includes(a.id))&&ratio<1.10&&friends.length<3)
      mode='hold';
    const focus=rivals.map(e=>{
-    const threatenedCarry=friends.some(a=>['lyria','nyra','tessa','kaelis','seris'].includes(a.id)&&dist(a,e)<135);
-    const rolePriority=e.id==='lyria'?34:e.id==='nyra'?29:e.id==='seris'?25:e.id==='zhira'?17:e.id==='vexor'?12:e.id==='brax'?8:3;
-    return {e,score:(1-hp(e))*49+rolePriority+(threatenedCarry?19:0)-dist(e,center)*.07};
+    const threatenedCarry=friends.some(a=>['lyria','nyra','tessa','kaelis','seris'].includes(a.id)&&dist(a,e)<155);
+    const priority=roles[e.id]==='carry'?33:roles[e.id]==='mage'?28:
+      roles[e.id]==='support'?23:roles[e.id]==='assassin'?18:roles[e.id]==='jungler'?17:5;
+    const killChance=hp(e)<.38?17:0,shielded=(e.shield||0)>65?6:0;
+    const allyReach=friends.filter(a=>dist(a,e)<E.attackRange(a)+e.r+90).length;
+    return {e,score:(1-hp(e))*53+priority+killChance+allyReach*5+
+      (threatenedCarry?23:0)-shielded-dist(e,center)*.075};
    }).sort((a,b)=>b.score-a.score)[0]?.e;
    if(!focus)continue;
    const old=S.teamAI[side],continuity=old&&dist(old.center,center)<310?5:0;
@@ -95,11 +102,32 @@ function defensiveCast(u,friends,nearest){
   return E.cast(u,'orun_guard');
  }else if(u.id==='nyra'&&dist(u,nearest)<190&&canCast(u,'nyra_barrier')){
   return E.cast(u,'nyra_barrier');
+ }else if(u.id==='kaelis'&&dist(u,nearest)<190&&canCast(u,'kaelis_veil')){
+  return E.cast(u,'kaelis_veil');
+ }else if(u.id==='rokar'&&dist(u,nearest)<185){
+  if(friends.filter(a=>dist(a,u)<165&&hp(a)<.66).length>=2&&canCast(u,'rokar_ult'))
+   return E.cast(u,'rokar_ult');
+  if(hp(u)<.72&&canCast(u,'rokar_guard'))return E.cast(u,'rokar_guard');
  }
  return false;
 }
+// Sai de magias em área antes do impacto, sem alterar ataques certeiros ou controles humanos.
+function dodgeTelegraph(u,dt){
+ if(u.stun>0||u.dash||u.casting)return false;
+ const hazard=S.projectiles.filter(p=>p.kind==='damagearea'&&p.side!==u.side&&p.aoe>0&&
+   p.tx!==undefined&&Math.hypot(u.x-p.tx,u.y-p.ty)<p.aoe+u.r+38)
+   .sort((a,b)=>Math.hypot(u.x-a.tx,u.y-a.ty)-Math.hypot(u.x-b.tx,u.y-b.ty))[0];
+ if(!hazard)return false;
+ const d=norm(u.x-hazard.tx,u.y-hazard.ty);
+ const away={x:d.x||(!d.y?(u.uid%2?1:-1):0),y:d.y};
+ E.moveToward(u,{x:clamp(u.x+away.x*140,30,E.W-30),
+  y:clamp(u.y+away.y*140,30,E.H-30)},dt,.98);
+ u.dodgeAt=S.time;
+ return true;
+}
 function handleBot(u,dt){
  if(S.mode!=='playing'||!u||u.kind!=='hero'||u.controlled||u.hp<=0)return false;
+ if(dodgeTelegraph(u,dt))return true;
  scan();
  const p=S.teamAI?.[u.side];
  if(!p||S.time>=p.until||!p.participants.includes(u.uid)||dist(u,p.center)>590)return false;
@@ -114,7 +142,7 @@ function handleBot(u,dt){
    .sort((a,b)=>hp(a)-hp(b))[0];
  u.teamFightUntil=S.time+.8;
  u.focusTarget=focus;u.focusUntil=S.time+.8;
- if(p.mode==='retreat'||hp(u)<.30&&u.id!=='orun'&&u.id!=='brax'){
+ if(p.mode==='retreat'||hp(u)<.30&&!['orun','brax','rokar'].includes(u.id)){
   u.focusTarget=null;u.focusUntil=0;
   defensiveCast(u,friends,nearest);
   stepBack(u,nearest,dt,175);
@@ -201,11 +229,13 @@ function handleBot(u,dt){
   E.botUseSkill(u,focus);
  }else{
   // Lyria e Nyra atacam de trás: kite em aproximação inimiga e acompanham o tanque.
-  const ideal=u.id==='lyria'?265:245;
-  if(dist(u,nearest)<ideal*.7)stepBack(u,nearest,dt,115);
-  else if(dist(u,focus)>ideal+focus.r){
-   if(!front||dist(front,u)<350||p.mode==='engage')move(u,focus,dt,.82);
-  }else if(front&&dist(u,front)>315)move(u,front,dt,.66);
+  const ideal=u.id==='tessa'?285:u.id==='lyria'?265:
+   (u.id==='nyra'||u.id==='kaelis'?245:222);
+  // Carregadores recuam entre ataques, não abandonam o alcance de graça.
+  if(dist(u,nearest)<ideal*.68&&u.attackCd>.14)stepBack(u,nearest,dt,112);
+  else if(dist(u,focus)>ideal+focus.r+15){
+   if(!front||dist(front,u)<365||p.mode==='engage')move(u,focus,dt,.82);
+  }else if(front&&dist(u,front)>325&&u.attackCd>.18)move(u,front,dt,.66);
   defensiveCast(u,friends,nearest);
   E.botUseSkill(u,focus);
  }
@@ -229,5 +259,5 @@ function aim(u,id,target){
  return {x:vec.x,y:vec.y,distance:Math.min(def.range,dist(u,best))};
 }
 function reset(){nextScan=0;S.teamAI=[null,null]}
-window.FendaTeamAI={reset,handleBot,aim,scan};
+window.FendaTeamAI={reset,handleBot,aim,scan,dodgeTelegraph,strength};
 })();
