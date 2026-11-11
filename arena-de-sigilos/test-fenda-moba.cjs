@@ -734,7 +734,7 @@ E.start('lyria');
  const components=E.ITEMS.filter(i=>i.tier===1);
  const completed=E.ITEMS.filter(i=>i.tier===2);
  assert.equal(components.length,6,'Loja precisa de seis pré-itens');
- assert.equal(completed.length,8,'Loja precisa de oito itens completos');
+ assert.equal(completed.length,10,'Loja precisa de dez itens completos');
  assert.ok(completed.every(i=>i.recipe.length>=3),'Itens completos exigem componentes reais');
  assert.ok(completed.every(i=>i.recipe.reduce((v,id)=>v+E.ITEMS.find(p=>p.id===id).price,0)<i.price),
   'Custo de combinação deve ser adicional ao custo dos componentes');
