@@ -20,6 +20,16 @@ stage.appendChild(hud);
 const summonerPanel=document.createElement('div');summonerPanel.id='fendaSummoners';
 summonerPanel.innerHTML=[0,1].map(i=>'<button type="button" class="fenda-summoner" data-slot="'+i+'" aria-label="Usar feitiço '+(i+1)+'"><b>◇</b><small>FEITIÇO</small><span class="spell-effect">EFEITO</span><em></em></button>').join('');
 hud.appendChild(summonerPanel);
+// Rótulos compactos dos feitiços: todos os seis precisam estar disponíveis
+// antes da primeira atualização do HUD, ou o loop de animação é interrompido.
+const shortSummonerEffect={
+ smite:'DANO / CAÇA',
+ flash:'SALTO',
+ ignite:'QUEIMADURA',
+ heal:'CURA',
+ shield:'ESCUDO',
+ freecast:'MANA LIVRE'
+};
 // Escolha da primeira habilidade, como no LoL: um ponto livre em Q, W ou E.
 const firstSkillPanel=document.createElement('section');
 firstSkillPanel.id='fendaFirstSkillPanel';

@@ -1383,4 +1383,16 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
  assert.ok(engine.includes('!state.attackAimActive&&'),
   'O motor precisa respeitar a mira manual do jogador');
 }
+// Regressão: HUD sem referência indefinida não pode congelar os 10 campeões.
+{
+ const v=read('fenda-view.js');
+ const match=v.match(/const shortSummonerEffect\\s*=\\s*(\\{[\\s\\S]*?\\});/);
+ assert.ok(match,'O painel de feitiços precisa definir seus rótulos antes do primeiro frame');
+ const labels=vm.runInNewContext('('+match[1]+')');
+ for(const id of Object.keys(E.SUMMONERS))
+  assert.ok(typeof labels[id]==='string'&&labels[id].length>0,
+   'Feitiço sem rótulo interrompe HUD: '+id);
+ assert.ok(html.includes('fenda-view.js?v=9.9.1'),
+  'O navegador deve atualizar o arquivo de controles corrigido');
+}
 console.log('OK: V9.9 torre automática, foco forçado, AA arrastável e sem botões centrais.');
