@@ -1014,4 +1014,57 @@ E.start('lyria');
  assert.ok(ai.includes('dodgeTelegraph(u,dt)')&&ai.includes('E.attackRange(a)'),
   'IA não considera telegráficos e alcance no foco de equipe');
 }
-console.log('OK: V9.4 — AA por classe, ganks com apoio, IA tática, 3 fases e 10 retratos exclusivos.');
+// V9.5 — habilidades do PC seguem mouse, nunca nearestEnemy, câmera e HUD do celular.
+{
+ const view=read('fenda-view.js'),site=read('index.html');
+ const match=E.start('tessa',['ignite','flash']),self=match.hero;
+ const rival=match.units.find(u=>u.side===1&&u.kind==='hero');
+ match.units=[self,rival];match.structures=[];match.walls=[];match.obstacles=[];match.camps=[];
+ self.x=1400;self.y=1200;rival.x=1310;rival.y=1200;
+ E.refreshVision(true);
+ match.camera.x=1000;match.camera.y=1080;
+ const mouseBlock=view.slice(view.indexOf('function desktopMouseWorld()'),view.indexOf('function aimData(p)'));
+ assert.ok(mouseBlock.includes('function desktopMouseAim(id)'), 'Mira do mouse não foi implementada');
+ const pointer={over:true,x:530,y:120,lastWorld:null};
+ const mouse=new Function('E','S','desktopPointer','cameraZoom','clamp',
+  mouseBlock+'return {desktopMouseAim,desktopMouseWorld};')(E,match,pointer,1,E.clamp);
+ const aim=mouse.desktopMouseAim('tessa_shot');
+ assert.ok(aim.x>.99&&Math.abs(aim.y)<.01,'Mouse à direita deve mirar à direita');
+ assert.ok(E.cast(self,'tessa_shot',aim),'Habilidade apontada ao mouse foi recusada');
+ assert.ok(self.casting&&self.casting.dir.x>.99,
+  'Habilidade perseguiu inimigo à esquerda em vez de seguir o mouse à direita');
+ assert.ok(view.includes("const aim=desktopCamera()&&def.aim!=='self'?desktopMouseAim(id):null;")&&
+  view.includes("if(!E.cast(S.hero,id,aim))"),
+  'Teclas Q/W/E/R não passam a mira do mouse ao motor');
+ assert.ok(view.includes("if(desktopCamera()&&e.pointerType==='mouse')"),
+  'Clicar nos poderes da barra do PC também precisa seguir a mira');
+ assert.equal(E.castSummoner(self,'ignite',null,{manual:true}),false,
+  'Feitiço direcionado não pode selecionar automaticamente inimigos próximos');
+ assert.equal(E.castSummoner(self,'ignite',rival,{manual:true}),true,
+  'Feitiço manual tem que acertar campeão apontado dentro do alcance');
+ assert.ok(view.includes("aim={manual:true}")&&view.includes("desktopMouseWorld()"),
+  'Feitiços de alvo do PC não estão ligados à posição do ponteiro');
+ const centerBlock=view.slice(view.indexOf('const cameraClampX='),view.indexOf('function syncCameraControl()'));
+ const cam=new Function('E','S','worldVW','worldVH','clamp',
+  centerBlock+'return {cameraCenterAt};')(E,match,800,600,E.clamp);
+ cam.cameraCenterAt(1400,1200);
+ assert.equal(match.camera.x,1000,'Câmera travada não centraliza o jogador no eixo X');
+ assert.equal(match.camera.y,900,'Câmera travada não centraliza o jogador no eixo Y');
+ assert.ok(view.includes("cameraMode==='locked'||spaceCenterHeld")&&
+  view.includes("panFreeCamera(dt)")&&view.includes("setCameraMode(cameraMode==='free'?'locked':'free')"),
+  'Câmera não possui os dois modos e alternância pela tecla Y');
+ assert.ok(view.includes("cameraDrag={ptr:e.pointerId")&&view.includes('cameraPeek.permanent'),
+  'Câmera livre precisa aceitar arrastar pelo mouse e minimizar sem recenter');
+ assert.ok(view.includes("if(key===' ')spaceCenterHeld=false;"),
+  'Câmera do PC deve voltar ao modo livre quando soltar Espaço');
+ assert.ok(view.includes("id='fendaMobileHelpBtn'")&&
+  view.includes('mobileGuideUpdate()')&&
+  view.includes('class="spell-effect"'),
+  'Painel mobile não apresenta ajuda das habilidades e efeito dos feitiços');
+ assert.ok(site.includes('.stage.fenda-on #fendaSummoners .fenda-summoner small{')&&
+  site.includes('font-size:10px!important')&&site.includes('#fendaMobileGuide'),
+  'CSS do celular não tornou feitiços e habilidades legíveis');
+ assert.ok(site.includes('fenda-view.js?v=9.5')&&site.includes('fenda.css?v=9.5'),
+  'O cache do jogo precisa apontar para a versão 9.5');
+}
+console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livre e feitiços legíveis.');
