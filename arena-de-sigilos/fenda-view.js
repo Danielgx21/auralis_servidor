@@ -825,6 +825,7 @@ function chooseHero(){
 }
 function startGame(){
  C.suspendClassic?.();
+ shopTab='recommended';shopFilter='all';shopSelectedId=null;shopQueuedId=null;
  E.start(C.getHeroChoice());setScoreboardVisible(false);endedShown=false;clickDestination=null;cameraPeek=null;cameraPeekUntil=0;wardAim=null;keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
  shop.classList.remove('open');$('overlay').classList.add('hidden');$('missionShelf').hidden=true;
  resize();drawTerrain();last=performance.now();hudCountdown=0;hudUpdate();
