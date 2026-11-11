@@ -687,3 +687,55 @@
 #fendaDesktopBar .pc-portrait .fenda-champion-portrait-svg{width:100%;height:100%}
 @media(max-height:380px){.fenda-hero-list .fenda-hero-portrait{width:29px;height:29px}
  .fenda-hero-list .fenda-hero{padding:3px 2px;gap:2px}}
+
+/* 9.7: escolha livre da primeira habilidade no nível 1. */
+.stage.fenda-on #fendaFirstSkillPanel:not([hidden]){
+ position:absolute;top:clamp(108px,30vh,148px);left:50%;
+ transform:translateX(-50%);width:min(450px,calc(100vw - 40px));
+ z-index:13;display:grid;gap:6px;pointer-events:auto;
+ padding:10px 12px 12px;border:1.5px solid #e9cc88;
+ border-radius:12px;color:#f8f3da;text-align:center;
+ background:linear-gradient(160deg,#173c4cf7,#091b2efb);
+ box-shadow:0 8px 28px #000c,0 0 0 2px #c4a66b2b;
+}
+#fendaFirstSkillPanel[hidden]{display:none!important}
+#fendaFirstSkillPanel>strong{font-size:12px;font-weight:950;letter-spacing:.05em}
+#fendaFirstSkillPanel>small{font-size:10px;color:#cde4d9;line-height:1.25}
+#fendaFirstSkillPanel .fenda-first-skill-options{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;
+}
+#fendaFirstSkillPanel .fenda-first-skill-options button{
+ min-height:45px;min-width:0;padding:6px 5px;display:grid;gap:4px;
+ justify-items:center;align-content:center;color:#f3fff4;font:850 11px system-ui;
+ background:linear-gradient(145deg,#31665c,#14334d);
+ border:1.5px solid #9bddc2;border-radius:8px;
+ cursor:pointer;touch-action:manipulation;
+}
+#fendaFirstSkillPanel .fenda-first-skill-options button:active{
+ background:#45886b;transform:scale(.98)
+}
+#fendaFirstSkillPanel .fenda-first-skill-options b{
+ width:22px;height:22px;display:grid;place-items:center;
+ border-radius:5px;background:#0c2136;color:#ffdf93;font-size:13px;
+ border:1px solid #f0d08d;
+}
+#fendaFirstSkillPanel .fenda-first-skill-options span{
+ display:block;font-size:10px;line-height:1.15;white-space:normal;
+}
+@media(max-height:430px){
+ .stage.fenda-on #fendaFirstSkillPanel:not([hidden]){
+  top:clamp(79px,25vh,105px);width:min(390px,calc(100vw - 240px));
+  padding:6px 9px;gap:3px;
+ }
+ #fendaFirstSkillPanel>strong{font-size:10px}
+ #fendaFirstSkillPanel>small{font-size:8px}
+ #fendaFirstSkillPanel .fenda-first-skill-options button{
+  min-height:38px;padding:4px 3px;
+ }
+ #fendaFirstSkillPanel .fenda-first-skill-options span{font-size:8px}
+}
+@media(max-width:560px){
+ .stage.fenda-on #fendaFirstSkillPanel:not([hidden]){
+  top:78px;width:min(315px,calc(100vw - 20px));padding:7px;
+ }
+}
