@@ -196,7 +196,7 @@ function botUpgradeSkills(unit){
 const state={mode:'menu',time:0,w:W,h:H,camera:{x:0,y:0},units:[],structures:[],projectiles:[],
  effects:[],jungle:[],camps:[],obstacles:[],walls:[],wards:[],brushes:[],sight:[[],[]],seen:[null,null],
  visionUpdate:-1,teamBuffs:[{serpe:0,titan:0},{serpe:0,titan:0}],
- hero:null,focused:null,kills:[0,0],wave:0,nextWave:4,
+ hero:null,focused:null,kills:[0,0],wave:0,nextWave:4,phase:'laning',
  flash:0,score:0,marker:null,shopOpen:false,showPause:false,notice:'',noticeUntil:0,
  nextObjectives:50,buffUntil:0,win:null,selectedHero:'lyria',seq:0,sounds:true};
 const rando=(a,b)=>a+Math.random()*(b-a),hData=id=>C.heroes[id];
@@ -550,6 +550,7 @@ function createMinion(side,lane,type=0,slot=0){
 function start(hero='lyria',summoners=null){
  state.mode='playing';state.time=0;state.units=[];state.projectiles=[];state.effects=[];
  state.selectedHero=C.heroes[hero]?hero:'lyria';state.hero=null;state.structures=[];
+ state.phase='laning';
  state.kills=[0,0];state.win=null;state.marker=null;state.nextWave=5;state.wave=0;
  state.shopOpen=false;state.showPause=false;state.buffUntil=0;state.score=0;state.seq=0;
  state.wards=[];state.sight=[[],[]];state.seen=[new Uint8Array(VISION_COLS*VISION_ROWS),new Uint8Array(VISION_COLS*VISION_ROWS)];
@@ -1539,7 +1540,7 @@ function botJungler(u,dt){
 }
 // Quando o jungler começa um grande objetivo, um guardião ou suporte vem protegê-lo.
 function botSupportBoss(u,dt){
- if(u.controlled||u.jungler||!['orun','seris','nyra'].includes(u.id))return false;
+ if(u.controlled||u.jungler||!['orun','seris','nyra','rokar','kaelis'].includes(u.id))return false;
  const boss=state.camps.find(c=>c.kind==='boss'&&c.hp>0&&c.hp<c.maxHp*.92&&
    c.aggroTarget&&c.aggroTarget.side===u.side&&dist(c,u)<1150);
  if(!boss||u.hp/u.maxHp<.52||u.level<2||
@@ -1550,6 +1551,10 @@ function botSupportBoss(u,dt){
  u.jungleGoal=boss;approachCreep(u,boss,dt);
  if(u.id==='orun'&&dist(u,boss)<138&&u.cooldowns.orun_quake<=0)
   cast(u,'orun_quake',null,boss);
+ if(u.id==='rokar'&&dist(u,boss)<142&&u.cooldowns.rokar_pulse<=0)
+  cast(u,'rokar_pulse',null,boss);
+ if(u.id==='kaelis'&&dist(u,boss)<317&&u.cooldowns.kaelis_lance<=0)
+  cast(u,'kaelis_lance',null,boss);
  if(u.id==='nyra'&&dist(u,boss)<325&&u.cooldowns.nyra_bolt<=0)
   cast(u,'nyra_bolt',null,boss);
  if(u.id==='seris'&&u.cooldowns.seris_aegis<=0&&u.mana>=skillDef('seris_aegis').cost){
@@ -2089,6 +2094,14 @@ function makeWave(){
 function step(dt,movement={x:0,y:0}){
  if(state.mode!=='playing'||state.showPause)return;
  dt=clamp(dt,0,.05);state.time+=dt;
+ // Início: farm e controle das rotas. Meio: disputas por Serpe e Titã.
+ // Fim: ondas de cerco e estruturas restantes definem a vitória.
+ const phase=state.time>=480?'siege':state.time>=155?'objectives':'laning';
+ if(phase!==state.phase){
+  state.phase=phase;
+  announce(phase==='objectives'?'MEIO DE PARTIDA · DISPUTEM A SERPE E O TITÃ':
+   'CERCO FINAL · PROTEJAM SEUS CARREGADORES E DERRUBEM O NÚCLEO',3.7);
+ }
  state.wards=state.wards.filter(w=>w.until>state.time);
  const hero=state.hero;
  if(hero&&hero.recall>0&&Math.hypot(movement.x,movement.y)>.07){
@@ -2164,6 +2177,6 @@ function recall(){
  return true;
 }
 window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,SUMMONERS,smiteDamage,castSummoner,hData,skillDef,
- start,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,isAttackCommandValid,buyItem,sellItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,TOWERS_PER_LANE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
+ start,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,isAttackCommandValid,buyItem,sellItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,botTryGank,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,TOWERS_PER_LANE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
 })();
