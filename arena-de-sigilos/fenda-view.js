@@ -20,6 +20,35 @@ stage.appendChild(hud);
 const summonerPanel=document.createElement('div');summonerPanel.id='fendaSummoners';
 summonerPanel.innerHTML=[0,1].map(i=>'<button type="button" class="fenda-summoner" data-slot="'+i+'" aria-label="Usar feitiço '+(i+1)+'"><b>◇</b><small>FEITIÇO</small><em></em></button>').join('');
 hud.appendChild(summonerPanel);
+// Interface própria de desktop, independente dos controles de toque.
+const desktopBar=document.createElement('section');desktopBar.id='fendaDesktopBar';
+desktopBar.setAttribute('aria-label','Painel do campeão');
+desktopBar.innerHTML=
+ '<div class="pc-champion"><div class="pc-portrait" id="pcPortrait">✦</div><strong id="pcChampionName">CAMPEÃO</strong><span id="pcChampionLevel">NV 1</span></div>'+
+ '<div class="pc-vitals"><div class="pc-statline"><strong id="pcHPText">VIDA</strong><span id="pcManaNumber">MANA</span></div>'+
+ '<div class="pc-meter pc-hp"><i id="pcHPFill"></i></div><div class="pc-meter pc-mana"><i id="pcManaFill"></i></div>'+
+ '<div class="pc-meter pc-xp"><i id="pcXPFill"></i></div><div id="pcExtraStats" class="pc-statfoot">AA PARADO: AUTOMÁTICO</div></div>'+
+ '<div class="pc-ability-group"><div class="pc-group-title">HABILIDADES <small>Q · W · E · R</small></div><div class="pc-skills">'+
+ [0,1,2,3].map(i=>'<button type="button" id="pcSkill'+i+'" class="pc-skill" data-pc-skill="'+i+'">'+
+ '<span class="pc-key">'+['Q','W','E','R'][i]+'</span><b>◇</b><small>—</small>'+
+ '<em class="pc-cooldown"></em><span class="pc-rank"></span></button>').join('')+'</div></div>'+
+ '<div class="pc-spell-group"><div class="pc-group-title">FEITIÇOS</div><div class="pc-spells">'+
+ [0,1].map(i=>'<button type="button" class="pc-spell" data-pc-spell="'+i+'"><span class="pc-key">'+
+ (i?'G':'F')+'</span><b>◇</b><em class="pc-cooldown"></em></button>').join('')+
+ '<button type="button" id="pcWard" class="pc-spell pc-ward" title="Sentinela de visão · V">'+
+ '<span class="pc-key">V</span><b>◉</b><em class="pc-cooldown"></em></button></div></div>'+
+ '<div class="pc-inventory"><div class="pc-group-title">EQUIPAMENTOS <small id="pcGold">✦ 0</small></div>'+
+ '<div id="pcItems" class="pc-items"></div><div class="pc-bar-actions">'+
+ '<button type="button" id="pcShop" title="Loja · P">⚒ LOJA</button>'+
+ '<button type="button" id="pcRecall" title="Voltar à base · B">⌂ VOLTAR</button></div></div>';
+hud.appendChild(desktopBar);
+const teamRoster=document.createElement('aside');teamRoster.id='fendaTeamRoster';
+teamRoster.setAttribute('aria-label','Quadro dos dez campeões');
+teamRoster.innerHTML='<button type="button" id="pcRosterToggle" aria-expanded="true">'+
+ '<span>☷ CAMPEÕES <small>5 × 5</small></span><b id="pcRosterChevron">−</b></button>'+
+ '<div id="pcRosterList" class="pc-roster-list"></div>';
+hud.appendChild(teamRoster);
+let rosterCollapsed=false,rosterLastUpdate=-1;
 let pickedSummoners=['flash','ignite'];
 try{const saved=JSON.parse(localStorage.getItem('fenda-summoners-v1')||'null');
  if(Array.isArray(saved)&&saved.length===2&&saved[0]!==saved[1]&&saved.every(x=>E.SUMMONERS[x]))pickedSummoners=saved;}catch(_){}
@@ -589,6 +618,52 @@ function minimap(){
   mc.fillText(['TOP','MID','BOT'][lane],ox+p.x*scale,oy+p.y*scale-3);
  }
  mc.restore();
+}
+function desktopHeroUpdate(h){
+ const meta=C.heroes[h.id],lev=Math.max(1,h.level);
+ $('pcPortrait').textContent=meta.symbol;
+ $('pcPortrait').style.color=meta.color;
+ $('pcPortrait').style.borderColor=meta.color;
+ $('pcChampionName').textContent=meta.name;
+ $('pcChampionLevel').textContent=h.hp>0?'NV '+lev:'RESSURGE '+Math.ceil(h.respawn)+'s';
+ $('pcHPText').textContent=Math.ceil(Math.max(0,h.hp))+'/'+Math.round(h.maxHp)+' PV';
+ $('pcManaNumber').textContent=h.manaFreeUntil>S.time?'∞ MANA':'MANA '+Math.ceil(h.mana);
+ $('pcHPFill').style.width=Math.max(0,Math.min(100,h.hp/h.maxHp*100))+'%';
+ $('pcManaFill').style.width=Math.max(0,Math.min(100,h.mana/E.maxMana(h)*100))+'%';
+ $('pcXPFill').style.width=(lev<15?h.xp/(42+lev*24)*100:100)+'%';
+ $('pcExtraStats').textContent='K/D/A '+h.kills+'/'+h.deaths+'/'+(h.assists||0)+' · '+h.cs+' CS'+
+  (h.skillPoints>0?' · '+h.skillPoints+' PONTOS +':'');
+ $('pcGold').textContent='✦ '+Math.round(h.gold);
+ const html=Array.from({length:6},(_,i)=>{
+  const it=E.ITEMS.find(x=>x.id===h.items[i]);
+  return it?'<span class="pc-item occupied" title="'+it.name+' · '+it.stat+'">'+it.icon+'</span>':
+   '<span class="pc-item empty" aria-hidden="true">·</span>';
+ }).join('');
+ if($('pcItems').innerHTML!==html)$('pcItems').innerHTML=html;
+}
+function desktopRosterUpdate(){
+ const sections=[0,1].map(side=>{
+  const players=S.units.filter(u=>u.kind==='hero'&&u.side===side)
+   .sort((a,b)=>(scoreOrder[a.id]??9)-(scoreOrder[b.id]??9));
+  const rows=players.map(u=>{
+   const data=C.heroes[u.id],dead=u.hp<=0,seen=side===0||dead||E.visibleTo(0,u);
+   const life=seen&&!dead?Math.max(0,Math.min(100,u.hp/u.maxHp*100)):0;
+   const mana=seen&&!dead?Math.max(0,Math.min(100,u.mana/E.maxMana(u)*100)):0;
+   const spells=(u.summoners||[]).map(id=>E.SUMMONERS[id]?.icon||'◇').join('');
+   return '<div class="pc-roster-entry'+(u.controlled?' self':'')+(dead?' dead':'')+
+    (!seen?' unseen':'')+'" title="'+data.name+' · '+data.role+'">'+
+    '<span class="pc-roster-portrait" style="color:'+data.color+';border-color:'+data.color+'77">'+data.symbol+'</span>'+
+    '<div class="pc-roster-main"><div class="pc-roster-name">'+data.name+
+    '<span>'+(dead?Math.ceil(u.respawn)+'s':seen?'NV '+u.level:'SEM VISÃO')+'</span></div>'+
+    '<div class="pc-roster-hp"><i style="width:'+life+'%"></i></div>'+
+    '<div class="pc-roster-mana"><i style="width:'+mana+'%"></i></div></div>'+
+    '<div class="pc-roster-meta"><strong>'+u.kills+'/'+u.deaths+'/'+(u.assists||0)+'</strong>'+
+    '<small>'+spells+'</small></div></div>';
+  }).join('');
+  return '<div class="pc-roster-team '+(side===0?'blue':'red')+'">'+
+   '<strong class="pc-roster-heading">'+(side===0?'EQUIPE AZUL':'EQUIPE RUBRA')+'</strong>'+rows+'</div>';
+ });
+ $('pcRosterList').innerHTML=sections.join('');
 }
 function hudUpdate(){
  const h=S.hero;if(!h)return;
