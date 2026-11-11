@@ -446,3 +446,15 @@
  #fendaShop .fenda-shop-layout{grid-template-columns:1fr;grid-template-rows:minmax(120px,43%) minmax(140px,57%)}
  #fendaShop #fendaShopItems{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
+
+/* Ícones de equipamento vetoriais autorais — no estilo da identidade Teamfight. */
+#fendaShop .fenda-item-art{position:relative;z-index:1;width:100%;height:100%;
+ display:block;filter:drop-shadow(0 1px 2px #031122b8);overflow:visible}
+#fendaShop .fenda-item-icon.attack{color:#ffe0a8}
+#fendaShop .fenda-item-icon.magic{color:#e9d7ff}
+#fendaShop .fenda-item-icon.defense{color:#a6f7cb}
+#fendaShop .fenda-item-icon.speed{color:#c0f4ff}
+#fendaShop .fenda-item-icon.utility{color:#ffdea0}
+#fendaShop .fenda-shop-slot-select{padding:0;margin:0;border:0;background:transparent;
+ display:flex;align-items:center;justify-content:center;touch-action:manipulation;min-width:29px}
+#fendaShop .fenda-shop-slot-select:hover .fenda-item-icon{box-shadow:0 0 8px #d6ce94a8}
