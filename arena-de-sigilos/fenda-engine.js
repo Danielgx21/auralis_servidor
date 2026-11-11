@@ -59,7 +59,7 @@ const JUNGLE_RIDGES=[
  {id:'mid-3',half:30,pts:[[1095,1970],[1335,1790]]},
  {id:'mid-4',half:30,pts:[[1560,1615],[1680,1525]]}
 ];
-const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1};
+const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1,brax:0,zhira:1};
 // Componentes e receitas. Custo final é SEMPRE o preço total do produto;
 // comprar pré-itens abate ouro e libera espaços ao combiná-los.
 const ITEMS=[
@@ -69,30 +69,36 @@ const ITEMS=[
  {id:'cell',name:'Célula Astral',tier:1,price:300,icon:'ϟ',stats:{mana:90},stat:'+90 mana',desc:'Componente de energia'},
  {id:'prism',name:'Prisma Menor',tier:1,price:340,icon:'◇',stats:{ap:.13},stat:'+13% poder',desc:'Componente mágico'},
  {id:'core',name:'Engrenagem',tier:1,price:340,icon:'✦',stats:{haste:.08},stat:'+8% aceleração',desc:'Componente de recarga'},
- {id:'astralbow',name:'Arco do Eclipse',tier:2,price:1380,icon:'➹',
-  recipe:['lens','lens','stride'],stats:{ad:41,move:.07},passive:'execution',
-  stat:'+41 AD · +7% MOV',desc:'Ataques mais fortes contra inimigos feridos'},
+ {id:'astralbow',name:'Arco do Eclipse',tier:2,price:1440,icon:'➹',
+  recipe:['lens','lens','stride'],stats:{ad:37,move:.06},passive:'execution',
+  stat:'+37 AD · +6% MOV',desc:'Ataques mais fortes contra inimigos feridos'},
  {id:'stormblade',name:'Lâmina da Tempestade',tier:2,price:1450,icon:'⚔',
-  recipe:['lens','prism','core'],stats:{ad:26,ap:.20,haste:.11},passive:'surge',
+  recipe:['lens','prism','core'],stats:{ad:24,ap:.18,haste:.10},passive:'surge',
   stat:'+26 AD · +20% poder · +11% acel.',desc:'Após usar habilidade, próximo AA causa dano extra'},
  {id:'bulwark',name:'Bastião Ancestral',tier:2,price:1480,icon:'⬢',
-  recipe:['ward','ward','core'],stats:{hp:350,haste:.11},passive:'fortify',
-  stat:'+350 PV · +11% acel.',desc:'Proteção periódica ao ficar com pouca vida'},
+  recipe:['ward','ward','core'],stats:{hp:310,haste:.11},passive:'fortify',
+  stat:'+310 PV · +11% acel.',desc:'Proteção periódica ao ficar com pouca vida'},
  {id:'titanplate',name:'Égide do Titã',tier:2,price:1460,icon:'▣',
   recipe:['ward','cell','core'],stats:{hp:230,mana:160,haste:.12,regen:1.8},
   stat:'+230 PV · +160 mana · +12% acel.',desc:'Resistência e regeneração'},
  {id:'swiftboots',name:'Botas do Horizonte',tier:2,price:1360,icon:'➠',
-  recipe:['stride','stride','lens'],stats:{move:.24,ad:19},passive:'pursuit',
-  stat:'+24% MOV · +19 AD',desc:'Ataques ganham vigor ao perseguir'},
+  recipe:['stride','stride','lens'],stats:{move:.16,ad:20},passive:'pursuit',
+  stat:'+16% MOV · +20 AD',desc:'Ataques ganham vigor ao perseguir'},
  {id:'archmage',name:'Cetro do Arcanista',tier:2,price:1510,icon:'✺',
-  recipe:['prism','prism','cell'],stats:{ap:.53,mana:210},passive:'arcane',
-  stat:'+53% poder · +210 mana',desc:'Habilidades ficam mais poderosas'},
+  recipe:['prism','prism','cell'],stats:{ap:.41,mana:225},passive:'arcane',
+  stat:'+41% poder · +225 mana',desc:'Habilidades ficam mais poderosas'},
  {id:'hourglass',name:'Ampulheta Protetora',tier:2,price:1500,icon:'◈',
-  recipe:['prism','core','ward'],stats:{ap:.31,hp:170,haste:.19},passive:'fortify',
+  recipe:['prism','core','ward'],stats:{ap:.29,hp:165,haste:.16},passive:'fortify',
   stat:'+31% poder · +170 PV · +19% acel.',desc:'Poder, defesa e proteção emergencial'},
  {id:'deepsea',name:'Orbe do Oceano',tier:2,price:1430,icon:'◉',
   recipe:['cell','cell','prism'],stats:{mana:370,ap:.25,regen:2.4},passive:'renewal',
-  stat:'+370 mana · +25% poder',desc:'Mana, regeneração e sustentação'}
+  stat:'+370 mana · +25% poder',desc:'Mana, regeneração e sustentação'},
+ {id:'warheart',name:'Coração do Confronto',tier:2,price:1490,icon:'⚒',
+ recipe:['lens','ward','core'],stats:{ad:23,hp:260,haste:.09},passive:'sustain',
+ stat:'+23 AD · +260 PV · +9% acel.',desc:'Recupera vida em ataques corpo a corpo contra campeões'},
+ {id:'huntress',name:'Lâmina da Caçadora',tier:2,price:1420,icon:'❖',
+ recipe:['lens','stride','core'],stats:{ad:22,move:.10,haste:.08},passive:'hunter',
+ stat:'+22 AD · +10% MOV · +8% acel.',desc:'Amplifica dano contra monstros da selva'}
 ];
 const ITEM_BY_ID=Object.fromEntries(ITEMS.map(i=>[i.id,i]));
 const itemStats=(unit,key)=>(unit?.items||[]).reduce((total,id)=>
@@ -158,12 +164,16 @@ function botUpgradeSkills(unit){
   nyra:[h.skills[0],h.skills[1],h.skills[2]],
   vexor:[h.skills[0],h.skills[1],h.skills[2]],
   orun:[h.skills[2],h.skills[0],h.skills[1]],
-  seris:[h.skills[1],h.skills[2],h.skills[0]]
+  seris:[h.skills[1],h.skills[2],h.skills[0]],
+ brax:[h.skills[0],h.skills[2],h.skills[1]],
+ zhira:[h.skills[0],h.skills[1],h.skills[2]]
  }[unit.id]||h.skills;
  while(unit.skillPoints>0){
-  const available=[h.ultimate,...priority].filter(id=>skillRank(unit,id)<skillRankCap(unit,id));
-  if(!available.length)break;
-  const res=upgradeSkill(unit,available[0]);if(!res.ok)break;
+  const ult=skillRank(unit,h.ultimate)<skillRankCap(unit,h.ultimate)?h.ultimate:null;
+ const unlearned=priority.find(id=>skillRank(unit,id)===0&&skillRankCap(unit,id)>0);
+ const available=priority.filter(id=>skillRank(unit,id)<skillRankCap(unit,id));
+ const next=ult||unlearned||available[0];if(!next)break;
+ const res=upgradeSkill(unit,next);if(!res.ok)break;
  }
 }
 const state={mode:'menu',time:0,w:W,h:H,camera:{x:0,y:0},units:[],structures:[],projectiles:[],
@@ -180,7 +190,9 @@ const MOBA_SKILL_RANGES={
  vexor_lunge:[125,26],vexor_whirl:[0,80],vexor_mark:[190,54],vexor_ult:[175,42],
  orun_charge:[120,38],orun_quake:[0,105],orun_ult:[0,140],
  nyra_bolt:[302,17],nyra_rift:[222,62],nyra_ult:[274,107],
- seris_tether:[274,18],seris_bloom:[240,90],seris_aegis:[0,138],seris_ult:[0,168]
+ seris_tether:[274,18],seris_bloom:[240,90],seris_aegis:[0,138],seris_ult:[0,168],
+ brax_cleave:[0,83],brax_grapple:[116,31],brax_fortify:[0,107],brax_ult:[0,140],
+ zhira_strike:[246,20],zhira_pounce:[126,29],zhira_trap:[228,63],zhira_ult:[0,92]
 };
 const MOBA_SKILL_CACHE={};
 const skillDef=id=>{
@@ -195,15 +207,15 @@ const skillDef=id=>{
 const living=(side,kind)=>state.units.filter(u=>u.hp>0&&(side==null||u.side===side)&&(!kind||u.kind===kind));
 const maxMana=u=>320+Math.max(0,(u.level||1)-1)*16+itemStats(u,'mana');
 const WARD_RANGE=280;
-const HERO_AA_RANGE={orun:67,vexor:72,lyria:195,nyra:180,seris:176};
-const HERO_AA_DAMAGE_FACTOR={orun:.78,vexor:.92,lyria:.95,nyra:.75,seris:.79};
-const HERO_AA_SPEED_FACTOR={orun:1.08,vexor:.98,lyria:.86,nyra:1.04,seris:1.09};
+const HERO_AA_RANGE={orun:67,vexor:72,lyria:195,nyra:180,seris:176,brax:72,zhira:70};
+const HERO_AA_DAMAGE_FACTOR={orun:.78,vexor:.92,lyria:.95,nyra:.75,seris:.79,brax:.86,zhira:.83};
+const HERO_AA_SPEED_FACTOR={orun:1.08,vexor:.98,lyria:.86,nyra:1.04,seris:1.09,brax:1.04,zhira:.99};
 const attackRange=u=>u.kind==='minion'?(u.id==='siege'?207:u.ranged?140:38):
  u.kind==='creep'?48:(HERO_AA_RANGE[u.id]||170);
-const moveSpeed=u=>u.speed*(1+itemStats(u,'move'))*(u.slow>0?.62:1);
+const moveSpeed=u=>u.speed*(1+Math.min(.24,itemStats(u,'move'))+(u.huntUntil>state.time?.13:0))*(u.slow>0?.62:1);
 const attackDamage=u=>u.atk+itemStats(u,'ad');
 const spellPower=(u,id)=>1+itemStats(u,'ap')+
- (id&&['lyria','vexor','orun'].includes(u.id)?itemStats(u,'ad')*.005:0);
+ (id&&['lyria','vexor','orun','brax','zhira'].includes(u.id)?itemStats(u,'ad')*.005:0);
 const levelXp=level=>42+level*24;
 // Trajetos curvos compartilhados por física, tropas, torres e renderização.
 // Cada esquina vira uma transição quadrática, evitando quinas de 90°.
@@ -481,19 +493,20 @@ function makeHero(id,side,controlled=false){
  const spawnOffset=55+(state.seq%3)*13;
  return {uid:++state.seq,kind:'hero',id,side,controlled,
  x:start.x+d.x*spawnOffset+rando(-11,11),
- y:start.y+d.y*spawnOffset+rando(-11,11),r:id==='orun'?21:17.5,speed:h.move*MOBA_WALK_SCALE,
+ y:start.y+d.y*spawnOffset+rando(-11,11),r:id==='orun'?21:id==='brax'?20:17.5,speed:h.move*MOBA_WALK_SCALE,
  atk:h.damage*HERO_AA_DAMAGE_FACTOR[id],
  baseHp:h.hp*1.3,maxHp:Math.round(h.hp*1.3),hp:Math.round(h.hp*1.3),
  mana:320,maxMana:320,level:1,xp:0,gold:controlled?550:350,items:[],
- skillLevels:Object.fromEntries([...h.skills,h.ultimate].map(id=>[id,id===h.ultimate?0:1])),
- skillPoints:0,passiveCd:0,surgeUntil:0,
+ skillLevels:Object.fromEntries([...h.skills,h.ultimate].map((id,index)=>[id,index===0?1:0])),
+ skillPoints:0,passiveCd:0,surgeUntil:0,huntUntil:0,manaFreeUntil:0,
+ summoners:['flash','ignite'],summonerCooldowns:{},
  lane:roles[id],waypoint:side===0?0:ROUTE_PATHS[roles[id]].length-1,attackCd:0,casting:null,
  cooldowns:Object.fromEntries([...h.skills,h.ultimate].map(k=>[k,0])),
  stun:0,slow:0,shield:0,guard:0,invuln:0,marked:0,attackAnim:0,
  vision:350,death:0,respawn:0,recall:0,lastDamage:0,focus:null,
  aiTimer:rando(.6,1.8),visionCd:0,jungleGoal:null,gankUntil:0,kills:0,deaths:0,assists:0,
  recentDamagers:[],dash:null,commandTarget:null,
- healthRegen:1.3,homeBuff:0,botLane:roles[id],cs:0,focusTarget:null,focusUntil:0,isRanged:!['vexor','orun'].includes(id)};
+ healthRegen:1.3,homeBuff:0,botLane:roles[id],cs:0,focusTarget:null,focusUntil:0,isRanged:!['vexor','orun','brax','zhira'].includes(id)};
 }
 function createMinion(side,lane,type=0,slot=0){
  const t=side===0?.035:.965,p=pathPos(lane,t),ranged=type>=1,siege=type===2;
@@ -514,7 +527,7 @@ function createMinion(side,lane,type=0,slot=0){
  shieldUntil:state.teamBuffs[side].titan>state.time?state.time+18:0,
  invuln:0,attackAnim:0,death:0,lastDamage:0};
 }
-function start(hero='lyria'){
+function start(hero='lyria',summoners=null){
  state.mode='playing';state.time=0;state.units=[];state.projectiles=[];state.effects=[];
  state.selectedHero=C.heroes[hero]?hero:'lyria';state.hero=null;state.structures=[];
  state.kills=[0,0];state.win=null;state.marker=null;state.nextWave=5;state.wave=0;
@@ -523,19 +536,24 @@ function start(hero='lyria'){
  state.visionUpdate=-1;state.teamBuffs=[{serpe:0,titan:0},{serpe:0,titan:0}];
  window.FendaTeamAI?.reset();
  buildMap();
- const ids=Object.keys(C.heroes);
- const blue=[state.selectedHero,...ids.filter(id=>id!==state.selectedHero)];
- for(let i=0;i<5;i++){
-  const u=makeHero(blue[i],0,i===0);state.units.push(u);
-  if(i===0)state.hero=u;
+ const roster=['zhira','orun','nyra','lyria','seris','brax','vexor'];
+ const blue=[state.selectedHero,...roster.filter(id=>id!==state.selectedHero)].slice(0,5);
+ const red=['zhira','orun','nyra','lyria','seris'];
+ for(let i=0;i<blue.length;i++){
+  const u=makeHero(blue[i],0,i===0);state.units.push(u);if(i===0)state.hero=u;
  }
- // Enemy team has the same five roles, in different positions.
- for(const id of ids)state.units.push(makeHero(id,1));
+ for(const id of red)state.units.push(makeHero(id,1));
  state.hero.lane=roles[state.hero.id];
+ state.hero.summoners=Array.isArray(summoners)&&summoners.length===2&&
+  summoners.every(id=>SUMMONERS[id])&&summoners[0]!==summoners[1]?
+  summoners.slice():state.hero.id==='zhira'?['smite','flash']:['flash','ignite'];
  for(const side of [0,1]){
-  const bots=state.units.filter(u=>u.kind==='hero'&&u.side===side&&!u.controlled);
-  const jungler=bots.find(u=>u.id==='vexor')||bots.find(u=>u.id==='orun');
+  const units=state.units.filter(u=>u.kind==='hero'&&u.side===side);
+  const bots=units.filter(u=>!u.controlled);
+  const playerJungle=units.some(u=>u.controlled&&(u.id==='zhira'||u.summoners.includes('smite')));
+  const jungler=playerJungle?null:bots.find(u=>u.id==='zhira')||bots.find(u=>u.id==='vexor')||bots[0];
   if(jungler){jungler.jungler=true;jungler.jungleGoal=null}
+  for(const u of bots)u.summoners=u.jungler?['smite','flash']:u.id==='seris'?['heal','shield']:['flash','ignite'];
  }
  refreshVision(true);
  state.camera={x:clamp(state.hero.x-400,0,W-800),y:clamp(state.hero.y-220,0,H-440)};
@@ -821,9 +839,14 @@ function autoAttack(u){
     target.hp/Math.max(1,target.maxHp)<.45)damageVal*=1.21;
   if(u.items.includes('swiftboots')&&u.walkUntil>state.time)damageVal*=1.075;
   if(u.items.includes('stormblade')&&u.surgeUntil>state.time){
-   damageVal+=26+u.level*3;u.surgeUntil=0;
+   damageVal+=19+u.level*2;u.surgeUntil=0;
    addEffect(target.x,target.y,'#eeb5fb',target.r+12,.34,'hit');
   }
+ }
+ if(u.kind==='hero'){
+  if(u.huntUntil>state.time)damageVal+=Math.round(6+u.level*.8);
+  if(u.id==='zhira'&&['camp','buff','boss'].includes(target.kind))damageVal*=1.23;
+  if(u.items.includes('huntress')&&['camp','buff','boss'].includes(target.kind))damageVal*=1.17;
  }
  damageVal=Math.round(damageVal);
  // Minions limpam ondas de forma consistente, sem congestionamentos infinitos.
@@ -850,6 +873,9 @@ function finishAttack(u,shot){
  u.attackHit=.20;
  if(attackRange(u)<=75){
   damage(t,shot.damage,u);
+  if(u.kind==='hero'&&t.kind==='hero'&&u.id==='brax')heal(u,Math.round(3+u.level*.55));
+  if(u.kind==='hero'&&t.kind==='hero'&&u.items.includes('warheart'))heal(u,Math.round(4+u.level*.35));
+  if(u.kind==='hero'&&u.id==='zhira'&&['camp','buff','boss'].includes(t.kind))heal(u,5);
   addEffect(t.x,t.y,u.side===0?'#84ead9':'#f7a3b0',27,.28,'hit');
  }else missile(u,t,shot.damage,'aa',u.kind==='hero'?530:380);
  return true;
@@ -1159,7 +1185,9 @@ function botShop(u){
   seris:['deepsea','titanplate','hourglass','archmage'],
   lyria:['astralbow','swiftboots','stormblade','bulwark'],
   nyra:['archmage','deepsea','hourglass','swiftboots'],
-  vexor:['stormblade','swiftboots','astralbow','bulwark']
+  vexor:['stormblade','swiftboots','astralbow','bulwark'],
+ brax:['warheart','bulwark','stormblade','titanplate'],
+ zhira:['huntress','stormblade','astralbow','bulwark']
  }[u.id]||['bulwark'];
  for(const id of priorities){
   if(u.items.includes(id))continue;
