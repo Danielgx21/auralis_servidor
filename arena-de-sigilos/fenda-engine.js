@@ -74,7 +74,7 @@ const ITEMS=[
   stat:'+37 AD · +6% MOV',desc:'Ataques mais fortes contra inimigos feridos'},
  {id:'stormblade',name:'Lâmina da Tempestade',tier:2,price:1450,icon:'⚔',
   recipe:['lens','prism','core'],stats:{ad:24,ap:.18,haste:.10},passive:'surge',
-  stat:'+26 AD · +20% poder · +11% acel.',desc:'Após usar habilidade, próximo AA causa dano extra'},
+  stat:'+24 AD · +18% poder · +10% acel.',desc:'Após usar habilidade, próximo AA causa dano extra'},
  {id:'bulwark',name:'Bastião Ancestral',tier:2,price:1480,icon:'⬢',
   recipe:['ward','ward','core'],stats:{hp:310,haste:.11},passive:'fortify',
   stat:'+310 PV · +11% acel.',desc:'Proteção periódica ao ficar com pouca vida'},
@@ -89,7 +89,7 @@ const ITEMS=[
   stat:'+41% poder · +225 mana',desc:'Habilidades ficam mais poderosas'},
  {id:'hourglass',name:'Ampulheta Protetora',tier:2,price:1500,icon:'◈',
   recipe:['prism','core','ward'],stats:{ap:.29,hp:165,haste:.16},passive:'fortify',
-  stat:'+31% poder · +170 PV · +19% acel.',desc:'Poder, defesa e proteção emergencial'},
+  stat:'+29% poder · +165 PV · +16% acel.',desc:'Poder, defesa e proteção emergencial'},
  {id:'deepsea',name:'Orbe do Oceano',tier:2,price:1430,icon:'◉',
   recipe:['cell','cell','prism'],stats:{mana:370,ap:.25,regen:2.4},passive:'renewal',
   stat:'+370 mana · +25% poder',desc:'Mana, regeneração e sustentação'},
@@ -536,9 +536,15 @@ function start(hero='lyria',summoners=null){
  state.visionUpdate=-1;state.teamBuffs=[{serpe:0,titan:0},{serpe:0,titan:0}];
  window.FendaTeamAI?.reset();
  buildMap();
- const roster=['zhira','orun','nyra','lyria','seris','brax','vexor'];
- const blue=[state.selectedHero,...roster.filter(id=>id!==state.selectedHero)].slice(0,5);
- const red=['zhira','orun','nyra','lyria','seris'];
+ // Cada time mantém TOP, SELVA, MEIO, ATIRADOR e SUPORTE.
+ const blue=['orun','zhira','nyra','lyria','seris'];
+ if(state.selectedHero==='brax')blue[0]='brax';
+ else if(state.selectedHero==='vexor')blue[1]='vexor';
+ else if(!blue.includes(state.selectedHero))blue[0]=state.selectedHero;
+ const playerIndex=blue.indexOf(state.selectedHero);
+ blue.splice(playerIndex,1);blue.unshift(state.selectedHero);
+ // Alternância de arquétipos no rubro: Brax e Vexor também são bots oponentes.
+ const red=['brax','vexor','nyra','lyria','seris'];
  for(let i=0;i<blue.length;i++){
   const u=makeHero(blue[i],0,i===0);state.units.push(u);if(i===0)state.hero=u;
  }
@@ -838,6 +844,15 @@ function autoAttack(u){
   if(u.items.includes('astralbow')&&target.kind!=='tower'&&target.kind!=='core'&&
     target.hp/Math.max(1,target.maxHp)<.45)damageVal*=1.21;
   if(u.items.includes('swiftboots')&&u.walkUntil>state.time)damageVal*=1.075;
+  // Passivas de classe adicionam identidade sem bônus contra estruturas.
+  if(target.kind!=='tower'&&target.kind!=='core'){
+   u.passiveAttacks=(u.passiveAttacks||0)+1;
+   if(u.id==='lyria'&&u.passiveAttacks%3===0)damageVal+=12;
+   if(u.id==='nyra'&&u.passiveAttacks%3===0)damageVal+=14;
+   if(u.id==='vexor'&&u.empoweredUntil>state.time){
+    damageVal+=13;u.empoweredUntil=0;
+   }
+  }
   if(u.items.includes('stormblade')&&u.surgeUntil>state.time){
    damageVal+=19+u.level*2;u.surgeUntil=0;
    addEffect(target.x,target.y,'#eeb5fb',target.r+12,.34,'hit');
@@ -873,6 +888,8 @@ function finishAttack(u,shot){
  u.attackHit=.20;
  if(attackRange(u)<=75){
   damage(t,shot.damage,u);
+  if(u.kind==='hero'&&u.id==='orun'&&u.passiveAttacks%3===0&&
+   t.kind!=='tower'&&t.kind!=='core')heal(u,15);
   if(u.kind==='hero'&&t.kind==='hero'&&u.id==='brax')heal(u,Math.round(3+u.level*.55));
   if(u.kind==='hero'&&t.kind==='hero'&&u.items.includes('warheart'))heal(u,Math.round(4+u.level*.35));
   if(u.kind==='hero'&&u.id==='zhira'&&['camp','buff','boss'].includes(t.kind))heal(u,5);
@@ -1432,9 +1449,27 @@ function botSupportBoss(u,dt){
  if(u.visionCd<=0&&state.time>70)placeWard(u,boss.x,boss.y);
  return true;
 }
+function botUseSummoners(u){
+ if(!u||u.controlled||state.time<(u.summonerScanAt||0))return;
+ u.summonerScanAt=state.time+.52+(u.uid%4)*.065;
+ const enemy=living(1-u.side,'hero').filter(h=>visibleTo(u.side,h)&&dist(u,h)<250)
+  .sort((a,b)=>dist(u,a)-dist(u,b))[0];
+ if(u.summoners.includes('heal')&&
+  (u.hp/u.maxHp<.44||living(u.side,'hero').some(h=>h!==u&&
+   dist(h,u)<190&&h.hp/h.maxHp<.34)))castSummoner(u,'heal');
+ if(u.summoners.includes('shield')&&enemy&&u.hp/u.maxHp<.62)
+  castSummoner(u,'shield');
+ if(u.summoners.includes('ignite')&&enemy&&dist(u,enemy)<210&&
+  enemy.hp/enemy.maxHp<.65)castSummoner(u,'ignite',enemy);
+ if(u.summoners.includes('flash')&&enemy&&u.hp/u.maxHp<.27){
+  const away=norm(u.x-enemy.x,u.y-enemy.y);
+  castSummoner(u,'flash',null,away);
+ }
+}
 function botHero(u,dt){
  botShop(u);
  if(u.stun>0||u.casting||u.dash)return;
+ botUseSummoners(u);
  const lane=u.lane,enemySide=1-u.side;
  const allies=living(u.side,'minion').filter(m=>m.lane===lane&&dist(m,u)<450);
  const friendlyWave=allies.sort((a,b)=>dist(a,HOME[enemySide])-dist(b,HOME[enemySide]))[0]||null;
@@ -1590,6 +1625,12 @@ function cast(u,id,aim=null,autoTarget=null){
  if(u.manaFreeUntil<=state.time)u.mana-=def.cost;
  if(u.recall>0){u.recall=0;if(u.controlled)announce('RETORNO CANCELADO: HABILIDADE',1.2)}
  if(u.items.includes('stormblade'))u.surgeUntil=state.time+5;
+ if(u.id==='vexor')u.empoweredUntil=state.time+4;
+ if(u.id==='seris'){
+  const low=living(u.side,'hero').filter(h=>dist(h,u)<175)
+   .sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
+  if(low)heal(low,Math.round(5+maxLv*3));
+ }
  const c={id,dir,center,level:maxLv,time:Math.max(0,def.cast),total:Math.max(0,def.cast)};
  if(c.time<=0)releaseSkill(u,c);else u.casting=c;
  addEffect(u.x,u.y,hData(u.id).color,27,.24);
@@ -1749,6 +1790,8 @@ function tickProjectiles(dt){
    const dx=p.target.x-p.x,dy=p.target.y-p.y,d=Math.hypot(dx,dy)||1,step=p.speed*dt;
    if(d<=step+p.target.r+4){
     p.x=p.target.x;p.y=p.target.y;p.life=0;damage(p.target,p.damage,p.source);
+    if(p.kind==='aa'&&p.source?.kind==='hero'&&p.source.id==='seris'&&
+     p.target.kind==='hero')p.target.slow=Math.max(p.target.slow,.55);
    }else{p.x+=dx/d*step;p.y+=dy/d*step}
   }else if(p.kind==='skillline'){
    const ax=p.x,ay=p.y,bx=p.x+p.vx*dt,by=p.y+p.vy*dt;
