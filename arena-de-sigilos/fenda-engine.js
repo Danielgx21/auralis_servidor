@@ -60,6 +60,30 @@ const JUNGLE_RIDGES=[
  {id:'mid-4',half:30,pts:[[1560,1615],[1680,1525]]}
 ];
 const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1,brax:0,zhira:1,rokar:0,kaelis:1,tessa:2,sahra:1,mirielle:2};
+const ROLE_ORDER=['top','jungle','mid','adc','support'];
+const ROLE_LANES={top:0,jungle:1,mid:1,adc:2,support:2};
+const CHAMPION_ROLES={orun:'top',brax:'top',rokar:'top',zhira:'jungle',vexor:'jungle',
+ sahra:'jungle',nyra:'mid',kaelis:'mid',mirielle:'mid',lyria:'adc',tessa:'adc',seris:'support'};
+const ROLE_BOT_CHOICES={
+ top:['orun','brax','rokar','vexor','kaelis'],
+ jungle:['zhira','vexor','sahra','brax'],
+ mid:['nyra','kaelis','mirielle','lyria'],
+ adc:['lyria','tessa','nyra'],
+ support:['seris','orun','rokar','kaelis']
+};
+function resolveRole(role,id){return ROLE_ORDER.includes(role)?role:CHAMPION_ROLES[id]||'adc'}
+// O escolhido ocupa o posto marcado; bots preenchem os outros sem repetir campeão.
+function previewBlue(hero,role){
+ const selectedRole=resolveRole(role,hero),used=new Set([hero]),assignment={[selectedRole]:hero};
+ for(const key of ROLE_ORDER){
+  if(key===selectedRole)continue;
+  const id=ROLE_BOT_CHOICES[key].find(id=>C.heroes[id]&&!used.has(id))||
+   Object.keys(C.heroes).find(id=>!used.has(id));
+  if(!id)throw Error('Sem campeão para '+key);
+  assignment[key]=id;used.add(id);
+ }
+ return ROLE_ORDER.map(role=>({id:assignment[role],role,controlled:role===selectedRole}));
+}
 // Componentes e receitas. Custo final é SEMPRE o preço total do produto;
 // comprar pré-itens abate ouro e libera espaços ao combiná-los.
 const ITEMS=[
@@ -514,7 +538,8 @@ function buildMap(){
  }
  rebuildSolidIndex();
 }
-function makeHero(id,side,controlled=false){
+function makeHero(id,side,controlled=false,assignedRole=null){
+ const roleKey=resolveRole(assignedRole,id),assignedLane=ROLE_LANES[roleKey];
  const h=hData(id),start=HOME[side],offset=side===0?1:-1;
  // O Núcleo é sólido; os campeões surgem na fonte, fora de sua hitbox.
  const mid=pathPos(1,.11),dir=norm(mid.x-HOME[0].x,mid.y-HOME[0].y);
@@ -531,13 +556,13 @@ function makeHero(id,side,controlled=false){
  windStacks:0,windUntil:0,loadedRoundUntil:0,shroudUntil:0,shroudBreakUntil:0,
  sahraSecondUntil:0,mirrorReturn:null,mirrorLastSpell:null,mirrorEchoUntil:0,
  summoners:['flash','ignite'],summonerCooldowns:{},
- lane:roles[id],waypoint:side===0?0:ROUTE_PATHS[roles[id]].length-1,attackCd:0,casting:null,
+ lane:assignedLane,roleKey,jungler:roleKey==='jungle',waypoint:side===0?0:ROUTE_PATHS[assignedLane].length-1,attackCd:0,casting:null,
  cooldowns:Object.fromEntries([...h.skills,h.ultimate].map(k=>[k,0])),
  stun:0,slow:0,shield:0,guard:0,invuln:0,marked:0,attackAnim:0,
  vision:350,death:0,respawn:0,recall:0,lastDamage:0,focus:null,
  aiTimer:rando(.6,1.8),visionCd:0,jungleGoal:null,gankUntil:0,kills:0,deaths:0,assists:0,
  recentDamagers:[],dash:null,commandTarget:null,
- healthRegen:1.3,homeBuff:0,botLane:roles[id],cs:0,focusTarget:null,focusUntil:0,isRanged:!['vexor','orun','brax','zhira','rokar','sahra'].includes(id)};
+ healthRegen:1.3,homeBuff:0,botLane:assignedLane,cs:0,focusTarget:null,focusUntil:0,isRanged:!['vexor','orun','brax','zhira','rokar','sahra'].includes(id)};
 }
 function createMinion(side,lane,type=0,slot=0){
  const t=side===0?.035:.965,p=pathPos(lane,t),ranged=type>=1,siege=type===2;
@@ -558,7 +583,7 @@ function createMinion(side,lane,type=0,slot=0){
  shieldUntil:state.teamBuffs[side].titan>state.time?state.time+18:0,
  invuln:0,attackAnim:0,death:0,lastDamage:0};
 }
-function start(hero='lyria',summoners=null){
+function start(hero='lyria',summoners=null,selectedRole=null){
  state.mode='playing';state.time=0;state.units=[];state.projectiles=[];state.effects=[];state.zones=[];
  state.attackAimActive=false;
  state.selectedHero=C.heroes[hero]?hero:'lyria';state.hero=null;state.structures=[];
@@ -569,32 +594,26 @@ function start(hero='lyria',summoners=null){
  state.visionUpdate=-1;state.teamBuffs=[{serpe:0,titan:0},{serpe:0,titan:0}];
  window.FendaTeamAI?.reset();
  buildMap();
- // Cada time mantém TOP, SELVA, MEIO, ATIRADOR e SUPORTE.
- const blue=['orun','zhira','nyra','lyria','seris'];
- const heroSlot={brax:0,rokar:0,vexor:1,sahra:1,kaelis:2,mirielle:2,tessa:3};
- if(!blue.includes(state.selectedHero))blue[heroSlot[state.selectedHero]??0]=state.selectedHero;
- const playerIndex=blue.indexOf(state.selectedHero);
- blue.splice(playerIndex,1);blue.unshift(state.selectedHero);
- // Alternância de arquétipos no rubro: Brax e Vexor também são bots oponentes.
- const red=['rokar','sahra','mirielle','tessa','seris'];
- for(let i=0;i<blue.length;i++){
-  const u=makeHero(blue[i],0,i===0);state.units.push(u);if(i===0)state.hero=u;
+ // Os cinco papéis ficam ocupados exatamente uma vez em cada lado.
+ state.selectedRole=resolveRole(selectedRole,state.selectedHero);
+ const blue=previewBlue(state.selectedHero,state.selectedRole);
+ const red=[{id:'rokar',role:'top'},{id:'sahra',role:'jungle'},
+  {id:'mirielle',role:'mid'},{id:'tessa',role:'adc'},{id:'seris',role:'support'}];
+ for(const slot of [blue.find(u=>u.controlled),...blue.filter(u=>!u.controlled)]){
+  const u=makeHero(slot.id,0,slot.controlled,slot.role);
+  state.units.push(u);if(slot.controlled)state.hero=u;
  }
- for(const id of red)state.units.push(makeHero(id,1));
- state.hero.lane=roles[state.hero.id];
- state.hero.summoners=Array.isArray(summoners)&&summoners.length===2&&
+ for(const slot of red)state.units.push(makeHero(slot.id,1,false,slot.role));
+ const validSpells=Array.isArray(summoners)&&summoners.length===2&&
   summoners.every(id=>SUMMONERS[id])&&summoners[0]!==summoners[1]?
-  summoners.slice():['zhira','vexor','sahra'].includes(state.hero.id)?['smite','flash']:['flash','ignite'];
- for(const side of [0,1]){
-  const units=state.units.filter(u=>u.kind==='hero'&&u.side===side);
-  const bots=units.filter(u=>!u.controlled);
-  const playerJungle=units.some(u=>u.controlled&&(['zhira','vexor','sahra'].includes(u.id)||u.summoners.includes('smite')));
-  const jungler=playerJungle?null:bots.find(u=>u.id==='zhira')||bots.find(u=>u.id==='sahra')||bots.find(u=>u.id==='vexor')||bots[0];
-  if(jungler){jungler.jungler=true;jungler.jungleGoal=null}
-  for(const u of bots){
-   u.summoners=u.jungler?['smite','flash']:u.id==='seris'?['heal','shield']:['flash','ignite'];
-   botUpgradeSkills(u); // Bot também decide a primeira habilidade no nível 1.
-  }
+  summoners.slice():state.selectedRole==='jungle'?['smite','flash']:['flash','ignite'];
+ // Selo da Caça é obrigatório para o jogador na Selva.
+ if(state.selectedRole==='jungle'&&!validSpells.includes('smite'))
+  validSpells[validSpells.includes('flash')?1:0]='smite';
+ state.hero.summoners=validSpells;
+ for(const u of state.units.filter(u=>u.kind==='hero'&&!u.controlled)){
+  u.summoners=u.jungler?['smite','flash']:u.roleKey==='support'?['heal','shield']:['flash','ignite'];
+  botUpgradeSkills(u);
  }
  refreshVision(true);
  state.camera={x:clamp(state.hero.x-400,0,W-800),y:clamp(state.hero.y-220,0,H-440)};
@@ -2464,6 +2483,6 @@ function recall(){
  return true;
 }
 window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,SUMMONERS,smiteDamage,castSummoner,hData,skillDef,
- start,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,lockAttackTarget,clearAttackLock,isAttackCommandValid,buyItem,sellItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,botTryGank,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,TOWERS_PER_LANE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
+ start,previewBlue,ROLE_ORDER,ROLE_LANES,CHAMPION_ROLES,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,lockAttackTarget,clearAttackLock,isAttackCommandValid,buyItem,sellItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,botTryGank,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,TOWERS_PER_LANE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
 })();
