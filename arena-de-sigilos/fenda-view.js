@@ -1334,7 +1334,7 @@ function chooseHero(){
  if(['zhira','vexor','sahra'].includes(selected)&&!pickedSummoners.includes('smite')){
   pickedSummoners=['smite',pickedSummoners[0]];saveSummoners();
  }
- $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 9.8</div><h2>FENDA DOS SIGILOS</h2>'+ 
+ $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 9.9</div><h2>FENDA DOS SIGILOS</h2>'+ 
  '<p>12 campeões · Sahra de fumaça e execução, Mirielle de ilusões e retorno · Lyria de DPS e Tessa de precisão.</p>'+ 
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span class="fenda-hero-portrait">'+championPortrait(id)+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
@@ -1342,9 +1342,9 @@ function chooseHero(){
  '<div class="fenda-summoner-title">ESCOLHA 2 FEITIÇOS <small>F / G NO PC</small></div>'+
  '<div class="fenda-summoner-picker">'+Object.entries(E.SUMMONERS).map(([id,sp])=>
  '<button type="button" data-pick-spell="'+id+'" class="'+(pickedSummoners.includes(id)?'picked':'')+'" title="'+sp.desc+'"><b>'+sp.icon+'</b><span>'+sp.name+'</span><small>'+sp.cd+'s</small><em>'+sp.desc+'</em></button>').join('')+'</div>'+
- '<div class="teamfight-tip">9.8 · Escolha Q/W/E no nível 1. Feitiços no celular em dois botões compactos junto às habilidades; descrições pelo botão ?.</div>'+ 
+ '<div class="teamfight-tip">9.9 · Sem controles no centro. Arraste ATACAR para escolher o alvo; toque simples para AA normal. Torre pode ser atacada automaticamente, e TORRE força a prioridade.</div>'+ 
  '<div class="actions" style="margin-top:10px"><button class="primary" id="playFenda">▶ JOGAR FENDA 5×5</button><button class="secondary" id="playClassic">MODO ARENA RÁPIDA</button></div>'+
- '<p style="font-size:10px;margin:9px 0 0">PC: Q/W/E/R são lançadas na direção do ponteiro. Tecla Y troca câmera travada/livre; segure Espaço para centralizar; mova às bordas ou arraste com botão do meio. Celular: arraste as habilidades para mirar e toque em ? para ler os efeitos. TAB placar, P loja, B retorno.</p>';
+ '<p style="font-size:10px;margin:9px 0 0">PC: Q/W/E/R são lançadas na direção do ponteiro. Tecla Y troca câmera travada/livre; segure Espaço para centralizar; mova às bordas ou arraste com botão do meio. Celular: arraste as habilidades para mirar. Para selecionar um alvo, segure e arraste ATACAR em sua direção; solte para travar. TAB placar, P loja, B retorno.</p>';
  for(const b of $('modalContent').querySelectorAll('[data-hero]'))b.onclick=()=>{
   C.setHeroChoice(b.dataset.hero);
   if(['zhira','vexor','sahra'].includes(b.dataset.hero)&&!pickedSummoners.includes('smite')){
