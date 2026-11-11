@@ -1306,8 +1306,10 @@ function botShop(u){
 function botUseSkill(u,target){
  if(!u||u.stun>0||u.casting||u.dash||u.aiTimer>0)return false;
  const kit=hData(u.id),friendlies=living(u.side,'hero'),enemies=living(1-u.side,'hero').filter(e=>visibleTo(u.side,e));
- const ready=id=>id&&u.cooldowns[id]<=.01&&u.mana>=skillDef(id).cost&&
-   skillRank(u,id)>0;
+ const ready=id=>id&&skillRank(u,id)>0&&
+  ((id==='sahra_ult'&&u.sahraSecondUntil>state.time)||
+   (id==='mirielle_distort'&&u.mirrorReturn?.until>state.time)||
+   (u.cooldowns[id]<=.01&&u.mana>=skillDef(id).cost));
  const r=dist(u,target),nearEnemies=enemies.filter(e=>dist(e,u)<240).length;
  const wounded=friendlies.filter(a=>dist(a,u)<295&&a.hp/a.maxHp<.74)
   .sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
@@ -1356,10 +1358,26 @@ function botUseSkill(u,target){
   if(r<125)options.push('rokar_pulse');
   if(r>80&&r<183)options.push('rokar_charge');
  }else if(u.id==='tessa'){
-  if(ready('tessa_ult')&&target.hp/target.maxHp<.56&&r<345)options.push('tessa_ult');
-  if(r<95)options.push('tessa_roll');
-  if(r<247&&clusters>=2)options.push('tessa_salvo');
-  if(r<325)options.push('tessa_shot');
+  if(ready('tessa_ult')&&target.hp/target.maxHp<.58&&r<560)options.push('tessa_ult');
+  if(r<110&&u.loadedRoundUntil<=state.time)options.push('tessa_roll');
+  if(r<235&&target.kind==='hero')options.push('tessa_salvo');
+  if(r<385)options.push('tessa_shot');
+ }else if(u.id==='sahra'){
+  if(ready('sahra_ult')&&u.sahraSecondUntil>state.time&&r<225)options.push('sahra_ult');
+  if(ready('sahra_ult')&&target.hp/target.maxHp<.53&&r<245)options.push('sahra_ult');
+  if(ready('sahra_shroud')&&nearEnemies>0&&(u.hp/u.maxHp<.67||r<150))options.push('sahra_shroud');
+  if(r<210)options.push('sahra_knives');
+  if(r>69&&r<205)options.push('sahra_flip');
+ }else if(u.id==='mirielle'){
+  if(ready('mirielle_distort')&&u.mirrorReturn&&u.hp/u.maxHp<.43)
+    options.push('mirielle_distort');
+  if(ready('mirielle_ult')&&target.kind==='hero'&&
+   (target.mirrorMarkUntil>state.time||target.hp/target.maxHp<.54)&&r<310)
+    options.push('mirielle_ult');
+  if(r<300&&target.kind==='hero'&&target.mirrorMarkUntil>state.time)
+    options.push('mirielle_chain');
+  if(r<305)options.push('mirielle_sigil');
+  if(r>96&&r<210&&!u.mirrorReturn)options.push('mirielle_distort');
  }else if(u.id==='zhira'){
   if(ready('zhira_ult')&&r<215)options.push('zhira_ult');
   if(r<230&&clusters>=2)options.push('zhira_trap');
@@ -1755,6 +1773,7 @@ function cast(u,id,aim=null,autoTarget=null){
  if(u.dash||u.stun>0)return false;
  // Reativar não custa mana e não aguarda o cooldown da primeira conjuração.
  if(id==='mirielle_distort'&&u.mirrorReturn&&u.mirrorReturn.until>state.time){
+  if(u.casting)return false;
   const origin=u.mirrorReturn;u.mirrorReturn=null;
   addEffect(u.x,u.y,'#c69cff',56,.45,'wave');
   u.x=origin.x;u.y=origin.y;pushOutsideSolids(u);
@@ -1764,6 +1783,7 @@ function cast(u,id,aim=null,autoTarget=null){
   return true;
  }
  if(id==='sahra_ult'&&u.sahraSecondUntil>state.time){
+  if(u.casting)return false;
   u.sahraSecondUntil=0;
   const dx=aim?.x??Math.cos(u.facing||0),dy=aim?.y??Math.sin(u.facing||0);
   releaseSkill(u,{id,dir:norm(dx,dy),center:{x:u.x,y:u.y},
@@ -2313,6 +2333,7 @@ function makeWave(){
 function step(dt,movement={x:0,y:0}){
  if(state.mode!=='playing'||state.showPause)return;
  dt=clamp(dt,0,.05);state.time+=dt;
+ tickZones(dt);
  // Início: farm e controle das rotas. Meio: disputas por Serpe e Titã.
  // Fim: ondas de cerco e estruturas restantes definem a vitória.
  const phase=state.time>=480?'siege':state.time>=155?'objectives':'laning';
