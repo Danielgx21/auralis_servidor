@@ -659,9 +659,30 @@ const shopKinds={
 };
 const kindNames={attack:'DANO',magic:'MAGIA',defense:'DEFESA',speed:'MOBILIDADE',utility:'UTILIDADE'};
 let shopTab='recommended',shopFilter='all',shopSelectedId=null,shopQueuedId=null;
+// Símbolos vetoriais próprios para cada item; sem imagens externas.
+const ITEM_ART={
+ lens:'<ellipse cx="32" cy="31" rx="16" ry="19"/><path d="M16 31Q32 9 48 31Q32 52 16 31Z"/><circle cx="32" cy="31" r="7" fill="currentColor" opacity=".48"/><path d="M32 9V4M32 58V54M12 31H6M58 31H52"/>',
+ ward:'<path d="M32 5L51 13V34Q48 48 32 57Q16 48 13 34V13Z"/><path d="M32 13L43 19V34L32 46L21 34V19Z"/><path d="M32 16V45M23 30H41"/>',
+ stride:'<path d="M17 15L29 12L32 30L42 36L54 36L55 46L48 52H12V43L20 36Z"/><path d="M34 12L44 8M37 18L52 16M38 23L52 27M18 46H53"/>',
+ cell:'<path d="M16 17L32 6L49 17V45L32 57L16 45Z"/><path d="M34 11L25 31H37L29 52L43 27H31Z" fill="currentColor" opacity=".45"/>',
+ prism:'<path d="M32 5L48 22L42 47L32 59L21 47L16 22Z"/><path d="M16 22H48M32 5V59M21 47L32 22L42 47M32 22L24 10M32 22L41 10"/>',
+ core:'<circle cx="32" cy="32" r="20"/><circle cx="32" cy="32" r="10" fill="currentColor" opacity=".26"/><path d="M32 3V12M32 52V61M3 32H12M52 32H61M11 11L18 18M46 46L53 53M11 53L18 46M46 18L53 11"/>',
+ astralbow:'<path d="M14 6Q42 32 14 58M16 7L17 57M25 35L54 18L43 34L55 38L25 35Z" fill="currentColor" opacity=".24"/><path d="M22 33L52 31M35 19L53 31L36 45"/>',
+ stormblade:'<path d="M12 49L49 10L54 10L54 16L18 53Z"/><path d="M28 41L13 26M17 22L37 42M44 8L57 8L57 21M13 49L8 56"/>',
+ bulwark:'<path d="M32 3L54 15V34Q51 51 32 61Q13 51 10 34V15Z"/><path d="M32 12L45 21V34Q43 44 32 51Q21 44 19 34V21Z"/><path d="M13 31H51M32 15V50"/>',
+ titanplate:'<path d="M13 12L24 7L32 14L40 7L51 12L55 29L47 37V55H17V37L9 29Z"/><path d="M18 18L30 24L32 52L34 24L46 18M17 37H47M25 8L32 19L39 8"/>',
+ swiftboots:'<path d="M16 20L29 16L30 32L45 38H55L56 49L49 55H10V44L18 36Z"/><path d="M7 18L20 14M6 27L18 25M4 36L15 34M20 49H53"/>',
+ archmage:'<path d="M29 55L34 14M28 57H40M24 13L33 3L42 13L33 26Z" fill="currentColor" opacity=".25"/><path d="M12 31Q21 23 26 31M40 31Q49 23 56 31M18 41L27 36M42 36L50 41"/>',
+ hourglass:'<path d="M19 7H45M19 57H45M21 9Q21 23 32 31Q43 23 43 9M21 55Q21 41 32 33Q43 41 43 55"/><path d="M24 16H40L32 27Z" fill="currentColor" opacity=".32"/><path d="M32 38L25 51H39Z" fill="currentColor" opacity=".32"/>',
+ deepsea:'<circle cx="32" cy="32" r="24"/><circle cx="32" cy="32" r="13" fill="currentColor" opacity=".22"/><path d="M10 35Q21 26 32 36Q43 45 54 34M9 44Q21 36 33 45Q43 52 55 44"/><circle cx="27" cy="22" r="4" fill="currentColor" opacity=".45"/>'
+};
 function itemGlyph(it,large=false){
  const kind=shopKinds[it.id]||'utility';
- return '<span class="fenda-item-icon '+kind+(large?' large':'')+'" aria-hidden="true"><b>'+it.icon+'</b></span>';
+ const art=ITEM_ART[it.id]||ITEM_ART.prism;
+ return '<span class="fenda-item-icon '+kind+(large?' large':'')+'" aria-hidden="true">'+
+  '<svg class="fenda-item-art" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">'+
+  '<g stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none">'+art+
+  '</g></svg></span>';
 }
 function shopRender(){
  const h=S.hero;if(!h)return;
