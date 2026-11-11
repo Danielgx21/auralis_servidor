@@ -26,9 +26,20 @@ scoreboard.innerHTML='<div class="fenda-scoreboard-head"><div><strong>PLACAR DA 
 stage.appendChild(scoreboard);
 const shop=document.createElement('div');shop.id='fendaShop';
 shop.innerHTML='<div class="fenda-shop-head"><strong>⚒ ARSENAL DO SANTUÁRIO</strong><button id="fendaShopClose">✕</button></div>'+
-'<p>Compre equipamentos com ouro perto da base azul.</p><div class="fenda-shop-gold" id="fendaShopGold"></div>'+
+'<p>Monte itens completos usando pré-itens. O ouro gasto nos componentes é descontado do preço final.</p><div class="fenda-shop-gold" id="fendaShopGold"></div>'+
+'<div class="fenda-shop-equipped" id="fendaShopEquipped"></div>'+
 '<div id="fendaShopItems" class="fenda-shop-list"></div><p id="fendaShopHint"></p>';
 stage.appendChild(shop);
+// Overlay de evolução de habilidades: cada botão + fica perto da habilidade,
+// mas captura um ponteiro próprio sem cancelar o joystick já pressionado.
+const skillUpgradeLayer=document.createElement('div');
+skillUpgradeLayer.id='fendaSkillUpgradeLayer';stage.appendChild(skillUpgradeLayer);
+const upgradeButtons=Array.from({length:4},(_,i)=>{
+ const b=document.createElement('button');b.type='button';b.className='fenda-upgrade-button';
+ b.textContent='+';b.dataset.slot=String(i);b.setAttribute('aria-label','Evoluir habilidade '+(i+1));
+ skillUpgradeLayer.appendChild(b);return b;
+});
+let shopLastPaint=-10,shopHash='';
 const mm=$('fendaMinimap'),mc=mm.getContext('2d');
 let vw=900,vh=460,dpr=1,terrain=null,last=performance.now(),hudCountdown=0,endedShown=false;
 // A câmera usa pixels de tela separados de metros do mundo. Não reduzir o herói
@@ -614,20 +625,83 @@ function setScoreboardVisible(visible,viaTab=false){
   scoreboardLastUpdate=S.time;renderScoreboard();
  }
 }
+const suggestedBuilds={
+ lyria:['astralbow','swiftboots','stormblade'],
+ nyra:['archmage','deepsea','hourglass'],
+ vexor:['stormblade','swiftboots','astralbow'],
+ orun:['bulwark','titanplate','swiftboots'],
+ seris:['deepsea','titanplate','hourglass']
+};
+const itemInfo=id=>E.ITEMS.find(x=>x.id===id);
 function shopRender(){
  const h=S.hero;if(!h)return;
- $('fendaShopGold').textContent='✦ '+Math.round(h.gold)+' OURO · '+h.items.length+'/6 ITENS';
  const inBase=dist(h,E.HOME[0])<=240;
- $('fendaShopItems').innerHTML=E.ITEMS.map(item=>'<button data-buy="'+item.id+'" '+
-  (h.items.includes(item.id)||h.items.length>=6||h.gold<item.price||!inBase?'disabled':'')+
-  '><strong>'+item.icon+' '+item.name+'</strong><small>'+item.stat+' · '+item.desc+'</small><em>'+
-  (h.items.includes(item.id)?'EQUIPADO':item.price+' ✦')+'</em></button>').join('');
- $('fendaShopHint').textContent=inBase?'COMPRAS PERMITIDAS · '+h.items.length+'/6 ESPAÇOS':
- 'RETORNE À BASE AZUL PARA COMPRAR (RETORNO · B).';
- for(const b of $('fendaShopItems').querySelectorAll('[data-buy]'))b.onclick=()=>{
-  const result=E.buyItem(b.dataset.buy);if(!result.ok)E.announce(result.reason,1.4);
-  shopRender();hudUpdate();
+ const owned=h.items.map(id=>itemInfo(id));
+ $('fendaShopGold').textContent='✦ '+Math.round(h.gold)+' OURO · '+h.items.length+'/6 ESPAÇOS';
+ $('fendaShopEquipped').innerHTML='<strong>SEUS EQUIPAMENTOS</strong><div class="fenda-shop-inventory">'+
+  (owned.length?owned.map((it,i)=>'<div class="fenda-shop-equipped-item">'+
+   '<span title="'+it.name+'">'+it.icon+' '+it.name+'</span>'+
+   '<button type="button" data-sell="'+i+'" '+(!inBase?'disabled':'')+
+   ' title="Vender por 66% do valor">Vender +'+Math.floor(it.price*.66)+' ✦</button></div>').join(''):
+   '<span class="fenda-shop-empty">Inventário vazio · 6 espaços</span>')+'</div>';
+ const builds=suggestedBuilds[h.id]||[];
+ const complete=E.ITEMS.filter(it=>it.tier===2).sort((a,b)=>
+  (builds.indexOf(a.id)<0?99:builds.indexOf(a.id))-
+  (builds.indexOf(b.id)<0?99:builds.indexOf(b.id)));
+ const component=E.ITEMS.filter(it=>it.tier===1);
+ const ownedCount=id=>h.items.filter(x=>x===id).length;
+ const completeCard=it=>{
+  const status=E.recipeStatus(h,it.id);
+  const recipeOwned=status.used.slice(),pieces=it.recipe.map(id=>{
+   const j=recipeOwned.indexOf(id),ready=j>=0;
+   if(ready)recipeOwned.splice(j,1);
+   const part=itemInfo(id);
+   return '<span class="fenda-recipe-part '+(ready?'owned':'missing')+'" title="'+part.name+'">'+
+    part.icon+' '+part.name+(ready?' ✓':'')+'</span>';
+  }).join('');
+  const suggested=builds.includes(it.id),completed=h.items.includes(it.id);
+  const next=status.missing[0],required=next&&itemInfo(next);
+  const canCraft=status.ready&&status.remaining<=h.gold&&status.spacesAfter<=6&&!completed&&inBase;
+  const canPart=required&&h.gold>=required.price&&h.items.length<6&&inBase;
+  let action='';
+  if(completed)action='<span class="fenda-shop-complete">EQUIPADO ✓</span>';
+  else if(status.ready)action='<button data-buy="'+it.id+'" '+(!canCraft?'disabled':'')+
+   '>COMBINAR · '+status.remaining+' ✦</button>';
+  else action='<button data-buy="'+next+'" '+(!canPart?'disabled':'')+
+   '>+ '+required.name+' · '+required.price+' ✦</button>';
+  return '<article class="fenda-build-card '+(suggested?'recommended':'')+'">'+
+   '<div class="fenda-build-head"><strong>'+it.icon+' '+it.name+'</strong>'+
+   (suggested?'<span>RECOMENDADO</span>':'')+'</div>'+
+   '<small>'+it.stat+' · '+it.desc+'</small>'+
+   '<div class="fenda-recipe">'+pieces+'</div>'+
+   '<div class="fenda-build-foot">'+action+'<em>PREÇO TOTAL '+it.price+' ✦</em></div></article>';
  };
+ const componentCard=it=>{
+  const can=inBase&&h.items.length<6&&h.gold>=it.price;
+  return '<button class="fenda-component '+(ownedCount(it.id)?'owned':'')+
+   '" data-buy="'+it.id+'" '+(!can?'disabled':'')+
+   '><strong>'+it.icon+' '+it.name+' <span>×'+ownedCount(it.id)+'</span></strong>'+
+   '<small>'+it.stat+' · '+it.desc+'</small><em>'+it.price+' ✦</em></button>';
+ };
+ $('fendaShopItems').innerHTML='<div class="fenda-shop-section">ITENS COMPLETOS · RECEITAS</div>'+
+  complete.map(completeCard).join('')+
+  '<div class="fenda-shop-section">PRÉ-ITENS · COMPONENTES</div>'+
+  component.map(componentCard).join('');
+ $('fendaShopHint').textContent=inBase?
+  'Toque no pré-item de uma receita; quando reunir todos, COMBINAR desconta apenas o custo restante.':
+  'COMPRAS E VENDAS SOMENTE NO SANTUÁRIO · USE RETORNO (B).';
+ for(const b of $('fendaShopItems').querySelectorAll('[data-buy]'))b.addEventListener('click',()=>{
+  const result=E.buyItem(b.dataset.buy);
+  if(!result.ok)warn(result.reason);
+  shopLastPaint=S.time;shopRender();hudUpdate();
+ });
+ for(const b of $('fendaShopEquipped').querySelectorAll('[data-sell]'))b.addEventListener('click',()=>{
+  const result=E.sellItem(Number(b.dataset.sell));
+  if(!result.ok)warn(result.reason);
+  shopLastPaint=S.time;shopRender();hudUpdate();
+ });
+ shopLastPaint=S.time;
+ shopHash=[Math.floor(h.gold/20),h.items.join(','),inBase].join('|');
 }
 function toggleShop(){
  if(S.mode!=='playing')return;
@@ -955,7 +1029,16 @@ function loop(now){
     }
    }
    view(dt);hudCountdown-=dt;
-   if(hudCountdown<=0){hudCountdown=.16;hudUpdate();if(S.shopOpen)shopRender();}
+   if(hudCountdown<=0){
+    hudCountdown=.16;hudUpdate();
+    // Nunca substituir botões DOM durante um toque prolongado.
+    // A loja só re-renderiza periodicamente quando inventário/ouro mudou.
+    if(S.shopOpen&&S.time-shopLastPaint>1.6){
+     const now=[Math.floor(S.hero.gold/20),S.hero.items.join(','),
+      dist(S.hero,E.HOME[0])<=240].join('|');
+     if(now!==shopHash)shopRender();
+    }
+   }
   }
  }else if(S.mode==='ended'){view(0);endScreen();}
  requestAnimationFrame(loop);
