@@ -508,6 +508,7 @@ assert.equal(E.WARD_RANGE,280);
 assert.equal(rangeHero.mana,320);
 assert.equal(E.maxMana(rangeHero),320);
 const manaCost=E.skillDef('lyria_pierce').cost;
+assert.ok(E.upgradeSkill(rangeHero,'lyria_pierce').ok,'Jogador deve escolher a primeira habilidade antes de lançá-la');
 assert.equal(E.cast(rangeHero,'lyria_pierce'),true);
 assert.equal(rangeHero.mana,320-manaCost,'Casting não está gastando mana');
 rangeHero.mana=0;
