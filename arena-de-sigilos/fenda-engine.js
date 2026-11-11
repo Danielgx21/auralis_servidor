@@ -1283,6 +1283,21 @@ function botUseSkill(u,target){
   if(u.hp/u.maxHp<.64)options.push('brax_fortify');
   if(r<120)options.push('brax_cleave');
   if(r>80&&r<190)options.push('brax_grapple');
+ }else if(u.id==='kaelis'){
+  if(ready('kaelis_ult')&&clusters>=2&&r<290)options.push('kaelis_ult');
+  if(u.hp/u.maxHp<.55)options.push('kaelis_veil');
+  if(r<235&&clusters>=2)options.push('kaelis_frost');
+  if(r<315)options.push('kaelis_lance');
+ }else if(u.id==='rokar'){
+  if(ready('rokar_ult')&&nearEnemies>=2)options.push('rokar_ult');
+  if(u.hp/u.maxHp<.67)options.push('rokar_guard');
+  if(r<125)options.push('rokar_pulse');
+  if(r>80&&r<183)options.push('rokar_charge');
+ }else if(u.id==='tessa'){
+  if(ready('tessa_ult')&&target.hp/target.maxHp<.56&&r<345)options.push('tessa_ult');
+  if(r<95)options.push('tessa_roll');
+  if(r<247&&clusters>=2)options.push('tessa_salvo');
+  if(r<325)options.push('tessa_shot');
  }else if(u.id==='zhira'){
   if(ready('zhira_ult')&&r<215)options.push('zhira_ult');
   if(r<230&&clusters>=2)options.push('zhira_trap');
@@ -1728,34 +1743,34 @@ function releaseSkill(u,c){
  const id=c.id,def=skillDef(id),power=spellPower(u,id),enemy=1-u.side,lv=c.level;
  u.skillFlash=.42;
  const slow=(target,seconds)=>{target.slow=Math.max(target.slow,seconds)};
- if(['lyria_step','vexor_lunge','orun_charge','vexor_ult','brax_grapple','zhira_pounce'].includes(id)){
+ if(['lyria_step','vexor_lunge','orun_charge','vexor_ult','brax_grapple','zhira_pounce','tessa_roll','rokar_charge'].includes(id)){
   const dashLength=def.range+lv*7,duration=id==='vexor_ult'?.25:.18;
   u.skillFlash=.35;
   u.dash={vx:c.dir.x*dashLength/duration,vy:c.dir.y*dashLength/duration,t:duration,
-   hit:new Set(),radius:def.radius||25,dmg:Math.round((id==='vexor_ult'?85:id==='orun_charge'?31:id==='vexor_lunge'?36:id==='brax_grapple'?37:id==='zhira_pounce'?34:0)*power),
-   stun:id==='orun_charge'?.36:id==='brax_grapple'?.29:id==='vexor_ult'?.26:0};
-  u.invuln=id==='lyria_step'?.19:.10;
+   hit:new Set(),radius:def.radius||25,dmg:Math.round((id==='vexor_ult'?85:id==='orun_charge'?31:id==='vexor_lunge'?36:id==='brax_grapple'?37:id==='zhira_pounce'?34:id==='rokar_charge'?33:0)*power),
+   stun:id==='orun_charge'?.36:id==='brax_grapple'?.29:id==='vexor_ult'?.26:id==='rokar_charge'?.38:0};
+  u.invuln=id==='lyria_step'||id==='tessa_roll'?.19:.10;
   addEffect(u.x,u.y,hData(u.id).color,57,.42);
   return;
  }
- if(['lyria_pierce','nyra_bolt','seris_tether','zhira_strike'].includes(id)){
-  const d=id==='lyria_pierce'?42:id==='nyra_bolt'?44:id==='zhira_strike'?39:24;
+ if(['lyria_pierce','nyra_bolt','seris_tether','zhira_strike','kaelis_lance','tessa_shot','tessa_ult'].includes(id)){
+  const d=id==='lyria_pierce'?42:id==='nyra_bolt'?44:id==='zhira_strike'?39:id==='kaelis_lance'?43:id==='tessa_shot'?49:id==='tessa_ult'?122:24;
   state.projectiles.push({x:u.x+c.dir.x*23,y:u.y+c.dir.y*23,source:u,side:u.side,
    vx:c.dir.x*555,vy:c.dir.y*555,range:def.range,travel:0,
    damage:Math.round((d+lv*8)*power),r:def.radius||15,life:2,
-   kind:'skillline',color:hData(u.id).color,stun:0,slow:id==='seris_tether'?1.6:0});
+   kind:'skillline',color:hData(u.id).color,stun:0,slow:id==='seris_tether'?1.6:id==='kaelis_lance'?.65:0});
   return;
  }
  if(def.aim==='area'){
   const isHealing=id==='seris_bloom';
   const aoeDamage=id==='lyria_ult'?85:id==='nyra_ult'?97:id==='lyria_rain'?43:
-   id==='nyra_rift'?54:id==='vexor_mark'?40:id==='zhira_trap'?35:0;
+   id==='nyra_rift'?54:id==='vexor_mark'?40:id==='zhira_trap'?35:id==='kaelis_frost'?47:id==='kaelis_ult'?90:id==='tessa_salvo'?49:0;
   const range=def.radius+(def.ultimate?15:0);
   state.projectiles.push({x:u.x,y:u.y,source:u,side:u.side,tx:c.center.x,ty:c.center.y,
    speed:780,damage:Math.round((aoeDamage+lv*9)*power),r:9,aoe:range,
    kind:isHealing?'healarea':'damagearea',heal:isHealing?55+lv*13:0,
-   color:hData(u.id).color,stun:id==='nyra_ult'?.62:id==='nyra_rift'?.32:id==='zhira_trap'?.25:0,
-   slow:id==='lyria_rain'||id==='lyria_ult'?1.5:id==='nyra_rift'||id==='zhira_trap'?1.4:0,
+   color:hData(u.id).color,stun:id==='nyra_ult'?.62:id==='nyra_rift'?.32:id==='zhira_trap'?.25:id==='kaelis_frost'?.30:id==='kaelis_ult'?.52:0,
+   slow:id==='lyria_rain'||id==='lyria_ult'?1.5:id==='nyra_rift'||id==='zhira_trap'?1.4:id==='kaelis_frost'||id==='kaelis_ult'?2:0,
    mark:id==='vexor_mark',life:2.5});
   addEffect(c.center.x,c.center.y,hData(u.id).color,range,1.05,'telegraph');
   return;
@@ -1770,24 +1785,26 @@ function releaseSkill(u,c){
   grantShield(u,Math.round(38+lv*16),3);
   addEffect(u.x,u.y,'#f6ca85',r,.64,'burst');return;
  }
- if(id==='seris_ult'||id==='seris_aegis'||id==='orun_ult'||id==='orun_guard'||id==='nyra_barrier'||id==='brax_fortify'){
+ if(id==='seris_ult'||id==='seris_aegis'||id==='orun_ult'||id==='orun_guard'||id==='nyra_barrier'||id==='brax_fortify'||id==='kaelis_veil'||id==='rokar_guard'||id==='rokar_ult'){
   for(const friend of living(u.side,'hero')){
-   if((id==='brax_fortify'||id==='orun_guard'||id==='nyra_barrier')&&friend!==u)continue;
+   if((id==='brax_fortify'||id==='orun_guard'||id==='nyra_barrier'||id==='kaelis_veil'||id==='rokar_guard')&&friend!==u)continue;
   if(dist(friend,u)<r+friend.r||friend===u){
     if(id==='seris_ult')heal(friend,75+lv*20);
     if(id==='orun_ult')heal(friend,25+lv*8);
     if(id==='orun_guard')heal(friend,13+lv*7);
     if(id==='brax_fortify'&&friend===u)heal(friend,22+lv*7);
-    grantShield(friend,id==='orun_ult'?95:id==='seris_ult'?90:id==='seris_aegis'?40:id==='brax_fortify'?68+lv*11:60,
+    if(id==='rokar_guard'&&friend===u)heal(friend,14+lv*5);
+    grantShield(friend,id==='orun_ult'?95:id==='seris_ult'?90:id==='rokar_ult'?82+lv*11:id==='seris_aegis'?40:id==='brax_fortify'?68+lv*11:id==='rokar_guard'?75+lv*11:60,
       id==='orun_ult'||id==='seris_ult'?4.2:2.9);
    }
   }
   if(id==='orun_ult')aoe(u.x,u.y,r,Math.round((50+lv*15)*power),u,.55);
+  if(id==='rokar_ult')aoe(u.x,u.y,r,Math.round((44+lv*13)*power),u,.48);
   addEffect(u.x,u.y,hData(u.id).color,r,.69);
   return;
  }
- if(id==='vexor_whirl'||id==='orun_quake'||id==='brax_cleave'){
-  const hits=aoe(u.x,u.y,r,Math.round(((id==='orun_quake'?43:id==='brax_cleave'?38:48)+lv*9)*power),u,id==='orun_quake'?.33:0);
+ if(id==='vexor_whirl'||id==='orun_quake'||id==='brax_cleave'||id==='rokar_pulse'){
+  const hits=aoe(u.x,u.y,r,Math.round(((id==='orun_quake'?43:id==='brax_cleave'?38:id==='rokar_pulse'?42:48)+lv*9)*power),u,id==='orun_quake'?.33:0,id==='rokar_pulse'?1.15:0);
   if(id==='brax_cleave'&&hits)heal(u,Math.min(37,6+lv*4+hits*3));
   addEffect(u.x,u.y,hData(u.id).color,r,.54);
  }
