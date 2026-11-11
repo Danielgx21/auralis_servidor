@@ -16,6 +16,22 @@ hud.innerHTML='<div class="fenda-meta"><button id="fendaScoreBtn" type="button" 
 '<div id="fendaInfo">3 ROTAS · DESTRUA O NÚCLEO INIMIGO</div><div id="fendaObjectives">SERPE · TITÃ</div><div id="fendaNotice"></div>'+
 '<button id="fendaWardBtn" aria-label="Colocar sentinela de visão" title="Coloca visão à frente do campeão · Tecla V">◉<small>VISÃO</small><em id="fendaWardCD"></em></button>';
 stage.appendChild(hud);
+// Feitiços ficam fora da área do joystick, com controles próprios de toque.
+const summonerPanel=document.createElement('div');summonerPanel.id='fendaSummoners';
+summonerPanel.innerHTML=[0,1].map(i=>'<button type="button" class="fenda-summoner" data-slot="'+i+'" aria-label="Usar feitiço '+(i+1)+'"><b>◇</b><small>FEITIÇO</small><em></em></button>').join('');
+hud.appendChild(summonerPanel);
+let pickedSummoners=['flash','ignite'];
+try{const saved=JSON.parse(localStorage.getItem('fenda-summoners-v1')||'null');
+ if(Array.isArray(saved)&&saved.length===2&&saved[0]!==saved[1]&&saved.every(x=>E.SUMMONERS[x]))pickedSummoners=saved;}catch(_){}
+const saveSummoners=()=>{try{localStorage.setItem('fenda-summoners-v1',JSON.stringify(pickedSummoners))}catch(_){}};
+function useSummoner(index){
+ if(S.mode!=='playing'||S.shopOpen||S.showPause||!S.hero||S.hero.hp<=0)return;
+ const spell=S.hero.summoners[index];
+ if(!spell)return;
+ if(!E.castSummoner(S.hero,spell))warn(spell==='smite'?'SELO: APROXIME-SE DE UM MONSTRO OU CAMPEÃO':
+  spell==='ignite'?'MARCA: NENHUM CAMPEÃO AO ALCANCE':'FEITIÇO INDISPONÍVEL');
+ hudUpdate();
+}
 const scoreboard=document.createElement('section');scoreboard.id='fendaScoreboard';
 scoreboard.setAttribute('role','dialog');
 scoreboard.setAttribute('aria-label','Placar de jogadores e estatísticas da partida');
@@ -233,8 +249,21 @@ function drawHero(u,t){
   for(let i=0;i<5;i++){const a=i*TAU/5+t*.25;circle(Math.cos(a)*r*.83,Math.sin(a)*r*.83,4,'#f0b3ff')}
   ctx.beginPath();ctx.moveTo(-r*.75,-r*.7);ctx.lineTo(r*.68,0);ctx.lineTo(-r*.75,r*.7);ctx.closePath();
   ctx.fillStyle='#8e61b3';ctx.fill();circle(-r*.18,0,6,'#fff0fc');
- }else{
-  for(let i=0;i<6;i++){const a=i*TAU/6;circle(Math.cos(a)*r*.6,Math.sin(a)*r*.6,5,'#ffcee2')}
+ }else if(u.id==='brax'){
+   ctx.fillStyle='#74624b';ctx.fillRect(-r*.7,-r*.8,r*1.20,r*1.6);
+   ctx.fillStyle='#e9c283';ctx.fillRect(r*.36,-r*.9,r*.9,r*.45);
+   ctx.fillStyle='#c28a54';ctx.fillRect(r*.57,-r*.45,r*.22,r*1.25);
+   circle(-r*.2,0,7,'#fff0ce');
+  }else if(u.id==='zhira'){
+   ctx.fillStyle='#315d40';ctx.beginPath();
+   ctx.moveTo(-r*.95,-r*.85);ctx.lineTo(r*.30,-r*.65);ctx.lineTo(r*.90,0);
+   ctx.lineTo(r*.30,r*.65);ctx.lineTo(-r*.95,r*.85);ctx.closePath();ctx.fill();
+   ctx.strokeStyle='#9af39e';ctx.lineWidth=4;
+   ctx.beginPath();ctx.moveTo(r*.1,-r*.5);ctx.lineTo(r*1.25,-r*.7);
+   ctx.moveTo(r*.1,r*.5);ctx.lineTo(r*1.25,r*.7);ctx.stroke();
+   circle(-r*.19,0,6,'#edffe2');
+  }else{
+   for(let i=0;i<6;i++){const a=i*TAU/6;circle(Math.cos(a)*r*.6,Math.sin(a)*r*.6,5,'#ffcee2')}
   circle(-r*.12,0,7,'#fff3e9');
   ctx.beginPath();ctx.moveTo(r*.1,r*.4);ctx.lineTo(r*1.2,r*.4);ctx.strokeStyle='#ffc6e6';ctx.lineWidth=3;ctx.stroke();
  }
@@ -557,7 +586,7 @@ function hudUpdate(){
   (h.hp<=0?' · RESSURGE '+Math.ceil(h.respawn)+'s':'');
  $('fendaHP').style.width=(h.hp/h.maxHp*100)+'%';
  $('fendaMana').style.width=(h.mana/E.maxMana(h)*100)+'%';
- $('fendaManaText').textContent='MANA '+Math.ceil(h.mana)+'/'+E.maxMana(h);
+ $('fendaManaText').textContent=h.manaFreeUntil>S.time?'∞ MANA LIVRE '+Math.ceil(h.manaFreeUntil-S.time)+'s':'MANA '+Math.ceil(h.mana)+'/'+E.maxMana(h);
  $('fendaXP').style.width=(h.level<15?h.xp/(42+h.level*24)*100:100)+'%';
  const towerList=S.structures.filter(s=>s.kind==='tower'&&s.hp>0);
  const bossStatus=id=>{
@@ -585,8 +614,8 @@ function hudUpdate(){
     rank=E.skillRank(h,id),cap=E.skillRankCap(h,id),
     lock=rank===0,cd=h.cooldowns[id]||0;
   b.querySelector('b').textContent=def.icon;
-  b.querySelector('small').textContent=lock?(def.ultimate&&h.level<5?'NV 5':'EVOLUIR'):def.short;
-  b.classList.toggle('oncd',cd>.03||lock||h.mana<def.cost||h.hp<=0);
+  b.querySelector('small').textContent=lock?(def.ultimate&&h.level<5?'NV 5':'APRENDER'):def.short;
+  b.classList.toggle('oncd',cd>.03||lock||(h.mana<def.cost&&h.manaFreeUntil<=S.time)||h.hp<=0);
   const el=b.querySelector('.cd-text');el.hidden=cd<=.03&&!lock;
   el.textContent=lock?'🔒':cd>.03?Math.ceil(cd):'';
   let rankBadge=b.querySelector('.fenda-skill-rank');
@@ -615,6 +644,13 @@ function hudUpdate(){
  towerBtn.disabled=h.hp<=0||targetTowers.length===0;
  towerBtn.classList.toggle('available',targetTowers.length>0&&h.hp>0);
  towerBtn.classList.toggle('focused',!!h.focusTarget&&h.focusUntil>S.time&&h.focusTarget.hp>0);
+ for(const [i,id] of (h.summoners||[]).entries()){
+  const b=summonerPanel.querySelector('[data-slot="'+i+'"]'),sp=E.SUMMONERS[id],cd=h.summonerCooldowns[id]||0;
+  if(!b||!sp)continue;
+  b.querySelector('b').textContent=sp.icon;b.querySelector('small').textContent=sp.name.toUpperCase();
+  b.querySelector('em').textContent=cd>.03?Math.ceil(cd):'';
+  b.classList.toggle('oncd',cd>.03||h.hp<=0);b.title=sp.desc;
+ }
  const wardBtn=$('fendaWardBtn');
  wardBtn.disabled=h.hp<=0||h.visionCd>0;
  wardBtn.classList.toggle('available',h.hp>0&&h.visionCd<=0);
@@ -624,8 +660,8 @@ function hudUpdate(){
  }
 }
 // Placar de partida: as mesmas informações acionadas pelo placar do Wild Rift.
-const scoreRoles={orun:'TOP',vexor:'SELVA',nyra:'MEIO',lyria:'ATIR.',seris:'SUP.'};
-const scoreOrder={orun:0,vexor:1,nyra:2,lyria:3,seris:4};
+const scoreRoles={orun:'TOP',vexor:'SELVA',nyra:'MEIO',lyria:'ATIR.',seris:'SUP.',brax:'TOP',zhira:'SELVA'};
+const scoreOrder={orun:0,vexor:1,nyra:2,lyria:3,seris:4,brax:0,zhira:1};
 function scoreboardItems(hero){
  const slots=Array.from({length:6},(_,i)=>hero.items[i]||null);
  return '<div class="fenda-scoreboard-items">'+slots.map(id=>{
@@ -677,13 +713,15 @@ const suggestedBuilds={
  nyra:['archmage','deepsea','hourglass'],
  vexor:['stormblade','swiftboots','astralbow'],
  orun:['bulwark','titanplate','swiftboots'],
- seris:['deepsea','titanplate','hourglass']
+ seris:['deepsea','titanplate','hourglass'],
+ brax:['warheart','bulwark','stormblade'],
+ zhira:['huntress','stormblade','astralbow']
 };
 const itemInfo=id=>E.ITEMS.find(x=>x.id===id);
 const shopKinds={
  lens:'attack',astralbow:'attack',stormblade:'attack',stride:'speed',swiftboots:'speed',
  prism:'magic',archmage:'magic',deepsea:'magic',cell:'magic',
- ward:'defense',bulwark:'defense',titanplate:'defense',hourglass:'defense',core:'utility'
+ ward:'defense',bulwark:'defense',titanplate:'defense',hourglass:'defense',core:'utility',warheart:'defense',huntress:'attack'
 };
 const kindNames={attack:'DANO',magic:'MAGIA',defense:'DEFESA',speed:'MOBILIDADE',utility:'UTILIDADE'};
 let shopTab='recommended',shopFilter='all',shopSelectedId=null,shopQueuedId=null;
@@ -861,22 +899,36 @@ function chooseHero(){
  S.mode='menu';S.shopOpen=false;setScoreboardVisible(false);stage.classList.remove('fenda-on');cv.style.display='none';
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
- const selected=C.getHeroChoice();
- $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 8.7</div><h2>FENDA DOS SIGILOS</h2>'+ 
- '<p>Três rotas, selva estratégica, campeões com habilidades evolutivas e oito equipamentos completos com componentes.</p>'+ 
+ const selected=C.getHeroChoice(),hero=C.heroes[selected];
+ $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 9.0</div><h2>FENDA DOS SIGILOS</h2>'+ 
+ '<p>Três rotas, sete campeões com funções próprias, duas opções de feitiços e dez equipamentos finais com pré-itens.</p>'+ 
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
- '<div class="teamfight-tip">5×5 com bots táticos · 6 pré-itens e 8 receitas · habilidades com ranks · último golpe · ganks · objetivos e visão.</div>'+ 
+ '<div class="fenda-hero-detail"><strong>'+hero.name+' · '+hero.role+'</strong><p>'+hero.summary+' <br><b>PASSIVA:</b> '+hero.passive+'</p><span>HABILIDADE INICIAL: '+C.skills[hero.skills[0]].name+' · A segunda e a terceira são aprendidas subindo de nível. Ultimate no nível 5.</span></div>'+
+ '<div class="fenda-summoner-title">ESCOLHA 2 FEITIÇOS <small>F / G NO PC</small></div>'+
+ '<div class="fenda-summoner-picker">'+Object.entries(E.SUMMONERS).map(([id,sp])=>
+ '<button type="button" data-pick-spell="'+id+'" class="'+(pickedSummoners.includes(id)?'picked':'')+'" title="'+sp.desc+'"><b>'+sp.icon+'</b><span>'+sp.name+'</span><small>'+sp.cd+'s</small></button>').join('')+'</div>'+
+ '<div class="teamfight-tip">5×5 com bots táticos · 6 pré-itens e 10 receitas · níveis destravam habilidades · Selo da Caça para selva e grandes objetivos.</div>'+ 
  '<div class="actions" style="margin-top:10px"><button class="primary" id="playFenda">▶ JOGAR FENDA 5×5</button><button class="secondary" id="playClassic">MODO ARENA RÁPIDA</button></div>'+
  '<p style="font-size:10px;margin:9px 0 0">Celular: mantenha o joystick com um dedo e ataque/mire com o outro. Ao subir de nível, toque em + para melhorar habilidades. Loja: compre componentes e combine-os. PC: Shift+1/2/3/4 para evoluir habilidades; TAB placar, P loja, B retorno.</p>';
- for(const b of $('modalContent').querySelectorAll('[data-hero]'))b.onclick=()=>{C.setHeroChoice(b.dataset.hero);chooseHero()};
+ for(const b of $('modalContent').querySelectorAll('[data-hero]'))b.onclick=()=>{
+  C.setHeroChoice(b.dataset.hero);
+  if(b.dataset.hero==='zhira'&&!pickedSummoners.includes('smite')){
+   pickedSummoners=['smite',pickedSummoners[0]];saveSummoners();
+  }
+  chooseHero();
+ };
+ for(const b of $('modalContent').querySelectorAll('[data-pick-spell]'))b.onclick=()=>{
+  const id=b.dataset.pickSpell;if(pickedSummoners.includes(id))return;
+  pickedSummoners=[pickedSummoners[1],id];saveSummoners();chooseHero();
+ };
  $('playFenda').onclick=startGame;
  $('playClassic').onclick=()=>{S.mode='classic';stage.classList.remove('fenda-on');C.showClassic()};
 }
 function startGame(){
  C.suspendClassic?.();
  shopTab='recommended';shopFilter='all';shopSelectedId=null;shopQueuedId=null;
- E.start(C.getHeroChoice());setScoreboardVisible(false);endedShown=false;clickDestination=null;cameraPeek=null;cameraPeekUntil=0;wardAim=null;keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
+ E.start(C.getHeroChoice(),pickedSummoners);setScoreboardVisible(false);endedShown=false;clickDestination=null;cameraPeek=null;cameraPeekUntil=0;wardAim=null;keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
  shop.classList.remove('open');$('overlay').classList.add('hidden');$('missionShelf').hidden=true;
  resize();drawTerrain();last=performance.now();hudCountdown=0;hudUpdate();
  if(stage.requestFullscreen&&!document.fullscreenElement){
@@ -934,7 +986,7 @@ function skillStart(e,index){
  if(E.skillRank(S.hero,id)<=0){warn(def.ultimate&&S.hero.level<5?
   'ULTIMATE NO NÍVEL 5':'USE O BOTÃO + PARA EVOLUIR');return}
  if(S.hero.cooldowns[id]>.02){warn('HABILIDADE EM RECARGA');return}
- if(S.hero.mana<def.cost){warn('MANA INSUFICIENTE');return}
+ if(S.hero.mana<def.cost&&S.hero.manaFreeUntil<=S.time){warn('MANA INSUFICIENTE');return}
  e.preventDefault();e.stopPropagation();
  if(def.aim==='self'){E.cast(S.hero,id);hudUpdate();return}
  pointers.skill={id,ptr:e.pointerId,sx:e.clientX,sy:e.clientY,x:e.clientX,y:e.clientY,
@@ -1152,6 +1204,7 @@ function keyDown(e){
  const slots=desktopScheme==='wasd'?
   {'1':0,'2':1,'3':2,'4':3,q:0,e:2,r:3}:
   {'1':0,'2':1,'3':2,'4':3,q:0,w:1,e:2,r:3};
+ if(k==='f'||k==='g'){e.preventDefault();useSummoner(k==='f'?0:1);return}
  const i=slots[k];
  if(i!==undefined){
   const kit=C.heroes[S.hero.id].skills.concat([C.heroes[S.hero.id].ultimate]);
@@ -1237,6 +1290,9 @@ for(const [i,rankBtn] of upgradeButtons.entries()){
   hudUpdate();
  });
  rankBtn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation()});
+}
+for(const btn of summonerPanel.querySelectorAll('button')){
+ btn.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();useSummoner(Number(btn.dataset.slot))});
 }
 for(const [i,id] of ['dashBtn','pulseBtn','shieldBtn','ultBtn'].entries()){
  const btn=$(id);
