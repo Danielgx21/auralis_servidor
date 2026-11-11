@@ -561,7 +561,8 @@ assert.ok(html.includes("if(stage.classList.contains('fenda-on'))return;")&&
  html.includes('function beginFireTouch(e,captureElement)')&&
  html.includes('function beginSkillTouch(e,index)'),
  'Toques da Fenda ainda são capturados pelos controles da primeira arena');
-assert.ok(view.includes('if(pointers.aa!==null&&S.hero?.hp>0&&!S.shopOpen)E.autoAttack(S.hero);')&&
+assert.ok(view.includes('if(pointers.aa!==null&&S.hero?.hp>0&&!S.shopOpen&&!aaAim?.dragged&&')&&
+ view.includes('performance.now()-(aaAim?.started||0)>115')&&
  view.includes('if(pointers.aa!==e.pointerId)return;')&&
  view.includes('if(joy.ptr!==e.pointerId)return;')&&
  view.includes('joy.ptr=e.pointerId')&&
