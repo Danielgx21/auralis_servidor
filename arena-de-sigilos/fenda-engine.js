@@ -552,11 +552,11 @@ function start(hero='lyria',summoners=null){
  state.hero.lane=roles[state.hero.id];
  state.hero.summoners=Array.isArray(summoners)&&summoners.length===2&&
   summoners.every(id=>SUMMONERS[id])&&summoners[0]!==summoners[1]?
-  summoners.slice():state.hero.id==='zhira'?['smite','flash']:['flash','ignite'];
+  summoners.slice():['zhira','vexor'].includes(state.hero.id)?['smite','flash']:['flash','ignite'];
  for(const side of [0,1]){
   const units=state.units.filter(u=>u.kind==='hero'&&u.side===side);
   const bots=units.filter(u=>!u.controlled);
-  const playerJungle=units.some(u=>u.controlled&&(u.id==='zhira'||u.summoners.includes('smite')));
+  const playerJungle=units.some(u=>u.controlled&&(['zhira','vexor'].includes(u.id)||u.summoners.includes('smite')));
   const jungler=playerJungle?null:bots.find(u=>u.id==='zhira')||bots.find(u=>u.id==='vexor')||bots[0];
   if(jungler){jungler.jungler=true;jungler.jungleGoal=null}
   for(const u of bots)u.summoners=u.jungler?['smite','flash']:u.id==='seris'?['heal','shield']:['flash','ignite'];
