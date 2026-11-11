@@ -36,6 +36,10 @@ const shortSummonerEffect={
 function mobileGuideUpdate(){
  if(!mobileGuideOpen||!S.hero)return;
  const h=S.hero,kit=C.heroes[h.id].skills.concat([C.heroes[h.id].ultimate]);
+ const fingerprint=[h.id,h.level,h.summoners?.join(',')||'',
+  kit.map(id=>E.skillRank(h,id)).join(',')].join('|');
+ if(mobileGuide.dataset.fingerprint===fingerprint)return;
+ mobileGuide.dataset.fingerprint=fingerprint;
  mobileGuide.innerHTML='<div class="mobile-guide-head"><strong>HABILIDADES · '+C.heroes[h.id].name+
  '</strong><button id="mobileGuideClose" type="button" aria-label="Fechar detalhes">✕</button></div>'+
  kit.map((id,i)=>{
@@ -59,7 +63,7 @@ function setMobileGuide(open){
  mobileGuide.hidden=!mobileGuideOpen;
  mobileHelpBtn.setAttribute('aria-expanded',String(mobileGuideOpen));
  mobileHelpBtn.classList.toggle('active',mobileGuideOpen);
- if(mobileGuideOpen)mobileGuideUpdate();
+ if(mobileGuideOpen){mobileGuide.dataset.fingerprint='';mobileGuideUpdate();}
 }
 mobileHelpBtn.addEventListener('click',()=>setMobileGuide(!mobileGuideOpen));
 // Interface própria de desktop, independente dos controles de toque.
