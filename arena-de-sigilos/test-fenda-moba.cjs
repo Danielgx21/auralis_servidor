@@ -1039,6 +1039,7 @@ E.start('lyria');
   mouseBlock+'return {desktopMouseAim,desktopMouseWorld};')(E,match,pointer,1,E.clamp);
  const aim=mouse.desktopMouseAim('tessa_shot');
  assert.ok(aim.x>.99&&Math.abs(aim.y)<.01,'Mouse à direita deve mirar à direita');
+ assert.ok(E.upgradeSkill(self,'tessa_shot').ok,'Teste de mira aprende Q no nível 1');
  assert.ok(E.cast(self,'tessa_shot',aim),'Habilidade apontada ao mouse foi recusada');
  assert.ok(self.casting&&self.casting.dir.x>.99,
   'Habilidade perseguiu inimigo à esquerda em vez de seguir o mouse à direita');
@@ -1219,3 +1220,43 @@ console.log('OK: V9.6 com duas assassinas, fumaça, retorno, execução, combos 
  assert.ok(AI.dodgeTelegraph(bot,.05),'Bots precisam tentar sair da tempestade da Lyria');
 }
 console.log('OK: tiros perfurantes de Lyria e Tessa e evasão de áreas persistentes.');
+
+// V9.7 — jogador escolhe a habilidade inicial, independente de ser Q, W ou E.
+{
+ const v=read('fenda-view.js'),css=read('fenda.css');
+ for(const key of ['q','w','e']){
+  const m=E.start('lyria'),p=m.hero,kit=heroes[p.id].skills;
+  const ix={q:0,w:1,e:2}[key],picked=kit[ix];
+  assert.equal(p.level,1,'A partida começa no nível 1');
+  assert.equal(p.skillPoints,1,'O primeiro ponto pertence ao jogador');
+  assert.ok(kit.every(id=>E.skillRank(p,id)===0),'Nenhuma habilidade básica vem aprendida');
+  assert.equal(E.skillRank(p,heroes[p.id].ultimate),0,'Ultimate ainda bloqueada');
+  assert.equal(E.upgradeSkill(p,heroes[p.id].ultimate).ok,false,
+   'Não é permitido gastar ponto na ultimate no nível 1');
+  assert.equal(E.cast(p,kit[0]),false,'Q bloqueada antes da escolha');
+  const selected=E.upgradeSkill(p,picked);
+  assert.ok(selected.ok,'Jogador não conseguiu escolher '+key.toUpperCase());
+  assert.equal(p.skillPoints,0,'Primeira escolha deve consumir o ponto');
+  for(let i=0;i<3;i++){
+   assert.equal(E.skillRank(p,kit[i]),i===ix?1:0,
+    'Outra habilidade foi desbloqueada sem escolha');
+  }
+  assert.equal(E.upgradeSkill(p,kit[(ix+1)%3]).ok,false,
+   'Não pode aprender duas habilidades gastando somente um ponto');
+  if(key!=='q')assert.equal(E.cast(p,kit[0]),false,
+   'Não pode lançar Q se o jogador escolheu outra habilidade');
+  assert.ok(E.cast(p,picked,{x:1,y:0,distance:80}),
+   'A habilidade escolhida deve poder ser usada imediatamente');
+ }
+ assert.ok(v.includes("firstSkillPanel.id='fendaFirstSkillPanel'")&&
+   v.includes("h.level===1&&h.skillPoints>0")&&
+   v.includes("E.upgradeSkill(S.hero,skill)"),
+   'Painel precisa oferecer Q/W/E e ativar a primeira escolha');
+ assert.ok(css.includes('#fendaFirstSkillPanel:not([hidden])')&&
+   css.includes('fenda-first-skill-options'),
+   'Primeiro painel de escolha precisa ser visível no celular e no PC');
+ assert.ok(v.includes('NO NÍVEL 1: você escolhe')&&
+   !v.includes('HABILIDADE INICIAL: '),
+   'Tela de seleção não pode afirmar que Q vem aprendida automaticamente');
+}
+console.log('OK: V9.7 com primeira habilidade Q, W ou E escolhida pelo jogador.');
