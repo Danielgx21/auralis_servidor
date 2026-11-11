@@ -619,9 +619,50 @@ function minimap(){
  }
  mc.restore();
 }
+// Retratos autorais: bustos e acessórios geométricos diferentes por campeão.
+function championPortrait(id){
+ const hero=C.heroes[id]||C.heroes.lyria,clr=hero.color;
+ const helms={
+  lyria:'M14 34L10 15L24 22L30 8L37 22L45 8L51 22L62 15L58 34Z',
+  vexor:'M13 37L23 11L36 4L49 11L59 37L46 28L36 34L26 28Z',
+  orun:'M15 37L15 16L25 9L47 9L57 16L57 37L47 32L25 32Z',
+  nyra:'M15 35L15 16L25 26L32 5L36 22L43 5L49 26L57 16L57 35Z',
+  seris:'M12 35Q10 15 25 18Q36 3 47 18Q62 15 60 35L47 29L36 35L25 29Z',
+  brax:'M12 37L17 16L26 22L36 8L46 22L55 16L60 37L49 31L23 31Z',
+  zhira:'M14 36L7 15L23 21L20 10L36 24L52 10L49 21L65 15L58 36L45 30L36 35L27 30Z',
+  kaelis:'M15 34L12 12L29 23L36 3L43 23L60 12L57 34L47 29L36 33L25 29Z',
+  rokar:'M12 38L14 12L28 12L36 4L44 12L58 12L60 38L51 33L21 33Z',
+  tessa:'M14 35L18 19L32 13L45 17L57 11L58 31L46 28L28 32Z'
+ };
+ const marks={
+  lyria:'M8 53Q7 29 19 17M19 17L11 26M19 17L25 28',
+  vexor:'M7 59L23 43L29 52M65 59L49 43L43 52',
+  orun:'M8 51L17 40L23 64L7 66ZM64 51L55 40L49 64L65 66Z',
+  nyra:'M8 23L18 9L27 21M64 23L54 9L45 21',
+  seris:'M12 16Q19 4 28 20M44 20Q53 4 60 16',
+  brax:'M7 50L16 40L29 55M65 50L56 40L43 55',
+  zhira:'M8 53L15 45M64 53L57 45',
+  kaelis:'M10 12L20 21M62 12L52 21M36 2V18',
+  rokar:'M6 50L16 40L23 64L7 67ZM66 50L56 40L49 64L65 67Z',
+  tessa:'M7 52L19 38M65 52L53 38M56 16L65 10'
+ };
+ return '<svg class="fenda-champion-portrait-svg" viewBox="0 0 72 72" aria-hidden="true">'+
+  '<circle cx="36" cy="36" r="34" fill="#071727" stroke="'+clr+'" stroke-width="2"/>'+
+  '<circle cx="36" cy="36" r="29" fill="'+clr+'" fill-opacity=".13"/>'+
+  '<path d="M6 68L12 43L26 33L46 33L60 43L66 68Z" fill="#263b4a" stroke="'+clr+'" stroke-width="2"/>'+
+  '<path d="M22 31L50 31L45 49L39 53L33 53L27 49Z" fill="#dfb69d" stroke="#bd938b" stroke-width="1.5"/>'+
+  '<path d="'+(helms[id]||helms.lyria)+'" fill="'+clr+'" fill-opacity=".8" stroke="#eef7e9" stroke-width="1.3"/>'+
+  '<path d="M27 37L33 39L27 41M45 37L39 39L45 41" stroke="#102637" stroke-width="2.6" fill="none"/>'+
+  '<path d="'+(marks[id]||marks.lyria)+'" stroke="'+clr+'" stroke-width="3" stroke-linecap="round" fill="none"/>'+
+  '<circle cx="36" cy="59" r="4" fill="'+clr+'" stroke="#e6fff4" stroke-width="1"/>'+
+  '</svg>';
+}
 function desktopHeroUpdate(h){
  const meta=C.heroes[h.id],lev=Math.max(1,h.level);
- $('pcPortrait').textContent=meta.symbol;
+ if($('pcPortrait').dataset.hero!==h.id){
+  $('pcPortrait').innerHTML=championPortrait(h.id);
+  $('pcPortrait').dataset.hero=h.id;
+ }
  $('pcPortrait').style.color=meta.color;
  $('pcPortrait').style.borderColor=meta.color;
  $('pcChampionName').textContent=meta.name;
@@ -652,7 +693,7 @@ function desktopRosterUpdate(){
    const spells=(u.summoners||[]).map(id=>E.SUMMONERS[id]?.icon||'◇').join('');
    return '<div class="pc-roster-entry'+(u.controlled?' self':'')+(dead?' dead':'')+
     (!seen?' unseen':'')+'" title="'+data.name+' · '+data.role+'">'+
-    '<span class="pc-roster-portrait" style="color:'+data.color+';border-color:'+data.color+'77">'+data.symbol+'</span>'+
+    '<span class="pc-roster-portrait" style="color:'+data.color+';border-color:'+data.color+'77">'+championPortrait(u.id)+'</span>'+
     '<div class="pc-roster-main"><div class="pc-roster-name">'+data.name+
     '<span>'+(dead?Math.ceil(u.respawn)+'s':seen?'NV '+u.level:'SEM VISÃO')+'</span></div>'+
     '<div class="pc-roster-hp"><i style="width:'+life+'%"></i></div>'+
@@ -793,7 +834,7 @@ function scoreTeam(side){
   const deathInfo=dead?' · RESSURGE '+Math.ceil(u.respawn)+'s':' · NV '+u.level;
   return '<div class="fenda-scoreboard-player'+(u.controlled?' is-self':'')+(dead?' is-dead':'')+'">'+
    '<span class="fenda-scoreboard-role">'+(scoreRoles[u.id]||'ROTA')+'</span>'+
-   '<div class="fenda-scoreboard-champion"><span class="fenda-scoreboard-symbol" style="color:'+hero.color+'">'+hero.symbol+'</span>'+
+   '<div class="fenda-scoreboard-champion"><span class="fenda-scoreboard-symbol" style="color:'+hero.color+'">'+championPortrait(u.id)+'</span>'+
    '<span><strong>'+hero.name+'</strong><small>'+(u.controlled?'VOCÊ':'BOT')+deathInfo+'</small></span></div>'+
    '<strong class="fenda-scoreboard-kda">'+u.kills+'/'+u.deaths+'/'+(u.assists||0)+'</strong>'+
    '<span class="fenda-scoreboard-cs">'+(u.cs||0)+' <small>CS</small></span>'+
@@ -1028,7 +1069,7 @@ function chooseHero(){
  $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 9.3</div><h2>FENDA DOS SIGILOS</h2>'+ 
  '<p>Três rotas, dez campeões com funções próprias, dois feitiços selecionáveis e quatorze equipamentos finais.</p>'+ 
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
-  '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
+  '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span class="fenda-hero-portrait">'+championPortrait(id)+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
  '<div class="fenda-hero-detail"><strong>'+hero.name+' · '+hero.role+'</strong><p>'+hero.summary+' <br><b>PASSIVA:</b> '+hero.passive+'</p><span>HABILIDADE INICIAL: '+C.skills[hero.skills[0]].name+' · A segunda e a terceira são aprendidas subindo de nível. Ultimate no nível 5.</span></div>'+
  '<div class="fenda-summoner-title">ESCOLHA 2 FEITIÇOS <small>F / G NO PC</small></div>'+
  '<div class="fenda-summoner-picker">'+Object.entries(E.SUMMONERS).map(([id,sp])=>
