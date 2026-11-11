@@ -213,3 +213,61 @@
  #fendaPlayerStats{font-size:9px}
  #fendaScoreBtn{padding:2px 3px;gap:3px}
 }
+
+
+/* Fenda 8.5: receitas com componentes — interface pequena para mobile. */
+.fenda-shop-section{grid-column:1/-1;padding:9px 4px 3px;
+ color:#c6eee3;font-weight:900;letter-spacing:.07em;font-size:11px;
+ border-bottom:1px solid #88b7b44a}
+.fenda-shop-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;align-content:start}
+.fenda-build-card{min-width:0;border:1px solid #6c9ca05a;background:#112c3dbd;
+ border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:5px}
+.fenda-build-card.recommended{border-color:#d3ba7c90;background:#203744dd}
+.fenda-build-head{display:flex;gap:6px;justify-content:space-between;align-items:center}
+.fenda-build-head strong{font-size:11px;color:#f0f5e9;line-height:1.2}
+.fenda-build-head span{font-size:7px;font-weight:900;color:#f5d993;white-space:nowrap}
+.fenda-build-card small{font-size:9px;color:#b0d5d5;line-height:1.3}
+.fenda-recipe{display:flex;flex-wrap:wrap;gap:3px}
+.fenda-recipe-part{display:inline-block;font-size:8px;border:1px solid #71889b7d;
+ border-radius:5px;padding:3px 4px;color:#aebdc7;background:#071d2c}
+.fenda-recipe-part.owned{color:#9ef5ce;border-color:#77cbad9c;background:#214538}
+.fenda-build-foot{display:flex;flex-direction:column;gap:4px;margin-top:auto;align-items:stretch}
+.fenda-build-foot button{min-height:27px;padding:5px;border-radius:7px;border:1px solid #9dd8c29e;
+ background:#245367;color:#f2fff5;font-size:9px;font-weight:900;touch-action:manipulation}
+.fenda-build-foot button:disabled{opacity:.42;filter:grayscale(.65)}
+.fenda-build-foot em{font-size:8px;color:#decf97;font-style:normal;text-align:right}
+.fenda-shop-complete{font-size:9px;color:#a5f9ce;font-weight:900;padding:5px}
+.fenda-component{min-height:72px;display:grid;align-content:start;gap:5px;text-align:left}
+.fenda-component strong{font-size:11px}
+.fenda-component strong span{font-size:8px;color:#d3ffde}
+.fenda-component small{line-height:1.25}
+.fenda-shop-equipped{margin-top:6px;border:1px solid #7aaba044;border-radius:8px;padding:7px;
+ background:#0c2633ae}
+.fenda-shop-equipped>strong{display:block;margin-bottom:5px;font-size:9px;color:#bfe3d9}
+.fenda-shop-inventory{display:grid;gap:4px}
+.fenda-shop-equipped-item{display:flex;justify-content:space-between;gap:6px;align-items:center;
+ font-size:9px;color:#cce9e1}
+.fenda-shop-equipped-item button{background:#2d3d48;border:1px solid #839fa36e;
+ border-radius:6px;padding:4px 6px;color:#f1d3ae;font-size:8px;touch-action:manipulation}
+.fenda-shop-equipped-item button:disabled{opacity:.3}
+.fenda-shop-empty{font-size:9px;color:#8da7af}
+/* Evolução sobre os botões, sem capturar o ponteiro de movimentação. */
+#fendaSkillUpgradeLayer{display:none;position:absolute;inset:0;pointer-events:none;z-index:12}
+.stage.fenda-on #fendaSkillUpgradeLayer{display:block}
+.fenda-upgrade-button{position:absolute;display:grid;place-items:center;width:27px;height:27px;
+ border-radius:50%;padding:0;border:2px solid #efdd8c;background:#255a69;color:#fff6ca;
+ box-shadow:0 0 11px #f6d89485,0 3px 7px #0009;font-size:20px;font-weight:1000;
+ touch-action:none;pointer-events:auto;user-select:none}
+.fenda-upgrade-button[hidden]{display:none!important}
+.fenda-skill-rank{display:none;position:absolute;right:2px;bottom:1px;padding:1px 2px;
+ font-size:8px;line-height:1;color:#e9f8ed;background:#0b253ce3;border-radius:3px;
+ pointer-events:none}
+.stage.fenda-on .skill-btn .fenda-skill-rank{display:block}
+.stage.fenda-on #fireBtn,.stage.fenda-on .skill-btn{touch-action:none;user-select:none}
+.stage.fenda-on #fendaCanvas{touch-action:none}
+@media(max-height:510px){
+ #fendaShop{width:min(485px,88vw)}
+ .fenda-build-card{padding:6px;gap:3px}
+ .fenda-build-head strong{font-size:10px}
+ .fenda-shop-equipped{padding:4px}
+}
