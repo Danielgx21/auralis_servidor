@@ -53,7 +53,7 @@ let cameraZoom=1.30,worldVW=vw/cameraZoom,worldVH=vh/cameraZoom;
 // A escala visual do campeão não altera o seu raio de colisão.
 let HERO_RENDER_SCALE=1.0;
 const CAMERA_MIN_WORLD_HEIGHT=620;
-const THREAT_CAMERA_LEAD=145;
+const THREAT_CAMERA_LEAD=125,LANE_CAMERA_LEAD=140;
 // Não há texturas, atlas ou sprites nesta arena. Toda a paisagem é Canvas procedural.
 // Fenda 6.3: paisagem 100% procedural, com geometria e camera próprias.
  // Somente três rotas; paredes/obstáculos provêm das hitboxes do motor.
@@ -432,10 +432,20 @@ function view(dt){
  if(h){
   const observing=cameraPeek&&(cameraPeek.ptr!==null||S.time<cameraPeekUntil);
   const focus=observing?cameraPeek:{x:h.x,y:h.y};
-  // Antecipar as torres inimigas sem afastar a câmera do campeão.
-  // Compensa a visão aproximada: a torre deve aparecer antes de atacar,
-  // inclusive quando se aproxima pela parte superior/inferior da tela.
+  // Câmera de combate: valoriza o avanço pela lane, não as torres
+  // que já ficaram atrás. Na jungle permanece próxima ao personagem.
+  // Perto de uma estrutura inimiga antecipa sua zona de ataque.
   if(!observing&&h.hp>0){
+   const lane=h.lane??2,projection=E.routeProjection(lane,h);
+   if(projection.distance<E.LANE_HALF_WIDTH+35){
+    const t=projection.progress/E.ROUTE_TOTALS[lane],step=.006;
+    const prev=E.pathPos(lane,clamp(t-step,0,1));
+    const next=E.pathPos(lane,clamp(t+step,0,1));
+    const dir=E.norm(next.x-prev.x,next.y-prev.y);
+    const forward=h.side===0?1:-1;
+    focus.x+=dir.x*forward*LANE_CAMERA_LEAD;
+    focus.y+=dir.y*forward*LANE_CAMERA_LEAD;
+   }
    const threat=S.structures.filter(t=>t.hp>0&&t.side!==h.side&&
      E.dist(t,h)<700).sort((a,b)=>E.dist(a,h)-E.dist(b,h))[0];
    if(threat){
@@ -443,6 +453,12 @@ function view(dt){
     const ahead=THREAT_CAMERA_LEAD*clamp((700-d)/320,0,1);
     focus.x+=(threat.x-h.x)/d*ahead;
     focus.y+=(threat.y-h.y)/d*ahead;
+   }
+   const forwardX=focus.x-h.x,forwardY=focus.y-h.y;
+   const magnitude=Math.hypot(forwardX,forwardY);
+   if(magnitude>185){
+    focus.x=h.x+forwardX/magnitude*185;
+    focus.y=h.y+forwardY/magnitude*185;
    }
   }
   const wantX=clamp(focus.x-worldVW*.44,0,Math.max(0,E.W-worldVW));
