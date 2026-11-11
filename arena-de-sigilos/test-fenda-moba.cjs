@@ -19,7 +19,7 @@ const E=sandbox.window.FendaEngine,AI=sandbox.window.FendaTeamAI;
 assert.ok(E&&AI,'Motor ou coordenador tático não inicializado');
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const state=E.start('lyria');
-assert.equal(Object.keys(heroes).length,10,'Elenco precisa ter dez campeões');
+assert.equal(Object.keys(heroes).length,12,'Elenco precisa ter 12 campeões');
 assert.ok(state.units.filter(u=>u.kind==='hero').every(u=>
  Object.values(u.skillLevels).filter(rank=>rank>0).length===1),
  'Cada campeão deve começar com uma única habilidade básica');
@@ -56,10 +56,10 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=9.5')&&
- html.includes('fenda-team-ai.js?v=9.5')&&
- html.includes('fenda-scenery.js?v=9.5')&&
- html.includes('fenda-view.js?v=9.5'),'O site precisa carregar o cenário procedural antes da câmera.');
+assert.ok(html.includes('fenda-engine.js?v=9.6')&&
+ html.includes('fenda-team-ai.js?v=9.6')&&
+ html.includes('fenda-scenery.js?v=9.6')&&
+ html.includes('fenda-view.js?v=9.6'),'O site precisa carregar o cenário procedural antes da câmera.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -621,7 +621,7 @@ const scoreApi=new Function('E','C','S',portraitCode+scoreCode+'return {scoreTea
 const blueHTML=scoreApi.scoreTeam(0),redHTML=scoreApi.scoreTeam(1);
 assert.equal((blueHTML.match(/class="fenda-scoreboard-player/g)||[]).length,5);
 assert.equal((redHTML.match(/class="fenda-scoreboard-player/g)||[]).length,5);
-assert.ok(blueHTML.includes('LYRIA')&&redHTML.includes('TESSA')&&redHTML.includes('KAELIS'),
+assert.ok(blueHTML.includes('LYRIA')&&redHTML.includes('TESSA')&&redHTML.includes('SAHRA')&&redHTML.includes('MIRIELLE'),
  'Campeoes dos dois times precisam aparecer no placar');
 const self=state.hero;self.kills=4;self.deaths=2;self.assists=6;self.cs=34;
 self.items.push('lens');
@@ -887,7 +887,7 @@ E.start('lyria');
  assert.equal(fighter.units.filter(u=>u.kind==='hero').length,10,'Mais heróis alteraram 5v5');
  assert.ok(fighter.units.some(u=>u.id==='brax'&&u.side===0),
   'Lutador Brax não entra no próprio time');
- assert.ok(fighter.units.some(u=>u.id==='vexor'&&u.side===1),
+ assert.ok(fighter.units.some(u=>u.id==='sahra'&&u.side===1),
   'Assassino inimigo deve aparecer como bot');
  assert.ok(fighter.units.some(u=>u.id==='seris'&&u.side===0),
   'Equipe do lutador deve manter suporte');
@@ -957,8 +957,8 @@ E.start('lyria');
  assert.ok(view.includes("isDesktop?$('pcSkill'+i):b")&&
   css.includes('#fendaTeamRoster.collapsed .pc-roster-list'),
   'Evolução de habilidades e recolhimento do quadro não foram adaptados');
- assert.ok(html.includes('fenda-view.js?v=9.5')&&html.includes('fenda.css?v=9.5'),
-  'Cache precisa trazer a versão 9.5');
+ assert.ok(html.includes('fenda-view.js?v=9.6')&&html.includes('fenda.css?v=9.6'),
+  'Cache precisa trazer a versão 9.6');
 }
 // V9.4 — novas prioridades de AA, tempo de ataque, decisões dos bots e retratos.
 {
@@ -1064,7 +1064,7 @@ E.start('lyria');
  assert.ok(site.includes('.stage.fenda-on #fendaSummoners .fenda-summoner small{')&&
   site.includes('font-size:10px!important')&&site.includes('#fendaMobileGuide'),
   'CSS do celular não tornou feitiços e habilidades legíveis');
- assert.ok(site.includes('fenda-view.js?v=9.5')&&site.includes('fenda.css?v=9.5'),
+ assert.ok(site.includes('fenda-view.js?v=9.6')&&site.includes('fenda.css?v=9.6'),
   'O cache do jogo precisa apontar para a versão 9.5');
 }
 console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livre e feitiços legíveis.');
