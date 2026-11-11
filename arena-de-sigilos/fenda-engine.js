@@ -61,14 +61,112 @@ const JUNGLE_RIDGES=[
  {id:'mid-4',half:30,pts:[[1560,1615],[1680,1525]]}
 ];
 const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1};
+// Componentes e receitas. Custo final é SEMPRE o preço total do produto;
+// comprar pré-itens abate ouro e libera espaços ao combiná-los.
 const ITEMS=[
- {id:'lens',name:'Lente Astral',price:430,stat:'+13 dano',desc:'Ataques básicos mais fortes',icon:'◈'},
- {id:'ward',name:'Couraça Rúnica',price:510,stat:'+85 vida',desc:'Resistência nas trocas',icon:'⬡'},
- {id:'stride',name:'Botas do Vento',price:480,stat:'+17% velocidade',desc:'Movimento e reposicionamento',icon:'➤'},
- {id:'cell',name:'Catalisador Astral',price:500,stat:'+85 mana máxima',desc:'Reserva maior para habilidades',icon:'ϟ'},
- {id:'prism',name:'Prisma do Eco',price:680,stat:'+16 poder',desc:'Dano extra das habilidades',icon:'◇'},
- {id:'core',name:'Núcleo Ágil',price:620,stat:'-15% recarga',desc:'Habilidades disponíveis mais cedo',icon:'✦'}
+ {id:'lens',name:'Lente Astral',tier:1,price:300,icon:'◈',stats:{ad:12},stat:'+12 AD',desc:'Componente de dano físico'},
+ {id:'ward',name:'Placa Rúnica',tier:1,price:325,icon:'⬡',stats:{hp:95},stat:'+95 PV',desc:'Componente defensivo'},
+ {id:'stride',name:'Passo Veloz',tier:1,price:290,icon:'➤',stats:{move:.08},stat:'+8% MOV',desc:'Componente de mobilidade'},
+ {id:'cell',name:'Célula Astral',tier:1,price:300,icon:'ϟ',stats:{mana:90},stat:'+90 mana',desc:'Componente de energia'},
+ {id:'prism',name:'Prisma Menor',tier:1,price:340,icon:'◇',stats:{ap:.13},stat:'+13% poder',desc:'Componente mágico'},
+ {id:'core',name:'Engrenagem',tier:1,price:340,icon:'✦',stats:{haste:.08},stat:'+8% aceleração',desc:'Componente de recarga'},
+ {id:'astralbow',name:'Arco do Eclipse',tier:2,price:1380,icon:'➹',
+  recipe:['lens','lens','stride'],stats:{ad:41,move:.07},passive:'execution',
+  stat:'+41 AD · +7% MOV',desc:'Ataques mais fortes contra inimigos feridos'},
+ {id:'stormblade',name:'Lâmina da Tempestade',tier:2,price:1450,icon:'⚔',
+  recipe:['lens','prism','core'],stats:{ad:26,ap:.20,haste:.11},passive:'surge',
+  stat:'+26 AD · +20% poder · +11% acel.',desc:'Após usar habilidade, próximo AA causa dano extra'},
+ {id:'bulwark',name:'Bastião Ancestral',tier:2,price:1480,icon:'⬢',
+  recipe:['ward','ward','core'],stats:{hp:350,haste:.11},passive:'fortify',
+  stat:'+350 PV · +11% acel.',desc:'Proteção periódica ao ficar com pouca vida'},
+ {id:'titanplate',name:'Égide do Titã',tier:2,price:1460,icon:'▣',
+  recipe:['ward','cell','core'],stats:{hp:230,mana:160,haste:.12,regen:1.8},
+  stat:'+230 PV · +160 mana · +12% acel.',desc:'Resistência e regeneração'},
+ {id:'swiftboots',name:'Botas do Horizonte',tier:2,price:1360,icon:'➠',
+  recipe:['stride','stride','lens'],stats:{move:.24,ad:19},passive:'pursuit',
+  stat:'+24% MOV · +19 AD',desc:'Ataques ganham vigor ao perseguir'},
+ {id:'archmage',name:'Cetro do Arcanista',tier:2,price:1510,icon:'✺',
+  recipe:['prism','prism','cell'],stats:{ap:.53,mana:210},passive:'arcane',
+  stat:'+53% poder · +210 mana',desc:'Habilidades ficam mais poderosas'},
+ {id:'hourglass',name:'Ampulheta Protetora',tier:2,price:1500,icon:'◈',
+  recipe:['prism','core','ward'],stats:{ap:.31,hp:170,haste:.19},passive:'fortify',
+  stat:'+31% poder · +170 PV · +19% acel.',desc:'Poder, defesa e proteção emergencial'},
+ {id:'deepsea',name:'Orbe do Oceano',tier:2,price:1430,icon:'◉',
+  recipe:['cell','cell','prism'],stats:{mana:370,ap:.25,regen:2.4},passive:'renewal',
+  stat:'+370 mana · +25% poder',desc:'Mana, regeneração e sustentação'}
 ];
+const ITEM_BY_ID=Object.fromEntries(ITEMS.map(i=>[i.id,i]));
+const itemStats=(unit,key)=>(unit?.items||[]).reduce((total,id)=>
+ total+(ITEM_BY_ID[id]?.stats?.[key]||0),0);
+const recipeStatus=(unit,id)=>{
+ const item=ITEM_BY_ID[id];if(!item)return null;
+ const recipe=item.recipe||[],owned=(unit?.items||[]).slice(),
+  used=[],missing=[];
+ for(const part of recipe){
+  const at=owned.indexOf(part);
+  if(at>=0){owned.splice(at,1);used.push(part);}
+  else missing.push(part);
+ }
+ const paid=used.reduce((sum,part)=>sum+ITEM_BY_ID[part].price,0);
+ return{item,used,missing,remaining:Math.max(0,item.price-paid),
+   ready:missing.length===0,
+   spacesAfter:(unit?.items?.length||0)-used.length+1};
+};
+function applyItemPurchase(unit,id,ai=false){
+ const item=ITEM_BY_ID[id];
+ if(!item)return{ok:false,reason:'ITEM DESCONHECIDO'};
+ if(unit.hp<=0)return{ok:false,reason:'AGUARDE RESSURGIR'};
+ if(dist(unit,HOME[unit.side])>(ai?245:240))return{ok:false,reason:'COMPRAS APENAS NO SANTUÁRIO'};
+ if(item.tier===2&&(unit.items||[]).includes(id))return{ok:false,reason:'EQUIPAMENTO JÁ COMPLETO'};
+ const recipe=recipeStatus(unit,id);
+ if(recipe.missing.length)return{ok:false,reason:'ADQUIRA OS COMPONENTES ANTES DE COMBINAR'};
+ if(recipe.spacesAfter>6)return{ok:false,reason:'INVENTÁRIO LOTADO (6 ESPAÇOS)'};
+ if(unit.gold<recipe.remaining)return{ok:false,reason:'OURO INSUFICIENTE'};
+ const oldHP=itemStats(unit,'hp'),oldMana=maxMana(unit);
+ for(const part of recipe.used)unit.items.splice(unit.items.indexOf(part),1);
+ unit.items.push(id);unit.gold-=recipe.remaining;
+ const hpDiff=itemStats(unit,'hp')-oldHP;
+ unit.maxHp=Math.max(1,unit.maxHp+hpDiff);
+ unit.hp=clamp(unit.hp+Math.max(0,hpDiff),1,unit.maxHp);
+ const manaDiff=maxMana(unit)-oldMana;
+ unit.mana=clamp(unit.mana+Math.max(0,manaDiff),0,maxMana(unit));
+ return{ok:true,item,cost:recipe.remaining,consumed:recipe.used};
+}
+// Ranks escolhidos pelo jogador, bots evoluem automaticamente.
+// Habilidades básicas: rank 1 inicial, até 5. Ultimate: níveis 5/9/13.
+const BASIC_RANK_MAX=5,ULT_RANK_MAX=3,MAX_HERO_LEVEL=15;
+const skillRank=(unit,id)=>unit?.skillLevels?.[id]||0;
+const skillRankCap=(unit,id)=>{
+ if(!unit||!C.heroes[unit.id])return 0;
+ const ultimate=id===C.heroes[unit.id].ultimate;
+ return ultimate?Math.min(ULT_RANK_MAX,Math.max(0,1+Math.floor((unit.level-5)/4))):
+ Math.min(BASIC_RANK_MAX,Math.max(1,Math.floor((unit.level+1)/2)));
+};
+function upgradeSkill(unit,id){
+ if(!unit||unit.kind!=='hero'||unit.hp<=0||!unit.skillLevels||!Object.hasOwn(unit.skillLevels,id))
+  return{ok:false,reason:'HABILIDADE INVÁLIDA'};
+ if(unit.skillPoints<1)return{ok:false,reason:'SEM PONTOS DE HABILIDADE'};
+ const rank=skillRank(unit,id),cap=skillRankCap(unit,id);
+ if(rank>=cap)return{ok:false,reason:cap===0?'ULTIMATE DISPONÍVEL NO NÍVEL 5':'RANK MÁXIMO PARA ESTE NÍVEL'};
+ unit.skillLevels[id]=rank+1;unit.skillPoints--;
+ if(unit.controlled)announce(C.skills[id].short.toUpperCase()+' · RANK '+(rank+1),1.6);
+ return{ok:true,rank:rank+1};
+}
+function botUpgradeSkills(unit){
+ if(!unit||unit.kind!=='hero'||unit.controlled)return;
+ const h=C.heroes[unit.id],priority={
+  lyria:[h.skills[0],h.skills[2],h.skills[1]],
+  nyra:[h.skills[0],h.skills[1],h.skills[2]],
+  vexor:[h.skills[0],h.skills[1],h.skills[2]],
+  orun:[h.skills[2],h.skills[0],h.skills[1]],
+  seris:[h.skills[1],h.skills[2],h.skills[0]]
+ }[unit.id]||h.skills;
+ while(unit.skillPoints>0){
+  const available=[h.ultimate,...priority].filter(id=>skillRank(unit,id)<skillRankCap(unit,id));
+  if(!available.length)break;
+  const res=upgradeSkill(unit,available[0]);if(!res.ok)break;
+ }
+}
 const state={mode:'menu',time:0,w:W,h:H,camera:{x:0,y:0},units:[],structures:[],projectiles:[],
  effects:[],jungle:[],camps:[],obstacles:[],walls:[],wards:[],brushes:[],sight:[[],[]],seen:[null,null],
  visionUpdate:-1,teamBuffs:[{serpe:0,titan:0},{serpe:0,titan:0}],
@@ -95,13 +193,13 @@ const skillDef=id=>{
   cost:Math.round(original.cost*1.55)};
 };
 const living=(side,kind)=>state.units.filter(u=>u.hp>0&&(side==null||u.side===side)&&(!kind||u.kind===kind));
-const maxMana=u=>320+Math.max(0,(u.level||1)-1)*16+(u.items||[]).filter(i=>i==='cell').length*85;
+const maxMana=u=>320+Math.max(0,(u.level||1)-1)*16+itemStats(u,'mana');
 const WARD_RANGE=280;
 const attackRange=u=>u.kind==='minion'?(u.id==='siege'?215:u.ranged?146:38):u.kind==='creep'?48:
  (u.id==='orun'?65:u.id==='vexor'?65:u.id==='lyria'?187:u.id==='nyra'?178:166);
-const moveSpeed=u=>u.speed*(1+(u.items||[]).filter(i=>i==='stride').length*.17)*(u.slow>0?.62:1);
-const attackDamage=u=>u.atk+(u.items||[]).filter(i=>i==='lens').length*13;
-const spellPower=u=>1+(u.items||[]).filter(i=>i==='prism').length*.19;
+const moveSpeed=u=>u.speed*(1+itemStats(u,'move'))*(u.slow>0?.62:1);
+const attackDamage=u=>u.atk+itemStats(u,'ad');
+const spellPower=u=>1+itemStats(u,'ap');
 const levelXp=level=>42+level*24;
 // Trajetos curvos compartilhados por física, tropas, torres e renderização.
 // Cada esquina vira uma transição quadrática, evitando quinas de 90°.
@@ -378,6 +476,8 @@ function makeHero(id,side,controlled=false){
  y:start.y+d.y*spawnOffset+rando(-11,11),r:id==='orun'?21:17.5,speed:h.move*MOBA_WALK_SCALE,atk:h.damage*.82,
  baseHp:h.hp*1.3,maxHp:Math.round(h.hp*1.3),hp:Math.round(h.hp*1.3),
  mana:320,maxMana:320,level:1,xp:0,gold:controlled?550:350,items:[],
+ skillLevels:Object.fromEntries([...h.skills,h.ultimate].map(id=>[id,id===h.ultimate?0:1])),
+ skillPoints:0,passiveCd:0,surgeUntil:0,
  lane:roles[id],waypoint:side===0?0:ROUTE_PATHS[roles[id]].length-1,attackCd:0,casting:null,
  cooldowns:Object.fromEntries([...h.skills,h.ultimate].map(k=>[k,0])),
  stun:0,slow:0,shield:0,guard:0,invuln:0,marked:0,attackAnim:0,
@@ -441,11 +541,12 @@ function addEffect(x,y,color,r=35,life=.42,kind='wave'){
 function xpGain(hero,amount){
  if(!hero||hero.kind!=='hero'||hero.hp<=0)return;
  hero.xp+=amount;
- while(hero.level<12&&hero.xp>=levelXp(hero.level)){
-  hero.xp-=levelXp(hero.level);hero.level++;
+ while(hero.level<MAX_HERO_LEVEL&&hero.xp>=levelXp(hero.level)){
+  hero.xp-=levelXp(hero.level);hero.level++;hero.skillPoints++;
   hero.maxHp+=31;hero.hp=Math.min(hero.maxHp,hero.hp+28);
   hero.atk+=3;hero.mana=Math.min(maxMana(hero),hero.mana+17);
-  if(hero.controlled)announce('NÍVEL '+hero.level+' · PODERES APRIMORADOS',2);
+  botUpgradeSkills(hero);
+  if(hero.controlled)announce('NÍVEL '+hero.level+' · ESCOLHA UMA HABILIDADE (+)',2.3);
   addEffect(hero.x,hero.y,'#f9d987',85,.58);
  }
 }
@@ -1027,24 +1128,28 @@ function respawn(u){
  addEffect(u.x,u.y,u.side===0?'#82f0e1':'#f8aac3',85,.62);
 }
 function botShop(u){
- if(u.controlled||u.hp<=0||u.items.length>=6||dist(u,HOME[u.side])>200)return;
- const role=u.id;
- const priority=role==='orun'?['ward','stride','core','lens','cell','prism']:
-  role==='seris'?['cell','core','ward','stride','prism','lens']:
-  role==='lyria'?['lens','stride','prism','core','ward','cell']:
-  role==='nyra'?['prism','core','cell','ward','lens','stride']:
-  ['stride','lens','ward','prism','core','cell'];
- const item=priority.map(id=>ITEMS.find(i=>i.id===id)).find(i=>i&&!u.items.includes(i.id)&&u.gold>=i.price);
- if(!item)return;
- u.items.push(item.id);u.gold-=item.price;
- if(item.id==='ward'){u.maxHp+=85;u.hp+=85}
- if(item.id==='cell'){u.maxEnergy=maxMana(u);u.mana=Math.min(maxMana(u),u.mana+30)}
+ if(u.controlled||u.hp<=0||dist(u,HOME[u.side])>245)return;
+ const priorities={
+  orun:['bulwark','titanplate','hourglass','swiftboots'],
+  seris:['deepsea','titanplate','hourglass','archmage'],
+  lyria:['astralbow','swiftboots','stormblade','bulwark'],
+  nyra:['archmage','deepsea','hourglass','swiftboots'],
+  vexor:['stormblade','swiftboots','astralbow','bulwark']
+ }[u.id]||['bulwark'];
+ for(const id of priorities){
+  if(u.items.includes(id))continue;
+  const status=recipeStatus(u,id);if(!status)continue;
+  const toBuy=status.missing.length?status.missing[0]:id;
+  if(!applyItemPurchase(u,toBuy,true).ok)continue;
+  // Outra componente é comprada na próxima visita / pulso.
+  break;
+ }
 }
 function botUseSkill(u,target){
  if(!u||u.stun>0||u.casting||u.dash||u.aiTimer>0)return false;
  const kit=hData(u.id),friendlies=living(u.side,'hero'),enemies=living(1-u.side,'hero').filter(e=>visibleTo(u.side,e));
  const ready=id=>id&&u.cooldowns[id]<=.01&&u.mana>=skillDef(id).cost&&
-   (!skillDef(id).ultimate||u.level>=5);
+   skillRank(u,id)>0;
  const r=dist(u,target),nearEnemies=enemies.filter(e=>dist(e,u)<240).length;
  const wounded=friendlies.filter(a=>dist(a,u)<295&&a.hp/a.maxHp<.74)
   .sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
@@ -1380,7 +1485,7 @@ function cast(u,id,aim=null,autoTarget=null){
  if(![...hData(u.id).skills,hData(u.id).ultimate].includes(id))return false;
  const def=skillDef(id);
  if(u.casting||u.dash||u.cooldowns[id]>0||u.mana<def.cost||u.stun>0)return false;
- if(def.ultimate&&u.level<5)return false;
+ if(def.ultimate&&u.level<5||skillRank(u,id)===0)return false;
  const target=autoTarget||((def.aim==='self')?u:nearestEnemy(u,def.range||350,false));
  const dx=aim?.x??(target?target.x-u.x:1),dy=aim?.y??(target?target.y-u.y:0);
  const dir=norm(id==='lyria_step'&&!aim&&target&&target.kind==='hero'&&dist(u,target)<100?-dx:dx,
@@ -1391,9 +1496,10 @@ function cast(u,id,aim=null,autoTarget=null){
   const wounded=living(u.side,'hero').filter(h=>dist(h,u)<range).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
   if(wounded)center={x:wounded.x,y:wounded.y};
  }
- const maxLv=id===hData(u.id).ultimate?Math.min(3,1+Math.floor((u.level-5)/3)):Math.min(5,1+Math.floor((u.level-1)/2));
- const haste=(u.items||[]).filter(i=>i==='core').length*.15;
- u.cooldowns[id]=def.cd*(1-haste)*(1-.045*(maxLv-1));
+ const maxLv=skillRank(u,id);
+ if(maxLv<=0)return false;
+ const haste=Math.min(.42,itemStats(u,'haste'));
+ u.cooldowns[id]=Math.max(.8,def.cd*(1-haste)*(1-.065*(maxLv-1)));
  u.mana-=def.cost;
  if(u.recall>0){u.recall=0;if(u.controlled)announce('RETORNO CANCELADO: HABILIDADE',1.2)}
  const c={id,dir,center,level:maxLv,time:Math.max(0,def.cast),total:Math.max(0,def.cast)};
@@ -1583,11 +1689,11 @@ function tickUnit(u,dt){
  }
  if(u.kind==='hero'){
   u.visionCd=Math.max(0,(u.visionCd||0)-dt);
-  u.gold=Math.min(20000,u.gold+dt*1.15);
-  u.mana=clamp(u.mana+dt*((dist(u,HOME[u.side])<160?27:4.2)+
+  u.gold=Math.min(20000,u.gold+dt*1.8);
+  u.mana=clamp(u.mana+dt*((dist(u,HOME[u.side])<160?27:4.2+itemStats(u,'regen'))+
     (state.teamBuffs[u.side].serpe>state.time?2.4:0)),0,maxMana(u));
   u.aiTimer-=dt;
-  u.hp=Math.min(u.maxHp,u.hp+dt*(dist(u,HOME[u.side])<150?24:1.15+
+  u.hp=Math.min(u.maxHp,u.hp+dt*(dist(u,HOME[u.side])<150?24:1.15+itemStats(u,'regen')*.35+
    (state.teamBuffs[u.side].serpe>state.time?1.65:0)));
   if(u.recall>0){
    if(u.controlled){u.recall-=dt;if(u.recall<=0){
@@ -1672,19 +1778,13 @@ function step(dt,movement={x:0,y:0}){
  if(state.units.length>240)state.units=state.units.filter(u=>u.kind==='hero'||u.hp>0);
 }
 function buyItem(id){
- const hero=state.hero,item=ITEMS.find(x=>x.id===id);
- if(!hero||!item||state.mode!=='playing')return{ok:false,reason:'Partida indisponível'};
- if(hero.hp<=0)return{ok:false,reason:'Aguarde ressurgir'};
- if(dist(hero,HOME[0])>240)return{ok:false,reason:'Compras apenas no santuário (base)'};
- if(hero.items.includes(id))return{ok:false,reason:'Você já possui esse equipamento'};
- if(hero.items.length>=6)return{ok:false,reason:'Inventário completo (6 itens)'};
- if(hero.gold<item.price)return{ok:false,reason:'Ouro insuficiente'};
- hero.gold-=item.price;hero.items.push(id);
- if(id==='ward'){hero.maxHp+=85;hero.hp+=85;}
- if(id==='cell'){hero.mana+=30;hero.maxEnergy=maxMana(hero);}
+ const hero=state.hero;
+ if(!hero||state.mode!=='playing')return{ok:false,reason:'PARTIDA INDISPONÍVEL'};
+ const result=applyItemPurchase(hero,id);
+ if(!result.ok)return result;
  addEffect(hero.x,hero.y,'#fbe1a1',58,.44);
- announce(item.name.toUpperCase()+' EQUIPADO',1.6);
- return{ok:true};
+ announce(result.item.name.toUpperCase()+(result.consumed.length?' · COMBINADO!':' ADQUIRIDO'),1.8);
+ return result;
 }
 function recall(){
  const p=state.hero;
@@ -1696,6 +1796,6 @@ function recall(){
  return true;
 }
 window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,hData,skillDef,
- start,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,isAttackCommandValid,buyItem,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
+ start,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,isAttackCommandValid,buyItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
 })();
