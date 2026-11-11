@@ -870,7 +870,8 @@ E.start('lyria');
 {
  const match=E.start('zhira',['smite','freecast']),hunter=match.hero;
  assert.equal(hunter.summoners.join(','),'smite,freecast','Escolha de feitiços não chegou à partida');
- assert.equal(E.skillRank(hunter,'zhira_strike'),1,'Apenas a primeira habilidade começa desbloqueada');
+ assert.equal(E.skillRank(hunter,'zhira_strike'),0,'Nenhuma habilidade começa desbloqueada');
+ assert.ok(E.upgradeSkill(hunter,'zhira_strike').ok,'Caçador escolhe a primeira habilidade');
  assert.equal(E.skillRank(hunter,'zhira_pounce'),0,'Segundo poder deve iniciar bloqueado');
  assert.equal(E.skillRank(hunter,'zhira_trap'),0,'Terceiro poder deve iniciar bloqueado');
  assert.equal(E.skillRank(hunter,'zhira_ult'),0,'Ultimate deve iniciar bloqueada');
