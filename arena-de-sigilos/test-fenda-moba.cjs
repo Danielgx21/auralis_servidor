@@ -1364,4 +1364,23 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
   html.includes('fenda-engine.js?v=9.9'),
   'Cache deve carregar versão 9.9');
 }
+// Mira de AA desliga ataque automático apenas durante seleção manual.
+{
+ const m=E.start('lyria'),h=m.hero,enemy=m.units.find(u=>u.side===1&&u.kind==='hero');
+ m.units=[h,enemy];m.structures=[];m.walls=[];m.obstacles=[];m.camps=[];m.nextWave=99999;
+ h.x=1550;h.y=1450;h.attackCd=0;
+ enemy.x=1650;enemy.y=1450;enemy.stun=4;
+ E.refreshVision(true);
+ m.attackAimActive=true;
+ for(let i=0;i<4;i++)E.step(.05,{x:0,y:0});
+ assert.equal(h.attackCd,0,'Durante o arrasto não pode atacar o alvo automático errado');
+ m.attackAimActive=false;
+ E.step(.05,{x:0,y:0});
+ assert.ok(h.attackCd>0,'Ao terminar a seleção, o ataque automático deve voltar');
+ const v=read('fenda-view.js'),engine=read('fenda-engine.js');
+ assert.ok(v.includes('S.attackAimActive=true;')&&v.includes('S.attackAimActive=false;'),
+  'Arrasto não suspende e reativa corretamente a seleção automática');
+ assert.ok(engine.includes('!state.attackAimActive&&'),
+  'O motor precisa respeitar a mira manual do jogador');
+}
 console.log('OK: V9.9 torre automática, foco forçado, AA arrastável e sem botões centrais.');
