@@ -880,7 +880,10 @@ function autoAttack(u){
  if(u.hp<=0||u.attackCd>0||u.casting||u.stun>0)return false;
  const target=findAA(u);if(!target)return false;
  if(u.recall>0){u.recall=0;if(u.controlled)announce('RETORNO CANCELADO: ATAQUE',1.2)}
- const attackFactor=u.kind==='hero'?HERO_AA_SPEED_FACTOR[u.id]||1:1;
+ if(u.id==='sahra'&&u.shroudUntil>state.time)u.shroudBreakUntil=state.time+.85;
+ let attackFactor=u.kind==='hero'?HERO_AA_SPEED_FACTOR[u.id]||1:1;
+ if(u.kind==='hero'&&u.id==='lyria'&&u.windUntil>state.time)
+  attackFactor*=1-Math.min(.29,(u.windStacks||0)*.072);
  u.attackCd=u.kind==='hero'?
   Math.max(.52,hData(u.id).attackTime*attackFactor*
    (1-Math.min(.20,Math.max(0,u.level-1)*.014))):
@@ -904,9 +907,21 @@ function autoAttack(u){
   // Passivas de classe adicionam identidade sem bônus contra estruturas.
   if(target.kind!=='tower'&&target.kind!=='core'){
    u.passiveAttacks=(u.passiveAttacks||0)+1;
-   if(u.id==='lyria'&&u.passiveAttacks%3===0)damageVal+=12;
+   if(u.id==='lyria'){
+    u.windStacks=u.windUntil>state.time?Math.min(4,(u.windStacks||0)+1):1;
+    u.windUntil=state.time+4.1;
+    if(u.windStacks===4)damageVal+=12+u.level*1.4;
+   }
    if(u.id==='nyra'&&u.passiveAttacks%3===0)damageVal+=14;
-   if(u.id==='tessa'&&state.time-(u.stillSince??state.time)>1.05)damageVal+=7+u.level;
+   if(u.id==='tessa'){
+    if(state.time-(u.stillSince??state.time)>1.1)damageVal+=18+u.level*2;
+    if(u.loadedRoundUntil>state.time){damageVal+=33+u.level*2;u.loadedRoundUntil=0;
+     addEffect(u.x,u.y,'#ffe49b',42,.32,'burst');}
+   }
+   if(u.id==='sahra'&&target.kind==='hero'&&target.sahraMarkUntil>state.time){
+    damageVal+=Math.round(19+u.level*2.3);target.sahraMarkUntil=0;
+    heal(u,Math.round(5+u.level*.6));
+   }
    if(u.items.includes('barrage')&&u.passiveAttacks%3===0)damageVal+=19+u.level;
    if(u.items.includes('phantomfang')&&target.kind==='hero'&&target.hp/target.maxHp<.4)damageVal+=15+u.level*.6;
    if(u.id==='vexor'&&u.empoweredUntil>state.time){
@@ -921,8 +936,7 @@ function autoAttack(u){
  if(u.kind==='hero'){
   if(u.id==='vexor'&&target.kind==='hero'&&target.marked>0)
    damageVal+=Math.round(9+u.level*.8);
-  if(u.id==='lyria'&&target.kind==='hero'&&u.passiveAttacks%3===0)
-   damageVal+=Math.round(3+u.level*.6);
+  // O dano da Lyria vem de suas cargas de Ímpeto, não de um crítico genérico.
   if(u.huntUntil>state.time)damageVal+=Math.round(6+u.level*.8);
   if(u.id==='zhira'&&['camp','buff','boss'].includes(target.kind))damageVal*=1.23;
   if(u.items.includes('huntress')&&['camp','buff','boss'].includes(target.kind))damageVal*=1.17;
