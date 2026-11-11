@@ -1386,7 +1386,7 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
 // Regressão: HUD sem referência indefinida não pode congelar os 10 campeões.
 {
  const v=read('fenda-view.js');
- const match=v.match(/const shortSummonerEffect\\s*=\\s*(\\{[\\s\\S]*?\\});/);
+ const match=v.match(/const shortSummonerEffect\s*=\s*(\{[\s\S]*?\});/);
  assert.ok(match,'O painel de feitiços precisa definir seus rótulos antes do primeiro frame');
  const labels=vm.runInNewContext('('+match[1]+')');
  for(const id of Object.keys(E.SUMMONERS))
