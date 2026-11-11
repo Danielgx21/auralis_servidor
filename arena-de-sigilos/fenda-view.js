@@ -804,8 +804,9 @@ function hudUpdate(){
  $('fendaObjectives').textContent='SERPE '+bossStatus('serpe')+' · TITÃ '+bossStatus('titan')+
    (buffNames.length?' · BÊNÇÃO '+buffNames.join(' / '):'')+tacticalLabel;
  const towers=towerList;
- $('fendaInfo').textContent='OBELISCOS · AZUL '+towers.filter(t=>t.side===0).length+
-   ' / RUBRO '+towers.filter(t=>t.side===1).length+' · '+h.cs+' tropas';
+ const phaseText={laning:'ROTAS',objectives:'OBJETIVOS',siege:'CERCO FINAL'}[S.phase]||'ROTAS';
+ $('fendaInfo').textContent=phaseText+' · TORRES AZUL '+towers.filter(t=>t.side===0).length+
+   ' / RUBRO '+towers.filter(t=>t.side===1).length+' · '+h.cs+' CS';
  $('fendaNotice').style.display=S.time<S.noticeUntil?'block':'none';$('fendaNotice').textContent=S.notice;
  const kit=C.heroes[h.id].skills.concat([C.heroes[h.id].ultimate]);
  for(let i=0;i<kit.length;i++){
@@ -1132,15 +1133,15 @@ function chooseHero(){
  if(['zhira','vexor'].includes(selected)&&!pickedSummoners.includes('smite')){
   pickedSummoners=['smite',pickedSummoners[0]];saveSummoners();
  }
- $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 9.3</div><h2>FENDA DOS SIGILOS</h2>'+ 
- '<p>Três rotas, dez campeões com funções próprias, dois feitiços selecionáveis e quatorze equipamentos finais.</p>'+ 
+ $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 9.4</div><h2>FENDA DOS SIGILOS</h2>'+ 
+ '<p>Dez campeões com retratos próprios, combate com ritmo por classe e bots que cooperam em emboscadas e objetivos.</p>'+ 
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span class="fenda-hero-portrait">'+championPortrait(id)+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
  '<div class="fenda-hero-detail"><strong>'+hero.name+' · '+hero.role+'</strong><p>'+hero.summary+' <br><b>PASSIVA:</b> '+hero.passive+'</p><span>HABILIDADE INICIAL: '+C.skills[hero.skills[0]].name+' · A segunda e a terceira são aprendidas subindo de nível. Ultimate no nível 5.</span></div>'+
  '<div class="fenda-summoner-title">ESCOLHA 2 FEITIÇOS <small>F / G NO PC</small></div>'+
  '<div class="fenda-summoner-picker">'+Object.entries(E.SUMMONERS).map(([id,sp])=>
  '<button type="button" data-pick-spell="'+id+'" class="'+(pickedSummoners.includes(id)?'picked':'')+'" title="'+sp.desc+'"><b>'+sp.icon+'</b><span>'+sp.name+'</span><small>'+sp.cd+'s</small><em>'+sp.desc+'</em></button>').join('')+'</div>'+
- '<div class="teamfight-tip">5×5 com bots táticos · 8 pré-itens e 14 receitas · níveis destravam habilidades · Selo da Caça para selva e grandes objetivos.</div>'+ 
+ '<div class="teamfight-tip">9.4 · Início, disputa de objetivos e cerco final · ataque e movimentação precisos · 8 pré-itens, 14 receitas e 2 feitiços por campeão.</div>'+ 
  '<div class="actions" style="margin-top:10px"><button class="primary" id="playFenda">▶ JOGAR FENDA 5×5</button><button class="secondary" id="playClassic">MODO ARENA RÁPIDA</button></div>'+
  '<p style="font-size:10px;margin:9px 0 0">AA automático ao ficar parado, quando um inimigo entrar no alcance. PC: segure e arraste o clique no mapa para seguir o ponteiro; solte para parar. Celular: joystick + toque para AA manual. Evolua habilidades em +. TAB placar, P loja, B retorno.</p>';
  for(const b of $('modalContent').querySelectorAll('[data-hero]'))b.onclick=()=>{
