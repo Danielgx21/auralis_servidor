@@ -1867,6 +1867,78 @@ function castSummoner(u,id,target=null,aim=null){
  if(u.controlled)announce(SUMMONERS[id].name.toUpperCase(),1.1);
  return true;
 }
+// Uma única rotina de acerto mantém marca, corrente e execução consistentes.
+function skillHit(target,source,id,baseDamage,mods={}){
+ if(!target||target.hp<=0)return 0;
+ let amount=Math.max(1,baseDamage);
+ if(id==='tessa_shot'&&target.kind==='hero')
+  amount*=1+Math.min(.65,Math.max(0,dist(source,target)-95)/500);
+ if(id==='tessa_ult'&&target.kind==='hero')
+  amount*=1+Math.min(1.1,1-target.hp/Math.max(1,target.maxHp));
+ if(id==='sahra_ult'&&mods.stage2&&target.kind==='hero')
+  amount*=1+.8*(1-target.hp/Math.max(1,target.maxHp));
+ if(source?.id==='mirielle'&&target.kind==='hero'){
+  const active=target.mirrorMarkUntil>state.time&&target.mirrorMarkSource===source.uid;
+  if(active&&id!=='mirielle_sigil'){
+   amount+=Math.round(29+source.level*3.2);
+   target.mirrorMarkUntil=0;
+   addEffect(target.x,target.y,'#d7acff',51,.37,'burst');
+  }else if(['mirielle_sigil','mirielle_ult'].includes(id)){
+   if(active)amount+=Math.round(25+source.level*2.5);
+   target.mirrorMarkUntil=state.time+4;
+   target.mirrorMarkSource=source.uid;
+  }
+  if(id==='mirielle_chain'||mods.echoType==='chain'){
+   target.tetherUntil=state.time+1.05;
+   target.tetherSource=source;
+   target.slow=Math.max(target.slow,.9);
+  }
+ }
+ const hit=damage(target,Math.round(amount),source);
+ if(source?.id==='sahra'&&target.kind==='hero'&&
+  ['sahra_knives','sahra_flip','sahra_ult'].includes(id)){
+  target.sahraMarkUntil=state.time+4.0;
+  if(id==='sahra_ult'&&mods.stage2)target.sahraMarkUntil=0;
+ }
+ return hit;
+}
+function launchSkillLine(source,id,dir,range,damageValue,radius,extra={}){
+ state.projectiles.push({x:source.x+dir.x*23,y:source.y+dir.y*23,
+  source,side:source.side,skillId:id,
+  vx:dir.x*(id==='tessa_shot'||id==='tessa_ult'?720:580),
+  vy:dir.y*(id==='tessa_shot'||id==='tessa_ult'?720:580),
+  range,travel:0,damage:damageValue,r:radius,life:2.3,
+  kind:'skillline',pierce:!!extra.pierce,hitIds:new Set(),
+  echoType:extra.echoType||null,color:hData(source.id).color,
+  stun:extra.stun||0,slow:extra.slow||0});
+}
+function tickZones(dt){
+ const now=state.time;
+ for(const z of state.zones){
+  if(z.until<=now||!z.source||z.source.hp<=0)continue;
+  if(z.kind==='arrowstorm'){
+   if(z.nextPulse>now)continue;
+   z.nextPulse=now+z.period;
+   for(const enemy of living(1-z.side)){
+    if(dist(z,enemy)>z.r+enemy.r)continue;
+    damage(enemy,z.damage,z.source);
+    enemy.slow=Math.max(enemy.slow,z.slow);
+   }
+   addEffect(z.x,z.y,z.color,z.r*.76,.30,'blast');
+  }else if(z.kind==='trap'){
+   const victims=living(1-z.side).filter(e=>dist(z,e)<z.r+e.r)
+    .sort((a,b)=>(a.kind==='hero'?-10:0)-(b.kind==='hero'?-10:0)||dist(a,z)-dist(b,z));
+   if(victims.length){
+    const enemy=victims[0];
+    skillHit(enemy,z.source,'tessa_salvo',z.damage);
+    enemy.stun=Math.max(enemy.stun,.46);
+    enemy.slow=Math.max(enemy.slow,2.3);
+    z.until=now;addEffect(z.x,z.y,z.color,z.r,.58,'burst');
+   }
+  }
+ }
+ state.zones=state.zones.filter(z=>z.until>now&&z.source?.hp>0);
+}
 function releaseSkill(u,c){
  if(!u||u.hp<=0)return;
  const id=c.id,def=skillDef(id),power=spellPower(u,id),enemy=1-u.side,lv=c.level;
@@ -2052,11 +2124,12 @@ function tickProjectiles(dt){
    const endX=ax+(bx-ax)*fraction,endY=ay+(by-ay)*fraction;
    let first=null,firstT=Infinity;
    for(const u of living(1-p.side)){
+    if(p.hitIds?.has(u.uid))continue;
     const hit=segmentHit(ax,ay,endX,endY,u.x,u.y,u.r+p.r);
     if(hit!==null&&hit<firstT){firstT=hit;first={kind:'unit',target:u}}
    }
    for(const c of state.camps){
-    if(c.hp<=0||c.unlock&&state.time<c.unlock)continue;
+    if(c.hp<=0||c.unlock&&state.time<c.unlock||p.hitIds?.has(c.id))continue;
     const hit=segmentHit(ax,ay,endX,endY,c.x,c.y+(c.hover||0),28+p.r);
     if(hit!==null&&hit<firstT){firstT=hit;first={kind:'creep',target:c}}
    }
@@ -2085,11 +2158,25 @@ function tickProjectiles(dt){
    p.travel+=Math.hypot(p.x-ax,p.y-ay);
    if(first){
     if(first.kind==='unit'){
-     damage(first.target,p.damage,p.source);
+     skillHit(first.target,p.source,p.skillId||'',p.damage,{echoType:p.echoType});
      first.target.stun=Math.max(first.target.stun,p.stun||0);
      first.target.slow=Math.max(first.target.slow,p.slow||0);
-    }else if(first.kind==='creep')damageCreep(first.target,Math.round(p.damage*(p.source?.id==='zhira'?1.40:1)),p.source);
-    addEffect(p.x,p.y,p.color,p.r+14,.23,'hit');p.life=0;
+     p.hitIds?.add(first.target.uid);
+    }else if(first.kind==='creep'){
+     damageCreep(first.target,Math.round(p.damage*(p.source?.id==='zhira'?1.40:1)),p.source);
+     p.hitIds?.add(first.target.id);
+    }
+    addEffect(p.x,p.y,p.color,p.r+14,.23,'hit');
+    // Flecha dos Ventos e tiros de elite atravessam tropas. A ultimate de
+    // Tessa encerra no PRIMEIRO campeão; paredes sempre interrompem tiros.
+    if(first.kind==='terrain'||!p.pierce||
+       p.skillId==='tessa_ult'&&first.target.kind==='hero')p.life=0;
+    else{
+     p.x+=Math.sign(p.vx)*6;p.y+=Math.sign(p.vy)*6;
+     p.travel+=8;
+     if(p.hitIds.size>0)p.damage=Math.max(8,Math.round(p.damage*.84));
+     if(p.travel>=p.range-.01)p.life=0;
+    }
    }else if(p.travel>=p.range-.01)p.life=0;
   }else{
    const dx=p.tx-p.x,dy=p.ty-p.y,d=Math.hypot(dx,dy)||1,step=p.speed*dt;
@@ -2115,6 +2202,18 @@ function tickUnit(u,dt){
   return;
  }
  u.stun=Math.max(0,u.stun-dt);u.slow=Math.max(0,u.slow-dt);
+ if(u.kind==='hero'){
+  if(u.id==='lyria'&&u.windUntil<state.time)u.windStacks=0;
+  if(u.id==='mirielle'&&u.mirrorReturn?.until<=state.time)u.mirrorReturn=null;
+  if(u.id==='sahra'&&u.shroudUntil<state.time)u.shroudCenter=null;
+ }
+ if(u.tetherUntil>0&&u.tetherUntil<=state.time){
+  if(u.tetherSource?.hp>0&&dist(u,u.tetherSource)<375){
+   u.stun=Math.max(u.stun,.85);
+   addEffect(u.x,u.y,'#cf9cf6',39,.44,'burst');
+  }
+  u.tetherUntil=0;u.tetherSource=null;
+ }
  if(u.kind==='hero'&&u.burnUntil>state.time&&u.burnSource){
   u.burnPulse=(u.burnPulse||0)+dt;
   if(u.burnPulse>=.5){
@@ -2184,7 +2283,11 @@ function tickUnit(u,dt){
    for(const target of living(1-u.side)){
     if(d.hit.has(target.uid))continue;
     const hit=Math.hypot(target.x-u.x,target.y-u.y)<target.r+u.r+d.radius*.5;
-    if(hit){d.hit.add(target.uid);if(d.dmg>0)damage(target,d.dmg,u);target.stun=Math.max(target.stun,d.stun)}
+    if(hit){
+     d.hit.add(target.uid);
+     if(d.dmg>0)skillHit(target,u,d.skillId||'',d.dmg,{stage2:d.stage2});
+     target.stun=Math.max(target.stun,d.stun);
+    }
    }
    d.t-=dt;if(d.t<=0)u.dash=null;
    addEffect(ox,oy,hData(u.id).color,21,.21);
