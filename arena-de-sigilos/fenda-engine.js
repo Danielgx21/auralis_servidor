@@ -59,7 +59,7 @@ const JUNGLE_RIDGES=[
  {id:'mid-3',half:30,pts:[[1095,1970],[1335,1790]]},
  {id:'mid-4',half:30,pts:[[1560,1615],[1680,1525]]}
 ];
-const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1,brax:0,zhira:1,rokar:0,kaelis:1,tessa:2};
+const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1,brax:0,zhira:1,rokar:0,kaelis:1,tessa:2,sahra:1,mirielle:2};
 // Componentes e receitas. Custo final é SEMPRE o preço total do produto;
 // comprar pré-itens abate ouro e libera espaços ao combiná-los.
 const ITEMS=[
@@ -183,7 +183,9 @@ function botUpgradeSkills(unit){
  zhira:[h.skills[0],h.skills[1],h.skills[2]],
  kaelis:[h.skills[0],h.skills[1],h.skills[2]],
  rokar:[h.skills[0],h.skills[2],h.skills[1]],
- tessa:[h.skills[0],h.skills[2],h.skills[1]]
+ tessa:[h.skills[0],h.skills[2],h.skills[1]],
+ sahra:[h.skills[0],h.skills[2],h.skills[1]],
+ mirielle:[h.skills[0],h.skills[1],h.skills[2]]
  }[unit.id]||h.skills;
  while(unit.skillPoints>0){
   const ult=skillRank(unit,h.ultimate)<skillRankCap(unit,h.ultimate)?h.ultimate:null;
@@ -196,7 +198,7 @@ function botUpgradeSkills(unit){
 const state={mode:'menu',time:0,w:W,h:H,camera:{x:0,y:0},units:[],structures:[],projectiles:[],
  effects:[],jungle:[],camps:[],obstacles:[],walls:[],wards:[],brushes:[],sight:[[],[]],seen:[null,null],
  visionUpdate:-1,teamBuffs:[{serpe:0,titan:0},{serpe:0,titan:0}],
- hero:null,focused:null,kills:[0,0],wave:0,nextWave:4,phase:'laning',
+ hero:null,focused:null,kills:[0,0],wave:0,nextWave:4,phase:'laning',zones:[],
  flash:0,score:0,marker:null,shopOpen:false,showPause:false,notice:'',noticeUntil:0,
  nextObjectives:50,buffUntil:0,win:null,selectedHero:'lyria',seq:0,sounds:true};
 const rando=(a,b)=>a+Math.random()*(b-a),hData=id=>C.heroes[id];
@@ -212,7 +214,9 @@ const MOBA_SKILL_RANGES={
  zhira_strike:[246,20],zhira_pounce:[126,29],zhira_trap:[228,63],zhira_ult:[0,92],
  kaelis_lance:[308,17],kaelis_frost:[230,67],kaelis_veil:[0,90],kaelis_ult:[280,113],
  rokar_charge:[126,36],rokar_guard:[0,110],rokar_pulse:[0,112],rokar_ult:[0,154],
- tessa_shot:[318,16],tessa_roll:[120,0],tessa_salvo:[245,77],tessa_ult:[352,21]
+ tessa_shot:[390,13],tessa_roll:[116,0],tessa_salvo:[240,72],tessa_ult:[570,19],
+ sahra_knives:[215,37],sahra_shroud:[0,120],sahra_flip:[155,31],sahra_ult:[192,40],
+ mirielle_sigil:[305,17],mirielle_distort:[196,48],mirielle_chain:[303,17],mirielle_ult:[320,38]
 };
 const MOBA_SKILL_CACHE={};
 const skillDef=id=>{
@@ -227,15 +231,16 @@ const skillDef=id=>{
 const living=(side,kind)=>state.units.filter(u=>u.hp>0&&(side==null||u.side===side)&&(!kind||u.kind===kind));
 const maxMana=u=>320+Math.max(0,(u.level||1)-1)*16+itemStats(u,'mana');
 const WARD_RANGE=280;
-const HERO_AA_RANGE={orun:67,vexor:72,lyria:195,nyra:180,seris:176,brax:72,zhira:70,kaelis:183,rokar:70,tessa:205};
-const HERO_AA_DAMAGE_FACTOR={orun:.78,vexor:.92,lyria:.95,nyra:.75,seris:.79,brax:.86,zhira:.83,kaelis:.77,rokar:.77,tessa:.91};
-const HERO_AA_SPEED_FACTOR={orun:1.08,vexor:.98,lyria:.86,nyra:1.04,seris:1.09,brax:1.04,zhira:.99,kaelis:1.02,rokar:1.07,tessa:.90};
+const HERO_AA_RANGE={orun:67,vexor:72,lyria:185,nyra:180,seris:176,brax:72,zhira:70,kaelis:183,rokar:70,tessa:224,sahra:69,mirielle:174};
+const HERO_AA_DAMAGE_FACTOR={orun:.78,vexor:.92,lyria:.82,nyra:.75,seris:.79,brax:.86,zhira:.83,kaelis:.77,rokar:.77,tessa:1.08,sahra:.91,mirielle:.78};
+const HERO_AA_SPEED_FACTOR={orun:1.08,vexor:.98,lyria:.86,nyra:1.04,seris:1.09,brax:1.04,zhira:.99,kaelis:1.02,rokar:1.07,tessa:1.06,sahra:.95,mirielle:1.05};
 const attackRange=u=>u.kind==='minion'?(u.id==='siege'?207:u.ranged?140:38):
- u.kind==='creep'?48:(HERO_AA_RANGE[u.id]||170);
+ u.kind==='creep'?48:(HERO_AA_RANGE[u.id]||170)+
+ (u.id==='tessa'&&state.time-(u.stillSince??state.time)>1.1?43:0);
 const moveSpeed=u=>u.speed*(1+Math.min(.24,itemStats(u,'move'))+(u.huntUntil>state.time?.13:0))*(u.slow>0?.62:1);
 const attackDamage=u=>u.atk+itemStats(u,'ad');
 const spellPower=(u,id)=>1+itemStats(u,'ap')+
- (id&&['lyria','vexor','orun','brax','zhira','rokar','tessa'].includes(u.id)?itemStats(u,'ad')*.005:0);
+ (id&&['lyria','vexor','orun','brax','zhira','rokar','tessa','sahra'].includes(u.id)?itemStats(u,'ad')*.005:0);
 const levelXp=level=>42+level*24;
 // Trajetos curvos compartilhados por física, tropas, torres e renderização.
 // Cada esquina vira uma transição quadrática, evitando quinas de 90°.
@@ -342,6 +347,9 @@ function visibleTo(team,object){
  if(object.side===team)return true;
  if(object.kind==='core'||object.kind==='tower')return true; // Estruturas são conhecidas no mapa.
  if(object.revealUntil&&object.revealUntil[team]>state.time)return true;
+ if(object.id==='sahra'&&object.side!==team&&object.shroudUntil>state.time&&
+  state.time>=(object.shroudBreakUntil||0)&&object.shroudCenter&&
+  dist(object,object.shroudCenter)<118)return false;
  if(!isPointVisible(team,object))return false;
  const brush=brushAt(object);
  if(!brush)return true;
@@ -519,6 +527,8 @@ function makeHero(id,side,controlled=false){
  mana:320,maxMana:320,level:1,xp:0,gold:controlled?550:350,items:[],
  skillLevels:Object.fromEntries([...h.skills,h.ultimate].map((id,index)=>[id,index===0?1:0])),
  skillPoints:0,passiveCd:0,surgeUntil:0,huntUntil:0,manaFreeUntil:0,
+ windStacks:0,windUntil:0,loadedRoundUntil:0,shroudUntil:0,shroudBreakUntil:0,
+ sahraSecondUntil:0,mirrorReturn:null,mirrorLastSpell:null,mirrorEchoUntil:0,
  summoners:['flash','ignite'],summonerCooldowns:{},
  lane:roles[id],waypoint:side===0?0:ROUTE_PATHS[roles[id]].length-1,attackCd:0,casting:null,
  cooldowns:Object.fromEntries([...h.skills,h.ultimate].map(k=>[k,0])),
@@ -526,7 +536,7 @@ function makeHero(id,side,controlled=false){
  vision:350,death:0,respawn:0,recall:0,lastDamage:0,focus:null,
  aiTimer:rando(.6,1.8),visionCd:0,jungleGoal:null,gankUntil:0,kills:0,deaths:0,assists:0,
  recentDamagers:[],dash:null,commandTarget:null,
- healthRegen:1.3,homeBuff:0,botLane:roles[id],cs:0,focusTarget:null,focusUntil:0,isRanged:!['vexor','orun','brax','zhira','rokar'].includes(id)};
+ healthRegen:1.3,homeBuff:0,botLane:roles[id],cs:0,focusTarget:null,focusUntil:0,isRanged:!['vexor','orun','brax','zhira','rokar','sahra'].includes(id)};
 }
 function createMinion(side,lane,type=0,slot=0){
  const t=side===0?.035:.965,p=pathPos(lane,t),ranged=type>=1,siege=type===2;
@@ -548,7 +558,7 @@ function createMinion(side,lane,type=0,slot=0){
  invuln:0,attackAnim:0,death:0,lastDamage:0};
 }
 function start(hero='lyria',summoners=null){
- state.mode='playing';state.time=0;state.units=[];state.projectiles=[];state.effects=[];
+ state.mode='playing';state.time=0;state.units=[];state.projectiles=[];state.effects=[];state.zones=[];
  state.selectedHero=C.heroes[hero]?hero:'lyria';state.hero=null;state.structures=[];
  state.phase='laning';
  state.kills=[0,0];state.win=null;state.marker=null;state.nextWave=5;state.wave=0;
@@ -559,12 +569,12 @@ function start(hero='lyria',summoners=null){
  buildMap();
  // Cada time mantém TOP, SELVA, MEIO, ATIRADOR e SUPORTE.
  const blue=['orun','zhira','nyra','lyria','seris'];
- const heroSlot={brax:0,rokar:0,vexor:1,kaelis:2,tessa:3};
+ const heroSlot={brax:0,rokar:0,vexor:1,sahra:1,kaelis:2,mirielle:2,tessa:3};
  if(!blue.includes(state.selectedHero))blue[heroSlot[state.selectedHero]??0]=state.selectedHero;
  const playerIndex=blue.indexOf(state.selectedHero);
  blue.splice(playerIndex,1);blue.unshift(state.selectedHero);
  // Alternância de arquétipos no rubro: Brax e Vexor também são bots oponentes.
- const red=['rokar','vexor','kaelis','tessa','seris'];
+ const red=['rokar','sahra','mirielle','tessa','seris'];
  for(let i=0;i<blue.length;i++){
   const u=makeHero(blue[i],0,i===0);state.units.push(u);if(i===0)state.hero=u;
  }
@@ -572,12 +582,12 @@ function start(hero='lyria',summoners=null){
  state.hero.lane=roles[state.hero.id];
  state.hero.summoners=Array.isArray(summoners)&&summoners.length===2&&
   summoners.every(id=>SUMMONERS[id])&&summoners[0]!==summoners[1]?
-  summoners.slice():['zhira','vexor'].includes(state.hero.id)?['smite','flash']:['flash','ignite'];
+  summoners.slice():['zhira','vexor','sahra'].includes(state.hero.id)?['smite','flash']:['flash','ignite'];
  for(const side of [0,1]){
   const units=state.units.filter(u=>u.kind==='hero'&&u.side===side);
   const bots=units.filter(u=>!u.controlled);
-  const playerJungle=units.some(u=>u.controlled&&(['zhira','vexor'].includes(u.id)||u.summoners.includes('smite')));
-  const jungler=playerJungle?null:bots.find(u=>u.id==='zhira')||bots.find(u=>u.id==='vexor')||bots[0];
+  const playerJungle=units.some(u=>u.controlled&&(['zhira','vexor','sahra'].includes(u.id)||u.summoners.includes('smite')));
+  const jungler=playerJungle?null:bots.find(u=>u.id==='zhira')||bots.find(u=>u.id==='sahra')||bots.find(u=>u.id==='vexor')||bots[0];
   if(jungler){jungler.jungler=true;jungler.jungleGoal=null}
   for(const u of bots)u.summoners=u.jungler?['smite','flash']:u.id==='seris'?['heal','shield']:['flash','ignite'];
  }
@@ -1251,6 +1261,7 @@ function respawn(u){
  u.commandTarget=null;u.focusTarget=null;u.focusUntil=0;
  u.hp=u.maxHp;u.mana=maxMana(u);u.shield=0;u.shieldUntil=0;
  if(!u.controlled)botShop(u);u.guard=0;u.casting=null;
+ u.shroudUntil=0;u.sahraSecondUntil=0;u.mirrorReturn=null;u.windStacks=0;u.loadedRoundUntil=0;
  u.attackCd=0;u.stun=0;u.slow=0;u.dash=null;u.recall=0;u.attackPending=null;u.attackAnim=0;u.skillFlash=0;
  u.death=0;u.respawn=0;u.focus=null;u.aiTimer=.5;u.recentDamagers=[];
  addEffect(u.x,u.y,u.side===0?'#82f0e1':'#f8aac3',85,.62);
