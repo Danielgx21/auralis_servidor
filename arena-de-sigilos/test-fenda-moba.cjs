@@ -1208,6 +1208,7 @@ console.log('OK: V9.6 com duas assassinas, fumaça, retorno, execução, combos 
   const a=dummy(9901,120),b=dummy(9902,205);
   m.units=[h,a,b];E.refreshVision(true);
   const key=id==='lyria'?'lyria_pierce':'tessa_shot';
+  assert.ok(E.upgradeSkill(h,key).ok,'Primeira habilidade deve ser escolhida antes do disparo');
   assert.ok(E.cast(h,key,{x:1,y:0,distance:315}),'Q não disparou '+id);
   for(let k=0;k<20;k++)E.step(.05,{x:0,y:0});
   assert.ok(a.hp<400&&b.hp<400&&b.hp>a.hp,
