@@ -997,21 +997,27 @@ function hudUpdate(){
  for(let i=0;i<kit.length;i++){
   const b=$(['dashBtn','pulseBtn','shieldBtn','ultBtn'][i]),id=kit[i],def=E.skillDef(id),
     rank=E.skillRank(h,id),cap=E.skillRankCap(h,id),
-    lock=rank===0,cd=h.cooldowns[id]||0;
+    lock=rank===0,cd=h.cooldowns[id]||0,
+    recast=(id==='sahra_ult'&&h.sahraSecondUntil>S.time||
+      id==='mirielle_distort'&&h.mirrorReturn?.until>S.time);
   b.querySelector('b').textContent=def.icon;
-  b.querySelector('small').textContent=lock?(def.ultimate&&h.level<5?'NV 5':'APRENDER'):def.short;
+  b.querySelector('small').textContent=lock?(def.ultimate&&h.level<5?'NV 5':'APRENDER'):
+   recast?(id==='sahra_ult'?'2ª INVEST.':'VOLTAR'):def.short;
   b.title=def.name+' · '+def.desc;
   b.setAttribute('aria-label',def.name+'. '+def.desc);
-  b.classList.toggle('oncd',cd>.03||lock||(h.mana<def.cost&&h.manaFreeUntil<=S.time)||h.hp<=0);
+  b.classList.toggle('oncd',!recast&&(cd>.03||lock||
+   (h.mana<def.cost&&h.manaFreeUntil<=S.time))||h.hp<=0);
   const pc=$('pcSkill'+i);
   pc.querySelector('b').textContent=def.icon;
-  pc.querySelector('small').textContent=lock?(def.ultimate&&h.level<5?'NV 5':'APRENDER'):def.short;
+  pc.querySelector('small').textContent=lock?(def.ultimate&&h.level<5?'NV 5':'APRENDER'):
+   recast?(id==='sahra_ult'?'2ª INVEST.':'RETORNAR'):def.short;
   pc.querySelector('.pc-rank').textContent=rank+'/'+(def.ultimate?3:5);
-  pc.querySelector('.pc-cooldown').textContent=lock?'🔒':cd>.03?Math.ceil(cd):'';
-  pc.classList.toggle('oncd',lock||cd>.03||h.hp<=0||(h.mana<def.cost&&h.manaFreeUntil<=S.time));
+  pc.querySelector('.pc-cooldown').textContent=lock?'🔒':recast?'':cd>.03?Math.ceil(cd):'';
+  pc.classList.toggle('oncd',!recast&&(lock||cd>.03||
+   (h.mana<def.cost&&h.manaFreeUntil<=S.time))||h.hp<=0);
   pc.title=def.name+' · '+def.desc;
-  const el=b.querySelector('.cd-text');el.hidden=cd<=.03&&!lock;
-  el.textContent=lock?'🔒':cd>.03?Math.ceil(cd):'';
+  const el=b.querySelector('.cd-text');el.hidden=recast||cd<=.03&&!lock;
+  el.textContent=lock?'🔒':recast?'':cd>.03?Math.ceil(cd):'';
   let rankBadge=b.querySelector('.fenda-skill-rank');
   if(!rankBadge){rankBadge=document.createElement('span');rankBadge.className='fenda-skill-rank';b.appendChild(rankBadge);}
   rankBadge.textContent=rank+'/'+(def.ultimate?3:5);
@@ -1323,23 +1329,23 @@ function chooseHero(){
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice(),hero=C.heroes[selected];
- if(['zhira','vexor'].includes(selected)&&!pickedSummoners.includes('smite')){
+ if(['zhira','vexor','sahra'].includes(selected)&&!pickedSummoners.includes('smite')){
   pickedSummoners=['smite',pickedSummoners[0]];saveSummoners();
  }
- $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 9.5</div><h2>FENDA DOS SIGILOS</h2>'+ 
- '<p>Dez campeões com retratos próprios, combate com ritmo por classe e bots que cooperam em emboscadas e objetivos.</p>'+ 
+ $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 9.6</div><h2>FENDA DOS SIGILOS</h2>'+ 
+ '<p>12 campeões · Sahra de fumaça e execução, Mirielle de ilusões e retorno · Lyria de DPS e Tessa de precisão.</p>'+ 
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span class="fenda-hero-portrait">'+championPortrait(id)+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
  '<div class="fenda-hero-detail"><strong>'+hero.name+' · '+hero.role+'</strong><p>'+hero.summary+' <br><b>PASSIVA:</b> '+hero.passive+'</p><span>HABILIDADE INICIAL: '+C.skills[hero.skills[0]].name+' · A segunda e a terceira são aprendidas subindo de nível. Ultimate no nível 5.</span></div>'+
  '<div class="fenda-summoner-title">ESCOLHA 2 FEITIÇOS <small>F / G NO PC</small></div>'+
  '<div class="fenda-summoner-picker">'+Object.entries(E.SUMMONERS).map(([id,sp])=>
  '<button type="button" data-pick-spell="'+id+'" class="'+(pickedSummoners.includes(id)?'picked':'')+'" title="'+sp.desc+'"><b>'+sp.icon+'</b><span>'+sp.name+'</span><small>'+sp.cd+'s</small><em>'+sp.desc+'</em></button>').join('')+'</div>'+
- '<div class="teamfight-tip">9.5 · Câmera livre/travada no PC · habilidades na mira do mouse · painel mobile com ajuda e feitiços legíveis.</div>'+ 
+ '<div class="teamfight-tip">9.6 · Lyria: velocidade acumulada + tempestade em ondas. Tessa: tiro preparado + armadilha + ultimate de execução. Sahra e Mirielle têm combos de duas ativações.</div>'+ 
  '<div class="actions" style="margin-top:10px"><button class="primary" id="playFenda">▶ JOGAR FENDA 5×5</button><button class="secondary" id="playClassic">MODO ARENA RÁPIDA</button></div>'+
  '<p style="font-size:10px;margin:9px 0 0">PC: Q/W/E/R são lançadas na direção do ponteiro. Tecla Y troca câmera travada/livre; segure Espaço para centralizar; mova às bordas ou arraste com botão do meio. Celular: arraste as habilidades para mirar e toque em ? para ler os efeitos. TAB placar, P loja, B retorno.</p>';
  for(const b of $('modalContent').querySelectorAll('[data-hero]'))b.onclick=()=>{
   C.setHeroChoice(b.dataset.hero);
-  if(['zhira','vexor'].includes(b.dataset.hero)&&!pickedSummoners.includes('smite')){
+  if(['zhira','vexor','sahra'].includes(b.dataset.hero)&&!pickedSummoners.includes('smite')){
    pickedSummoners=['smite',pickedSummoners[0]];saveSummoners();
   }
   chooseHero();
@@ -1429,8 +1435,10 @@ function skillStart(e,index){
  const id=C.heroes[S.hero.id].skills.concat([C.heroes[S.hero.id].ultimate])[index],def=E.skillDef(id);
  if(E.skillRank(S.hero,id)<=0){warn(def.ultimate&&S.hero.level<5?
   'ULTIMATE NO NÍVEL 5':'USE O BOTÃO + PARA EVOLUIR');return}
- if(S.hero.cooldowns[id]>.02){warn('HABILIDADE EM RECARGA');return}
- if(S.hero.mana<def.cost&&S.hero.manaFreeUntil<=S.time){warn('MANA INSUFICIENTE');return}
+ const recast=(id==='sahra_ult'&&S.hero.sahraSecondUntil>S.time||
+  id==='mirielle_distort'&&S.hero.mirrorReturn?.until>S.time);
+ if(S.hero.cooldowns[id]>.02&&!recast){warn('HABILIDADE EM RECARGA');return}
+ if(S.hero.mana<def.cost&&S.hero.manaFreeUntil<=S.time&&!recast){warn('MANA INSUFICIENTE');return}
  e.preventDefault();e.stopPropagation();
  // Clicar na barra de habilidades do PC usa a última posição real do mouse no mapa.
  if(desktopCamera()&&e.pointerType==='mouse'){
