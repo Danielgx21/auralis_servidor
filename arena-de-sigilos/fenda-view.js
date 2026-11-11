@@ -312,6 +312,25 @@ function drawHero(u,t){
   circle(-r*.12,0,7,'#fff3e9');
   ctx.beginPath();ctx.moveTo(r*.1,r*.4);ctx.lineTo(r*1.2,r*.4);ctx.strokeStyle='#ffc6e6';ctx.lineWidth=3;ctx.stroke();
  }
+ // Pequenos indicadores de estilo no próprio modelo: ultimate pronta e
+ // acúmulo de ataques, sem repetir a mesma figura para os dez campeões.
+ if(u.kind==='hero'){
+  const ultReady=E.skillRank(u,h.ultimate)>0&&(u.cooldowns[h.ultimate]||0)<.01;
+  if(ultReady){
+   ctx.save();ctx.globalAlpha=.32+.11*Math.sin(t*3+u.uid);
+   ctx.setLineDash([5,7]);ctx.strokeStyle='#ffe4ab';ctx.lineWidth=1.4;
+   ctx.beginPath();ctx.arc(0,0,r+7,-Math.PI/2,Math.PI*1.5);ctx.stroke();
+   ctx.restore();
+  }
+  if(['lyria','nyra','tessa','kaelis','rokar'].includes(u.id)){
+   const stacks=u.passiveAttacks%3||0;
+   for(let i=0;i<3;i++){
+    const a=-Math.PI/2+(i-1)*.38;
+    circle(Math.cos(a)*(r+13),Math.sin(a)*(r+13),2.2,
+     i<stacks?col:'#355061');
+   }
+  }
+ }
  if(u.attackAnim>0){
   // Preparação → impacto → recuperação; arco físico para melees e clarão na ponta da arma para rangeds.
   const phase=clamp(attackPhase,0,1);
@@ -386,8 +405,47 @@ function drawFX(t){
   ctx.moveTo(p.x-velocity.x*(radius+19),p.y-velocity.y*(radius+19));
   ctx.lineTo(p.x-velocity.x*radius*.3,p.y-velocity.y*radius*.3);ctx.stroke();
   ctx.globalAlpha=1;
-  circle(p.x,p.y,radius,col);
-  circle(p.x,p.y,Math.max(2,radius*.4),'#fff9e6');ctx.restore();
+  // Disparos de cada classe têm uma silhueta distinta — não são bolas iguais.
+  if(p.kind==='aa'&&p.source?.kind==='hero'){
+   const id=p.source.id;
+   ctx.save();ctx.translate(p.x,p.y);
+   ctx.rotate(Math.atan2(velocity.y,velocity.x));
+   if(id==='lyria'||id==='tessa'){
+    ctx.beginPath();ctx.moveTo(radius+14,0);ctx.lineTo(-radius-5,-radius*.72);
+    ctx.lineTo(-radius*.55,0);ctx.lineTo(-radius-5,radius*.72);
+    ctx.closePath();ctx.fillStyle=col;ctx.fill();
+    ctx.strokeStyle='#fff5d9';ctx.lineWidth=1.6;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(-radius-12,0);ctx.lineTo(radius+6,0);
+    ctx.strokeStyle='#ffffffcc';ctx.lineWidth=1.4;ctx.stroke();
+    if(id==='tessa'){
+     ctx.beginPath();ctx.moveTo(-radius-6,-radius);ctx.lineTo(-radius-6,radius);
+     ctx.strokeStyle='#ffe0a5';ctx.lineWidth=2;ctx.stroke();
+    }
+   }else if(id==='nyra'||id==='kaelis'){
+    techPolygon(ctx,0,0,radius+5,id==='kaelis'?6:4,Math.PI/4+t*1.5);
+    ctx.fillStyle=col;ctx.fill();ctx.strokeStyle='#eefcff';ctx.lineWidth=1.5;ctx.stroke();
+    circle(0,0,2.5,'#fff9ee');
+   }else if(id==='seris'){
+    for(let i=0;i<5;i++){
+     const a=i*TAU/5;
+     circle(Math.cos(a)*radius*.85,Math.sin(a)*radius*.85,radius*.57,col);
+    }
+    circle(0,0,3,'#fff0ef');
+   }else{
+    ctx.beginPath();ctx.moveTo(radius+8,0);ctx.lineTo(-radius,-radius);
+    ctx.lineTo(-radius,radius);ctx.closePath();ctx.fillStyle=col;ctx.fill();
+    circle(0,0,3,'#fff8e6');
+   }
+   if(p.empowered){
+    circle(0,0,radius+9,null,'#fff0c2a8',2);
+    circle(0,0,radius+12,null,col+'8c',1.3);
+   }
+   ctx.restore();
+  }else{
+   circle(p.x,p.y,radius,col);
+   circle(p.x,p.y,Math.max(2,radius*.4),'#fff9e6');
+  }
+  ctx.restore();
  }
  for(const f of S.effects){
   if(!visible(f.x,f.y,f.r+8)||!E.isPointVisible(0,f))continue;
@@ -402,6 +460,14 @@ function drawFX(t){
   ctx.save();ctx.globalAlpha=clamp(f.life/f.maxLife,0,1)*.77;
   const r=f.kind==='hit'?f.r:f.r*(1-f.life/f.maxLife*.7);
   circle(f.x,f.y,r,f.kind==='blast'?f.color+'22':null,f.color,2.8);
+  if(f.kind==='attackLaunch'){
+   ctx.save();ctx.globalAlpha=clamp(f.life/f.maxLife,0,1)*.58;
+   for(let i=0;i<3;i++){
+    const a=t*2+i*TAU/3;
+    circle(f.x+Math.cos(a)*r,f.y+Math.sin(a)*r,2.8,f.color);
+   }
+   ctx.restore();
+  }
   if(f.kind==='burst')for(let i=0;i<10;i++){
    const a=i*TAU/10;circle(f.x+Math.cos(a)*r,f.y+Math.sin(a)*r,4,f.color);
   }
@@ -413,9 +479,9 @@ function drawAim(){
   const structure=S.hero.focusTarget,radius=structure.r||(structure.kind==='boss'?38:28);
   ctx.save();circle(structure.x,structure.y,radius+15,null,'#f3e2a4a8',2.1);ctx.restore();
  }
- if(pointers.aa!==null&&S.hero&&S.hero.hp>0){
+ if((pointers.aa!==null||S.hero&&S.time-(S.hero.attackStartedAt||-100)<.65)&&S.hero&&S.hero.hp>0){
   const r=E.attackRange(S.hero),target=E.findAA(S.hero);
-  circle(S.hero.x,S.hero.y,r,null,'#a3e8d14a',1.5);
+  circle(S.hero.x,S.hero.y,r,null,'#a3e8d137',1.25);
   if(target)circle(target.x,target.y,target.r+11,null,'#e7e2beaa',2.2);
  }
  if(wardAim&&S.hero&&S.hero.hp>0){
