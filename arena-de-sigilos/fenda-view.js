@@ -50,52 +50,7 @@ function firstSkillUpdate(h){
   });
  }
 }
-const mobileHelpBtn=document.createElement('button');
-mobileHelpBtn.id='fendaMobileHelpBtn';mobileHelpBtn.type='button';
-mobileHelpBtn.textContent='?';
-mobileHelpBtn.setAttribute('aria-label','Ver o que fazem as habilidades e feitiços');
-mobileHelpBtn.setAttribute('aria-expanded','false');
-hud.appendChild(mobileHelpBtn);
-const mobileGuide=document.createElement('section');mobileGuide.id='fendaMobileGuide';
-mobileGuide.setAttribute('aria-label','Detalhes das habilidades e feitiços');
-mobileGuide.hidden=true;hud.appendChild(mobileGuide);
-let mobileGuideOpen=false;
-const shortSummonerEffect={
- smite:'MONSTROS',flash:'TELEPORTE',ignite:'QUEIMA + ANTI-CURA',
- heal:'RECUPERA PV',shield:'PROTEÇÃO',freecast:'MANA GRÁTIS'};
-function mobileGuideUpdate(){
- if(!mobileGuideOpen||!S.hero)return;
- const h=S.hero,kit=C.heroes[h.id].skills.concat([C.heroes[h.id].ultimate]);
- const fingerprint=[h.id,h.level,h.summoners?.join(',')||'',
-  kit.map(id=>E.skillRank(h,id)).join(',')].join('|');
- if(mobileGuide.dataset.fingerprint===fingerprint)return;
- mobileGuide.dataset.fingerprint=fingerprint;
- mobileGuide.innerHTML='<div class="mobile-guide-head"><strong>HABILIDADES · '+C.heroes[h.id].name+
- '</strong><button id="mobileGuideClose" type="button" aria-label="Fechar detalhes">✕</button></div>'+
- kit.map((id,i)=>{
-  const def=E.skillDef(id),level=E.skillRank(h,id),cd=h.cooldowns[id]||0;
-  return '<div class="mobile-guide-line"><b>'+['Q','W','E','R'][i]+'</b><div><strong>'+def.icon+' '+
-   def.name+'</strong><p>'+def.desc+'</p><small>'+(!level?'BLOQUEADA · SUBA DE NÍVEL':
-   'NÍVEL '+level+' · '+def.cost+' MANA · '+(cd>.05?Math.ceil(cd)+'s RECARGA':
-   def.cd+'s CD'))+'</small></div></div>';
- }).join('')+
- '<div class="mobile-guide-section">FEITIÇOS EQUIPADOS</div>'+
- (h.summoners||[]).map(id=>{
-  const sp=E.SUMMONERS[id],cd=h.summonerCooldowns[id]||0;
-  return '<div class="mobile-guide-line"><b>'+sp.icon+'</b><div><strong>'+sp.name+
-  '</strong><p>'+sp.desc+'</p><small>'+(cd>.05?Math.ceil(cd)+'s DE RECARGA':
-  sp.cd+'s CD')+'</small></div></div>';
- }).join('');
- mobileGuide.querySelector('#mobileGuideClose').addEventListener('click',()=>setMobileGuide(false));
-}
-function setMobileGuide(open){
- mobileGuideOpen=!!open;
- mobileGuide.hidden=!mobileGuideOpen;
- mobileHelpBtn.setAttribute('aria-expanded',String(mobileGuideOpen));
- mobileHelpBtn.classList.toggle('active',mobileGuideOpen);
- if(mobileGuideOpen){mobileGuide.dataset.fingerprint='';mobileGuideUpdate();}
-}
-mobileHelpBtn.addEventListener('click',()=>setMobileGuide(!mobileGuideOpen));
+// Ajuda e descrições ficam na seleção de campeões, sem botão no campo de batalha.
 // Interface própria de desktop, independente dos controles de toque.
 const desktopBar=document.createElement('section');desktopBar.id='fendaDesktopBar';
 desktopBar.setAttribute('aria-label','Painel do campeão');
@@ -1103,7 +1058,6 @@ function hudUpdate(){
  if(scoreboardVisible&&S.time-scoreboardLastUpdate>.42){
   scoreboardLastUpdate=S.time;renderScoreboard();
  }
- if(mobileGuideOpen)mobileGuideUpdate();
 }
 // Placar de partida: as mesmas informações acionadas pelo placar do Wild Rift.
 const scoreRoles={orun:'TOP',vexor:'SELVA',nyra:'MEIO',lyria:'ATIR.',seris:'SUP.',brax:'TOP',zhira:'SELVA',rokar:'TOP',kaelis:'MEIO',tessa:'ATIR.',sahra:'SELVA',mirielle:'MEIO'};
@@ -1355,7 +1309,6 @@ function toggleShop(){
  if(S.shopOpen)shopRender();
 }
 function chooseHero(){
- setMobileGuide(false);
  S.mode='menu';S.shopOpen=false;mouseFollow=null;setScoreboardVisible(false);stage.classList.remove('fenda-on');cv.style.display='none';
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
@@ -1391,7 +1344,6 @@ function chooseHero(){
 function startGame(){
  C.suspendClassic?.();
  shopTab='recommended';shopFilter='all';shopSelectedId=null;shopQueuedId=null;
- setMobileGuide(false);
  E.start(C.getHeroChoice(),pickedSummoners);setScoreboardVisible(false);endedShown=false;clickDestination=null;mouseFollow=null;rosterLastUpdate=-1;cameraPeek=null;cameraPeekUntil=0;wardAim=null;keys.clear();
  desktopPointer.over=false;desktopPointer.lastWorld=null;spaceCenterHeld=false;cameraDrag=null;syncCameraControl();
  joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
@@ -1418,8 +1370,7 @@ function pause(){
  if(S.mode!=='playing')return;
  S.showPause=!S.showPause;
  if(S.showPause){
-  setMobileGuide(false);
-  setScoreboardVisible(false);
+   setScoreboardVisible(false);
   S.shopOpen=false;shop.classList.remove('open');
   joy.x=joy.y=0;joy.ptr=null;keys.clear();pointers.aa=null;pointers.skill=null;wardAim=null;cameraPeek=null;aimPreview=null;mouseFollow=null;clickDestination=null;
  }
