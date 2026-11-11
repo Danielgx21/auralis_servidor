@@ -410,11 +410,31 @@ function drawHero(u,t){
    ctx.fillStyle='#e4ca94';ctx.fill();ctx.strokeStyle='#fff2ce';ctx.lineWidth=2;ctx.stroke();
    ctx.fillStyle='#f1efd8';ctx.fillRect(-r*.47,-r*.3,r*.24,r*.66);circle(-r*.1,0,6,'#fff3d1');
   }else if(u.id==='tessa'){
-   ctx.strokeStyle='#ffe1a1';ctx.lineWidth=4;
-   ctx.beginPath();ctx.moveTo(-r*.83,-r*.78);ctx.quadraticCurveTo(r*.56,0,-r*.83,r*.78);ctx.stroke();
-   ctx.beginPath();ctx.moveTo(-r*.6,0);ctx.lineTo(r*1.15,0);ctx.stroke();
-   ctx.beginPath();ctx.moveTo(r*.6,-r*.23);ctx.lineTo(r*1.15,0);ctx.lineTo(r*.6,r*.23);ctx.stroke();
-   circle(-r*.19,0,6,'#fff5d7');
+   // Tessa usa rifle longo de precisão, distinto do arco da Lyria.
+   ctx.fillStyle='#4b4c56';ctx.fillRect(-r*.73,-r*.59,r*1.05,r*1.18);
+   ctx.strokeStyle='#ffe1a1';ctx.lineWidth=5;
+   ctx.beginPath();ctx.moveTo(-r*.65,-r*.15);ctx.lineTo(r*1.35,-r*.15);ctx.stroke();
+   ctx.strokeStyle='#f6f2ca';ctx.lineWidth=2;
+   ctx.beginPath();ctx.moveTo(r*.62,-r*.4);ctx.lineTo(r*.62,r*.09);ctx.stroke();
+   ctx.fillStyle='#d8b683';ctx.fillRect(-r*.2,-r*.02,r*.26,r*.73);
+   circle(-r*.18,r*.12,6,'#fff5d7');
+  }else if(u.id==='sahra'){
+   ctx.fillStyle='#1c443b';ctx.beginPath();
+   ctx.moveTo(-r*.8,-r*.72);ctx.lineTo(-r*.26,-r*1.02);ctx.lineTo(r*.35,-r*.59);
+   ctx.lineTo(r*.71,0);ctx.lineTo(r*.35,r*.59);ctx.lineTo(-r*.26,r*1.02);
+   ctx.lineTo(-r*.8,r*.72);ctx.closePath();ctx.fill();
+   ctx.strokeStyle='#b1f6d6';ctx.lineWidth=3;
+   ctx.beginPath();ctx.moveTo(r*.13,-r*.5);ctx.lineTo(r*1.27,-r*.76);
+   ctx.moveTo(r*.13,r*.5);ctx.lineTo(r*1.27,r*.76);ctx.stroke();
+   circle(-r*.13,0,5,'#eaffda');
+  }else if(u.id==='mirielle'){
+   ctx.fillStyle='#4f3273';techPolygon(ctx,-r*.19,0,r*.87,5,Math.PI/3);ctx.fill();
+   ctx.strokeStyle='#efc0ff';ctx.lineWidth=2.1;
+   techPolygon(ctx,r*.45,-r*.32,r*.42,4,Math.PI/4);ctx.stroke();
+   techPolygon(ctx,r*.45,r*.32,r*.42,4,Math.PI/4);ctx.stroke();
+   circle(-r*.17,0,6,'#fff0ff');
+   for(let i=0;i<3;i++){const a=t*1.1+i*TAU/3;
+    circle(Math.cos(a)*r*.82,Math.sin(a)*r*.82,2.6,'#efcaff');}
   }else{
    for(let i=0;i<6;i++){const a=i*TAU/6;circle(Math.cos(a)*r*.6,Math.sin(a)*r*.6,5,'#ffcee2')}
   circle(-r*.12,0,7,'#fff3e9');
@@ -430,7 +450,17 @@ function drawHero(u,t){
    ctx.beginPath();ctx.arc(0,0,r+7,-Math.PI/2,Math.PI*1.5);ctx.stroke();
    ctx.restore();
   }
-  if(['lyria','nyra','tessa','kaelis','rokar'].includes(u.id)){
+  if(u.id==='lyria'){
+   for(let i=0;i<4;i++){
+    const a=-Math.PI/2+(i-1.5)*.33;
+    circle(Math.cos(a)*(r+13),Math.sin(a)*(r+13),2.4,
+     i<(u.windStacks||0)?'#a3ffdc':'#355061');
+   }
+  }else if(u.id==='tessa'){
+   const charged=S.time-(u.stillSince??S.time)>1.1||u.loadedRoundUntil>S.time;
+   if(charged){ctx.save();ctx.strokeStyle='#ffe0a2';ctx.lineWidth=2;
+    ctx.setLineDash([3,4]);ctx.beginPath();ctx.arc(0,0,r+13,0,TAU);ctx.stroke();ctx.restore();}
+  }else if(['nyra','kaelis','rokar'].includes(u.id)){
    const stacks=u.passiveAttacks%3||0;
    for(let i=0;i<3;i++){
     const a=-Math.PI/2+(i-1)*.38;
@@ -502,6 +532,44 @@ function drawCreep(o,t){
  ctx.fillText(o.name,o.x,o.y-r-26);
 }
 function drawFX(t){
+ // Áreas persistentes: flechas múltiplas, fumaça e armadilhas são
+ // elementos reais de combate, com alcance e duração legíveis.
+ for(const z of S.zones||[]){
+  if(!visible(z.x,z.y,z.r+20)||z.side===1&&!E.isPointVisible(0,z))continue;
+  const radius=z.r,remaining=Math.max(0,z.until-S.time),phase=t*3;
+  ctx.save();ctx.globalAlpha=Math.min(.8,Math.max(.12,remaining*.35));
+  if(z.kind==='shroud'){
+   const fog=ctx.createRadialGradient(z.x,z.y,4,z.x,z.y,radius);
+   fog.addColorStop(0,'#264e4fd4');fog.addColorStop(.75,'#244b43af');
+   fog.addColorStop(1,'#70d6ad19');
+   circle(z.x,z.y,radius,fog,'#90ead383',2.4);
+   for(let j=0;j<8;j++){
+    const a=j*TAU/8+phase*.15,r=radius*.57+Math.sin(t*2+j)*10;
+    circle(z.x+Math.cos(a)*r,z.y+Math.sin(a)*r,12,'#74ddbc48');
+   }
+  }else if(z.kind==='arrowstorm'){
+   circle(z.x,z.y,radius,'#3aaea825','#97f9d387',2.1);
+   for(let i=0;i<13;i++){
+    const a=i*2.4+t*.25,l=radius*(.22+(i%5)*.15);
+    const px=z.x+Math.cos(a)*l,py=z.y+Math.sin(a)*l;
+    ctx.strokeStyle='#bdffe0';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(px-4,py-10);ctx.lineTo(px+4,py+10);ctx.stroke();
+   }
+  }else if(z.kind==='trap'){
+   ctx.setLineDash([6,5]);circle(z.x,z.y,radius,'#9d823a24','#f1d58e',2.2);
+   ctx.setLineDash([]);techPolygon(ctx,z.x,z.y,18,6,t*.38);
+   ctx.fillStyle='#eacb86';ctx.fill();
+  }
+  ctx.restore();
+ }
+ for(const u of S.units.filter(h=>h.id==='mirielle'&&h.hp>0&&h.mirrorEchoUntil>S.time&&h.mirrorEchoAt)){
+  const p=u.mirrorEchoAt;
+  if(!visible(p.x,p.y,60)||u.side===1&&!E.isPointVisible(0,p))continue;
+  ctx.save();ctx.globalAlpha=.40*Math.min(1,u.mirrorEchoUntil-S.time);
+  circle(p.x,p.y,u.r+4,'#a66ad677','#e5b6ff',2.4);
+  techPolygon(ctx,p.x,p.y,u.r*.7,5,t*.9);
+  ctx.strokeStyle='#f3d4ff';ctx.lineWidth=2;ctx.stroke();ctx.restore();
+ }
  for(const p of S.projectiles){
   if(!visible(p.x,p.y,25)||p.side===1&&!E.isPointVisible(0,p))continue;
   const col=p.color||E.SIDE[p.side];ctx.save();ctx.shadowColor=col;ctx.shadowBlur=13;
@@ -811,7 +879,9 @@ function championPortrait(id){
   zhira:'M14 36L7 15L23 21L20 10L36 24L52 10L49 21L65 15L58 36L45 30L36 35L27 30Z',
   kaelis:'M15 34L12 12L29 23L36 3L43 23L60 12L57 34L47 29L36 33L25 29Z',
   rokar:'M12 38L14 12L28 12L36 4L44 12L58 12L60 38L51 33L21 33Z',
-  tessa:'M14 35L18 19L32 13L45 17L57 11L58 31L46 28L28 32Z'
+  tessa:'M14 35L18 19L32 13L45 17L57 11L58 31L46 28L28 32Z',
+  sahra:'M10 35L15 12L26 20L36 5L46 20L57 12L62 35L46 30L36 36L26 30Z',
+  mirielle:'M13 34L12 18L25 24L36 4L47 24L60 18L59 34L44 29L36 33L28 29Z'
  };
  const marks={
   lyria:'M8 53Q7 29 19 17M19 17L11 26M19 17L25 28',
@@ -823,7 +893,9 @@ function championPortrait(id){
   zhira:'M8 53L15 45M64 53L57 45',
   kaelis:'M10 12L20 21M62 12L52 21M36 2V18',
   rokar:'M6 50L16 40L23 64L7 67ZM66 50L56 40L49 64L65 67Z',
-  tessa:'M7 52L19 38M65 52L53 38M56 16L65 10'
+  tessa:'M7 52L19 38M65 52L53 38M56 16L65 10',
+  sahra:'M5 52L19 39L25 46M67 52L53 39L47 46',
+  mirielle:'M9 18L22 15L21 28M63 18L50 15L51 28'
  };
  return '<svg class="fenda-champion-portrait-svg" viewBox="0 0 72 72" aria-hidden="true">'+
   '<circle cx="36" cy="36" r="34" fill="#071727" stroke="'+clr+'" stroke-width="2"/>'+
@@ -997,8 +1069,8 @@ function hudUpdate(){
  if(mobileGuideOpen)mobileGuideUpdate();
 }
 // Placar de partida: as mesmas informações acionadas pelo placar do Wild Rift.
-const scoreRoles={orun:'TOP',vexor:'SELVA',nyra:'MEIO',lyria:'ATIR.',seris:'SUP.',brax:'TOP',zhira:'SELVA',rokar:'TOP',kaelis:'MEIO',tessa:'ATIR.'};
-const scoreOrder={orun:0,vexor:1,nyra:2,lyria:3,seris:4,brax:0,zhira:1,rokar:0,kaelis:2,tessa:3};
+const scoreRoles={orun:'TOP',vexor:'SELVA',nyra:'MEIO',lyria:'ATIR.',seris:'SUP.',brax:'TOP',zhira:'SELVA',rokar:'TOP',kaelis:'MEIO',tessa:'ATIR.',sahra:'SELVA',mirielle:'MEIO'};
+const scoreOrder={orun:0,vexor:1,nyra:2,lyria:3,seris:4,brax:0,zhira:1,rokar:0,kaelis:2,tessa:3,sahra:1,mirielle:2};
 function scoreboardItems(hero){
  const slots=Array.from({length:6},(_,i)=>hero.items[i]||null);
  return '<div class="fenda-scoreboard-items">'+slots.map(id=>{
@@ -1055,7 +1127,9 @@ const suggestedBuilds={
  zhira:['huntress','stormblade','astralbow'],
  kaelis:['glacier','archmage','hourglass'],
  rokar:['bulwark','lifebloom','titanplate'],
- tessa:['barrage','astralbow','phantomfang']
+ tessa:['phantomfang','astralbow','barrage'],
+ sahra:['phantomfang','stormblade','swiftboots'],
+ mirielle:['archmage','hourglass','glacier']
 };
 const itemInfo=id=>E.ITEMS.find(x=>x.id===id);
 const shopKinds={
