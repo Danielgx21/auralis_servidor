@@ -754,8 +754,8 @@ E.start('lyria');
   css.includes('touch-action:none;pointer-events:auto'),
   'Evolução de habilidades não é acessível durante movimentação');
  assert.ok(view.includes("function shopRender()")&&
-  view.includes('E.recipeStatus(h,it.id)')&&
-  view.includes("data-buy=")&&
+  view.includes('E.recipeStatus(h,selection.id)')&&
+  view.includes('data-shop-buy')&&view.includes('data-shop-part')&&
   view.includes('shopHash')&&view.includes('shopLastPaint'),
   'Loja não mostra receitas ou destrói os botões a cada quadro');
  assert.ok(read('fenda-team-ai.js').includes('E.skillRank(h,id)>0'),
