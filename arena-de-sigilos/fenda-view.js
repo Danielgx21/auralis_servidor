@@ -52,7 +52,8 @@ let cameraZoom=1.30,worldVW=vw/cameraZoom,worldVH=vh/cameraZoom;
 // Câmera adaptável: a torre precisa aparecer ANTES de poder acertar.
 // A escala visual do campeão não altera o seu raio de colisão.
 let HERO_RENDER_SCALE=1.0;
-const CAMERA_MIN_WORLD_HEIGHT=840;
+const CAMERA_MIN_WORLD_HEIGHT=620;
+const THREAT_CAMERA_LEAD=145;
 // Não há texturas, atlas ou sprites nesta arena. Toda a paisagem é Canvas procedural.
 // Fenda 6.3: paisagem 100% procedural, com geometria e camera próprias.
  // Somente três rotas; paredes/obstáculos provêm das hitboxes do motor.
@@ -72,9 +73,9 @@ function resize(){
  const r=stage.getBoundingClientRect();vw=Math.max(320,r.width);vh=Math.max(220,r.height);
  dpr=Math.min(window.devicePixelRatio||1,1.65);
  cv.width=Math.round(vw*dpr);cv.height=Math.round(vh*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
- const comfortableZoom=vw>=1250?1.14:vw>=750?1.07:.98;
- // Proporção Wild Rift: campo mais amplo, heróis legíveis e sem ícones enormes.
- // Escala visual NÃO altera a hitbox nem os ranges dos ataques.
+ // Visão de combate aproximada: não mostrar várias torres e a onda central
+ // no mesmo quadro. Hitboxes e alcances continuam em unidades do mundo.
+ const comfortableZoom=vw>=1250?1.50:vw>=750?1.35:1.17;
  HERO_RENDER_SCALE=vw>=1250?1.11:1.19;
  cameraZoom=Math.min(comfortableZoom,vh/CAMERA_MIN_WORLD_HEIGHT);
  worldVW=vw/cameraZoom;worldVH=vh/cameraZoom;
@@ -430,9 +431,20 @@ function view(dt){
  const h=S.hero;
  if(h){
   const observing=cameraPeek&&(cameraPeek.ptr!==null||S.time<cameraPeekUntil);
-  const focus=observing?cameraPeek:h;
-  // O campeão fica perto do centro sem ficar encoberto pelos controles.
-  // Pan tático temporário via minimapa não altera o zoom da batalha.
+  const focus=observing?cameraPeek:{x:h.x,y:h.y};
+  // Antecipar as torres inimigas sem afastar a câmera do campeão.
+  // Compensa a visão aproximada: a torre deve aparecer antes de atacar,
+  // inclusive quando se aproxima pela parte superior/inferior da tela.
+  if(!observing&&h.hp>0){
+   const threat=S.structures.filter(t=>t.hp>0&&t.side!==h.side&&
+     E.dist(t,h)<700).sort((a,b)=>E.dist(a,h)-E.dist(b,h))[0];
+   if(threat){
+    const d=Math.max(1,E.dist(h,threat));
+    const ahead=THREAT_CAMERA_LEAD*clamp((700-d)/320,0,1);
+    focus.x+=(threat.x-h.x)/d*ahead;
+    focus.y+=(threat.y-h.y)/d*ahead;
+   }
+  }
   const wantX=clamp(focus.x-worldVW*.44,0,Math.max(0,E.W-worldVW));
   const wantY=clamp(focus.y-worldVH*.55,0,Math.max(0,E.H-worldVH));
   const snap=h.cameraSnapAt&&S.time-h.cameraSnapAt<.23&&!observing;
