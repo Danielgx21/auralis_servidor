@@ -857,4 +857,37 @@ E.start('lyria');
   'Ícones vetoriais ou inspeção de itens no inventário ausentes');
 }
 
+// Fenda 9.1 — progressão, feitiços e equilíbrio de esquadrões.
+{
+ const match=E.start('zhira',['smite','freecast']),hunter=match.hero;
+ assert.equal(hunter.summoners.join(','),'smite,freecast','Escolha de feitiços não chegou à partida');
+ assert.equal(E.skillRank(hunter,'zhira_strike'),1,'Apenas a primeira habilidade começa desbloqueada');
+ assert.equal(E.skillRank(hunter,'zhira_pounce'),0,'Segundo poder deve iniciar bloqueado');
+ assert.equal(E.skillRank(hunter,'zhira_trap'),0,'Terceiro poder deve iniciar bloqueado');
+ assert.equal(E.skillRank(hunter,'zhira_ult'),0,'Ultimate deve iniciar bloqueada');
+ hunter.level=2;hunter.skillPoints=1;
+ assert.ok(E.upgradeSkill(hunter,'zhira_pounce').ok,'Nível 2 deve permitir aprender W');
+ hunter.mana=0;
+ assert.ok(E.castSummoner(hunter,'freecast'),'Transe Arcano não foi ativado');
+ assert.ok(E.cast(hunter,'zhira_strike',{x:1,y:0,distance:90}),
+  'Transe Arcano deve permitir habilidade com zero mana');
+ assert.equal(hunter.mana,0,'Mana não deve diminuir durante Transe Arcano');
+ assert.ok(hunter.summonerCooldowns.freecast>0,
+  'Transe Arcano precisa entrar em recarga após o uso');
+ const camp=match.camps.find(c=>c.kind!=='boss'&&c.hp>350);
+ assert.ok(camp,'Acampamento da selva indisponível no teste');
+ camp.unlock=0;hunter.x=camp.x-40;hunter.y=camp.y;
+ const previous=camp.hp;
+ assert.ok(E.castSummoner(hunter,'smite',camp),'Selo da Caça não funciona contra monstros');
+ assert.ok(camp.hp<previous,'Selo da Caça deve causar dano a monstros');
+ const fighter=E.start('brax');
+ assert.equal(fighter.units.filter(u=>u.kind==='hero').length,10,'Mais heróis alteraram 5v5');
+ assert.ok(fighter.units.some(u=>u.id==='brax'&&u.side===0),
+  'Lutador Brax não entra no próprio time');
+ assert.ok(fighter.units.some(u=>u.id==='vexor'&&u.side===1),
+  'Assassino inimigo deve aparecer como bot');
+ assert.ok(fighter.units.some(u=>u.id==='seris'&&u.side===0),
+  'Equipe do lutador deve manter suporte');
+}
+
 console.log('OK: estilo Teamfight sem estradas/imagens, portoes solidos, jungles fisicas, torres e 5x5.');
