@@ -902,6 +902,9 @@ function chooseHero(){
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice(),hero=C.heroes[selected];
+ if(['zhira','vexor'].includes(selected)&&!pickedSummoners.includes('smite')){
+  pickedSummoners=['smite',pickedSummoners[0]];saveSummoners();
+ }
  $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 9.1</div><h2>FENDA DOS SIGILOS</h2>'+ 
  '<p>Três rotas, sete campeões com funções próprias, duas opções de feitiços e dez equipamentos finais com pré-itens.</p>'+ 
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
@@ -915,7 +918,7 @@ function chooseHero(){
  '<p style="font-size:10px;margin:9px 0 0">Celular: mantenha o joystick com um dedo e ataque/mire com o outro. Ao subir de nível, toque em + para melhorar habilidades. Loja: compre componentes e combine-os. PC: Shift+1/2/3/4 para evoluir habilidades; TAB placar, P loja, B retorno.</p>';
  for(const b of $('modalContent').querySelectorAll('[data-hero]'))b.onclick=()=>{
   C.setHeroChoice(b.dataset.hero);
-  if(b.dataset.hero==='zhira'&&!pickedSummoners.includes('smite')){
+  if(['zhira','vexor'].includes(b.dataset.hero)&&!pickedSummoners.includes('smite')){
    pickedSummoners=['smite',pickedSummoners[0]];saveSummoners();
   }
   chooseHero();
