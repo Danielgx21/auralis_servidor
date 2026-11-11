@@ -58,10 +58,10 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=9.8')&&
- html.includes('fenda-team-ai.js?v=9.8')&&
- html.includes('fenda-scenery.js?v=9.8')&&
- html.includes('fenda-view.js?v=9.8'),'O site precisa carregar o cenário procedural antes da câmera.');
+assert.ok(html.includes('fenda-engine.js?v=9.9')&&
+ html.includes('fenda-team-ai.js?v=9.9')&&
+ html.includes('fenda-scenery.js?v=9.9')&&
+ html.includes('fenda-view.js?v=9.9'),'O site precisa carregar o cenário procedural antes da câmera.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -966,7 +966,7 @@ E.start('lyria');
  assert.ok(view.includes("isDesktop?$('pcSkill'+i):b")&&
   css.includes('#fendaTeamRoster.collapsed .pc-roster-list'),
   'Evolução de habilidades e recolhimento do quadro não foram adaptados');
- assert.ok(html.includes('fenda-view.js?v=9.8')&&html.includes('fenda.css?v=9.8'),
+ assert.ok(html.includes('fenda-view.js?v=9.9')&&html.includes('fenda.css?v=9.9'),
   'Cache precisa trazer a versão 9.7');
 }
 // V9.4 — novas prioridades de AA, tempo de ataque, decisões dos bots e retratos.
@@ -1067,14 +1067,15 @@ E.start('lyria');
   'Câmera livre precisa aceitar arrastar pelo mouse e minimizar sem recenter');
  assert.ok(view.includes("if(key===' ')spaceCenterHeld=false;"),
   'Câmera do PC deve voltar ao modo livre quando soltar Espaço');
- assert.ok(view.includes("id='fendaMobileHelpBtn'")&&
-  view.includes('mobileGuideUpdate()')&&
-  view.includes('class="spell-effect"'),
-  'Painel mobile não apresenta ajuda das habilidades e efeito dos feitiços');
+ assert.ok(!view.includes("id='fendaMobileHelpBtn'")&&
+  !view.includes('mobileHelpBtn')&&!view.includes('mobileGuideUpdate()'),
+  'O botão de interrogação deve ser removido completamente da partida');
+ assert.ok(view.includes('class="spell-effect"'),
+  'As informações de feitiço continuam na seleção e nos botões acessíveis');
  assert.ok(site.includes('.stage.fenda-on #fendaSummoners .fenda-summoner small{')&&
   site.includes('font-size:10px!important')&&site.includes('#fendaMobileGuide'),
   'CSS do celular não tornou feitiços e habilidades legíveis');
- assert.ok(site.includes('fenda-view.js?v=9.8')&&site.includes('fenda.css?v=9.8'),
+ assert.ok(site.includes('fenda-view.js?v=9.9')&&site.includes('fenda.css?v=9.9'),
   'O cache do jogo precisa apontar para a versão 9.5');
 }
 console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livre e feitiços legíveis.');
@@ -1189,7 +1190,7 @@ console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livr
  assert.ok(view.includes("id==='sahra_ult'&&h.sahraSecondUntil>S.time")&&
   view.includes("id==='mirielle_distort'&&h.mirrorReturn?.until>S.time"),
   'As habilidades reativáveis precisam estar habilitadas no painel');
- assert.ok(source.includes('fenda-engine.js?v=9.8')&&source.includes('fenda-view.js?v=9.8'),
+ assert.ok(source.includes('fenda-engine.js?v=9.9')&&source.includes('fenda-view.js?v=9.9'),
   'Cache de versão deve usar os novos campeões');
 }
 console.log('OK: V9.6 com duas assassinas, fumaça, retorno, execução, combos e ADCs distintos.');
@@ -1286,11 +1287,80 @@ console.log('OK: V9.7 com primeira habilidade Q, W ou E escolhida pelo jogador.'
  assert.ok(view.includes("summonerPanel.querySelectorAll('button')")&&
   view.includes('useSummoner(Number(btn.dataset.slot))'),
   'Botões compactos precisam continuar acionando feitiços');
- assert.ok(view.includes("mobileHelpBtn.addEventListener('click'")&&
-  view.includes('mobileGuideUpdate()'),
-  'Descrição dos feitiços deve continuar acessível pelo painel de ajuda');
- assert.ok(html.includes('fenda-view.js?v=9.8')&&
-  html.includes('fenda.css?v=9.8'),
+ assert.ok(!view.includes('mobileHelpBtn')&&!view.includes('mobileGuideUpdate()'),
+  'Ajuda central não pode reaparecer após a remoção solicitada');
+ assert.ok(html.includes('fenda-view.js?v=9.9')&&
+  html.includes('fenda.css?v=9.9'),
   'Atualização deve invalidar o cache do jogo');
 }
 console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda preservado.');
+
+// V9.9 — torre é alvo comum, foco TORRE sobrepõe tropas, AA por arrasto trava
+// alvo sem sequestrar o joystick; ajudas centrais foram retiradas.
+{
+ const view=read('fenda-view.js'),html=read('index.html'),engine=read('fenda-engine.js');
+ const game=E.start('lyria'),hero=game.hero;
+ const tower=game.structures.find(t=>t.kind==='tower'&&t.side===1&&t.tier===1);
+ game.structures=[tower];game.units=[hero];game.camps=[];game.walls=[];game.obstacles=[];
+ hero.x=tower.x-(tower.r+hero.r+18);hero.y=tower.y;
+ hero.attackCd=0;hero.focusTarget=null;hero.focusUntil=0;
+ E.refreshVision(true);
+ assert.equal(E.findAA(hero),tower,
+  'Ataque comum deve atingir uma torre exposta mesmo sem clicar no botão TORRE');
+ const original=tower.hp;
+ assert.ok(E.autoAttack(hero),'Auto AA não iniciou contra torre');
+ for(let i=0;i<14;i++)E.step(.05,{x:0,y:0});
+ assert.ok(tower.hp<original,'AA comum sem foco manual não causou dano à torre');
+ hero.attackCd=0;hero.attackPending=null;game.projectiles=[];
+ const minion={uid:10991,id:'guard',kind:'minion',side:1,lane:tower.lane,
+  x:hero.x+50,y:hero.y,r:14,hp:400,maxHp:400,stun:3,slow:0,shield:0,
+  attackCd:3,atk:10,speed:0,invuln:0};
+ game.units=[hero,minion];E.refreshVision(true);
+ assert.equal(E.findAA(hero),minion,
+  'AA normal prioriza tropas antes de torre com ambos no alcance');
+ const priority=E.focusTower(hero,tower);
+ assert.ok(priority.ok,'O botão TORRE não selecionou estrutura exposta');
+ assert.equal(E.findAA(hero),tower,
+  'Botão TORRE deve ter prioridade mesmo diante de tropas próximas');
+ E.clearAttackCommand(hero);
+ assert.equal(E.findAA(hero),minion,'AA deve retornar à prioridade comum após limpar seleção');
+ const lock=E.lockAttackTarget(hero,tower);
+ assert.ok(lock.ok,'Não foi possível travar torre por arrastar o AA');
+ assert.equal(hero.commandTarget,null,
+  'Trava de AA não pode alterar movimento do joystick');
+ assert.equal(E.findAA(hero),tower,'Alvo arrastado deve sobrepor outras prioridades');
+ E.clearAttackLock(hero);
+ assert.equal(E.findAA(hero),minion,'Limpar trava restaura a prioridade normal');
+ const unexposed=E.start('lyria'),me=unexposed.hero;
+ const inner=unexposed.structures.find(t=>t.kind==='tower'&&t.side===1&&t.tier===2);
+ me.x=inner.x-inner.r-me.r-15;me.y=inner.y;
+ unexposed.units=[me];E.refreshVision(true);
+ assert.notEqual(E.findAA(me),inner,'Torres protegidas não podem receber AA automático');
+ const targetCode=view.slice(view.indexOf('function attackStickTarget('),view.indexOf('function aaStart('));
+ assert.ok(targetCode.startsWith('function attackStickTarget('),
+  'Faltando seleção de alvos direcional ao segurar o ataque');
+ const hgame=E.start('lyria'),attacker=hgame.hero;
+ attacker.x=1600;attacker.y=1350;
+ const east={uid:1123,id:'guard',kind:'minion',side:1,lane:1,x:1730,y:1350,
+  r:13,hp:200,maxHp:200};
+ const west={...east,uid:1124,x:1460};
+ hgame.units=[attacker,east,west];hgame.structures=[];hgame.camps=[];
+ E.refreshVision(true);
+ const aim=new Function('E','S',targetCode+'return attackStickTarget;')(E,hgame);
+ assert.equal(aim(attacker,60,0),east,'Arrasto do AA para direita deve selecionar alvo à direita');
+ assert.equal(aim(attacker,-60,0),west,'Arrasto do AA para esquerda deve selecionar alvo à esquerda');
+ assert.ok(view.includes("addEventListener('pointermove',aaMove)")&&
+  view.includes('E.lockAttackTarget(S.hero,aim.target)')&&
+  view.includes('aaAim?.dragged'),
+  'Segurar e arrastar o botão AA deve mostrar o alvo e travá-lo no soltar');
+ assert.ok(!view.includes('mobileHelpBtn')&&!view.includes('mobileGuideOpen'),
+  'Interrogação e menu explicativo devem desaparecer do jogo');
+ const css=html.slice(html.lastIndexOf('/* Fenda 9.9 — ações secundárias'));
+ assert.ok(css.includes('top:clamp(54px,14vh,72px)!important')&&
+  css.includes('#fendaHUD #fendaWardBtn')&&css.includes('#fendaHUD #fendaTowerBtn'),
+  'Visão e torre devem sair do centro e ocupar canto superior direito');
+ assert.ok(html.includes('fenda-view.js?v=9.9')&&
+  html.includes('fenda-engine.js?v=9.9'),
+  'Cache deve carregar versão 9.9');
+}
+console.log('OK: V9.9 torre automática, foco forçado, AA arrastável e sem botões centrais.');
