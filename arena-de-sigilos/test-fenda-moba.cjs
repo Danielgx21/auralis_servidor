@@ -19,6 +19,15 @@ const E=sandbox.window.FendaEngine,AI=sandbox.window.FendaTeamAI;
 assert.ok(E&&AI,'Motor ou coordenador tático não inicializado');
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const state=E.start('lyria');
+assert.equal(Object.keys(heroes).length,7,'Brax e Zhira devem ampliar o elenco para 7');
+assert.ok(state.units.filter(u=>u.kind==='hero').every(u=>
+ Object.values(u.skillLevels).filter(rank=>rank>0).length===1),
+ 'Cada campeão deve começar com uma única habilidade básica');
+assert.ok(E.SUMMONERS.smite&&E.SUMMONERS.freecast,
+ 'Feitiços de invocador Selo da Caça e Transe Arcano não cadastrados');
+assert.equal(E.ITEMS.filter(item=>item.tier===2).length,10,
+ 'Itens de lutador e caçador não presentes na loja');
+
 assert.equal(state.units.filter(u=>u.kind==='hero').length,10);
 assert.equal(state.structures.filter(u=>u.kind==='tower').length,12);
 assert.equal(E.LANE_HALF_WIDTH*2,290);
@@ -47,10 +56,10 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=8.7')&&
- html.includes('fenda-team-ai.js?v=8.7')&&
- html.includes('fenda-scenery.js?v=8.7')&&
- html.includes('fenda-view.js?v=8.7'),'O site precisa carregar o cenário procedural antes da câmera.');
+assert.ok(html.includes('fenda-engine.js?v=9.0')&&
+ html.includes('fenda-team-ai.js?v=9.0')&&
+ html.includes('fenda-scenery.js?v=9.0')&&
+ html.includes('fenda-view.js?v=9.0'),'O site precisa carregar o cenário procedural antes da câmera.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
