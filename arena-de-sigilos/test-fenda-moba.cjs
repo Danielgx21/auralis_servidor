@@ -320,8 +320,16 @@ for(const o of state.structures.filter(x=>x.kind==='tower')){
 for(const lane of [0,1,2]){
  const blueT1=state.structures.find(t=>t.kind==='tower'&&t.side===0&&t.lane===lane&&t.tier===1);
  const redT1=state.structures.find(t=>t.kind==='tower'&&t.side===1&&t.lane===lane&&t.tier===1);
- assert.ok(distance(blueT1,redT1)>950,
-  'Torres externas dos inimigos quase encostadas nas aliadas na rota '+lane);
+ const firstGap=distance(blueT1,redT1);
+ const blueT2=state.structures.find(t=>t.kind==='tower'&&t.side===0&&t.lane===lane&&t.tier===2);
+ const blueT3=state.structures.find(t=>t.kind==='tower'&&t.side===0&&t.lane===lane&&t.tier===3);
+ const secondGap=distance(blueT1,blueT2),thirdGap=distance(blueT2,blueT3);
+ assert.ok(firstGap>=570&&firstGap<=770,
+  'Intervalo entre T1 inimigas desproporcional na rota '+lane);
+ assert.ok(secondGap>=360&&thirdGap>=340,
+  'Torres aliadas agrupadas na rota '+lane);
+ assert.ok(firstGap<Math.max(secondGap,thirdGap)*1.8,
+  'Separação entre T1 maior que a progressão defensiva da rota '+lane);
 }
 const topMid=E.pathPos(0,.55),centralMid=E.pathPos(1,.50),bottomMid=E.pathPos(2,.55);
 assert.ok(distance(topMid,centralMid)>350&&distance(bottomMid,centralMid)>350,
@@ -429,12 +437,12 @@ assert.ok(sourceCss.includes('@media (hover:none), (pointer:coarse)')&&
 // Fenda 5.3: AA proporcional à lane, habilidades e reserva de mana real.
 E.start('lyria');
 const rangeHero=state.hero;
-assert.equal(E.attackRange(rangeHero),187,'AA de Lyria proporcional ao corredor ampliado');
+assert.equal(E.attackRange(rangeHero),195,'AA de Lyria coerente com a rota');
 assert.ok(E.attackRange(rangeHero)<E.LANE_HALF_WIDTH*2,'AA não pode superar a largura da rota');
-assert.equal(E.skillDef('lyria_pierce').range,345);
-assert.equal(E.skillDef('lyria_rain').range,212);
-assert.equal(E.skillDef('nyra_bolt').range,341);
-assert.equal(E.skillDef('seris_bloom').range,211);
+assert.equal(E.skillDef('lyria_pierce').range,315);
+assert.equal(E.skillDef('lyria_rain').range,230);
+assert.equal(E.skillDef('nyra_bolt').range,302);
+assert.equal(E.skillDef('seris_bloom').range,240);
 assert.equal(E.WARD_RANGE,280);
 assert.equal(rangeHero.mana,320);
 assert.equal(E.maxMana(rangeHero),320);
@@ -643,6 +651,25 @@ E.start('lyria');
  }
  assert.ok(bots.filter(bot=>maxMoved.get(bot.uid)>350).length>=8,
   'Bots ficaram parados por um minuto após a mudança na IA');
+}
+
+// Fenda 8.6 — loja visual em guias, catálogo, árvore e painel.
+{
+ const view=read('fenda-view.js'),css=read('fenda.css');
+ assert.ok(view.includes('fenda-shop-layout')&&view.includes('fendaShopDetails')&&
+   view.includes('fendaShopTabs')&&view.includes('fendaShopCategories'),
+   'A loja precisa de catálogo e detalhes separados');
+ assert.ok(view.includes("['recommended','★ SUGERIDOS']")&&
+   view.includes("['all','TODOS']")&&view.includes("['parts','COMPONENTES']"),
+   'Faltam as guias da loja MOBA');
+ assert.ok(view.includes('fenda-shop-recipe-branches')&&
+   view.includes('data-shop-part')&&view.includes('data-shop-sell')&&
+   view.includes('fenda-shop-inventory'),
+   'Receitas e inventário precisam ser clicáveis');
+ assert.ok(css.includes('grid-template-columns:repeat(4,minmax(0,1fr))')&&
+   css.includes('.fenda-item-icon')&&css.includes('.fenda-shop-detail-top')&&
+   css.includes('.fenda-shop-buy-actions'),
+   'A loja ainda usa cartões compridos sem ícones');
 }
 
 // Fenda 8.5 — equipamentos por receitas, evolução manual e multitouch.
