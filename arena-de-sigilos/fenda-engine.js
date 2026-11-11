@@ -1785,6 +1785,7 @@ function cast(u,id,aim=null,autoTarget=null){
  if(id==='sahra_ult'&&u.sahraSecondUntil>state.time){
   if(u.casting)return false;
   u.sahraSecondUntil=0;
+  if(u.shroudUntil>state.time)u.shroudBreakUntil=state.time+.75;
   const dx=aim?.x??Math.cos(u.facing||0),dy=aim?.y??Math.sin(u.facing||0);
   releaseSkill(u,{id,dir:norm(dx,dy),center:{x:u.x,y:u.y},
     level:Math.max(1,skillRank(u,id)),stage2:true});
@@ -1821,8 +1822,10 @@ function cast(u,id,aim=null,autoTarget=null){
    .sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
   if(low)heal(low,Math.round(5+maxLv*3));
  }
- if(u.id==='mirielle'&&id!=='mirielle_ult'&&id!=='mirielle_distort')
+ if(u.id==='mirielle'&&id!=='mirielle_ult')
   u.mirrorLastSpell=id;
+ if(u.id==='sahra'&&id!=='sahra_shroud'&&u.shroudUntil>state.time)
+  u.shroudBreakUntil=state.time+.75;
  if(u.id==='sahra'&&id==='sahra_ult')u.sahraSecondUntil=state.time+4.0;
  const c={id,dir,center,level:maxLv,time:Math.max(0,def.cast),
   total:Math.max(0,def.cast),repeatSpell:u.mirrorLastSpell};
@@ -1968,7 +1971,7 @@ function releaseSkill(u,c){
  if(id==='sahra_shroud'){
   u.shroudCenter={x:u.x,y:u.y};u.shroudUntil=state.time+4.3;
   u.shroudBreakUntil=0;
-  state.zones.push({kind:'shroud',x:u.x,y:u.y,r:120,life:4.3,
+  state.zones.push({kind:'shroud',x:u.x,y:u.y,r:120,until:state.time+4.3,
    side:u.side,source:u,color:'#9ee9bb'});
   addEffect(u.x,u.y,'#a6e8c0',119,.5,'wave');return;
  }
@@ -2309,7 +2312,14 @@ function tickUnit(u,dt){
      target.stun=Math.max(target.stun,d.stun);
     }
    }
-   d.t-=dt;if(d.t<=0)u.dash=null;
+   d.t-=dt;
+   if(d.t<=0){
+    if(d.skillId==='mirielle_distort'){
+     aoe(u.x,u.y,75,Math.round((29+u.level*3)*spellPower(u,'mirielle_distort')),u);
+     addEffect(u.x,u.y,'#d8a4ff',82,.4,'burst');
+    }
+    u.dash=null;
+   }
    addEffect(ox,oy,hData(u.id).color,21,.21);
    return;
   }
