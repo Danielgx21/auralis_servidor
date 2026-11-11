@@ -8,8 +8,7 @@ const MOBA_WALK_SCALE=.55;
 // Escala compartilhada da pista, torres e câmera. Corredor largo o bastante
 // para movimentação lateral e legível em landscape; paredes ficam fora dele.
 const LANE_HALF_WIDTH=145,LANE_MINION_SPREAD=33;
-// Mesma escala física para câmera, ataques básicos e defesa de estruturas.
-// O maior alcance defensivo é inferior ao espaço mínimo exibido no celular.
+// Alcances defensivos compartilhados com câmera, rota e IA.
 const TURRET_RANGE=330,CORE_RANGE=345;
 // Fenda 6.3: desenho 100% procedural de três lanes realmente independentes.
 // Cada trajeto começa fora do santuário e termina na outra base. Simetria rotacional.
@@ -176,11 +175,12 @@ const state={mode:'menu',time:0,w:W,h:H,camera:{x:0,y:0},units:[],structures:[],
 const rando=(a,b)=>a+Math.random()*(b-a),hData=id=>C.heroes[id];
 // Alcances calibrados no espaço da Fenda (o modo Arena original não é alterado).
 const MOBA_SKILL_RANGES={
- lyria_pierce:[345,17],lyria_step:[120,0],lyria_rain:[212,70],lyria_ult:[268,112],
- vexor_lunge:[128,26],vexor_whirl:[0,82],vexor_mark:[185,56],vexor_ult:[173,44],
- orun_charge:[111,38],orun_quake:[0,106],orun_ult:[0,143],
- nyra_bolt:[341,17],nyra_rift:[207,63],nyra_ult:[258,109],
- seris_tether:[298,18],seris_bloom:[211,92],seris_aegis:[0,139],seris_ult:[0,169]
+ // Pokes devem exigir risco de se aproximar da torre (alcance 330).
+ lyria_pierce:[315,17],lyria_step:[125,0],lyria_rain:[230,74],lyria_ult:[283,105],
+ vexor_lunge:[125,26],vexor_whirl:[0,80],vexor_mark:[190,54],vexor_ult:[175,42],
+ orun_charge:[120,38],orun_quake:[0,105],orun_ult:[0,140],
+ nyra_bolt:[302,17],nyra_rift:[222,62],nyra_ult:[274,107],
+ seris_tether:[274,18],seris_bloom:[240,90],seris_aegis:[0,138],seris_ult:[0,168]
 };
 const MOBA_SKILL_CACHE={};
 const skillDef=id=>{
@@ -195,11 +195,15 @@ const skillDef=id=>{
 const living=(side,kind)=>state.units.filter(u=>u.hp>0&&(side==null||u.side===side)&&(!kind||u.kind===kind));
 const maxMana=u=>320+Math.max(0,(u.level||1)-1)*16+itemStats(u,'mana');
 const WARD_RANGE=280;
-const attackRange=u=>u.kind==='minion'?(u.id==='siege'?215:u.ranged?146:38):u.kind==='creep'?48:
- (u.id==='orun'?65:u.id==='vexor'?65:u.id==='lyria'?187:u.id==='nyra'?178:166);
+const HERO_AA_RANGE={orun:67,vexor:72,lyria:195,nyra:180,seris:176};
+const HERO_AA_DAMAGE_FACTOR={orun:.78,vexor:.92,lyria:.95,nyra:.75,seris:.79};
+const HERO_AA_SPEED_FACTOR={orun:1.08,vexor:.98,lyria:.86,nyra:1.04,seris:1.09};
+const attackRange=u=>u.kind==='minion'?(u.id==='siege'?207:u.ranged?140:38):
+ u.kind==='creep'?48:(HERO_AA_RANGE[u.id]||170);
 const moveSpeed=u=>u.speed*(1+itemStats(u,'move'))*(u.slow>0?.62:1);
 const attackDamage=u=>u.atk+itemStats(u,'ad');
-const spellPower=u=>1+itemStats(u,'ap');
+const spellPower=(u,id)=>1+itemStats(u,'ap')+
+ (id&&['lyria','vexor','orun'].includes(u.id)?itemStats(u,'ad')*.005:0);
 const levelXp=level=>42+level*24;
 // Trajetos curvos compartilhados por física, tropas, torres e renderização.
 // Cada esquina vira uma transição quadrática, evitando quinas de 90°.
@@ -355,9 +359,11 @@ function buildMap(){
   for(let lane=0;lane<3;lane++)for(let tier=0;tier<3;tier++){
    // T1 externa distante do centro; T2 e T3 recuam progressivamente à base.
    // Espaço central neutro suficiente para combate antes do alcance das torres.
-   const t=(lane===1
-     ?(side===0?[.295,.175,.06]:[.705,.825,.94])
-     :(side===0?[.27,.16,.05]:[.73,.84,.95]))[tier];
+   // T1 próxima do rio, T2 na metade recuada e T3 próxima da base.
+   // Posições equilibradas em distância percorrida (e simétricas entre lados):
+   // redução do abismo entre T1 inimigas sem aglomerar três torres aliadas.
+   const positions=lane===1?[.375,.19,.035]:[.375,.225,.075];
+   const t=(side===0?positions:positions.map(t=>1-t))[tier];
    const p=pathPos(lane,t),a=pathPos(lane,Math.max(0,t-.004)),b=pathPos(lane,Math.min(1,t+.004));
    const direction=norm(b.x-a.x,b.y-a.y);
    // Mid usa o lado oposto ao Bot: impede amontoar T3 das duas lanes.
@@ -473,7 +479,8 @@ function makeHero(id,side,controlled=false){
  const spawnOffset=55+(state.seq%3)*13;
  return {uid:++state.seq,kind:'hero',id,side,controlled,
  x:start.x+d.x*spawnOffset+rando(-11,11),
- y:start.y+d.y*spawnOffset+rando(-11,11),r:id==='orun'?21:17.5,speed:h.move*MOBA_WALK_SCALE,atk:h.damage*.82,
+ y:start.y+d.y*spawnOffset+rando(-11,11),r:id==='orun'?21:17.5,speed:h.move*MOBA_WALK_SCALE,
+ atk:h.damage*HERO_AA_DAMAGE_FACTOR[id],
  baseHp:h.hp*1.3,maxHp:Math.round(h.hp*1.3),hp:Math.round(h.hp*1.3),
  mana:320,maxMana:320,level:1,xp:0,gold:controlled?550:350,items:[],
  skillLevels:Object.fromEntries([...h.skills,h.ultimate].map(id=>[id,id===h.ultimate?0:1])),
@@ -797,9 +804,11 @@ function autoAttack(u){
  if(u.hp<=0||u.attackCd>0||u.casting||u.stun>0)return false;
  const target=findAA(u);if(!target)return false;
  if(u.recall>0){u.recall=0;if(u.controlled)announce('RETORNO CANCELADO: ATAQUE',1.2)}
- const attackFactor=u.kind!=='hero'?1:u.id==='vexor'?1.15:u.id==='lyria'?1.10:
-  u.id==='orun'?1.06:u.id==='nyra'?.96:1.04;
- u.attackCd=u.kind==='hero'?(hData(u.id).attackTime*attackFactor+Math.max(0,5-u.level)*.018):u.id==='siege'?2.15:u.ranged?1.5:1.25;
+ const attackFactor=u.kind==='hero'?HERO_AA_SPEED_FACTOR[u.id]||1:1;
+ u.attackCd=u.kind==='hero'?
+  Math.max(.55,hData(u.id).attackTime*attackFactor*
+   (1-Math.min(.20,Math.max(0,u.level-1)*.014))):
+  u.id==='siege'?2.15:u.ranged?1.5:1.25;
  u.attackAnim=u.kind==='hero'?.39:.29;
  u.attackTotal=u.attackAnim;
  u.attackWindup=u.kind==='hero'?(u.isRanged?.15:.13):.11;
@@ -1197,7 +1206,11 @@ function botUseSkill(u,target){
   if(r<270&&clusters>=2)options.push('nyra_rift');
   if(r<390)options.push('nyra_bolt');
  }
- options=options.filter(ready);
+ options=options.filter(id=>{
+  if(!ready(id))return false;
+  const def=skillDef(id);
+  return def.aim==='self'||r<=(def.range||0)+target.r+9;
+ });
  if(!options.length)return false;
  const id=options[0],beneficiary=id==='seris_bloom'?wounded:target;
  if(cast(u,id,window.FendaTeamAI?.aim(u,id,beneficiary)||null,beneficiary)){
@@ -1540,7 +1553,7 @@ function cast(u,id,aim=null,autoTarget=null){
 }
 function releaseSkill(u,c){
  if(!u||u.hp<=0)return;
- const id=c.id,def=skillDef(id),power=spellPower(u),enemy=1-u.side,lv=c.level;
+ const id=c.id,def=skillDef(id),power=spellPower(u,id),enemy=1-u.side,lv=c.level;
  u.skillFlash=.42;
  const slow=(target,seconds)=>{target.slow=Math.max(target.slow,seconds)};
  if(['lyria_step','vexor_lunge','orun_charge','vexor_ult'].includes(id)){
@@ -1586,12 +1599,12 @@ function releaseSkill(u,c){
       id==='orun_ult'||id==='seris_ult'?4.2:2.9);
    }
   }
-  if(id==='orun_ult')aoe(u.x,u.y,r,Math.round(65*power),u,.55);
+  if(id==='orun_ult')aoe(u.x,u.y,r,Math.round((50+lv*15)*power),u,.55);
   addEffect(u.x,u.y,hData(u.id).color,r,.69);
   return;
  }
  if(id==='vexor_whirl'||id==='orun_quake'){
-  aoe(u.x,u.y,r,Math.round((id==='orun_quake'?53:60)*power),u,id==='orun_quake'?.33:0);
+  aoe(u.x,u.y,r,Math.round(((id==='orun_quake'?43:48)+lv*9)*power),u,id==='orun_quake'?.33:0);
   addEffect(u.x,u.y,hData(u.id).color,r,.54);
  }
 }
