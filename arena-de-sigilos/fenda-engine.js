@@ -1781,11 +1781,12 @@ function castSummoner(u,id,target=null,aim=null){
    .sort((a,b)=>dist(u,a)-dist(u,b))[0];
   chosen=target&&target.hp>0&&dist(u,target)<212&&
    (state.camps.includes(target)||target.kind==='hero'&&target.side!==u.side)?target:
-   camps.sort((a,b)=>a.hp-b.hp)[0]||foe;
+   aim?.manual?null:camps.sort((a,b)=>a.hp-b.hp)[0]||foe;
   if(!chosen)return false;
  }else if(id==='ignite'){
-  chosen=target&&target.kind==='hero'&&target.side!==u.side&&dist(u,target)<215?target:
-   living(1-u.side,'hero').filter(h=>visibleTo(u.side,h)&&dist(u,h)<215)
+  chosen=target&&target.hp>0&&target.kind==='hero'&&target.side!==u.side&&
+   visibleTo(u.side,target)&&dist(u,target)<215?target:
+   aim?.manual?null:living(1-u.side,'hero').filter(h=>visibleTo(u.side,h)&&dist(u,h)<215)
     .sort((a,b)=>dist(u,a)-dist(u,b))[0];
   if(!chosen)return false;
  }
