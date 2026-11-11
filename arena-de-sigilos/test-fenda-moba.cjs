@@ -56,10 +56,10 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=9.3')&&
- html.includes('fenda-team-ai.js?v=9.3')&&
- html.includes('fenda-scenery.js?v=9.3')&&
- html.includes('fenda-view.js?v=9.3'),'O site precisa carregar o cenário procedural antes da câmera.');
+assert.ok(html.includes('fenda-engine.js?v=9.4')&&
+ html.includes('fenda-team-ai.js?v=9.4')&&
+ html.includes('fenda-scenery.js?v=9.4')&&
+ html.includes('fenda-view.js?v=9.4'),'O site precisa carregar o cenário procedural antes da câmera.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -957,7 +957,61 @@ E.start('lyria');
  assert.ok(view.includes("isDesktop?$('pcSkill'+i):b")&&
   css.includes('#fendaTeamRoster.collapsed .pc-roster-list'),
   'Evolução de habilidades e recolhimento do quadro não foram adaptados');
- assert.ok(html.includes('fenda-view.js?v=9.3')&&html.includes('fenda.css?v=9.3'),
-  'Cache precisa trazer a versão 9.3');
+ assert.ok(html.includes('fenda-view.js?v=9.4')&&html.includes('fenda.css?v=9.4'),
+  'Cache precisa trazer a versão 9.4');
 }
-console.log('OK: V9.3 com HUD desktop, quadro 5x5, botões funcionais e controles mobile isolados.');
+// V9.4 — novas prioridades de AA, tempo de ataque, decisões dos bots e retratos.
+{
+ const match=E.start('lyria'),player=match.hero,foe=match.units.find(u=>u.side===1&&u.kind==='hero');
+ player.x=1400;player.y=1300;foe.x=player.x+E.attackRange(player)-8;foe.y=player.y;
+ foe.stun=20;
+ const lastHit={uid:15007,kind:'minion',id:'guard',side:1,lane:2,hp:8,maxHp:100,
+  x:player.x+49,y:player.y+7,r:13,atk:14,death:0,stun:0,slow:0,shield:0,invuln:0,attackCd:2};
+ const healthy={...lastHit,uid:15008,hp:120,maxHp:120,x:player.x+42,y:player.y-8};
+ match.units=[player,foe,lastHit,healthy];match.camps=[];match.structures=[];
+ E.refreshVision(true);
+ assert.equal(E.findAA(player),foe,'AA parado deve priorizar campeão inimigo visível');
+ foe.x+=550;E.refreshVision(true);
+ assert.equal(E.findAA(player),lastHit,'AA deve priorizar último golpe quando não houver campeão');
+ player.passiveAttacks=2;
+ assert.ok(E.autoAttack(player),'AA básico não iniciou com tropas no alcance');
+ assert.ok(player.attackPending?.empowered,'Terceiro AA precisa registrar passiva no próprio disparo');
+ assert.ok(player.attackWindup>=.09&&player.attackWindup<=.32,
+  'Tempo de preparação de ataque saiu dos limites');
+ assert.ok(player.attackCd>player.attackWindup,'Ataque deve permitir reposicionar após preparar o disparo');
+ const power=AI.strength(player);
+ player.items.push('bulwark');
+ assert.ok(AI.strength(player)>power,'IA precisa considerar itens completos na força do campeão');
+ const evasive=E.start('lyria');
+ const bot=evasive.units.find(u=>u.side===0&&u.kind==='hero'&&!u.controlled);
+ bot.x=1500;bot.y=1340;
+ evasive.projectiles=[{kind:'damagearea',side:1,tx:bot.x,ty:bot.y,aoe:105,life:1}];
+ assert.ok(AI.dodgeTelegraph(bot,.05),'Bot não reage a ataque de área sinalizado');
+ assert.equal(bot.dodgeAt,evasive.time,'Bot não registrou momento da esquiva');
+ const jungleMatch=E.start('lyria'),jungler=jungleMatch.units.find(u=>u.jungler&&u.side===0);
+ const ally=jungleMatch.hero,enemy=jungleMatch.units.find(u=>u.side===1&&u.kind==='hero');
+ assert.ok(jungler,'Caçador automático não encontrado');
+ jungler.x=1320;jungler.y=1350;jungler.level=3;jungler.nextGankScan=0;
+ ally.x=1430;ally.y=1355;enemy.x=1490;enemy.y=1350;
+ enemy.hp=Math.round(enemy.maxHp*.68);
+ jungleMatch.time=38;jungleMatch.structures=[];
+ E.refreshVision(true);
+ assert.ok(E.botTryGank(jungler,.05),'Bot caçador não tenta emboscada com apoio aliado');
+ assert.equal(jungler.gankTargetUid,enemy.uid,'Caçador não marcou o alvo da emboscada');
+ const phases=E.start('lyria');
+ assert.equal(phases.phase,'laning','Jogo deve começar pela fase de rotas');
+ phases.time=154.99;E.step(.05,{x:0,y:0});
+ assert.equal(phases.phase,'objectives','Transição para disputa de objetivos ausente');
+ phases.time=479.99;E.step(.05,{x:0,y:0});
+ assert.equal(phases.phase,'siege','Cerco final não foi ativado');
+ const view=read('fenda-view.js'),css=read('fenda.css'),ai=read('fenda-team-ai.js');
+ assert.ok(view.includes('function championPortrait(id)')&&
+  view.includes('championPortrait(u.id)')&&css.includes('.fenda-champion-portrait-svg'),
+  'Retratos próprios dos campeões não estão completos na interface');
+ assert.ok(view.includes("id==='lyria'||id==='tessa'")&&
+  view.includes('if(p.empowered)')&&view.includes('attackLaunch'),
+  'Projéteis temáticos e efeitos de preparação não foram aplicados');
+ assert.ok(ai.includes('dodgeTelegraph(u,dt)')&&ai.includes('E.attackRange(a)'),
+  'IA não considera telegráficos e alcance no foco de equipe');
+}
+console.log('OK: V9.4 — AA por classe, ganks com apoio, IA tática, 3 fases e 10 retratos exclusivos.');
