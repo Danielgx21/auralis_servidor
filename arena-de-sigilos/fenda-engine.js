@@ -1752,6 +1752,25 @@ function cast(u,id,aim=null,autoTarget=null){
  if(!u||u.hp<=0||state.mode!=='playing')return false;
  if(![...hData(u.id).skills,hData(u.id).ultimate].includes(id))return false;
  const def=skillDef(id);
+ if(u.dash||u.stun>0)return false;
+ // Reativar não custa mana e não aguarda o cooldown da primeira conjuração.
+ if(id==='mirielle_distort'&&u.mirrorReturn&&u.mirrorReturn.until>state.time){
+  const origin=u.mirrorReturn;u.mirrorReturn=null;
+  addEffect(u.x,u.y,'#c69cff',56,.45,'wave');
+  u.x=origin.x;u.y=origin.y;pushOutsideSolids(u);
+  u.invuln=Math.max(u.invuln,.17);
+  addEffect(u.x,u.y,'#c69cff',58,.43,'wave');
+  if(u.controlled)announce('MIRIELLE · RETORNO AO ESPELHO',1.3);
+  return true;
+ }
+ if(id==='sahra_ult'&&u.sahraSecondUntil>state.time){
+  u.sahraSecondUntil=0;
+  const dx=aim?.x??Math.cos(u.facing||0),dy=aim?.y??Math.sin(u.facing||0);
+  releaseSkill(u,{id,dir:norm(dx,dy),center:{x:u.x,y:u.y},
+    level:Math.max(1,skillRank(u,id)),stage2:true});
+  if(u.controlled)announce('SAHRA · SEGUNDA INVESTIDA',1.2);
+  return true;
+ }
  if(u.casting||u.dash||u.cooldowns[id]>0||(u.mana<def.cost&&u.manaFreeUntil<=state.time)||u.stun>0)return false;
  if(def.ultimate&&u.level<5||skillRank(u,id)===0)return false;
  const target=autoTarget||((def.aim==='self')?u:nearestEnemy(u,def.range||350,false));
@@ -1782,7 +1801,11 @@ function cast(u,id,aim=null,autoTarget=null){
    .sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
   if(low)heal(low,Math.round(5+maxLv*3));
  }
- const c={id,dir,center,level:maxLv,time:Math.max(0,def.cast),total:Math.max(0,def.cast)};
+ if(u.id==='mirielle'&&id!=='mirielle_ult'&&id!=='mirielle_distort')
+  u.mirrorLastSpell=id;
+ if(u.id==='sahra'&&id==='sahra_ult')u.sahraSecondUntil=state.time+4.0;
+ const c={id,dir,center,level:maxLv,time:Math.max(0,def.cast),
+  total:Math.max(0,def.cast),repeatSpell:u.mirrorLastSpell};
  if(c.time<=0)releaseSkill(u,c);else u.casting=c;
  addEffect(u.x,u.y,hData(u.id).color,27,.24);
  return true;
@@ -1848,24 +1871,91 @@ function releaseSkill(u,c){
  if(!u||u.hp<=0)return;
  const id=c.id,def=skillDef(id),power=spellPower(u,id),enemy=1-u.side,lv=c.level;
  u.skillFlash=.42;
+ // Kits próprios: o assassino da fumaça e a maga de ilusões não usam
+ // apenas uma variação de dash genérico.
+ if(id==='sahra_shroud'){
+  u.shroudCenter={x:u.x,y:u.y};u.shroudUntil=state.time+4.3;
+  u.shroudBreakUntil=0;
+  state.zones.push({kind:'shroud',x:u.x,y:u.y,r:120,life:4.3,
+   side:u.side,source:u,color:'#9ee9bb'});
+  addEffect(u.x,u.y,'#a6e8c0',119,.5,'wave');return;
+ }
+ if(id==='sahra_knives'){
+  const angle=Math.atan2(c.dir.y,c.dir.x),range=skillDef(id).range||215;
+  const targets=living(1-u.side).concat(state.camps.filter(k=>k.hp>0&&(!k.unlock||state.time>=k.unlock)));
+  for(const e of targets){
+   const d=dist(u,e),a=Math.atan2(e.y-u.y,e.x-u.x);
+   if(d>range+e.r||Math.abs(Math.atan2(Math.sin(a-angle),Math.cos(a-angle)))>.54)continue;
+   const dmg=Math.round((32+lv*9)*power*(1-.22*d/range));
+   skillHit(e,u,id,dmg);
+  }
+  addEffect(u.x+c.dir.x*85,u.y+c.dir.y*85,'#a6edb9',95,.33,'burst');
+  return;
+ }
+ if(id==='mirielle_ult'){
+  const mimic=c.repeatSpell||'mirielle_sigil';
+  const range=skillDef(id).range||320;
+  u.mirrorEchoUntil=state.time+2.5;
+  u.mirrorEchoAt={x:u.x-c.dir.y*39,y:u.y+c.dir.x*39};
+  if(mimic==='mirielle_chain'){
+   launchSkillLine(u,id,c.dir,range,Math.round((79+lv*22)*power),20,
+    {echoType:'chain',slow:.7});
+  }else if(mimic==='mirielle_distort'){
+   const x=u.x+c.dir.x*Math.min(range,190),y=u.y+c.dir.y*Math.min(range,190);
+   aoe(x,y,84,Math.round((69+lv*20)*power),u,0,.55);
+   addEffect(x,y,'#ecc5ff',98,.6,'burst');
+  }else{
+   launchSkillLine(u,id,c.dir,range,Math.round((93+lv*22)*power),20,
+    {echoType:'sigil',mark:true});
+  }
+  addEffect(u.mirrorEchoAt.x,u.mirrorEchoAt.y,'#dfb2ff',58,.6,'wave');
+  return;
+ }
  const slow=(target,seconds)=>{target.slow=Math.max(target.slow,seconds)};
- if(['lyria_step','vexor_lunge','orun_charge','vexor_ult','brax_grapple','zhira_pounce','tessa_roll','rokar_charge'].includes(id)){
-  const dashLength=def.range+lv*7,duration=id==='vexor_ult'?.25:.18;
+ if(['lyria_step','vexor_lunge','orun_charge','vexor_ult','brax_grapple','zhira_pounce','tessa_roll','rokar_charge','sahra_flip','sahra_ult','mirielle_distort'].includes(id)){
+  const dashLength=(id==='sahra_ult'&&c.stage2?208:
+   id==='mirielle_distort'?196:def.range+lv*7),duration=id==='vexor_ult'?.25:.18;
+  if(id==='mirielle_distort')u.mirrorReturn={x:u.x,y:u.y,until:state.time+3.5};
+  if(id==='tessa_roll')u.loadedRoundUntil=state.time+5.2;
   u.skillFlash=.35;
   u.dash={vx:c.dir.x*dashLength/duration,vy:c.dir.y*dashLength/duration,t:duration,
-   hit:new Set(),radius:def.radius||25,dmg:Math.round((id==='vexor_ult'?85:id==='orun_charge'?31:id==='vexor_lunge'?36:id==='brax_grapple'?37:id==='zhira_pounce'?34:id==='rokar_charge'?33:0)*power),
+   hit:new Set(),skillId:id,stage2:!!c.stage2,radius:def.radius||25,
+   dmg:Math.round((id==='sahra_ult'?(c.stage2?99:42):
+    id==='mirielle_distort'?55:id==='sahra_flip'?36:
+    id==='vexor_ult'?85:id==='orun_charge'?31:id==='vexor_lunge'?36:
+    id==='brax_grapple'?37:id==='zhira_pounce'?34:id==='rokar_charge'?33:0)*power),
    stun:id==='orun_charge'?.36:id==='brax_grapple'?.29:id==='vexor_ult'?.26:id==='rokar_charge'?.38:0};
   u.invuln=id==='lyria_step'||id==='tessa_roll'?.19:.10;
   addEffect(u.x,u.y,hData(u.id).color,57,.42);
   return;
  }
- if(['lyria_pierce','nyra_bolt','seris_tether','zhira_strike','kaelis_lance','tessa_shot','tessa_ult'].includes(id)){
-  const d=id==='lyria_pierce'?42:id==='nyra_bolt'?44:id==='zhira_strike'?39:id==='kaelis_lance'?43:id==='tessa_shot'?49:id==='tessa_ult'?122:24;
-  state.projectiles.push({x:u.x+c.dir.x*23,y:u.y+c.dir.y*23,source:u,side:u.side,
-   vx:c.dir.x*555,vy:c.dir.y*555,range:def.range,travel:0,
-   damage:Math.round((d+lv*8)*power),r:def.radius||15,life:2,
-   kind:'skillline',color:hData(u.id).color,stun:0,slow:id==='seris_tether'?1.6:id==='kaelis_lance'?.65:0});
+ if(['lyria_pierce','nyra_bolt','seris_tether','zhira_strike','kaelis_lance','tessa_shot','tessa_ult','mirielle_sigil','mirielle_chain'].includes(id)){
+  const d=id==='lyria_pierce'?33:id==='nyra_bolt'?44:id==='zhira_strike'?39:
+   id==='kaelis_lance'?43:id==='tessa_shot'?64:id==='tessa_ult'?135:
+   id==='mirielle_sigil'?47:id==='mirielle_chain'?38:24;
+  launchSkillLine(u,id,c.dir,def.range,
+    Math.round((d+lv*8)*power),def.radius||15,{
+     pierce:['lyria_pierce','tessa_shot','tessa_ult'].includes(id),
+     slow:id==='seris_tether'?1.6:id==='kaelis_lance'?.65:0});
+  if(id==='lyria_pierce'){
+   u.windStacks=Math.min(4,(u.windStacks||0)+1);
+   u.windUntil=state.time+4.1;
+  }
   return;
+ }
+ if(id==='lyria_rain'||id==='lyria_ult'){
+  state.zones.push({kind:'arrowstorm',x:c.center.x,y:c.center.y,
+   r:def.radius+(def.ultimate?17:0),source:u,side:u.side,
+   period:id==='lyria_ult'?.58:.62,until:state.time+(id==='lyria_ult'?2.5:3.25),
+   nextPulse:state.time+.24,damage:Math.round((id==='lyria_ult'?38+lv*11:16+lv*6)*power),
+   slow:id==='lyria_ult'?1.2:.6,color:'#84f6d6',life:3.3});
+  addEffect(c.center.x,c.center.y,'#8df5d3',def.radius,.67,'telegraph');return;
+ }
+ if(id==='tessa_salvo'){
+  state.zones.push({kind:'trap',x:c.center.x,y:c.center.y,r:def.radius,
+   source:u,side:u.side,until:state.time+17,
+   damage:Math.round((35+lv*11)*power),color:'#e9cd81',life:17});
+  addEffect(c.center.x,c.center.y,'#e7c98a',def.radius,.44,'telegraph');return;
  }
  if(def.aim==='area'){
   const isHealing=id==='seris_bloom';
