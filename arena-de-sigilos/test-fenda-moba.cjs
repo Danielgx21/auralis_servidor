@@ -496,7 +496,7 @@ assert.ok(sourceCss.includes('@media (hover:none), (pointer:coarse)')&&
 // Fenda 5.3: AA proporcional à lane, habilidades e reserva de mana real.
 E.start('lyria');
 const rangeHero=state.hero;
-assert.equal(E.attackRange(rangeHero),195,'AA de Lyria coerente com a rota');
+assert.equal(E.attackRange(rangeHero),185,'Lyria tem alcance inferior à Tessa, mas ataca mais depressa');
 assert.ok(E.attackRange(rangeHero)<E.LANE_HALF_WIDTH*2,'AA não pode superar a largura da rota');
 assert.equal(E.skillDef('lyria_pierce').range,315);
 assert.equal(E.skillDef('lyria_rain').range,230);
