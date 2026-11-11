@@ -361,9 +361,10 @@ function buildMap(){
    // T1 externa distante do centro; T2 e T3 recuam progressivamente à base.
    // Espaço central neutro suficiente para combate antes do alcance das torres.
    // T1 próxima do centro do mapa; T2 defende o acesso à base.
-   // Composição mantém um intervalo longo entre torres da mesma rota
-   // e uma distância curta o bastante entre T1 adversárias.
-   const positions=lane===1?[.375,.085]:[.385,.13];
+   // T1 de equipes adversárias ficam fora do raio uma da outra,
+   // abrindo uma faixa realmente neutra para o encontro das ondas.
+   // As duas torres de cada equipe permanecem bem separadas.
+   const positions=lane===1?[.29,.07]:[.315,.085];
    const t=(side===0?positions:positions.map(t=>1-t))[tier];
    const p=pathPos(lane,t),a=pathPos(lane,Math.max(0,t-.004)),b=pathPos(lane,Math.min(1,t+.004));
    const direction=norm(b.x-a.x,b.y-a.y);
