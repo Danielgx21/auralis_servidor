@@ -1182,3 +1182,30 @@ console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livr
   'Cache de versão deve usar os novos campeões');
 }
 console.log('OK: V9.6 com duas assassinas, fumaça, retorno, execução, combos e ADCs distintos.');
+
+// V9.6 — flechas atravessam mais de uma unidade em linha aberta;
+// se um muro bloquear, o mesmo motor interrompe o projétil.
+{
+ for(const id of ['lyria','tessa']){
+  const m=E.start(id),h=m.hero;
+  h.x=1500;h.y=1250;h.attackCd=100;
+  m.structures=[];m.walls=[];m.obstacles=[];m.camps=[];m.nextWave=99999;
+  const dummy=(uid,dx)=>({uid,kind:'minion',id:'guard',side:1,lane:1,
+   x:h.x+dx,y:h.y,r:13,hp:400,maxHp:400,atk:0,speed:0,
+   attackCd:20,stun:40,slow:0,shield:0,guard:0,invuln:0,
+   attackAnim:0,death:0,lastDamage:-1});
+  const a=dummy(9901,120),b=dummy(9902,205);
+  m.units=[h,a,b];E.refreshVision(true);
+  const key=id==='lyria'?'lyria_pierce':'tessa_shot';
+  assert.ok(E.cast(h,key,{x:1,y:0,distance:315}),'Q não disparou '+id);
+  for(let k=0;k<20;k++)E.step(.05,{x:0,y:0});
+  assert.ok(a.hp<400&&b.hp<400&&b.hp>a.hp,
+   'Tiro perfurante deve acertar os dois alvos e perder dano após o primeiro: '+id);
+ }
+ const m=E.start('mirielle');
+ const bot=m.units.find(u=>u.side===0&&!u.controlled),enemy=m.units.find(u=>u.side===1);
+ bot.x=1500;bot.y=1350;enemy.x=1750;enemy.y=1350;
+ m.zones=[{kind:'arrowstorm',x:bot.x,y:bot.y,r:100,source:enemy,side:1,until:m.time+3}];
+ assert.ok(AI.dodgeTelegraph(bot,.05),'Bots precisam tentar sair da tempestade da Lyria');
+}
+console.log('OK: tiros perfurantes de Lyria e Tessa e evasão de áreas persistentes.');
