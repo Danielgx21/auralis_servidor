@@ -140,7 +140,7 @@ const skillRankCap=(unit,id)=>{
  if(!unit||!C.heroes[unit.id])return 0;
  const ultimate=id===C.heroes[unit.id].ultimate;
  return ultimate?Math.min(ULT_RANK_MAX,Math.max(0,1+Math.floor((unit.level-5)/4))):
- Math.min(BASIC_RANK_MAX,Math.max(1,Math.floor((unit.level+1)/2)));
+ Math.min(BASIC_RANK_MAX,Math.max(1,Math.floor(unit.level/2)+1));
 };
 function upgradeSkill(unit,id){
  if(!unit||unit.kind!=='hero'||unit.hp<=0||!unit.skillLevels||!Object.hasOwn(unit.skillLevels,id))
@@ -756,6 +756,9 @@ function findAA(u){
   if(!isAttackCommandValid(u,t)){clearAttackCommand(u);}
   else return dist(u,t)<=range+solidRadius(t)+2?t:null;
  }
+ if(u.kind==='hero'&&!u.controlled&&u.farmTarget&&u.farmTarget.hp>0&&
+     u.farmTarget.kind==='minion'&&
+     dist(u,u.farmTarget)<=range+u.farmTarget.r+2)return u.farmTarget;
  if(u.kind==='hero'&&!u.controlled&&u.jungleGoal&&u.jungleGoal.hp>0&&
      (!u.jungleGoal.unlock||state.time>=u.jungleGoal.unlock)&&
      dist(u,u.jungleGoal)<=range+solidRadius(u.jungleGoal)+2)return u.jungleGoal;
@@ -1400,7 +1403,12 @@ function botHero(u,dt){
  const enemyHeroes=living(enemySide,'hero')
   .filter(e=>visibleTo(u.side,e)&&dist(e,u)<340).sort((a,b)=>dist(u,a)-dist(u,b));
  const enemyWave=living(enemySide,'minion')
-  .filter(e=>visibleTo(u.side,e)&&e.lane===lane&&dist(e,u)<350).sort((a,b)=>dist(u,a)-dist(u,b));
+  .filter(e=>visibleTo(u.side,e)&&e.lane===lane&&dist(e,u)<410)
+  .sort((a,b)=>a.hp-b.hp||dist(u,a)-dist(u,b));
+ // Último golpe e ataque básico priorizados sem perseguir inimigos até a jungle.
+ const farmKill=enemyWave.find(e=>e.hp<=attackDamage(u)*1.38&&
+  dist(u,e)<attackRange(u)+e.r+32);
+ u.farmTarget=farmKill||enemyWave.find(e=>dist(u,e)<attackRange(u)+e.r+13)||null;
  const objective=state.structures.filter(t=>t.side===enemySide&&t.hp>0&&
   (t.kind==='tower'&&t.lane===lane||t.kind==='core'&&laneCleared(enemySide,lane))&&structureExposed(t))
   .sort((a,b)=>dist(u,a)-dist(u,b))[0];
@@ -1412,13 +1420,14 @@ function botHero(u,dt){
  // Equipe entra em combate se um inimigo estiver perto o suficiente.
  else if(enemyNear&&dist(u,enemyNear)<attackRange(u)+85)target=enemyNear;
  // Farmar tropas e escoltar as sentinelas é mais importante do que perseguição longa.
- else if(enemyWave.length)target=enemyWave[0];
+ else if(enemyWave.length)target=farmKill||enemyWave[0];
  else if(objective&&dist(u,objective)<390&&hasWave)target=objective;
  else if(enemyNear&&dist(u,enemyNear)<240)target=enemyNear;
  // Espera o avanço da onda ao invés de avançar sozinho sob um obelisco inimigo.
  const enemyTower=state.structures.find(t=>t.side===enemySide&&t.kind==='tower'&&
-  t.hp>0&&dist(t,u)<t.range+95);
- if(enemyTower&&!hasWave&&dist(u,enemyTower)<enemyTower.range+u.r+12){
+  t.hp>0&&dist(t,u)<t.range+115);
+ const minionUnderTower=enemyTower&&allies.some(m=>m.hp>0&&dist(m,enemyTower)<enemyTower.range);
+ if(enemyTower&&!minionUnderTower&&dist(u,enemyTower)<enemyTower.range+u.r+55){
   const vec=norm(u.x-enemyTower.x,u.y-enemyTower.y);
   moveToward(u,{x:u.x+vec.x*125,y:u.y+vec.y*125},dt,.78);
   return;
@@ -1432,6 +1441,8 @@ function botHero(u,dt){
   }
   if(target.kind==='hero'||target.kind==='minion'){
    if(!u.casting)botUseSkill(u,target);
+   // Quem já está no alcance não abandona o último golpe para dar voltas.
+   if(u.attackCd<=.01&&u.farmTarget===target)autoAttack(u);
   }
   return;
  }
@@ -1444,7 +1455,15 @@ function botHero(u,dt){
    t.hp>0&&t.lane===lane).sort((a,b)=>dist(a,objective)-dist(b,objective))[0];
   if(lastTower)anchor={x:lastTower.x,y:lastTower.y};
  }
- if(dist(u,anchor)>110)moveToward(u,anchor,dt,.74);
+ if(dist(u,anchor)>90)moveToward(u,anchor,dt,.88);
+ // Posiciona sentinelas perto de entradas de jungle se houver pressão.
+ if(u.visionCd<=0&&state.time>35&&state.time%28<dt&&
+    state.brushes.some(b=>dist(b,u)<165)&&
+    enemyHeroes.length===0){
+  const p=state.brushes.filter(b=>dist(u,b)<165)
+   .sort((a,b)=>dist(a,u)-dist(b,u))[0];
+  if(p)placeWard(u,p.x,p.y);
+ }
 }
 function jungleStep(dt){
  for(const c of state.camps){
