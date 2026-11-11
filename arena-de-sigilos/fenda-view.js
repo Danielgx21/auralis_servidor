@@ -90,6 +90,17 @@ teamRoster.innerHTML='<button type="button" id="pcRosterToggle" aria-expanded="t
  '<div id="pcRosterList" class="pc-roster-list"></div>';
 hud.appendChild(teamRoster);
 let rosterCollapsed=false,rosterLastUpdate=-1;
+
+let selectedLane=null;
+const LANE_CHOICES=[
+ {id:'top',short:'TOP',name:'ROTA SUPERIOR',icon:'⚔',desc:'Duelos e linha de frente',detail:'Segure sua rota e lidere as iniciações.',picks:['orun','brax','rokar']},
+ {id:'jungle',short:'SELVA',name:'SELVA',icon:'◆',desc:'Caça e objetivos',detail:'Limpe os campos e prepare emboscadas. Selo da Caça obrigatório.',picks:['zhira','vexor','sahra']},
+ {id:'mid',short:'MEIO',name:'ROTA DO MEIO',icon:'✧',desc:'Pressão e rotação',detail:'Controle a rota central e ajude as laterais.',picks:['nyra','kaelis','mirielle']},
+ {id:'adc',short:'ADC',name:'ATIRADOR',icon:'➶',desc:'Dano e posicionamento',detail:'Escale com ouro e lute ao lado do suporte.',picks:['lyria','tessa']},
+ {id:'support',short:'SUP',name:'SUPORTE',icon:'✚',desc:'Proteção e visão',detail:'Proteja o atirador e controle os combates.',picks:['seris','orun','rokar']}
+];
+const currentLane=()=>LANE_CHOICES.find(lane=>lane.id===selectedLane);
+
 let pickedSummoners=['flash','ignite'];
 try{const saved=JSON.parse(localStorage.getItem('fenda-summoners-v1')||'null');
  if(Array.isArray(saved)&&saved.length===2&&saved[0]!==saved[1]&&saved.every(x=>E.SUMMONERS[x]))pickedSummoners=saved;}catch(_){}
@@ -978,7 +989,7 @@ function hudUpdate(){
  $('fendaPlayerStats').textContent='K/D/A '+h.kills+'/'+h.deaths+'/'+(h.assists||0)+' · FARM '+h.cs;
  $('fendaGold').textContent='✦ '+Math.round(h.gold)+' OURO';
  $('fendaTime').textContent=String(Math.floor(time/60)).padStart(2,'0')+':'+String(time%60).padStart(2,'0');
- $('fendaName').textContent=C.heroes[h.id].name+' · NV '+h.level+
+ $('fendaName').textContent=C.heroes[h.id].name+' · '+(currentLane()?.short||'')+' · NV '+h.level+
   (h.skillPoints>0?' · ✦ '+h.skillPoints+' PONTOS':'')+
   (h.hp<=0?' · RESSURGE '+Math.ceil(h.respawn)+'s':'');
  $('fendaHP').style.width=(h.hp/h.maxHp*100)+'%';
@@ -1336,43 +1347,97 @@ function toggleShop(){
  S.shopOpen=!S.shopOpen;shop.classList.toggle('open',S.shopOpen);
  if(S.shopOpen)shopRender();
 }
+function chooseLane(reset=false){
+ if(reset)selectedLane=null;
+ S.mode='menu';S.shopOpen=false;mouseFollow=null;setScoreboardVisible(false);
+ stage.classList.remove('fenda-on');cv.style.display='none';shop.classList.remove('open');
+ $('overlay').classList.remove('hidden','picker-open','arsenal-open','hero-open');
+ $('overlay').classList.add('lane-open');$('missionShelf').hidden=true;
+ const lane=currentLane();
+ $('modalContent').innerHTML='<div class="fenda-draft-steps"><b>01 SELECIONAR ROTA</b><span>02 CAMPEÃO</span><span>03 PARTIDA</span></div>'+
+ '<div class="eyebrow">FENDA DOS SIGILOS · ETAPA 1 DE 2</div>'+
+ '<h2>ESCOLHA SUA POSIÇÃO</h2>'+
+ '<p class="fenda-draft-intro">Selecione sua lane para a equipe 5×5. Os bots preenchem as outras posições. Sem fase de banimentos.</p>'+
+ '<div class="fenda-lane-grid">'+LANE_CHOICES.map(pos=>
+  '<button type="button" class="fenda-lane-card '+(selectedLane===pos.id?'selected':'')+
+  '" data-lane="'+pos.id+'" aria-pressed="'+(selectedLane===pos.id)+'">'+
+  '<span class="fenda-lane-icon">'+pos.icon+'</span><strong>'+pos.short+'</strong>'+
+  '<small>'+pos.name+'</small><em>'+pos.desc+'</em></button>').join('')+'</div>'+
+ '<div class="fenda-lane-preview">'+(lane?
+  '<strong>'+lane.icon+' '+lane.name+'</strong><span>'+lane.detail+'</span>':
+  '<span>Escolha uma das cinco posições para continuar.</span>')+'</div>'+
+ '<div class="actions"><button class="primary" id="confirmFendaLane" '+(!lane?'disabled':'')+
+ '>CONFIRMAR POSIÇÃO</button><button class="secondary" id="playClassic">ARENA RÁPIDA</button></div>';
+ for(const button of $('modalContent').querySelectorAll('[data-lane]'))button.onclick=()=>{
+  selectedLane=button.dataset.lane;chooseLane();
+ };
+ $('confirmFendaLane').onclick=()=>{
+  const pos=currentLane();if(!pos)return;
+  C.setHeroChoice(pos.picks[0]);
+  pickedSummoners=selectedLane==='jungle'?['smite','flash']:['flash','ignite'];
+  saveSummoners();chooseHero();
+ };
+ $('playClassic').onclick=()=>{S.mode='classic';stage.classList.remove('fenda-on');C.showClassic()};
+}
 function chooseHero(){
- S.mode='menu';S.shopOpen=false;mouseFollow=null;setScoreboardVisible(false);stage.classList.remove('fenda-on');cv.style.display='none';
- shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
+ if(!currentLane()){chooseLane(true);return}
+ S.mode='menu';S.shopOpen=false;mouseFollow=null;setScoreboardVisible(false);
+ stage.classList.remove('fenda-on');cv.style.display='none';
+ shop.classList.remove('open');
+ $('overlay').classList.remove('hidden','arsenal-open','hero-open','lane-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
- const selected=C.getHeroChoice(),hero=C.heroes[selected];
- if(['zhira','vexor','sahra'].includes(selected)&&!pickedSummoners.includes('smite')){
-  pickedSummoners=['smite',pickedSummoners[0]];saveSummoners();
- }
- $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 9.9</div><h2>FENDA DOS SIGILOS</h2>'+ 
- '<p>12 campeões · Sahra de fumaça e execução, Mirielle de ilusões e retorno · Lyria de DPS e Tessa de precisão.</p>'+ 
- '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
-  '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span class="fenda-hero-portrait">'+championPortrait(id)+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
- '<div class="fenda-hero-detail"><strong>'+hero.name+' · '+hero.role+'</strong><p>'+hero.summary+' <br><b>PASSIVA:</b> '+hero.passive+'</p><span>NO NÍVEL 1: você escolhe qual habilidade aprende primeiro, Q, W ou E. Ultimate disponível a partir do nível 5.</span></div>'+
+ const selected=C.getHeroChoice(),hero=C.heroes[selected],lane=currentLane();
+ const recommended=lane.picks;
+ const options=Object.entries(C.heroes).sort((a,b)=>
+  Number(recommended.includes(b[0]))-Number(recommended.includes(a[0]))||
+  (recommended.includes(a[0])&&recommended.includes(b[0])?
+   recommended.indexOf(a[0])-recommended.indexOf(b[0]):0));
+ const lineup=E.previewBlue(selected,selectedLane);
+ $('modalContent').innerHTML='<div class="fenda-draft-steps"><span>01 POSIÇÃO</span><b>02 ESCOLHER CAMPEÃO</b><span>03 PARTIDA</span></div>'+
+ '<div class="eyebrow">SELEÇÃO DE CAMPEÃO · '+lane.short+' · SEM BANIMENTOS</div>'+
+ '<h2>ESCOLHA SEU CAMPEÃO</h2>'+
+ '<div class="fenda-chosen-lane"><strong>'+lane.icon+' '+lane.name+
+ '</strong><button type="button" id="changeFendaLane">ALTERAR ROTA</button></div>'+
+ '<div class="fenda-draft-label">INDICADOS PARA '+lane.short+' <small>TODOS OS CAMPEÕES DISPONÍVEIS</small></div>'+
+ '<div class="fenda-hero-list">'+options.map(([id,h])=>
+  '<button class="fenda-hero '+(id===selected?'picked ':'')+(recommended.includes(id)?'recommended':'')+
+  '" data-hero="'+id+'" aria-pressed="'+(id===selected)+'"><span class="fenda-hero-portrait">'+
+  championPortrait(id)+'</span><strong>'+h.name+'</strong><small>'+
+  (recommended.includes(id)?'INDICADO':'LIVRE')+'</small></button>').join('')+'</div>'+
+ '<div class="fenda-hero-detail"><strong>'+hero.name+' · '+hero.role+'</strong>'+
+ '<p>'+hero.summary+'</p><span>Você jogará '+lane.short+
+ ' com esse campeão. Escolha a primeira habilidade (Q/W/E) após entrar.</span></div>'+
+ '<div class="fenda-lineup-label">SUA EQUIPE 5×5 <small>4 BOTS EM FUNÇÕES COMPLEMENTARES</small></div>'+
+ '<div class="fenda-lineup">'+lineup.map(slot=>
+  '<div class="'+(slot.controlled?'player':'')+'"><small>'+
+  LANE_CHOICES.find(l=>l.id===slot.role).short+'</small><strong>'+
+  C.heroes[slot.id].name+'</strong><span>'+(slot.controlled?'VOCÊ':'BOT')+'</span></div>').join('')+'</div>'+
  '<div class="fenda-summoner-title">ESCOLHA 2 FEITIÇOS <small>F / G NO PC</small></div>'+
  '<div class="fenda-summoner-picker">'+Object.entries(E.SUMMONERS).map(([id,sp])=>
- '<button type="button" data-pick-spell="'+id+'" class="'+(pickedSummoners.includes(id)?'picked':'')+'" title="'+sp.desc+'"><b>'+sp.icon+'</b><span>'+sp.name+'</span><small>'+sp.cd+'s</small><em>'+sp.desc+'</em></button>').join('')+'</div>'+
- '<div class="teamfight-tip">9.9 · Sem controles no centro. Arraste ATACAR para escolher o alvo; toque simples para AA normal. Torre pode ser atacada automaticamente, e TORRE força a prioridade.</div>'+ 
- '<div class="actions" style="margin-top:10px"><button class="primary" id="playFenda">▶ JOGAR FENDA 5×5</button><button class="secondary" id="playClassic">MODO ARENA RÁPIDA</button></div>'+
- '<p style="font-size:10px;margin:9px 0 0">PC: Q/W/E/R são lançadas na direção do ponteiro. Tecla Y troca câmera travada/livre; segure Espaço para centralizar; mova às bordas ou arraste com botão do meio. Celular: arraste as habilidades para mirar. Para selecionar um alvo, segure e arraste ATACAR em sua direção; solte para travar. TAB placar, P loja, B retorno.</p>';
+ '<button type="button" data-pick-spell="'+id+'" title="'+sp.desc+'" class="'+
+ (pickedSummoners.includes(id)?'picked':'')+'" '+(selectedLane==='jungle'&&id==='smite'?'disabled':'')+
+ '><b>'+sp.icon+'</b><span>'+sp.name+'</span><small>'+sp.cd+'s</small><em>'+sp.desc+'</em></button>').join('')+'</div>'+
+ '<div class="actions" style="margin-top:9px"><button class="primary" id="playFenda">▶ CONFIRMAR E JOGAR</button>'+
+ '<button class="secondary" id="backToFendaLane">VOLTAR ÀS ROTAS</button>'+
+ '<button class="secondary" id="playClassic">ARENA RÁPIDA</button></div>';
  for(const b of $('modalContent').querySelectorAll('[data-hero]'))b.onclick=()=>{
-  C.setHeroChoice(b.dataset.hero);
-  if(['zhira','vexor','sahra'].includes(b.dataset.hero)&&!pickedSummoners.includes('smite')){
-   pickedSummoners=['smite',pickedSummoners[0]];saveSummoners();
-  }
-  chooseHero();
+  C.setHeroChoice(b.dataset.hero);chooseHero();
  };
  for(const b of $('modalContent').querySelectorAll('[data-pick-spell]'))b.onclick=()=>{
   const id=b.dataset.pickSpell;if(pickedSummoners.includes(id))return;
-  pickedSummoners=[pickedSummoners[1],id];saveSummoners();chooseHero();
+  pickedSummoners=selectedLane==='jungle'?['smite',id]:[pickedSummoners[1],id];
+  saveSummoners();chooseHero();
  };
+ $('changeFendaLane').onclick=()=>chooseLane();
+ $('backToFendaLane').onclick=()=>chooseLane();
  $('playFenda').onclick=startGame;
  $('playClassic').onclick=()=>{S.mode='classic';stage.classList.remove('fenda-on');C.showClassic()};
 }
 function startGame(){
+ if(!currentLane()){chooseLane(true);return}
  C.suspendClassic?.();
  shopTab='recommended';shopFilter='all';shopSelectedId=null;shopQueuedId=null;
- E.start(C.getHeroChoice(),pickedSummoners);setScoreboardVisible(false);endedShown=false;clickDestination=null;mouseFollow=null;rosterLastUpdate=-1;cameraPeek=null;cameraPeekUntil=0;wardAim=null;keys.clear();
+ E.start(C.getHeroChoice(),pickedSummoners,selectedLane);setScoreboardVisible(false);endedShown=false;clickDestination=null;mouseFollow=null;rosterLastUpdate=-1;cameraPeek=null;cameraPeekUntil=0;wardAim=null;keys.clear();
  desktopPointer.over=false;desktopPointer.lastWorld=null;spaceCenterHeld=false;cameraDrag=null;syncCameraControl();
  joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;aaAim=null;S.attackAimActive=false;
  pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
@@ -1393,7 +1458,7 @@ function endScreen(){
  '<div><span>⬡</span> Itens: '+S.hero.items.length+'/6</div></div>'+
  '<div class="actions"><button class="primary" id="retryFenda">JOGAR NOVAMENTE</button>'+
  '<button class="secondary" id="backFenda">ESCOLHER CAMPEÃO</button></div>';
- $('retryFenda').onclick=startGame;$('backFenda').onclick=chooseHero;
+ $('retryFenda').onclick=()=>chooseLane(true);$('backFenda').onclick=()=>chooseLane(true);
 }
 function pause(){
  if(S.mode!=='playing')return;
@@ -1412,7 +1477,7 @@ function pause(){
  '<div class="actions"><button class="primary" id="resumeFenda">CONTINUAR</button>'+
  '<button class="secondary" id="resetFenda">RECOMEÇAR</button>'+
  '<button class="secondary" id="menuFenda">MENU</button></div>';
- $('resumeFenda').onclick=pause;$('resetFenda').onclick=startGame;$('menuFenda').onclick=chooseHero;
+ $('resumeFenda').onclick=pause;$('resetFenda').onclick=()=>chooseLane(true);$('menuFenda').onclick=()=>chooseLane(true);
 }
 // Desktop: mira no ponteiro real e nunca adquire automaticamente o inimigo mais próximo.
 function desktopMouseWorld(){
@@ -1990,6 +2055,6 @@ mm.addEventListener('dblclick',()=>{
 });
 window.addEventListener('resize',resize);
 if(window.ResizeObserver)new ResizeObserver(resize).observe(stage);
-window.FendaView={chooseHero,startGame,pause,view,resize,toggleShop,hudUpdate,pickAttackTarget,issueRightClick,movement,minimapPoint,wardPoint,wardStart,wardMove,wardEnd,minimapStart,minimapMove,minimapEnd,renderScoreboard,setScoreboardVisible};
-resize();chooseHero();requestAnimationFrame(loop);
+window.FendaView={chooseLane,chooseHero,startGame,pause,view,resize,toggleShop,hudUpdate,pickAttackTarget,issueRightClick,movement,minimapPoint,wardPoint,wardStart,wardMove,wardEnd,minimapStart,minimapMove,minimapEnd,renderScoreboard,setScoreboardVisible};
+resize();chooseLane(true);requestAnimationFrame(loop);
 })();

@@ -739,3 +739,77 @@
   top:78px;width:min(315px,calc(100vw - 20px));padding:7px;
  }
 }
+
+/* Fenda 10.0: draft em duas etapas, acessível a mouse e toque. */
+.overlay.lane-open{display:flex;align-items:center;justify-content:center}
+.overlay.lane-open .modal{width:min(95vw,900px);max-height:96dvh}
+.fenda-draft-steps{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;
+ gap:8px;color:#7999af;font-weight:900;font-size:10px;letter-spacing:.10em;margin:0 0 12px}
+.fenda-draft-steps>*{border:1px solid #4c667c77;border-radius:8px;padding:6px 10px}
+.fenda-draft-steps b{color:#f8df9f;border-color:#d9bd7977;background:#5b4a2844}
+.overlay .modal .fenda-draft-intro{max-width:640px;margin-bottom:14px}
+.fenda-lane-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin:12px auto;max-width:840px}
+.fenda-lane-card{display:flex;flex-direction:column;align-items:center;justify-content:center;
+ min-width:0;gap:5px;border:1px solid #5d91a477;border-radius:14px;
+ background:linear-gradient(145deg,#173246,#101e34);padding:13px 7px;
+ color:#e5eff7;min-height:140px;transition:background .15s,border-color .15s;touch-action:manipulation}
+.fenda-lane-card .fenda-lane-icon{display:grid;place-items:center;font-size:30px;width:55px;height:55px;
+ border:1px solid #749aac66;border-radius:50%;color:#a9e8dc;background:#0b2135}
+.fenda-lane-card strong{color:#fff2d0;font-size:15px;letter-spacing:.08em}
+.fenda-lane-card small{font-size:9px;font-weight:800;color:#a4c9d7}
+.fenda-lane-card em{font-size:10px;line-height:1.25;color:#8db2c1;font-style:normal}
+.fenda-lane-card.selected,.fenda-lane-card:hover{border-color:#f0d18b;
+ background:linear-gradient(155deg,#345168,#273b50);box-shadow:0 0 0 1px #eccc8266,0 0 18px #ddc48625}
+.fenda-lane-card.selected .fenda-lane-icon{border-color:#e1ca87;color:#ffe5a7}
+.fenda-lane-preview{min-height:55px;display:flex;flex-wrap:wrap;justify-content:center;
+ align-items:center;gap:9px;margin:12px auto 15px;padding:10px;border-radius:11px;
+ background:#071727bb;border:1px solid #7097a44f;font-size:11px;color:#a6c9d5}
+.fenda-lane-preview strong{font-size:13px;color:#ffdf9e}
+#confirmFendaLane:disabled{opacity:.42;cursor:not-allowed;filter:grayscale(.7)}
+.overlay.picker-open{grid-template-columns:minmax(0,680px)}
+.overlay.picker-open .modal{max-width:680px;width:min(96vw,680px);max-height:96dvh}
+.fenda-chosen-lane{display:flex;justify-content:space-between;align-items:center;gap:10px;
+ padding:7px 9px;margin:7px 0;background:#152b3d;border:1px solid #678a9e70;border-radius:10px}
+.fenda-chosen-lane strong{font-size:12px;color:#fbe1a4}
+.fenda-chosen-lane button{border:1px solid #709ba477;border-radius:7px;background:#263e52;padding:6px 9px;font-size:10px;font-weight:900}
+.fenda-draft-label,.fenda-lineup-label{font-weight:900;font-size:10px;color:#9adee3;text-align:left;
+ letter-spacing:.06em;margin:8px 0 5px}
+.fenda-draft-label small,.fenda-lineup-label small{font-weight:600;color:#92aebd;font-size:9px;margin-left:7px}
+.overlay.picker-open .fenda-hero-list{grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin:4px 0 8px}
+.overlay.picker-open .fenda-hero{padding:5px 2px;min-width:0}
+.overlay.picker-open .fenda-hero.recommended{border-color:#6bc6bc88;background:#1a3b46}
+.overlay.picker-open .fenda-hero.picked{border-color:#fbd997;background:#42414b}
+.overlay.picker-open .fenda-hero small{color:#7f9db3;font-size:8px}
+.overlay.picker-open .fenda-hero.recommended small{color:#c7ebc6}
+.overlay.picker-open .fenda-hero-detail{padding:7px 10px;margin:5px 0}
+.overlay.picker-open .fenda-hero-detail p{margin:4px 0;font-size:11px;line-height:1.3;max-width:none}
+.fenda-lineup{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin:5px 0 9px}
+.fenda-lineup>div{min-width:0;display:grid;gap:2px;background:#0f2739;padding:6px 4px;
+ border:1px solid #668c9a55;border-radius:8px;text-align:center}
+.fenda-lineup>div.player{border-color:#f0d187;background:#39465a}
+.fenda-lineup small{color:#8ebcd0;font-weight:900;font-size:9px}
+.fenda-lineup strong{font-weight:900;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fenda-lineup span{font-size:8px;color:#a3bbc8}
+.fenda-lineup .player span{color:#ffe3a0}
+.fenda-summoner-picker [data-pick-spell]:disabled{opacity:.95;cursor:default;border-color:#d6bf8f}
+@media(max-width:740px){
+ .fenda-lane-grid{grid-template-columns:repeat(5,minmax(110px,1fr));overflow-x:auto;
+  overscroll-behavior-x:contain;padding:2px 1px 10px}
+ .fenda-lane-card{min-height:125px;padding:7px 5px}
+ .fenda-lane-card .fenda-lane-icon{font-size:23px;width:43px;height:43px}
+ .fenda-lane-card strong{font-size:12px}
+ .fenda-lane-card em{font-size:9px}
+ .fenda-draft-steps{gap:3px;font-size:9px;margin-bottom:7px}
+ .fenda-draft-steps>*{padding:5px 6px}
+ .overlay.picker-open .modal{width:100%}
+}
+@media(max-height:480px){
+ .fenda-lane-card{min-height:105px;gap:3px}
+ .fenda-lane-preview{min-height:37px;margin:4px auto 7px;padding:5px}
+ .fenda-lane-grid{margin:5px auto}
+ .fenda-draft-steps{margin-bottom:5px}
+ .overlay.lane-open .modal h2{font-size:23px;margin:3px 0}
+ .overlay .modal .fenda-draft-intro{margin-bottom:5px}
+ .overlay.picker-open .fenda-hero-list{margin-bottom:4px}
+ .fenda-lineup{margin-bottom:4px}
+}
