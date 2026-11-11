@@ -18,8 +18,50 @@ hud.innerHTML='<div class="fenda-meta"><button id="fendaScoreBtn" type="button" 
 stage.appendChild(hud);
 // Feitiços ficam fora da área do joystick, com controles próprios de toque.
 const summonerPanel=document.createElement('div');summonerPanel.id='fendaSummoners';
-summonerPanel.innerHTML=[0,1].map(i=>'<button type="button" class="fenda-summoner" data-slot="'+i+'" aria-label="Usar feitiço '+(i+1)+'"><b>◇</b><small>FEITIÇO</small><em></em></button>').join('');
+summonerPanel.innerHTML=[0,1].map(i=>'<button type="button" class="fenda-summoner" data-slot="'+i+'" aria-label="Usar feitiço '+(i+1)+'"><b>◇</b><small>FEITIÇO</small><span class="spell-effect">EFEITO</span><em></em></button>').join('');
 hud.appendChild(summonerPanel);
+const mobileHelpBtn=document.createElement('button');
+mobileHelpBtn.id='fendaMobileHelpBtn';mobileHelpBtn.type='button';
+mobileHelpBtn.textContent='?';
+mobileHelpBtn.setAttribute('aria-label','Ver o que fazem as habilidades e feitiços');
+mobileHelpBtn.setAttribute('aria-expanded','false');
+hud.appendChild(mobileHelpBtn);
+const mobileGuide=document.createElement('section');mobileGuide.id='fendaMobileGuide';
+mobileGuide.setAttribute('aria-label','Detalhes das habilidades e feitiços');
+mobileGuide.hidden=true;hud.appendChild(mobileGuide);
+let mobileGuideOpen=false;
+const shortSummonerEffect={
+ smite:'MONSTROS',flash:'TELEPORTE',ignite:'QUEIMA + ANTI-CURA',
+ heal:'RECUPERA PV',shield:'PROTEÇÃO',freecast:'MANA GRÁTIS'};
+function mobileGuideUpdate(){
+ if(!mobileGuideOpen||!S.hero)return;
+ const h=S.hero,kit=C.heroes[h.id].skills.concat([C.heroes[h.id].ultimate]);
+ mobileGuide.innerHTML='<div class="mobile-guide-head"><strong>HABILIDADES · '+C.heroes[h.id].name+
+ '</strong><button id="mobileGuideClose" type="button" aria-label="Fechar detalhes">✕</button></div>'+
+ kit.map((id,i)=>{
+  const def=E.skillDef(id),level=E.skillRank(h,id),cd=h.cooldowns[id]||0;
+  return '<div class="mobile-guide-line"><b>'+['Q','W','E','R'][i]+'</b><div><strong>'+def.icon+' '+
+   def.name+'</strong><p>'+def.desc+'</p><small>'+(!level?'BLOQUEADA · SUBA DE NÍVEL':
+   'NÍVEL '+level+' · '+def.cost+' MANA · '+(cd>.05?Math.ceil(cd)+'s RECARGA':
+   def.cd+'s CD'))+'</small></div></div>';
+ }).join('')+
+ '<div class="mobile-guide-section">FEITIÇOS EQUIPADOS</div>'+
+ (h.summoners||[]).map(id=>{
+  const sp=E.SUMMONERS[id],cd=h.summonerCooldowns[id]||0;
+  return '<div class="mobile-guide-line"><b>'+sp.icon+'</b><div><strong>'+sp.name+
+  '</strong><p>'+sp.desc+'</p><small>'+(cd>.05?Math.ceil(cd)+'s DE RECARGA':
+  sp.cd+'s CD')+'</small></div></div>';
+ }).join('');
+ mobileGuide.querySelector('#mobileGuideClose').addEventListener('click',()=>setMobileGuide(false));
+}
+function setMobileGuide(open){
+ mobileGuideOpen=!!open;
+ mobileGuide.hidden=!mobileGuideOpen;
+ mobileHelpBtn.setAttribute('aria-expanded',String(mobileGuideOpen));
+ mobileHelpBtn.classList.toggle('active',mobileGuideOpen);
+ if(mobileGuideOpen)mobileGuideUpdate();
+}
+mobileHelpBtn.addEventListener('click',()=>setMobileGuide(!mobileGuideOpen));
 // Interface própria de desktop, independente dos controles de toque.
 const desktopBar=document.createElement('section');desktopBar.id='fendaDesktopBar';
 desktopBar.setAttribute('aria-label','Painel do campeão');
@@ -862,6 +904,8 @@ function hudUpdate(){
     lock=rank===0,cd=h.cooldowns[id]||0;
   b.querySelector('b').textContent=def.icon;
   b.querySelector('small').textContent=lock?(def.ultimate&&h.level<5?'NV 5':'APRENDER'):def.short;
+  b.title=def.name+' · '+def.desc;
+  b.setAttribute('aria-label',def.name+'. '+def.desc);
   b.classList.toggle('oncd',cd>.03||lock||(h.mana<def.cost&&h.manaFreeUntil<=S.time)||h.hp<=0);
   const pc=$('pcSkill'+i);
   pc.querySelector('b').textContent=def.icon;
@@ -903,6 +947,8 @@ function hudUpdate(){
   const b=summonerPanel.querySelector('[data-slot="'+i+'"]'),sp=E.SUMMONERS[id],cd=h.summonerCooldowns[id]||0;
   if(!b||!sp)continue;
   b.querySelector('b').textContent=sp.icon;b.querySelector('small').textContent=sp.name.toUpperCase();
+  b.querySelector('.spell-effect').textContent=shortSummonerEffect[id]||'FEITIÇO';
+  b.setAttribute('aria-label',sp.name+'. '+sp.desc);
   b.querySelector('em').textContent=cd>.03?Math.ceil(cd):'';
   b.classList.toggle('oncd',cd>.03||h.hp<=0);b.title=sp.desc;
   const pc=desktopBar.querySelector('[data-pc-spell="'+i+'"]');
@@ -924,6 +970,7 @@ function hudUpdate(){
  if(scoreboardVisible&&S.time-scoreboardLastUpdate>.42){
   scoreboardLastUpdate=S.time;renderScoreboard();
  }
+ if(mobileGuideOpen)mobileGuideUpdate();
 }
 // Placar de partida: as mesmas informações acionadas pelo placar do Wild Rift.
 const scoreRoles={orun:'TOP',vexor:'SELVA',nyra:'MEIO',lyria:'ATIR.',seris:'SUP.',brax:'TOP',zhira:'SELVA',rokar:'TOP',kaelis:'MEIO',tessa:'ATIR.'};
@@ -1173,6 +1220,7 @@ function toggleShop(){
  if(S.shopOpen)shopRender();
 }
 function chooseHero(){
+ setMobileGuide(false);
  S.mode='menu';S.shopOpen=false;mouseFollow=null;setScoreboardVisible(false);stage.classList.remove('fenda-on');cv.style.display='none';
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
@@ -1208,6 +1256,7 @@ function chooseHero(){
 function startGame(){
  C.suspendClassic?.();
  shopTab='recommended';shopFilter='all';shopSelectedId=null;shopQueuedId=null;
+ setMobileGuide(false);
  E.start(C.getHeroChoice(),pickedSummoners);setScoreboardVisible(false);endedShown=false;clickDestination=null;mouseFollow=null;rosterLastUpdate=-1;cameraPeek=null;cameraPeekUntil=0;wardAim=null;keys.clear();
  desktopPointer.over=false;desktopPointer.lastWorld=null;spaceCenterHeld=false;cameraDrag=null;syncCameraControl();
  if(desktopCamera())cameraCenterAt(S.hero.x,S.hero.y);joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
@@ -1233,6 +1282,7 @@ function pause(){
  if(S.mode!=='playing')return;
  S.showPause=!S.showPause;
  if(S.showPause){
+  setMobileGuide(false);
   setScoreboardVisible(false);
   S.shopOpen=false;shop.classList.remove('open');
   joy.x=joy.y=0;joy.ptr=null;keys.clear();pointers.aa=null;pointers.skill=null;wardAim=null;cameraPeek=null;aimPreview=null;mouseFollow=null;clickDestination=null;
