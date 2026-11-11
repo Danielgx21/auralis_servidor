@@ -59,7 +59,7 @@ const JUNGLE_RIDGES=[
  {id:'mid-3',half:30,pts:[[1095,1970],[1335,1790]]},
  {id:'mid-4',half:30,pts:[[1560,1615],[1680,1525]]}
 ];
-const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1,brax:0,zhira:1};
+const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1,brax:0,zhira:1,rokar:0,kaelis:1,tessa:2};
 // Componentes e receitas. Custo final é SEMPRE o preço total do produto;
 // comprar pré-itens abate ouro e libera espaços ao combiná-los.
 const ITEMS=[
@@ -69,6 +69,8 @@ const ITEMS=[
  {id:'cell',name:'Célula Astral',tier:1,price:300,icon:'ϟ',stats:{mana:90},stat:'+90 mana',desc:'Componente de energia'},
  {id:'prism',name:'Prisma Menor',tier:1,price:340,icon:'◇',stats:{ap:.13},stat:'+13% poder',desc:'Componente mágico'},
  {id:'core',name:'Engrenagem',tier:1,price:340,icon:'✦',stats:{haste:.08},stat:'+8% aceleração',desc:'Componente de recarga'},
+ {id:'fang',name:'Gume de Bronze',tier:1,price:315,icon:'⟠',stats:{ad:8,haste:.035},stat:'+8 AD · +3,5% acel.',desc:'Componente de lâmina ágil'},
+ {id:'sprout',name:'Raiz Vital',tier:1,price:325,icon:'❀',stats:{hp:60,regen:.9},stat:'+60 PV · regeneração',desc:'Componente de sustentação'},
  {id:'astralbow',name:'Arco do Eclipse',tier:2,price:1440,icon:'➹',
   recipe:['lens','lens','stride'],stats:{ad:37,move:.06},passive:'execution',
   stat:'+37 AD · +6% MOV',desc:'Ataques mais fortes contra inimigos feridos'},
@@ -98,7 +100,19 @@ const ITEMS=[
  stat:'+23 AD · +260 PV · +9% acel.',desc:'Recupera vida em ataques corpo a corpo contra campeões'},
  {id:'huntress',name:'Lâmina da Caçadora',tier:2,price:1420,icon:'❖',
  recipe:['lens','stride','core'],stats:{ad:22,move:.10,haste:.08},passive:'hunter',
- stat:'+22 AD · +10% MOV · +8% acel.',desc:'Amplifica dano contra monstros da selva'}
+ stat:'+22 AD · +10% MOV · +8% acel.',desc:'Amplifica dano contra monstros da selva'},
+ {id:'phantomfang',name:'Presa do Crepúsculo',tier:2,price:1510,icon:'⟠',
+ recipe:['fang','lens','stride'],stats:{ad:33,move:.06,haste:.07},passive:'finisher',
+ stat:'+33 AD · +6% MOV · +7% acel.',desc:'AA causa dano adicional em campeões abaixo de 40% de vida'},
+ {id:'glacier',name:'Coroa do Inverno',tier:2,price:1490,icon:'❄',
+ recipe:['prism','cell','sprout'],stats:{ap:.31,mana:130,hp:95,regen:1},passive:'frost',
+ stat:'+31% poder · +130 mana · +95 PV',desc:'A cada 3 ataques, causa lentidão em campeões'},
+ {id:'lifebloom',name:'Jardim da Aurora',tier:2,price:1480,icon:'❀',
+ recipe:['sprout','sprout','cell'],stats:{hp:240,mana:95,regen:3.4,haste:.08},passive:'bloom',
+ stat:'+240 PV · +95 mana · regeneração',desc:'Habilidades curam um aliado próximo ferido'},
+ {id:'barrage',name:'Mecanismo de Rajada',tier:2,price:1530,icon:'➶',
+ recipe:['lens','fang','core'],stats:{ad:35,haste:.10},passive:'tempo',
+ stat:'+35 AD · +10% acel.',desc:'Cada terceiro ataque básico causa dano extra'}
 ];
 const ITEM_BY_ID=Object.fromEntries(ITEMS.map(i=>[i.id,i]));
 const itemStats=(unit,key)=>(unit?.items||[]).reduce((total,id)=>
@@ -166,7 +180,10 @@ function botUpgradeSkills(unit){
   orun:[h.skills[2],h.skills[0],h.skills[1]],
   seris:[h.skills[1],h.skills[2],h.skills[0]],
  brax:[h.skills[0],h.skills[2],h.skills[1]],
- zhira:[h.skills[0],h.skills[1],h.skills[2]]
+ zhira:[h.skills[0],h.skills[1],h.skills[2]],
+ kaelis:[h.skills[0],h.skills[1],h.skills[2]],
+ rokar:[h.skills[0],h.skills[2],h.skills[1]],
+ tessa:[h.skills[0],h.skills[2],h.skills[1]]
  }[unit.id]||h.skills;
  while(unit.skillPoints>0){
   const ult=skillRank(unit,h.ultimate)<skillRankCap(unit,h.ultimate)?h.ultimate:null;
@@ -192,7 +209,10 @@ const MOBA_SKILL_RANGES={
  nyra_bolt:[302,17],nyra_rift:[222,62],nyra_ult:[274,107],
  seris_tether:[274,18],seris_bloom:[240,90],seris_aegis:[0,138],seris_ult:[0,168],
  brax_cleave:[0,83],brax_grapple:[116,31],brax_fortify:[0,107],brax_ult:[0,140],
- zhira_strike:[246,20],zhira_pounce:[126,29],zhira_trap:[228,63],zhira_ult:[0,92]
+ zhira_strike:[246,20],zhira_pounce:[126,29],zhira_trap:[228,63],zhira_ult:[0,92],
+ kaelis_lance:[308,17],kaelis_frost:[230,67],kaelis_veil:[0,90],kaelis_ult:[280,113],
+ rokar_charge:[126,36],rokar_guard:[0,110],rokar_pulse:[0,112],rokar_ult:[0,154],
+ tessa_shot:[318,16],tessa_roll:[120,0],tessa_salvo:[245,77],tessa_ult:[352,21]
 };
 const MOBA_SKILL_CACHE={};
 const skillDef=id=>{
@@ -207,15 +227,15 @@ const skillDef=id=>{
 const living=(side,kind)=>state.units.filter(u=>u.hp>0&&(side==null||u.side===side)&&(!kind||u.kind===kind));
 const maxMana=u=>320+Math.max(0,(u.level||1)-1)*16+itemStats(u,'mana');
 const WARD_RANGE=280;
-const HERO_AA_RANGE={orun:67,vexor:72,lyria:195,nyra:180,seris:176,brax:72,zhira:70};
-const HERO_AA_DAMAGE_FACTOR={orun:.78,vexor:.92,lyria:.95,nyra:.75,seris:.79,brax:.86,zhira:.83};
-const HERO_AA_SPEED_FACTOR={orun:1.08,vexor:.98,lyria:.86,nyra:1.04,seris:1.09,brax:1.04,zhira:.99};
+const HERO_AA_RANGE={orun:67,vexor:72,lyria:195,nyra:180,seris:176,brax:72,zhira:70,kaelis:183,rokar:70,tessa:205};
+const HERO_AA_DAMAGE_FACTOR={orun:.78,vexor:.92,lyria:.95,nyra:.75,seris:.79,brax:.86,zhira:.83,kaelis:.77,rokar:.77,tessa:.91};
+const HERO_AA_SPEED_FACTOR={orun:1.08,vexor:.98,lyria:.86,nyra:1.04,seris:1.09,brax:1.04,zhira:.99,kaelis:1.02,rokar:1.07,tessa:.90};
 const attackRange=u=>u.kind==='minion'?(u.id==='siege'?207:u.ranged?140:38):
  u.kind==='creep'?48:(HERO_AA_RANGE[u.id]||170);
 const moveSpeed=u=>u.speed*(1+Math.min(.24,itemStats(u,'move'))+(u.huntUntil>state.time?.13:0))*(u.slow>0?.62:1);
 const attackDamage=u=>u.atk+itemStats(u,'ad');
 const spellPower=(u,id)=>1+itemStats(u,'ap')+
- (id&&['lyria','vexor','orun','brax','zhira'].includes(u.id)?itemStats(u,'ad')*.005:0);
+ (id&&['lyria','vexor','orun','brax','zhira','rokar','tessa'].includes(u.id)?itemStats(u,'ad')*.005:0);
 const levelXp=level=>42+level*24;
 // Trajetos curvos compartilhados por física, tropas, torres e renderização.
 // Cada esquina vira uma transição quadrática, evitando quinas de 90°.
@@ -493,7 +513,7 @@ function makeHero(id,side,controlled=false){
  const spawnOffset=55+(state.seq%3)*13;
  return {uid:++state.seq,kind:'hero',id,side,controlled,
  x:start.x+d.x*spawnOffset+rando(-11,11),
- y:start.y+d.y*spawnOffset+rando(-11,11),r:id==='orun'?21:id==='brax'?20:17.5,speed:h.move*MOBA_WALK_SCALE,
+ y:start.y+d.y*spawnOffset+rando(-11,11),r:id==='orun'||id==='rokar'?21:id==='brax'?20:17.5,speed:h.move*MOBA_WALK_SCALE,
  atk:h.damage*HERO_AA_DAMAGE_FACTOR[id],
  baseHp:h.hp*1.3,maxHp:Math.round(h.hp*1.3),hp:Math.round(h.hp*1.3),
  mana:320,maxMana:320,level:1,xp:0,gold:controlled?550:350,items:[],
@@ -506,7 +526,7 @@ function makeHero(id,side,controlled=false){
  vision:350,death:0,respawn:0,recall:0,lastDamage:0,focus:null,
  aiTimer:rando(.6,1.8),visionCd:0,jungleGoal:null,gankUntil:0,kills:0,deaths:0,assists:0,
  recentDamagers:[],dash:null,commandTarget:null,
- healthRegen:1.3,homeBuff:0,botLane:roles[id],cs:0,focusTarget:null,focusUntil:0,isRanged:!['vexor','orun','brax','zhira'].includes(id)};
+ healthRegen:1.3,homeBuff:0,botLane:roles[id],cs:0,focusTarget:null,focusUntil:0,isRanged:!['vexor','orun','brax','zhira','rokar'].includes(id)};
 }
 function createMinion(side,lane,type=0,slot=0){
  const t=side===0?.035:.965,p=pathPos(lane,t),ranged=type>=1,siege=type===2;
@@ -538,13 +558,12 @@ function start(hero='lyria',summoners=null){
  buildMap();
  // Cada time mantém TOP, SELVA, MEIO, ATIRADOR e SUPORTE.
  const blue=['orun','zhira','nyra','lyria','seris'];
- if(state.selectedHero==='brax')blue[0]='brax';
- else if(state.selectedHero==='vexor')blue[1]='vexor';
- else if(!blue.includes(state.selectedHero))blue[0]=state.selectedHero;
+ const heroSlot={brax:0,rokar:0,vexor:1,kaelis:2,tessa:3};
+ if(!blue.includes(state.selectedHero))blue[heroSlot[state.selectedHero]??0]=state.selectedHero;
  const playerIndex=blue.indexOf(state.selectedHero);
  blue.splice(playerIndex,1);blue.unshift(state.selectedHero);
  // Alternância de arquétipos no rubro: Brax e Vexor também são bots oponentes.
- const red=['brax','vexor','nyra','lyria','seris'];
+ const red=['rokar','vexor','kaelis','tessa','seris'];
  for(let i=0;i<blue.length;i++){
   const u=makeHero(blue[i],0,i===0);state.units.push(u);if(i===0)state.hero=u;
  }
@@ -849,6 +868,9 @@ function autoAttack(u){
    u.passiveAttacks=(u.passiveAttacks||0)+1;
    if(u.id==='lyria'&&u.passiveAttacks%3===0)damageVal+=12;
    if(u.id==='nyra'&&u.passiveAttacks%3===0)damageVal+=14;
+   if(u.id==='tessa'&&state.time-(u.stillSince??state.time)>1.05)damageVal+=7+u.level;
+   if(u.items.includes('barrage')&&u.passiveAttacks%3===0)damageVal+=19+u.level;
+   if(u.items.includes('phantomfang')&&target.kind==='hero'&&target.hp/target.maxHp<.4)damageVal+=15+u.level*.6;
    if(u.id==='vexor'&&u.empoweredUntil>state.time){
     damageVal+=13;u.empoweredUntil=0;
    }
@@ -893,6 +915,7 @@ function finishAttack(u,shot){
   if(u.kind==='hero'&&t.kind==='hero'&&u.id==='brax')heal(u,Math.round(3+u.level*.55));
   if(u.kind==='hero'&&t.kind==='hero'&&u.items.includes('warheart'))heal(u,Math.round(4+u.level*.35));
   if(u.kind==='hero'&&u.id==='zhira'&&['camp','buff','boss'].includes(t.kind))heal(u,5);
+  if(u.kind==='hero'&&u.id==='rokar'&&u.passiveAttacks%3===0&&t.kind==='hero')grantShield(u,Math.round(19+u.level*2),2.2);
   addEffect(t.x,t.y,u.side===0?'#84ead9':'#f7a3b0',27,.28,'hit');
  }else missile(u,t,shot.damage,'aa',u.kind==='hero'?530:380);
  return true;
@@ -1204,7 +1227,10 @@ function botShop(u){
   nyra:['archmage','deepsea','hourglass','swiftboots'],
   vexor:['stormblade','swiftboots','astralbow','bulwark'],
  brax:['warheart','bulwark','stormblade','titanplate'],
- zhira:['huntress','stormblade','astralbow','bulwark']
+ zhira:['huntress','stormblade','astralbow','bulwark'],
+ kaelis:['glacier','archmage','deepsea','hourglass'],
+ rokar:['bulwark','lifebloom','titanplate','warheart'],
+ tessa:['barrage','astralbow','swiftboots','phantomfang']
  }[u.id]||['bulwark'];
  for(const id of priorities){
   if(u.items.includes(id))continue;
@@ -1626,6 +1652,11 @@ function cast(u,id,aim=null,autoTarget=null){
  if(u.recall>0){u.recall=0;if(u.controlled)announce('RETORNO CANCELADO: HABILIDADE',1.2)}
  if(u.items.includes('stormblade'))u.surgeUntil=state.time+5;
  if(u.id==='vexor')u.empoweredUntil=state.time+4;
+ if(u.items.includes('lifebloom')){
+  const ally=living(u.side,'hero').filter(h=>dist(h,u)<215&&h.hp<h.maxHp)
+   .sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
+  if(ally)heal(ally,Math.round(12+u.level*1.7));
+ }
  if(u.id==='seris'){
   const low=living(u.side,'hero').filter(h=>dist(h,u)<175)
    .sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
@@ -1793,6 +1824,10 @@ function tickProjectiles(dt){
     p.x=p.target.x;p.y=p.target.y;p.life=0;damage(p.target,p.damage,p.source);
     if(p.kind==='aa'&&p.source?.kind==='hero'&&p.source.id==='seris'&&
      p.target.kind==='hero')p.target.slow=Math.max(p.target.slow,.55);
+    if(p.kind==='aa'&&p.source?.kind==='hero'&&p.target.kind==='hero'&&
+       p.source.passiveAttacks%3===0&&
+       (p.source.id==='kaelis'||p.source.items.includes('glacier')))
+     p.target.slow=Math.max(p.target.slow,1.15);
    }else{p.x+=dx/d*step;p.y+=dy/d*step}
   }else if(p.kind==='skillline'){
    const ax=p.x,ay=p.y,bx=p.x+p.vx*dt,by=p.y+p.vy*dt;
@@ -1964,6 +1999,7 @@ function step(dt,movement={x:0,y:0}){
  if(hero&&hero.recall>0&&Math.hypot(movement.x,movement.y)>.07){
   hero.recall=0;announce('RETORNO CANCELADO: MOVIMENTO',1.2);
  }
+ if(hero)hero.stillSince=Math.hypot(movement.x,movement.y)>.06?state.time:(hero.stillSince??state.time);
  if(hero&&hero.hp>0&&!hero.dash&&hero.stun<=0&&!hero.recall){
   const direction=norm(movement.x,movement.y),len=Math.min(1,Math.hypot(movement.x,movement.y));
   if(len>.06){
@@ -1984,6 +2020,9 @@ function step(dt,movement={x:0,y:0}){
  window.FendaTeamAI?.scan();
  for(const u of state.units){tickUnit(u,dt);if(state.mode!=='playing')break}
  if(state.mode!=='playing')return;
+ // Ataque automático: apenas quando imóvel e um alvo entrar no alcance.
+ if(hero&&hero.hp>0&&!state.shopOpen&&Math.hypot(movement.x,movement.y)<.06&&
+    !hero.recall&&!hero.dash&&!hero.casting&&hero.attackCd<=0)autoAttack(hero);
  separateUnits();
  refreshVision();
  structureStep(dt);jungleStep(dt);tickProjectiles(dt);
