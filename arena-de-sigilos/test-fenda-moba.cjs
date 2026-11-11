@@ -1068,3 +1068,115 @@ E.start('lyria');
   'O cache do jogo precisa apontar para a versão 9.5');
 }
 console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livre e feitiços legíveis.');
+
+// V9.6 — assassinas de sombra/ilusão e ADCs que não compartilham a mesma jogabilidade.
+{
+ assert.equal(Object.keys(heroes).length,12,'Sahra e Mirielle devem ampliar o elenco');
+ for(const id of ['sahra','mirielle','lyria','tessa']){
+  const m=E.start(id),h=m.hero,kit=heroes[id];
+  assert.equal(m.units.filter(u=>u.kind==='hero'&&u.side===0).length,5);
+  assert.equal(m.units.filter(u=>u.kind==='hero'&&u.side===1).length,5);
+  assert.equal(E.skillRank(h,kit.skills[0]),1,'Campeão não inicia com uma única habilidade: '+id);
+  assert.ok(kit.skills.slice(1).every(s=>E.skillRank(h,s)===0)&&E.skillRank(h,kit.ultimate)===0,
+   'Habilidades precisam ser aprendidas por nível: '+id);
+  h.level=5;h.skillPoints=3;
+  for(const skill of [...kit.skills.slice(1),kit.ultimate]){
+   assert.ok(E.upgradeSkill(h,skill).ok,'Poder não foi aprendido: '+skill);
+  }
+ }
+ function duel(id){
+  const m=E.start(id),h=m.hero,e=m.units.find(u=>u.kind==='hero'&&u.side===1);
+  m.units=[h,e];m.structures=[];m.walls=[];m.obstacles=[];m.camps=[];m.nextWave=99999;
+  h.x=1700;h.y=1400;e.x=1780;e.y=1400;e.hp=e.maxHp=850;e.stun=30;
+  E.refreshVision(true);return {m,h,e};
+ }
+ {
+  const {m,h,e}=duel('sahra');
+  h.level=6;h.skillLevels.sahra_shroud=1;h.skillLevels.sahra_flip=1;
+  h.skillLevels.sahra_ult=1;
+  assert.ok(E.cast(h,'sahra_shroud'),'Fumaça não ativa');
+  assert.ok(m.zones.some(z=>z.kind==='shroud'&&z.until>m.time),
+   'Fumaça não permanece como área real no mapa');
+  assert.equal(E.visibleTo(1,h),false,'Fumaça precisa esconder Sahra dos inimigos');
+  E.step(.05,{x:0,y:0});
+  assert.ok(m.zones.some(z=>z.kind==='shroud'),
+   'Zona de fumaça desaparece no primeiro quadro');
+  assert.ok(E.cast(h,'sahra_ult',{x:1,y:0,distance:180}),
+   'Primeira investida da ultimate não dispara');
+  for(let i=0;i<7;i++)E.step(.05,{x:0,y:0});
+  assert.ok(h.cooldowns.sahra_ult>0,'Ultimate deveria entrar em cooldown após primeira fase');
+  assert.ok(E.cast(h,'sahra_ult',{x:1,y:0,distance:180}),
+   'Segunda investida precisa funcionar mesmo com cooldown ativo');
+  assert.ok(h.dash?.stage2,'A segunda investida deve ter efeito de execução próprio');
+ }
+ {
+  const {m,h,e}=duel('mirielle');
+  h.level=6;h.skillLevels.mirielle_distort=1;h.skillLevels.mirielle_chain=1;
+  h.skillLevels.mirielle_ult=1;
+  const startX=h.x,startY=h.y;
+  assert.ok(E.cast(h,'mirielle_distort',{x:1,y:0,distance:155}),
+   'Avanço ilusório não funciona');
+  for(let i=0;i<8;i++)E.step(.05,{x:0,y:0});
+  assert.ok(h.x>startX+70,'Avanço não deslocou Mirielle');
+  assert.ok(E.cast(h,'mirielle_distort',{x:1,y:0,distance:80}),
+   'Reativar W precisa retornar mesmo com a habilidade em cooldown');
+  assert.ok(Math.hypot(h.x-startX,h.y-startY)<8,'Retorno não recupera o ponto original');
+  h.mana=E.maxMana(h);
+  assert.ok(E.cast(h,'mirielle_sigil',{x:1,y:0,distance:180}));
+  for(let i=0;i<10;i++)E.step(.05,{x:0,y:0});
+  assert.ok(e.mirrorMarkUntil>m.time,'Selo não marca inimigo');
+  assert.ok(E.cast(h,'mirielle_chain',{x:1,y:0,distance:180}));
+  for(let i=0;i<10;i++)E.step(.05,{x:0,y:0});
+  assert.equal(e.mirrorMarkUntil,0,'Corrente deve detonar o selo da ilusão');
+  assert.ok(e.tetherUntil>m.time,'Corrente deve prender o adversário após atraso');
+  h.mana=E.maxMana(h);
+  assert.ok(E.cast(h,'mirielle_ult',{x:1,y:0,distance:150}));
+  for(let i=0;i<7;i++)E.step(.05,{x:0,y:0});
+  assert.ok(h.mirrorEchoUntil>m.time,'Ultimate não projetou o reflexo da habilidade');
+ }
+ {
+  const {m,h,e}=duel('lyria');
+  h.windStacks=0;h.windUntil=0;
+  const cds=[];
+  for(let i=0;i<4;i++){
+   h.attackCd=0;h.attackPending=null;
+   assert.ok(E.autoAttack(h),'AA de Lyria não disparou');
+   cds.push(h.attackCd);
+  }
+  assert.equal(h.windStacks,4,'Lyria precisa acumular exatamente quatro cargas');
+  assert.ok(cds[3]<cds[0]*.85,'Ímpeto não aumenta velocidade de ataques consecutivos');
+  h.skillLevels.lyria_rain=1;h.mana=E.maxMana(h);
+  assert.ok(E.cast(h,'lyria_rain',{x:1,y:0,distance:80}));
+  assert.ok(m.zones.some(z=>z.kind==='arrowstorm'),
+   'Cortina da Lyria deve ser persistente, não uma explosão genérica');
+  const hp=e.hp;
+  for(let i=0;i<20;i++)E.step(.05,{x:0,y:0});
+  assert.ok(e.hp<hp,'Cortina não causou dano ao longo do tempo');
+ }
+ {
+  const {m,h,e}=duel('tessa');
+  const normal=E.attackRange(h);
+  h.stillSince=m.time-1.2;
+  assert.ok(E.attackRange(h)>=normal+40,'Mira firme de Tessa não estende alcance');
+  h.skillLevels.tessa_roll=1;h.skillLevels.tessa_salvo=1;
+  assert.ok(E.cast(h,'tessa_roll',{x:1,y:0,distance:110}));
+  assert.ok(h.loadedRoundUntil>m.time,'Rolamento não carregou munição penetrante');
+  for(let i=0;i<8;i++)E.step(.05,{x:0,y:0});
+  h.mana=E.maxMana(h);
+  assert.ok(E.cast(h,'tessa_salvo',{x:1,y:0,distance:30}));
+  assert.ok(m.zones.some(z=>z.kind==='trap'),'Tessa deve instalar armadilha, não rajada');
+  const hp=e.hp;
+  for(let i=0;i<10;i++)E.step(.05,{x:0,y:0});
+  assert.ok(e.hp<hp,'Armadilha de Tessa não causou dano quando inimigo entrou');
+ }
+ const view=read('fenda-view.js'),source=read('index.html');
+ assert.ok(view.includes("u.id==='sahra'")&&view.includes("u.id==='mirielle'")&&
+  view.includes("z.kind==='shroud'")&&view.includes("z.kind==='trap'"),
+  'Desenhos e efeitos visuais dos assassinos não foram implementados');
+ assert.ok(view.includes("id==='sahra_ult'&&h.sahraSecondUntil>S.time")&&
+  view.includes("id==='mirielle_distort'&&h.mirrorReturn?.until>S.time"),
+  'As habilidades reativáveis precisam estar habilitadas no painel');
+ assert.ok(source.includes('fenda-engine.js?v=9.6')&&source.includes('fenda-view.js?v=9.6'),
+  'Cache de versão deve usar os novos campeões');
+}
+console.log('OK: V9.6 com duas assassinas, fumaça, retorno, execução, combos e ADCs distintos.');
