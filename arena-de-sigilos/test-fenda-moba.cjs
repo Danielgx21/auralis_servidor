@@ -508,7 +508,7 @@ assert.equal(E.cast(rangeHero,'lyria_pierce'),true);
 assert.equal(rangeHero.mana,320-manaCost,'Casting não está gastando mana');
 rangeHero.mana=0;
 assert.equal(E.cast(rangeHero,'lyria_rain'),false,'Habilidade foi usada com mana zero');
-assert.ok(view.includes("$('fendaManaText').textContent='MANA '"),
+assert.ok(view.includes("'MANA '+Math.ceil(h.mana)")&&view.includes("'∞ MANA LIVRE '"),
  'Exibir mana em números no HUD');
 // Ward arrastável, alcance definido e campo de visão ativado.
 E.start('lyria');
