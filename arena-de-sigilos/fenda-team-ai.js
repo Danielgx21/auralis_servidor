@@ -9,8 +9,8 @@ let nextScan=0;
 const living=(side)=>E.living(side,'hero');
 const visibleFoes=(side)=>living(1-side).filter(e=>E.visibleTo(side,e));
 const hp=h=>h.hp/Math.max(1,h.maxHp);
-const canCast=(h,id)=>h.cooldowns[id]<=.01&&h.mana>=E.skillDef(id).cost&&h.stun<=0&&
-  (!E.skillDef(id).ultimate||h.level>=5);
+const canCast=(h,id)=>h.cooldowns[id]<=.01&&h.mana>=E.skillDef(id).cost&&
+ h.stun<=0&&E.skillRank(h,id)>0;
 function strength(h){
  const ult=C.heroes[h.id].ultimate;
  return (.54+hp(h)*.69)*(1+h.level*.065)*
@@ -40,11 +40,16 @@ function scan(){
    const ratio=alliedPower/Math.max(.1,enemyPower);
    const wave=E.living(side,'minion').some(m=>dist(m,center)<225);
    const enemyTurret=S.structures.some(t=>t.hp>0&&t.side!==side&&
-     (t.kind==='tower'||t.kind==='core')&&dist(t,center)<t.range+45&&!wave);
+     (t.kind==='tower'||t.kind==='core')&&
+     dist(t,center)<t.range+70&&
+     !E.living(side,'minion').some(m=>dist(m,t)<t.range));
    // Não transformar lutas equilibradas em quatro bots esperando parados.
-   let mode=ratio<.71?'retreat':ratio>=(enemyTurret?1.40:.93)?'engage':'hold';
+   // Aposta coordenada apenas com vida e vantagem; debaixo de torre sem
+   // sentinelas a equipe recua, mesmo que tenha vantagem numérica.
+   let mode=enemyTurret&&ratio<1.55?'retreat':
+     ratio<.74?'retreat':ratio>=(enemyTurret?1.55:.96)?'engage':'hold';
    // Quando o tanque está ausente, uma iniciação 2v2 fica mais conservadora.
-   if(mode==='engage'&&!friends.some(a=>a.id==='orun')&&ratio<1.17&&friends.length<3)
+   if(mode==='engage'&&!friends.some(a=>a.id==='orun')&&ratio<1.10&&friends.length<3)
      mode='hold';
    const focus=rivals.map(e=>{
     const threatenedCarry=friends.some(a=>['lyria','nyra','seris'].includes(a.id)&&dist(a,e)<135);
@@ -114,14 +119,18 @@ function handleBot(u,dt){
   return true;
  }
  if(p.mode==='hold'){
-  // Sem vantagem, NÃO sequestrar a IA de rota: se não há alvo no alcance
-  // de ataque ou de aproximação, voltar ao farm e à movimentação normal.
+  // Se a luta não está realmente ao alcance, devolver o controle
+  // para a IA de rota (farm, escolta de tropas e posicionamento).
   const attackReach=E.attackRange(u)+nearest.r;
   if(dist(u,nearest)>attackReach+75&&!p.towerDive)return false;
   // Se há adversário disputando a rota, pressionar e atacar em vez de
   // simplesmente observar o combate a poucos passos.
   if(dist(u,nearest)>attackReach+8&&!p.towerDive){
-   move(u,nearest,dt,u.id==='orun'?.88:.80);
+   move(u,nearest,dt,u.id==='orun'?.93:.87);
+  }
+  if(dist(u,nearest)<attackReach+15){
+   u.focusTarget=nearest;u.focusUntil=S.time+1.1;
+   E.botUseSkill(u,nearest);
   }
   // O tanque aguarda apoio apenas quando necessário; o time todo
   // continua podendo se reposicionar e dar AA no mesmo instante.
