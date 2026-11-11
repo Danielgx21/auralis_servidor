@@ -20,6 +20,36 @@ stage.appendChild(hud);
 const summonerPanel=document.createElement('div');summonerPanel.id='fendaSummoners';
 summonerPanel.innerHTML=[0,1].map(i=>'<button type="button" class="fenda-summoner" data-slot="'+i+'" aria-label="Usar feitiço '+(i+1)+'"><b>◇</b><small>FEITIÇO</small><span class="spell-effect">EFEITO</span><em></em></button>').join('');
 hud.appendChild(summonerPanel);
+// Escolha da primeira habilidade, como no LoL: um ponto livre em Q, W ou E.
+const firstSkillPanel=document.createElement('section');
+firstSkillPanel.id='fendaFirstSkillPanel';
+firstSkillPanel.setAttribute('aria-label','Escolher primeira habilidade do campeão');
+firstSkillPanel.hidden=true;hud.appendChild(firstSkillPanel);
+function firstSkillUpdate(h){
+ if(!h)return;
+ const kit=C.heroes[h.id].skills;
+ const pending=h.level===1&&h.skillPoints>0&&
+  kit.every(id=>E.skillRank(h,id)===0);
+ firstSkillPanel.hidden=!pending;
+ if(!pending||firstSkillPanel.dataset.hero===h.id)return;
+ firstSkillPanel.dataset.hero=h.id;
+ firstSkillPanel.innerHTML='<strong>ESCOLHA SUA PRIMEIRA HABILIDADE</strong>'+
+  '<small>1 ponto disponível · Q, W ou E. Ultimate no nível 5.</small>'+
+  '<div class="fenda-first-skill-options">'+kit.map((id,i)=>{
+   const skill=E.skillDef(id);
+   return '<button type="button" data-first-skill="'+i+'" title="'+skill.desc+'">'+
+    '<b>'+['Q','W','E'][i]+'</b><span>'+skill.icon+' '+skill.name+'</span></button>';
+  }).join('')+'</div>';
+ for(const btn of firstSkillPanel.querySelectorAll('[data-first-skill]')){
+  btn.addEventListener('click',()=>{
+   if(S.mode!=='playing'||S.shopOpen||S.showPause)return;
+   const skill=kit[Number(btn.dataset.firstSkill)];
+   const result=E.upgradeSkill(S.hero,skill);
+   if(!result.ok)warn(result.reason);
+   hudUpdate();
+  });
+ }
+}
 const mobileHelpBtn=document.createElement('button');
 mobileHelpBtn.id='fendaMobileHelpBtn';mobileHelpBtn.type='button';
 mobileHelpBtn.textContent='?';
@@ -959,6 +989,7 @@ function desktopRosterUpdate(){
 }
 function hudUpdate(){
  const h=S.hero;if(!h)return;
+ firstSkillUpdate(h);
  const time=Math.floor(S.time);
  $('fendaTopScore').textContent='✦ '+S.kills[0]+' AZUL × '+S.kills[1]+' RUBRO';
  $('fendaPlayerStats').textContent='K/D/A '+h.kills+'/'+h.deaths+'/'+(h.assists||0)+' · FARM '+h.cs;
@@ -1332,15 +1363,15 @@ function chooseHero(){
  if(['zhira','vexor','sahra'].includes(selected)&&!pickedSummoners.includes('smite')){
   pickedSummoners=['smite',pickedSummoners[0]];saveSummoners();
  }
- $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 9.6</div><h2>FENDA DOS SIGILOS</h2>'+ 
+ $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 9.7</div><h2>FENDA DOS SIGILOS</h2>'+ 
  '<p>12 campeões · Sahra de fumaça e execução, Mirielle de ilusões e retorno · Lyria de DPS e Tessa de precisão.</p>'+ 
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span class="fenda-hero-portrait">'+championPortrait(id)+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
- '<div class="fenda-hero-detail"><strong>'+hero.name+' · '+hero.role+'</strong><p>'+hero.summary+' <br><b>PASSIVA:</b> '+hero.passive+'</p><span>HABILIDADE INICIAL: '+C.skills[hero.skills[0]].name+' · A segunda e a terceira são aprendidas subindo de nível. Ultimate no nível 5.</span></div>'+
+ '<div class="fenda-hero-detail"><strong>'+hero.name+' · '+hero.role+'</strong><p>'+hero.summary+' <br><b>PASSIVA:</b> '+hero.passive+'</p><span>NO NÍVEL 1: você escolhe qual habilidade aprende primeiro, Q, W ou E. Ultimate disponível a partir do nível 5.</span></div>'+
  '<div class="fenda-summoner-title">ESCOLHA 2 FEITIÇOS <small>F / G NO PC</small></div>'+
  '<div class="fenda-summoner-picker">'+Object.entries(E.SUMMONERS).map(([id,sp])=>
  '<button type="button" data-pick-spell="'+id+'" class="'+(pickedSummoners.includes(id)?'picked':'')+'" title="'+sp.desc+'"><b>'+sp.icon+'</b><span>'+sp.name+'</span><small>'+sp.cd+'s</small><em>'+sp.desc+'</em></button>').join('')+'</div>'+
- '<div class="teamfight-tip">9.6 · Lyria: velocidade acumulada + tempestade em ondas. Tessa: tiro preparado + armadilha + ultimate de execução. Sahra e Mirielle têm combos de duas ativações.</div>'+ 
+ '<div class="teamfight-tip">9.7 · Comece com 1 ponto e escolha Q, W ou E. As habilidades só são liberadas quando você as aprende.</div>'+ 
  '<div class="actions" style="margin-top:10px"><button class="primary" id="playFenda">▶ JOGAR FENDA 5×5</button><button class="secondary" id="playClassic">MODO ARENA RÁPIDA</button></div>'+
  '<p style="font-size:10px;margin:9px 0 0">PC: Q/W/E/R são lançadas na direção do ponteiro. Tecla Y troca câmera travada/livre; segure Espaço para centralizar; mova às bordas ou arraste com botão do meio. Celular: arraste as habilidades para mirar e toque em ? para ler os efeitos. TAB placar, P loja, B retorno.</p>';
  for(const b of $('modalContent').querySelectorAll('[data-hero]'))b.onclick=()=>{
