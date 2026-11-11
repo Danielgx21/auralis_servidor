@@ -250,6 +250,28 @@ for(const [width,height] of viewportCases){
  assert.ok(height/zoom<=620+1,'A câmera mostrou demasiada área vertical');
 
 }
+// Cena que antes mostrava T1, T2 e o encontro de minions na Bot:
+// a câmera de batalha deve mostrar a frente, não as duas torres aliadas.
+{
+ const lane=2,hero=E.pathPos(lane,.28),projection=E.routeProjection(lane,hero);
+ const pt=projection.progress/E.ROUTE_TOTALS[lane],delta=.006;
+ const a=E.pathPos(lane,Math.max(0,pt-delta));
+ const b=E.pathPos(lane,Math.min(1,pt+delta));
+ const dir=E.norm(b.x-a.x,b.y-a.y);
+ const focus={x:hero.x+dir.x*140,y:hero.y+dir.y*140};
+ const width=1850,height=832,zoom=Math.min(1.5,height/620);
+ const worldW=width/zoom,worldH=height/zoom;
+ const left=E.clamp(focus.x-worldW*.44,0,Math.max(0,E.W-worldW));
+ const top=E.clamp(focus.y-worldH*.55,0,Math.max(0,E.H-worldH));
+ const onScreen=o=>o.x>=left&&o.x<=left+worldW&&o.y>=top&&o.y<=top+worldH;
+ const visibleOwn=state.structures.filter(o=>o.kind==='tower'&&o.side===0&&o.lane===lane&&onScreen(o));
+ assert.ok(onScreen(E.pathPos(lane,.5)),'O avanço na Bot deixou de aparecer');
+ assert.ok(visibleOwn.length<=1,'Câmera continua mostrando duas torres azuis e a wave na Bot');
+ assert.ok(zoom>1.25,'Zoom quase igual ao da versão antiga');
+ assert.ok(terrainSource.includes('LANE_CAMERA_LEAD=140')&&
+  terrainSource.includes('const forwardX=focus.x-h.x'),
+  'Câmera perdeu antecipação ao longo da rota');
+}
 assert.ok(terrainSource.includes('mc.lineWidth=E.LANE_HALF_WIDTH*2'),
  'A largura representada no minimapa diverge da largura real da lane');
 assert.ok(terrainSource.includes("fogContext.fillStyle=discovered?'rgba(5,20,30,.33)':'rgba(5,17,28,.56)'"),
@@ -284,6 +306,26 @@ for(const side of [0,1])for(const lane of [0,1,2]){
  const ts=state.structures.filter(t=>t.kind==='tower'&&t.side===side&&t.lane===lane);
  assert.equal(ts.length,2,'Exatamente duas torres por equipe em cada lane');
  assert.deepEqual(ts.map(t=>t.tier).sort(),[1,2]);
+}
+// O núcleo só pode perder vida quando as duas torres de pelo menos
+// uma das lanes tiverem caído; T2 não recebe dano antes da T1.
+{
+ E.start('lyria');
+ const attacker=state.hero,enemyCore=state.structures.find(t=>t.kind==='core'&&t.side===1);
+ const outer=state.structures.find(t=>t.kind==='tower'&&t.side===1&&t.lane===2&&t.tier===1);
+ const inner=state.structures.find(t=>t.kind==='tower'&&t.side===1&&t.lane===2&&t.tier===2);
+ const coreHp=enemyCore.hp,innerHp=inner.hp;
+ E.damage(inner,180,attacker);
+ E.damage(enemyCore,180,attacker);
+ assert.equal(inner.hp,innerHp,'T2 exposta antes da T1');
+ assert.equal(enemyCore.hp,coreHp,'Núcleo exposto com torres ativas');
+ outer.hp=0;E.damage(inner,180,attacker);
+ assert.ok(inner.hp<innerHp,'T2 continua protegida após destruir T1');
+ E.damage(enemyCore,180,attacker);
+ assert.equal(enemyCore.hp,coreHp,'Núcleo exposto com T2 intacta');
+ inner.hp=0;E.damage(enemyCore,180,attacker);
+ assert.ok(enemyCore.hp<coreHp,'Núcleo não liberado após destruir T1 e T2');
+ E.start('lyria');
 }
 assert.ok(state.walls.length>=120,'A jungle e as bases precisam de paredes físicas suficientes');
 assert.ok(state.walls.filter(w=>w.wallClass==='base').length>=48,
