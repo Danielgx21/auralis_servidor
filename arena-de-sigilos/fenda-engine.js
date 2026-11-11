@@ -801,6 +801,17 @@ function autoAttack(u){
  u.attackTotal=u.attackAnim;
  u.attackWindup=u.kind==='hero'?(u.isRanged?.15:.13):.11;
  let damageVal=attackDamage(u)+(u.homeBuff>state.time?4:0);
+ // Passivos dos itens completos: bônus situacionais, não somente estatísticas.
+ if(u.kind==='hero'){
+  if(u.items.includes('astralbow')&&target.kind!=='tower'&&target.kind!=='core'&&
+    target.hp/Math.max(1,target.maxHp)<.45)damageVal*=1.21;
+  if(u.items.includes('swiftboots')&&u.walkUntil>state.time)damageVal*=1.075;
+  if(u.items.includes('stormblade')&&u.surgeUntil>state.time){
+   damageVal+=26+u.level*3;u.surgeUntil=0;
+   addEffect(target.x,target.y,'#eeb5fb',target.r+12,.34,'hit');
+  }
+ }
+ damageVal=Math.round(damageVal);
  // Minions limpam ondas de forma consistente, sem congestionamentos infinitos.
  if(u.kind==='minion'&&target.kind==='minion')damageVal=Math.round(damageVal*1.25);
  if(target.kind==='boss'||target.kind==='buff'||target.kind==='camp'){
@@ -1502,6 +1513,7 @@ function cast(u,id,aim=null,autoTarget=null){
  u.cooldowns[id]=Math.max(.8,def.cd*(1-haste)*(1-.065*(maxLv-1)));
  u.mana-=def.cost;
  if(u.recall>0){u.recall=0;if(u.controlled)announce('RETORNO CANCELADO: HABILIDADE',1.2)}
+ if(u.items.includes('stormblade'))u.surgeUntil=state.time+5;
  const c={id,dir,center,level:maxLv,time:Math.max(0,def.cast),total:Math.max(0,def.cast)};
  if(c.time<=0)releaseSkill(u,c);else u.casting=c;
  addEffect(u.x,u.y,hData(u.id).color,27,.24);
@@ -1669,6 +1681,15 @@ function tickUnit(u,dt){
  u.invuln=Math.max(0,u.invuln-dt);
  if(u.shield>0&&state.time>=(u.shieldUntil||0))u.shield=0;
  u.guard=Math.max(0,u.guard-dt*.02);
+ if(u.kind==='hero'){
+  u.passiveCd=Math.max(0,(u.passiveCd||0)-dt);
+  if(u.hp>0&&u.hp/u.maxHp<.37&&u.passiveCd<=0&&
+      (u.items||[]).some(id=>ITEM_BY_ID[id]?.passive==='fortify')){
+   grantShield(u,Math.round(65+u.level*7+itemStats(u,'hp')*.16),4);
+   u.passiveCd=48;
+   addEffect(u.x,u.y,'#b6d9ff',56,.50,'wave');
+  }
+ }
  u.attackCd=Math.max(0,u.attackCd-dt);
  u.attackAnim=Math.max(0,(u.attackAnim||0)-dt);
  u.attackHit=Math.max(0,(u.attackHit||0)-dt);
