@@ -762,4 +762,42 @@ E.start('lyria');
   'IA precisa verificar ranks reais antes de tentar usar as habilidades');
 }
 
+// Fenda 8.6: os tempos de combate respeitam a identidade das classes.
+{
+ const setupDamage=Object.keys(heroes),out={};
+ for(const id of setupDamage){
+  E.start(id);
+  const h=state.hero,foe=state.units.find(u=>u.kind==='hero'&&u.side===1);
+  state.units=[h,foe];state.structures=[];state.walls=[];
+  state.obstacles=[];state.camps=[];state.nextWave=9999;
+  h.x=1600;h.y=1250;
+  foe.x=h.x+E.attackRange(h)-15;foe.y=h.y;foe.controlled=true;
+  foe.stun=100;foe.id='orun';foe.hp=foe.maxHp=380;
+  E.refreshVision(true);
+  for(let i=0;i<90;i++){
+   E.step(.05,{x:0,y:0});
+   E.autoAttack(h);
+  }
+  out[id]={damage:380-foe.hp,range:E.attackRange(h)};
+  assert.ok(out[id].damage>20&&out[id].damage<140,
+   'Dano básico fora da escala do jogo: '+id);
+ }
+ assert.ok(out.lyria.damage>out.nyra.damage*1.35,
+  'Atiradora precisa ter AA mais forte que a maga');
+ assert.ok(out.vexor.damage>out.orun.damage*1.35,
+  'Duelista precisa ter AA mais forte que o tanque');
+ assert.ok(out.nyra.damage>out.seris.damage*1.3,
+  'Suporte não pode superar a maga em dano sustentado');
+ assert.ok(out.lyria.range>out.seris.range&&out.seris.range>out.vexor.range,
+  'Distinção entre ranged, suporte e melee desapareceu');
+ for(const id of ['lyria_pierce','nyra_bolt','seris_tether']){
+  assert.ok(E.skillDef(id).range<E.TURRET_RANGE,
+   'Habilidade básica alcança campeões debaixo de torre sem risco: '+id);
+ }
+ const view=read('fenda-view.js'),css=read('fenda.css');
+ assert.ok(view.includes('const ITEM_ART={')&&view.includes('fenda-item-art')&&
+  view.includes('fenda-shop-slot-select')&&css.includes('.fenda-item-art'),
+  'Ícones vetoriais ou inspeção de itens no inventário ausentes');
+}
+
 console.log('OK: estilo Teamfight sem estradas/imagens, portoes solidos, jungles fisicas, torres e 5x5.');
