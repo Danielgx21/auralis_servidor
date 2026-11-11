@@ -1228,7 +1228,7 @@ function chooseHero(){
  if(['zhira','vexor'].includes(selected)&&!pickedSummoners.includes('smite')){
   pickedSummoners=['smite',pickedSummoners[0]];saveSummoners();
  }
- $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 9.4</div><h2>FENDA DOS SIGILOS</h2>'+ 
+ $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 9.5</div><h2>FENDA DOS SIGILOS</h2>'+ 
  '<p>Dez campeões com retratos próprios, combate com ritmo por classe e bots que cooperam em emboscadas e objetivos.</p>'+ 
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span class="fenda-hero-portrait">'+championPortrait(id)+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
@@ -1236,9 +1236,9 @@ function chooseHero(){
  '<div class="fenda-summoner-title">ESCOLHA 2 FEITIÇOS <small>F / G NO PC</small></div>'+
  '<div class="fenda-summoner-picker">'+Object.entries(E.SUMMONERS).map(([id,sp])=>
  '<button type="button" data-pick-spell="'+id+'" class="'+(pickedSummoners.includes(id)?'picked':'')+'" title="'+sp.desc+'"><b>'+sp.icon+'</b><span>'+sp.name+'</span><small>'+sp.cd+'s</small><em>'+sp.desc+'</em></button>').join('')+'</div>'+
- '<div class="teamfight-tip">9.4 · Início, disputa de objetivos e cerco final · ataque e movimentação precisos · 8 pré-itens, 14 receitas e 2 feitiços por campeão.</div>'+ 
+ '<div class="teamfight-tip">9.5 · Câmera livre/travada no PC · habilidades na mira do mouse · painel mobile com ajuda e feitiços legíveis.</div>'+ 
  '<div class="actions" style="margin-top:10px"><button class="primary" id="playFenda">▶ JOGAR FENDA 5×5</button><button class="secondary" id="playClassic">MODO ARENA RÁPIDA</button></div>'+
- '<p style="font-size:10px;margin:9px 0 0">AA automático ao ficar parado, quando um inimigo entrar no alcance. PC: segure e arraste o clique no mapa para seguir o ponteiro; solte para parar. Celular: joystick + toque para AA manual. Evolua habilidades em +. TAB placar, P loja, B retorno.</p>';
+ '<p style="font-size:10px;margin:9px 0 0">PC: Q/W/E/R são lançadas na direção do ponteiro. Tecla Y troca câmera travada/livre; segure Espaço para centralizar; mova às bordas ou arraste com botão do meio. Celular: arraste as habilidades para mirar e toque em ? para ler os efeitos. TAB placar, P loja, B retorno.</p>';
  for(const b of $('modalContent').querySelectorAll('[data-hero]'))b.onclick=()=>{
   C.setHeroChoice(b.dataset.hero);
   if(['zhira','vexor'].includes(b.dataset.hero)&&!pickedSummoners.includes('smite')){
@@ -1259,9 +1259,10 @@ function startGame(){
  setMobileGuide(false);
  E.start(C.getHeroChoice(),pickedSummoners);setScoreboardVisible(false);endedShown=false;clickDestination=null;mouseFollow=null;rosterLastUpdate=-1;cameraPeek=null;cameraPeekUntil=0;wardAim=null;keys.clear();
  desktopPointer.over=false;desktopPointer.lastWorld=null;spaceCenterHeld=false;cameraDrag=null;syncCameraControl();
- if(desktopCamera())cameraCenterAt(S.hero.x,S.hero.y);joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
+ joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
  shop.classList.remove('open');$('overlay').classList.add('hidden');$('missionShelf').hidden=true;
- resize();drawTerrain();last=performance.now();hudCountdown=0;hudUpdate();
+ resize();if(desktopCamera())cameraCenterAt(S.hero.x,S.hero.y);
+ drawTerrain();last=performance.now();hudCountdown=0;hudUpdate();
  if(stage.requestFullscreen&&!document.fullscreenElement){
   try{Promise.resolve(stage.requestFullscreen()).catch(()=>{})}catch(_){}
  }
@@ -1779,8 +1780,11 @@ function minimapStart(e){
  if(S.mode!=='playing'||S.shopOpen||S.showPause)return;
  e.preventDefault();e.stopPropagation();
  if(desktopCamera()&&cameraMode==='free'){
-  cameraCenterAt(minimapPoint(e).x,minimapPoint(e).y);
-  cameraPeek=null;return;
+  const point=minimapPoint(e);
+  cameraPeek={...point,ptr:e.pointerId,permanent:true};
+  cameraCenterAt(point.x,point.y);
+  try{mm.setPointerCapture(e.pointerId)}catch(_){}
+  return;
  }
  cameraPeek={...minimapPoint(e),ptr:e.pointerId};
  cameraPeekUntil=S.time+2.2;
@@ -1789,10 +1793,17 @@ function minimapStart(e){
 function minimapMove(e){
  if(!cameraPeek||cameraPeek.ptr!==e.pointerId)return;
  const point=minimapPoint(e);cameraPeek.x=point.x;cameraPeek.y=point.y;
+ if(cameraPeek.permanent)cameraCenterAt(point.x,point.y);
  cameraPeekUntil=S.time+2.2;e.preventDefault();
 }
 function minimapEnd(e){
  if(!cameraPeek||cameraPeek.ptr!==e.pointerId)return;
+ if(cameraPeek.permanent){
+  if(e.type==='pointerup'){
+   const point=minimapPoint(e);cameraCenterAt(point.x,point.y);
+  }
+  cameraPeek=null;cameraPeekUntil=0;return;
+ }
  if(e.type==='pointerup'){
   const point=minimapPoint(e);cameraPeek.x=point.x;cameraPeek.y=point.y;
   cameraPeek.ptr=null;cameraPeekUntil=S.time+1.9;
