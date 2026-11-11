@@ -730,7 +730,7 @@ function shopRender(){
  }
  const equipped=h.items.includes(selection.id);
  const next=status.missing[0],part=next&&itemInfo(next);
- const canBuy=base&&!equipped&&h.hp>0&&status.spacesAfter<=6&&
+ const canBuy=base&&(selection.tier===1||!equipped)&&h.hp>0&&status.spacesAfter<=6&&
   (status.ready?h.gold>=status.remaining:
    part&&h.items.length<6&&h.gold>=part.price);
  let buyLabel=selection.tier===1?'COMPRAR · ✦ '+selection.price:
