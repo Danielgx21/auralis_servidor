@@ -1458,8 +1458,41 @@ function approachCreep(u,c,dt){
  }
  return true;
 }
+// Junglers procuram emboscadas sustentadas por aliados, sem mergulhar
+// sozinhos debaixo de torres. Cada gank tem prazo de desistência.
+function botTryGank(u,dt){
+ if(!u.jungler||u.hp/u.maxHp<.52||u.level<2)return false;
+ let target=state.units.find(h=>h.uid===u.gankTargetUid&&h.hp>0);
+ if(target&&(state.time>u.gankEnd||!visibleTo(u.side,target)||dist(u,target)>750))target=null;
+ if(!target&&state.time>=(u.nextGankScan||18)){
+  u.nextGankScan=state.time+8+(u.uid%4);
+  const possible=living(1-u.side,'hero').filter(e=>visibleTo(u.side,e)&&
+   dist(u,e)<640&&e.hp/e.maxHp<.86&&
+   living(u.side,'hero').some(a=>a!==u&&dist(a,e)<355&&a.hp/a.maxHp>.42)&&
+   !state.structures.some(t=>t.side===e.side&&t.hp>0&&
+     (t.kind==='tower'||t.kind==='core')&&dist(t,e)<t.range+55&&
+     !living(u.side,'minion').some(m=>dist(t,m)<t.range)));
+  possible.sort((a,b)=>(a.hp/a.maxHp-b.hp/b.maxHp)*160+dist(u,a)-dist(u,b));
+  if(possible.length){
+   target=possible[0];u.gankEnd=state.time+5.6;u.gankTargetUid=target.uid;
+   u.jungleGoal=null;u.gankUntil=0;
+  }
+ }
+ if(!target){u.gankTargetUid=null;return false}
+ u.focusTarget=target;u.focusUntil=state.time+.8;
+ const d=dist(u,target),range=attackRange(u)+target.r;
+ if(u.visionCd<=0&&d<380&&state.time>35){
+  const pos={x:u.x+(target.x-u.x)*.55,y:u.y+(target.y-u.y)*.55};
+  placeWard(u,pos.x,pos.y);
+ }
+ if(d>range*.84)moveToward(u,target,dt,.96);
+ if(d<Math.max(290,range+80))botUseSkill(u,target);
+ if(d<range+2&&u.attackCd<=.01)autoAttack(u);
+ return true;
+}
 function botJungler(u,dt){
  if(!u.jungler)return false;
+ if(botTryGank(u,dt))return true;
  if(u.jungleGoal&&(u.jungleGoal.hp<=0||
     (u.jungleGoal.unlock&&state.time<u.jungleGoal.unlock))){
   u.jungleGoal=null;u.gankUntil=state.time+15;
@@ -1575,8 +1608,14 @@ function botHero(u,dt){
   .filter(e=>visibleTo(u.side,e)&&e.lane===lane&&dist(e,u)<410)
   .sort((a,b)=>a.hp-b.hp||dist(u,a)-dist(u,b));
  // Último golpe e ataque básico priorizados sem perseguir inimigos até a jungle.
- const farmKill=enemyWave.find(e=>e.hp<=attackDamage(u)*1.38&&
-  dist(u,e)<attackRange(u)+e.r+32);
+ // Prevê projéteis aliados em voo antes de decidir o último golpe.
+ const predictedHp=e=>e.hp-state.projectiles.filter(p=>p.kind==='aa'&&p.target===e&&
+   p.side===u.side).reduce((total,p)=>total+(p.damage||0),0);
+ const farmKill=enemyWave.filter(e=>{
+  const predicted=predictedHp(e);
+  return predicted>0&&predicted<=attackDamage(u)*1.38&&
+   dist(u,e)<attackRange(u)+e.r+32;
+ }).sort((a,b)=>predictedHp(a)-predictedHp(b))[0];
  u.farmTarget=farmKill||enemyWave.find(e=>dist(u,e)<attackRange(u)+e.r+13)||null;
  const objective=state.structures.filter(t=>t.side===enemySide&&t.hp>0&&
   (t.kind==='tower'&&t.lane===lane||t.kind==='core'&&laneCleared(enemySide,lane))&&structureExposed(t))
