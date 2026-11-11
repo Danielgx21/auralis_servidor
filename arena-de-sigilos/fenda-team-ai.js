@@ -116,9 +116,14 @@ function defensiveCast(u,friends,nearest){
 // Sai de magias em área antes do impacto, sem alterar ataques certeiros ou controles humanos.
 function dodgeTelegraph(u,dt){
  if(u.stun>0||u.dash||u.casting)return false;
- const hazard=S.projectiles.filter(p=>p.kind==='damagearea'&&p.side!==u.side&&p.aoe>0&&
+ const hazards=S.projectiles.filter(p=>p.kind==='damagearea'&&p.side!==u.side&&p.aoe>0&&
    p.tx!==undefined&&Math.hypot(u.x-p.tx,u.y-p.ty)<p.aoe+u.r+38)
-   .sort((a,b)=>Math.hypot(u.x-a.tx,u.y-a.ty)-Math.hypot(u.x-b.tx,u.y-b.ty))[0];
+  .concat((S.zones||[]).filter(z=>z.side!==u.side&&
+   (z.kind==='arrowstorm'||z.kind==='trap')&&
+   z.until>S.time&&Math.hypot(u.x-z.x,u.y-z.y)<z.r+u.r+25)
+   .map(z=>({tx:z.x,ty:z.y,aoe:z.r,kind:z.kind})));
+ const hazard=hazards.sort((a,b)=>Math.hypot(u.x-a.tx,u.y-a.ty)-
+  Math.hypot(u.x-b.tx,u.y-b.ty))[0];
  if(!hazard)return false;
  const d=norm(u.x-hazard.tx,u.y-hazard.ty);
  const away={x:d.x||(!d.y?(u.uid%2?1:-1):0),y:d.y};
