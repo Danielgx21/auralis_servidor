@@ -76,7 +76,7 @@ const THREAT_CAMERA_LEAD=125,LANE_CAMERA_LEAD=140;
 const fogCanvas=document.createElement('canvas'),fogContext=fogCanvas.getContext('2d');
 let fogAt=-1,fogCamX=-99999,fogCamY=-99999;
 const keys=new Set(),joy={ptr:null,x:0,y:0,sx:0,sy:0},pointers={aa:null,skill:null};
-let aimPreview=null,desktopScheme='arrows',clickDestination=null;
+let aimPreview=null,desktopScheme='arrows',clickDestination=null,mouseFollow=null;
 let wardAim=null,cameraPeek=null,cameraPeekUntil=0;
 let scoreboardVisible=false,scoreboardHeld=false,scoreboardLastUpdate=-1;
 let lastWarningAt=-100;
@@ -262,6 +262,22 @@ function drawHero(u,t){
    ctx.beginPath();ctx.moveTo(r*.1,-r*.5);ctx.lineTo(r*1.25,-r*.7);
    ctx.moveTo(r*.1,r*.5);ctx.lineTo(r*1.25,r*.7);ctx.stroke();
    circle(-r*.19,0,6,'#edffe2');
+  }else if(u.id==='kaelis'){
+   for(let i=0;i<4;i++){const a=i*TAU/4+t*.16;circle(Math.cos(a)*r*.89,Math.sin(a)*r*.89,4,'#bbf4ff')}
+   ctx.fillStyle='#3c6e9d';techPolygon(ctx,-r*.05,0,r*.72,6,Math.PI/6);ctx.fill();
+   ctx.beginPath();ctx.moveTo(-r*.62,-r*.6);ctx.lineTo(r*.91,0);ctx.lineTo(-r*.62,r*.6);
+   ctx.strokeStyle='#d6f9ff';ctx.lineWidth=3;ctx.stroke();circle(-r*.16,0,6,'#e5ffff');
+  }else if(u.id==='rokar'){
+   ctx.fillStyle='#8d7d67';ctx.fillRect(-r*.74,-r*.78,r*1.15,r*1.56);
+   ctx.beginPath();ctx.moveTo(r*.13,-r*.9);ctx.lineTo(r*1.10,-r*.55);ctx.lineTo(r*1.10,r*.55);ctx.lineTo(r*.13,r*.9);ctx.closePath();
+   ctx.fillStyle='#e4ca94';ctx.fill();ctx.strokeStyle='#fff2ce';ctx.lineWidth=2;ctx.stroke();
+   ctx.fillStyle='#f1efd8';ctx.fillRect(-r*.47,-r*.3,r*.24,r*.66);circle(-r*.1,0,6,'#fff3d1');
+  }else if(u.id==='tessa'){
+   ctx.strokeStyle='#ffe1a1';ctx.lineWidth=4;
+   ctx.beginPath();ctx.moveTo(-r*.83,-r*.78);ctx.quadraticCurveTo(r*.56,0,-r*.83,r*.78);ctx.stroke();
+   ctx.beginPath();ctx.moveTo(-r*.6,0);ctx.lineTo(r*1.15,0);ctx.stroke();
+   ctx.beginPath();ctx.moveTo(r*.6,-r*.23);ctx.lineTo(r*1.15,0);ctx.lineTo(r*.6,r*.23);ctx.stroke();
+   circle(-r*.19,0,6,'#fff5d7');
   }else{
    for(let i=0;i<6;i++){const a=i*TAU/6;circle(Math.cos(a)*r*.6,Math.sin(a)*r*.6,5,'#ffcee2')}
   circle(-r*.12,0,7,'#fff3e9');
@@ -660,8 +676,8 @@ function hudUpdate(){
  }
 }
 // Placar de partida: as mesmas informações acionadas pelo placar do Wild Rift.
-const scoreRoles={orun:'TOP',vexor:'SELVA',nyra:'MEIO',lyria:'ATIR.',seris:'SUP.',brax:'TOP',zhira:'SELVA'};
-const scoreOrder={orun:0,vexor:1,nyra:2,lyria:3,seris:4,brax:0,zhira:1};
+const scoreRoles={orun:'TOP',vexor:'SELVA',nyra:'MEIO',lyria:'ATIR.',seris:'SUP.',brax:'TOP',zhira:'SELVA',rokar:'TOP',kaelis:'MEIO',tessa:'ATIR.'};
+const scoreOrder={orun:0,vexor:1,nyra:2,lyria:3,seris:4,brax:0,zhira:1,rokar:0,kaelis:2,tessa:3};
 function scoreboardItems(hero){
  const slots=Array.from({length:6},(_,i)=>hero.items[i]||null);
  return '<div class="fenda-scoreboard-items">'+slots.map(id=>{
@@ -715,13 +731,16 @@ const suggestedBuilds={
  orun:['bulwark','titanplate','swiftboots'],
  seris:['deepsea','titanplate','hourglass'],
  brax:['warheart','bulwark','stormblade'],
- zhira:['huntress','stormblade','astralbow']
+ zhira:['huntress','stormblade','astralbow'],
+ kaelis:['glacier','archmage','hourglass'],
+ rokar:['bulwark','lifebloom','titanplate'],
+ tessa:['barrage','astralbow','phantomfang']
 };
 const itemInfo=id=>E.ITEMS.find(x=>x.id===id);
 const shopKinds={
  lens:'attack',astralbow:'attack',stormblade:'attack',stride:'speed',swiftboots:'speed',
  prism:'magic',archmage:'magic',deepsea:'magic',cell:'magic',
- ward:'defense',bulwark:'defense',titanplate:'defense',hourglass:'defense',core:'utility',warheart:'defense',huntress:'attack'
+ ward:'defense',bulwark:'defense',titanplate:'defense',hourglass:'defense',core:'utility',warheart:'defense',huntress:'attack',fang:'attack',sprout:'defense',phantomfang:'attack',glacier:'magic',lifebloom:'defense',barrage:'attack'
 };
 const kindNames={attack:'DANO',magic:'MAGIA',defense:'DEFESA',speed:'MOBILIDADE',utility:'UTILIDADE'};
 let shopTab='recommended',shopFilter='all',shopSelectedId=null,shopQueuedId=null;
@@ -742,7 +761,13 @@ const ITEM_ART={
  hourglass:'<path d="M19 7H45M19 57H45M21 9Q21 23 32 31Q43 23 43 9M21 55Q21 41 32 33Q43 41 43 55"/><path d="M24 16H40L32 27Z" fill="currentColor" opacity=".32"/><path d="M32 38L25 51H39Z" fill="currentColor" opacity=".32"/>',
  deepsea:'<circle cx="32" cy="32" r="24"/><circle cx="32" cy="32" r="13" fill="currentColor" opacity=".22"/><path d="M10 35Q21 26 32 36Q43 45 54 34M9 44Q21 36 33 45Q43 52 55 44"/><circle cx="27" cy="22" r="4" fill="currentColor" opacity=".45"/>',
  warheart:'<path d="M32 57Q8 40 11 23Q13 13 24 13L32 21L40 13Q51 13 53 23Q56 40 32 57Z"/><path d="M32 51V21M17 32H47"/><path d="M25 9L32 4L39 9"/><circle cx="32" cy="34" r="7" fill="currentColor" opacity=".24"/>',
- huntress:'<path d="M13 52L46 9L54 6L50 17L25 56Z"/><path d="M20 21L27 30L42 13M8 36L21 42M12 55L5 59M49 34L57 26"/><path d="M17 10Q29 8 35 18Q26 13 19 24Z" fill="currentColor" opacity=".21"/>'
+ huntress:'<path d="M13 52L46 9L54 6L50 17L25 56Z"/><path d="M20 21L27 30L42 13M8 36L21 42M12 55L5 59M49 34L57 26"/><path d="M17 10Q29 8 35 18Q26 13 19 24Z" fill="currentColor" opacity=".21"/>',
+ fang:'<path d="M14 49L42 8L54 5L46 20L20 54Z"/><path d="M9 45L23 56M36 14L48 28"/><circle cx="17" cy="47" r="4" fill="currentColor" opacity=".5"/>',
+ sprout:'<path d="M32 56V26M32 39Q11 43 10 23Q24 20 32 39ZM33 32Q49 12 56 22Q56 43 33 42Z"/><path d="M18 55Q32 48 46 55M29 17Q32 9 35 17"/><circle cx="32" cy="27" r="5" fill="currentColor" opacity=".3"/>',
+ phantomfang:'<path d="M12 56L41 5L55 7L46 24L29 54Z"/><path d="M16 44L39 17M8 46L24 58M45 8L56 20"/><circle cx="43" cy="26" r="6" fill="currentColor" opacity=".4"/>',
+ glacier:'<path d="M32 4V60M4 32H60M12 12L52 52M52 12L12 52"/><path d="M25 7L32 15L39 7M25 57L32 49L39 57M7 25L15 32L7 39M57 25L49 32L57 39M9 17L20 17L20 9M55 17L44 17L44 9M9 47L20 47L20 55M55 47L44 47L44 55"/><circle cx="32" cy="32" r="9" fill="currentColor" opacity=".4"/>',
+ lifebloom:'<path d="M32 57V38M32 33Q7 18 15 8Q30 7 32 29Q34 7 49 8Q57 18 32 33Z"/><path d="M32 35Q6 24 6 39Q15 55 32 39Q49 55 58 39Q58 24 32 35Z"/><circle cx="32" cy="35" r="7" fill="currentColor" opacity=".4"/>',
+ barrage:'<path d="M9 18L50 7L56 18L23 40L10 55L6 43Z"/><path d="M25 27L52 45M35 21L58 37M16 33L43 57"/><path d="M45 11L54 17L43 28" fill="currentColor" opacity=".35"/>'
 };
 function itemGlyph(it,large=false){
  const kind=shopKinds[it.id]||'utility';
@@ -898,24 +923,24 @@ function toggleShop(){
  if(S.shopOpen)shopRender();
 }
 function chooseHero(){
- S.mode='menu';S.shopOpen=false;setScoreboardVisible(false);stage.classList.remove('fenda-on');cv.style.display='none';
+ S.mode='menu';S.shopOpen=false;mouseFollow=null;setScoreboardVisible(false);stage.classList.remove('fenda-on');cv.style.display='none';
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice(),hero=C.heroes[selected];
  if(['zhira','vexor'].includes(selected)&&!pickedSummoners.includes('smite')){
   pickedSummoners=['smite',pickedSummoners[0]];saveSummoners();
  }
- $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 9.1</div><h2>FENDA DOS SIGILOS</h2>'+ 
- '<p>Três rotas, sete campeões com funções próprias, duas opções de feitiços e dez equipamentos finais com pré-itens.</p>'+ 
+ $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 9.2</div><h2>FENDA DOS SIGILOS</h2>'+ 
+ '<p>Três rotas, dez campeões com funções próprias, dois feitiços selecionáveis e quatorze equipamentos finais.</p>'+ 
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
  '<div class="fenda-hero-detail"><strong>'+hero.name+' · '+hero.role+'</strong><p>'+hero.summary+' <br><b>PASSIVA:</b> '+hero.passive+'</p><span>HABILIDADE INICIAL: '+C.skills[hero.skills[0]].name+' · A segunda e a terceira são aprendidas subindo de nível. Ultimate no nível 5.</span></div>'+
  '<div class="fenda-summoner-title">ESCOLHA 2 FEITIÇOS <small>F / G NO PC</small></div>'+
  '<div class="fenda-summoner-picker">'+Object.entries(E.SUMMONERS).map(([id,sp])=>
- '<button type="button" data-pick-spell="'+id+'" class="'+(pickedSummoners.includes(id)?'picked':'')+'" title="'+sp.desc+'"><b>'+sp.icon+'</b><span>'+sp.name+'</span><small>'+sp.cd+'s</small></button>').join('')+'</div>'+
- '<div class="teamfight-tip">5×5 com bots táticos · 6 pré-itens e 10 receitas · níveis destravam habilidades · Selo da Caça para selva e grandes objetivos.</div>'+ 
+ '<button type="button" data-pick-spell="'+id+'" class="'+(pickedSummoners.includes(id)?'picked':'')+'" title="'+sp.desc+'"><b>'+sp.icon+'</b><span>'+sp.name+'</span><small>'+sp.cd+'s</small><em>'+sp.desc+'</em></button>').join('')+'</div>'+
+ '<div class="teamfight-tip">5×5 com bots táticos · 8 pré-itens e 14 receitas · níveis destravam habilidades · Selo da Caça para selva e grandes objetivos.</div>'+ 
  '<div class="actions" style="margin-top:10px"><button class="primary" id="playFenda">▶ JOGAR FENDA 5×5</button><button class="secondary" id="playClassic">MODO ARENA RÁPIDA</button></div>'+
- '<p style="font-size:10px;margin:9px 0 0">Celular: mantenha o joystick com um dedo e ataque/mire com o outro. Ao subir de nível, toque em + para melhorar habilidades. Loja: compre componentes e combine-os. PC: Shift+1/2/3/4 para evoluir habilidades; TAB placar, P loja, B retorno.</p>';
+ '<p style="font-size:10px;margin:9px 0 0">AA automático ao ficar parado, quando um inimigo entrar no alcance. PC: segure e arraste o clique no mapa para seguir o ponteiro; solte para parar. Celular: joystick + toque para AA manual. Evolua habilidades em +. TAB placar, P loja, B retorno.</p>';
  for(const b of $('modalContent').querySelectorAll('[data-hero]'))b.onclick=()=>{
   C.setHeroChoice(b.dataset.hero);
   if(['zhira','vexor'].includes(b.dataset.hero)&&!pickedSummoners.includes('smite')){
@@ -933,7 +958,7 @@ function chooseHero(){
 function startGame(){
  C.suspendClassic?.();
  shopTab='recommended';shopFilter='all';shopSelectedId=null;shopQueuedId=null;
- E.start(C.getHeroChoice(),pickedSummoners);setScoreboardVisible(false);endedShown=false;clickDestination=null;cameraPeek=null;cameraPeekUntil=0;wardAim=null;keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
+ E.start(C.getHeroChoice(),pickedSummoners);setScoreboardVisible(false);endedShown=false;clickDestination=null;mouseFollow=null;cameraPeek=null;cameraPeekUntil=0;wardAim=null;keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
  shop.classList.remove('open');$('overlay').classList.add('hidden');$('missionShelf').hidden=true;
  resize();drawTerrain();last=performance.now();hudCountdown=0;hudUpdate();
  if(stage.requestFullscreen&&!document.fullscreenElement){
@@ -958,7 +983,7 @@ function pause(){
  if(S.showPause){
   setScoreboardVisible(false);
   S.shopOpen=false;shop.classList.remove('open');
-  joy.x=joy.y=0;joy.ptr=null;keys.clear();pointers.aa=null;pointers.skill=null;wardAim=null;cameraPeek=null;aimPreview=null;
+  joy.x=joy.y=0;joy.ptr=null;keys.clear();pointers.aa=null;pointers.skill=null;wardAim=null;cameraPeek=null;aimPreview=null;mouseFollow=null;clickDestination=null;
  }
  if(!S.showPause){$('overlay').classList.add('hidden');return}
  $('overlay').classList.remove('hidden','picker-open','hero-open','arsenal-open');$('missionShelf').hidden=true;
@@ -1099,6 +1124,10 @@ function worldDown(e){
  if(e.pointerType==='mouse'){
   if(e.button===2)issueRightClick(e.clientX,e.clientY);
   else if(e.button===0)tapWhileWalking(e.clientX,e.clientY);
+  if(e.button===0||e.button===2){
+   mouseFollow={ptr:e.pointerId,button:e.button,sx:e.clientX,sy:e.clientY,moved:false};
+   try{cv.setPointerCapture(e.pointerId)}catch(_){}
+  }
   e.preventDefault();return;
  }
  const rect=cv.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;
@@ -1114,6 +1143,18 @@ function worldDown(e){
  if(e.pointerId!==joy.ptr)tapWhileWalking(e.clientX,e.clientY);
 }
 function worldMove(e){
+ if(mouseFollow&&e.pointerId===mouseFollow.ptr&&e.pointerType==='mouse'){
+  if(!(e.buttons&(mouseFollow.button===2?2:1))){mouseFollow=null;return}
+  const moved=Math.hypot(e.clientX-mouseFollow.sx,e.clientY-mouseFollow.sy)>7;
+  if(moved||mouseFollow.moved){
+   mouseFollow.moved=true;
+   const rect=cv.getBoundingClientRect();
+   clickDestination={x:clamp(S.camera.x+(e.clientX-rect.left)/cameraZoom,15,E.W-15),
+    y:clamp(S.camera.y+(e.clientY-rect.top)/cameraZoom,15,E.H-15)};
+   if(S.hero?.commandTarget)E.clearAttackCommand(S.hero);
+  }
+  e.preventDefault();return;
+ }
  if(joy.ptr!==e.pointerId)return;
  e.preventDefault();
  const rect=cv.getBoundingClientRect();
@@ -1123,6 +1164,11 @@ function worldMove(e){
  $('joyKnob').style.transform='translate(calc(-50% + '+(joy.x*27)+'px),calc(-50% + '+(joy.y*27)+'px))';
 }
 function worldEnd(e){
+ if(mouseFollow&&mouseFollow.ptr===e.pointerId){
+  if(mouseFollow.moved)clickDestination=null;
+  mouseFollow=null;
+  return;
+ }
  if(joy.ptr!==e.pointerId)return;
  e.preventDefault();
  joy.ptr=null;joy.x=joy.y=0;
@@ -1258,6 +1304,7 @@ function loop(now){
   if(pointers.skill&&performance.now()-pointers.skill.started>190)aimPreview=pointers.skill;
   if(!S.showPause){
    E.step(dt,movement());
+   // AA parado é automático pelo motor; o AA manual também funciona em movimento.
    // Wild Rift: AA continua enquanto o botão está pressionado. O motor
    // respeita o cooldown e o joystick nunca é limpo ao atacar.
    if(pointers.aa!==null&&S.hero?.hp>0&&!S.shopOpen)E.autoAttack(S.hero);
@@ -1318,7 +1365,7 @@ window.addEventListener('keyup',e=>{
  if(key==='tab'&&scoreboardHeld){e.preventDefault();setScoreboardVisible(false);}
 });
 window.addEventListener('blur',()=>{
- keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;
+ keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;mouseFollow=null;clickDestination=null;
 });
 $('fendaShopBtn').onclick=toggleShop;$('fendaShopClose').onclick=toggleShop;
 $('fendaScoreBtn').addEventListener('click',()=>setScoreboardVisible(!scoreboardVisible));
