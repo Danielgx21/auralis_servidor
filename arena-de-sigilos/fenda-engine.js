@@ -701,7 +701,7 @@ function grantShield(target,amount,seconds=3){
 }
 function heal(target,amount){
  if(!target||target.hp<=0)return 0;
- const v=Math.max(0,Math.round(Math.min(amount,target.maxHp-target.hp)));
+ const v=Math.max(0,Math.round(Math.min(amount*(target.burnUntil>state.time?.55:1),target.maxHp-target.hp)));
  target.hp+=v;if(v)addEffect(target.x,target.y,'#97f6c0',24,.38);
  return v;
 }
@@ -1235,6 +1235,16 @@ function botUseSkill(u,target){
   if(u.hp/u.maxHp<.55)options.push('nyra_barrier');
   if(r<270&&clusters>=2)options.push('nyra_rift');
   if(r<390)options.push('nyra_bolt');
+ }else if(u.id==='brax'){
+  if(ready('brax_ult')&&nearEnemies>=2)options.push('brax_ult');
+  if(u.hp/u.maxHp<.64)options.push('brax_fortify');
+  if(r<120)options.push('brax_cleave');
+  if(r>80&&r<190)options.push('brax_grapple');
+ }else if(u.id==='zhira'){
+  if(ready('zhira_ult')&&r<215)options.push('zhira_ult');
+  if(r<230&&clusters>=2)options.push('zhira_trap');
+  if(r>70&&r<190)options.push('zhira_pounce');
+  if(r<270)options.push('zhira_strike');
  }
  options=options.filter(id=>{
   if(!ready(id))return false;
@@ -1387,12 +1397,16 @@ function botJungler(u,dt){
  if(u.hp/u.maxHp<.33){u.aiRetreat=true;u.jungleGoal=null;return false}
  if(camp.kind==='boss'&&dist(u,camp)>1150)return false;
  approachCreep(u,camp,dt);
+ if(dist(u,camp)<212&&u.summoners?.includes('smite')&&camp.hp<=smiteDamage(u)&&
+   !u.summonerCooldowns.smite)castSummoner(u,'smite',camp);
  if(dist(u,camp)<125){
   if(u.id==='vexor'&&u.cooldowns.vexor_whirl<=0&&u.mana>=skillDef('vexor_whirl').cost){
    cast(u,'vexor_whirl',null,camp);
   }else if(u.id==='orun'&&u.cooldowns.orun_quake<=0&&u.mana>=skillDef('orun_quake').cost){
    cast(u,'orun_quake',null,camp);
-  }
+  }else if(u.id==='zhira'){
+   if(!cast(u,'zhira_strike',null,camp)&&dist(u,camp)<110)cast(u,'zhira_pounce',null,camp);
+  }else if(u.id==='brax')cast(u,'brax_cleave',null,camp);
  }
  return true;
 }
@@ -1557,7 +1571,7 @@ function cast(u,id,aim=null,autoTarget=null){
  if(!u||u.hp<=0||state.mode!=='playing')return false;
  if(![...hData(u.id).skills,hData(u.id).ultimate].includes(id))return false;
  const def=skillDef(id);
- if(u.casting||u.dash||u.cooldowns[id]>0||u.mana<def.cost||u.stun>0)return false;
+ if(u.casting||u.dash||u.cooldowns[id]>0||(u.mana<def.cost&&u.manaFreeUntil<=state.time)||u.stun>0)return false;
  if(def.ultimate&&u.level<5||skillRank(u,id)===0)return false;
  const target=autoTarget||((def.aim==='self')?u:nearestEnemy(u,def.range||350,false));
  const dx=aim?.x??(target?target.x-u.x:1),dy=aim?.y??(target?target.y-u.y:0);
@@ -1573,7 +1587,7 @@ function cast(u,id,aim=null,autoTarget=null){
  if(maxLv<=0)return false;
  const haste=Math.min(.42,itemStats(u,'haste'));
  u.cooldowns[id]=Math.max(.8,def.cd*(1-haste)*(1-.065*(maxLv-1)));
- u.mana-=def.cost;
+ if(u.manaFreeUntil<=state.time)u.mana-=def.cost;
  if(u.recall>0){u.recall=0;if(u.controlled)announce('RETORNO CANCELADO: HABILIDADE',1.2)}
  if(u.items.includes('stormblade'))u.surgeUntil=state.time+5;
  const c={id,dir,center,level:maxLv,time:Math.max(0,def.cast),total:Math.max(0,def.cast)};
@@ -1581,23 +1595,79 @@ function cast(u,id,aim=null,autoTarget=null){
  addEffect(u.x,u.y,hData(u.id).color,27,.24);
  return true;
 }
+const SUMMONERS={
+ smite:{name:'Selo da Caça',icon:'❖',cd:32,desc:'Grande dano a monstros. Dano reduzido e lentidão contra campeões.'},
+ flash:{name:'Salto Sigilar',icon:'↗',cd:83,desc:'Teleporte curto na direção em que o herói está olhando.'},
+ ignite:{name:'Marca Ígnea',icon:'♨',cd:71,desc:'Queima por 4 segundos e reduz cura recebida.'},
+ heal:{name:'Sopro Vital',icon:'✚',cd:90,desc:'Recupera vida sua e de um aliado próximo.'},
+ shield:{name:'Barreira Etérea',icon:'⬡',cd:78,desc:'Escudo temporário para resistir ao dano.'},
+ freecast:{name:'Transe Arcano',icon:'∞',cd:99,desc:'Durante 5 segundos suas habilidades não gastam mana, mas mantêm as recargas.'}
+};
+const smiteDamage=u=>Math.round(330+Math.max(0,u.level-1)*29);
+function castSummoner(u,id,target=null,aim=null){
+ if(!u||u.kind!=='hero'||u.hp<=0||state.mode!=='playing'||u.stun>0||
+  !u.summoners?.includes(id)||!SUMMONERS[id]||(u.summonerCooldowns[id]||0)>0)return false;
+ let chosen=null;
+ if(id==='smite'){
+  const camps=state.camps.filter(c=>c.hp>0&&(!c.unlock||state.time>=c.unlock)&&dist(u,c)<212);
+  const foe=living(1-u.side,'hero').filter(h=>dist(u,h)<165&&visibleTo(u.side,h))
+   .sort((a,b)=>dist(u,a)-dist(u,b))[0];
+  chosen=target&&target.hp>0&&dist(u,target)<212&&
+   (state.camps.includes(target)||target.kind==='hero'&&target.side!==u.side)?target:
+   camps.sort((a,b)=>a.hp-b.hp)[0]||foe;
+  if(!chosen)return false;
+ }else if(id==='ignite'){
+  chosen=target&&target.kind==='hero'&&target.side!==u.side&&dist(u,target)<215?target:
+   living(1-u.side,'hero').filter(h=>visibleTo(u.side,h)&&dist(u,h)<215)
+    .sort((a,b)=>dist(u,a)-dist(u,b))[0];
+  if(!chosen)return false;
+ }
+ u.summonerCooldowns[id]=SUMMONERS[id].cd;
+ if(u.recall>0)u.recall=0;
+ if(id==='smite'){
+  if(state.camps.includes(chosen)){
+   damageCreep(chosen,Math.min(chosen.hp,smiteDamage(u)),u);
+   heal(u,Math.round(20+u.level*1.6));
+  }else{damage(chosen,Math.round(42+u.level*2.3),u);chosen.slow=Math.max(chosen.slow,1.3)}
+  addEffect(chosen.x,chosen.y,'#9ef1a1',52,.44,'burst');
+ }else if(id==='ignite'){
+  chosen.burnUntil=state.time+4;chosen.burnSource=u;chosen.burnPulse=0;
+  addEffect(chosen.x,chosen.y,'#ff9c69',44,.5,'burst');
+ }else if(id==='flash'){
+  const angle=u.facing||0,dir=aim?norm(aim.x,aim.y):{x:Math.cos(angle),y:Math.sin(angle)};
+  movePhysical(u,dir.x*125,dir.y*125);
+  u.invuln=Math.max(u.invuln,.12);u.cameraSnapAt=state.time;
+  addEffect(u.x,u.y,'#a3edff',55,.37,'wave');
+ }else if(id==='heal'){
+  heal(u,Math.round(u.maxHp*.18+u.level*3));
+  const ally=living(u.side,'hero').filter(h=>h!==u&&dist(u,h)<230)
+   .sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
+  if(ally)heal(ally,Math.round(ally.maxHp*.12+u.level*2));
+ }else if(id==='shield')grantShield(u,Math.round(92+u.level*12),3.5);
+ else if(id==='freecast'){
+  u.manaFreeUntil=state.time+5;
+  addEffect(u.x,u.y,'#c6a5ff',63,.55,'wave');
+ }
+ if(u.controlled)announce(SUMMONERS[id].name.toUpperCase(),1.1);
+ return true;
+}
 function releaseSkill(u,c){
  if(!u||u.hp<=0)return;
  const id=c.id,def=skillDef(id),power=spellPower(u,id),enemy=1-u.side,lv=c.level;
  u.skillFlash=.42;
  const slow=(target,seconds)=>{target.slow=Math.max(target.slow,seconds)};
- if(['lyria_step','vexor_lunge','orun_charge','vexor_ult'].includes(id)){
+ if(['lyria_step','vexor_lunge','orun_charge','vexor_ult','brax_grapple','zhira_pounce'].includes(id)){
   const dashLength=def.range+lv*7,duration=id==='vexor_ult'?.25:.18;
   u.skillFlash=.35;
   u.dash={vx:c.dir.x*dashLength/duration,vy:c.dir.y*dashLength/duration,t:duration,
-   hit:new Set(),radius:def.radius||25,dmg:Math.round((id==='vexor_ult'?85:id==='orun_charge'?31:id==='vexor_lunge'?36:0)*power),
-   stun:id==='orun_charge'?.36:id==='vexor_ult'?.26:0};
+   hit:new Set(),radius:def.radius||25,dmg:Math.round((id==='vexor_ult'?85:id==='orun_charge'?31:id==='vexor_lunge'?36:id==='brax_grapple'?37:id==='zhira_pounce'?34:0)*power),
+   stun:id==='orun_charge'?.36:id==='brax_grapple'?.29:id==='vexor_ult'?.26:0};
   u.invuln=id==='lyria_step'?.19:.10;
   addEffect(u.x,u.y,hData(u.id).color,57,.42);
   return;
  }
- if(['lyria_pierce','nyra_bolt','seris_tether'].includes(id)){
-  const d=id==='lyria_pierce'?42:id==='nyra_bolt'?44:24;
+ if(['lyria_pierce','nyra_bolt','seris_tether','zhira_strike'].includes(id)){
+  const d=id==='lyria_pierce'?42:id==='nyra_bolt'?44:id==='zhira_strike'?39:24;
   state.projectiles.push({x:u.x+c.dir.x*23,y:u.y+c.dir.y*23,source:u,side:u.side,
    vx:c.dir.x*555,vy:c.dir.y*555,range:def.range,travel:0,
    damage:Math.round((d+lv*8)*power),r:def.radius||15,life:2,
@@ -1607,25 +1677,35 @@ function releaseSkill(u,c){
  if(def.aim==='area'){
   const isHealing=id==='seris_bloom';
   const aoeDamage=id==='lyria_ult'?85:id==='nyra_ult'?97:id==='lyria_rain'?43:
-   id==='nyra_rift'?54:id==='vexor_mark'?40:0;
+   id==='nyra_rift'?54:id==='vexor_mark'?40:id==='zhira_trap'?35:0;
   const range=def.radius+(def.ultimate?15:0);
   state.projectiles.push({x:u.x,y:u.y,source:u,side:u.side,tx:c.center.x,ty:c.center.y,
    speed:780,damage:Math.round((aoeDamage+lv*9)*power),r:9,aoe:range,
    kind:isHealing?'healarea':'damagearea',heal:isHealing?55+lv*13:0,
-   color:hData(u.id).color,stun:id==='nyra_ult'?.62:id==='nyra_rift'?.32:0,
-   slow:id==='lyria_rain'||id==='lyria_ult'?1.5:id==='nyra_rift'?1.3:0,
+   color:hData(u.id).color,stun:id==='nyra_ult'?.62:id==='nyra_rift'?.32:id==='zhira_trap'?.25:0,
+   slow:id==='lyria_rain'||id==='lyria_ult'?1.5:id==='nyra_rift'||id==='zhira_trap'?1.4:0,
    mark:id==='vexor_mark',life:2.5});
   addEffect(c.center.x,c.center.y,hData(u.id).color,range,1.05,'telegraph');
   return;
  }
  const r=def.radius||120;
- if(id==='seris_ult'||id==='seris_aegis'||id==='orun_ult'||id==='orun_guard'||id==='nyra_barrier'){
+ if(id==='zhira_ult'){
+  u.huntUntil=state.time+6;grantShield(u,Math.round(28+lv*11),5);
+  addEffect(u.x,u.y,'#91ed84',115,.6,'wave');return;
+ }
+ if(id==='brax_ult'){
+  aoe(u.x,u.y,r,Math.round((66+lv*18)*power),u,.53,1.1);
+  grantShield(u,Math.round(38+lv*16),3);
+  addEffect(u.x,u.y,'#f6ca85',r,.64,'burst');return;
+ }
+ if(id==='seris_ult'||id==='seris_aegis'||id==='orun_ult'||id==='orun_guard'||id==='nyra_barrier'||id==='brax_fortify'){
   for(const friend of living(u.side,'hero')){
    if(dist(friend,u)<r+friend.r||friend===u){
     if(id==='seris_ult')heal(friend,75+lv*20);
     if(id==='orun_ult')heal(friend,25+lv*8);
     if(id==='orun_guard')heal(friend,13+lv*7);
-    grantShield(friend,id==='orun_ult'?95:id==='seris_ult'?90:id==='seris_aegis'?40:60,
+    if(id==='brax_fortify'&&friend===u)heal(friend,22+lv*7);
+    grantShield(friend,id==='orun_ult'?95:id==='seris_ult'?90:id==='seris_aegis'?40:id==='brax_fortify'?68+lv*11:60,
       id==='orun_ult'||id==='seris_ult'?4.2:2.9);
    }
   }
@@ -1633,8 +1713,9 @@ function releaseSkill(u,c){
   addEffect(u.x,u.y,hData(u.id).color,r,.69);
   return;
  }
- if(id==='vexor_whirl'||id==='orun_quake'){
-  aoe(u.x,u.y,r,Math.round(((id==='orun_quake'?43:48)+lv*9)*power),u,id==='orun_quake'?.33:0);
+ if(id==='vexor_whirl'||id==='orun_quake'||id==='brax_cleave'){
+  const hits=aoe(u.x,u.y,r,Math.round(((id==='orun_quake'?43:id==='brax_cleave'?38:48)+lv*9)*power),u,id==='orun_quake'?.33:0);
+  if(id==='brax_cleave'&&hits)heal(u,Math.min(37,6+lv*4+hits*3));
   addEffect(u.x,u.y,hData(u.id).color,r,.54);
  }
 }
@@ -1712,7 +1793,7 @@ function tickProjectiles(dt){
      damage(first.target,p.damage,p.source);
      first.target.stun=Math.max(first.target.stun,p.stun||0);
      first.target.slow=Math.max(first.target.slow,p.slow||0);
-    }else if(first.kind==='creep')damageCreep(first.target,p.damage,p.source);
+    }else if(first.kind==='creep')damageCreep(first.target,Math.round(p.damage*(p.source?.id==='zhira'?1.40:1)),p.source);
     addEffect(p.x,p.y,p.color,p.r+14,.23,'hit');p.life=0;
    }else if(p.travel>=p.range-.01)p.life=0;
   }else{
@@ -1739,6 +1820,13 @@ function tickUnit(u,dt){
   return;
  }
  u.stun=Math.max(0,u.stun-dt);u.slow=Math.max(0,u.slow-dt);
+ if(u.kind==='hero'&&u.burnUntil>state.time&&u.burnSource){
+  u.burnPulse=(u.burnPulse||0)+dt;
+  if(u.burnPulse>=.5){
+   u.burnPulse-=.5;damage(u,Math.round(8+u.burnSource.level*1.7),u.burnSource);
+   if(u.hp<=0)return;
+  }
+ }
  u.marked=Math.max(0,(u.marked||0)-dt);
  u.invuln=Math.max(0,u.invuln-dt);
  if(u.shield>0&&state.time>=(u.shieldUntil||0))u.shield=0;
@@ -1769,6 +1857,7 @@ function tickUnit(u,dt){
  if(u.kind==='hero'){
   const latest=maxMana(u);u.maxMana=latest;
   for(const id in u.cooldowns)u.cooldowns[id]=Math.max(0,u.cooldowns[id]-dt);
+  for(const id in u.summonerCooldowns)u.summonerCooldowns[id]=Math.max(0,u.summonerCooldowns[id]-dt);
  }
  if(u.kind==='hero'){
   u.visionCd=Math.max(0,(u.visionCd||0)-dt);
@@ -1896,7 +1985,7 @@ function recall(){
  addEffect(p.x,p.y,'#c5ecfa',70,3.2,'recall');
  return true;
 }
-window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,hData,skillDef,
+window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,SUMMONERS,smiteDamage,castSummoner,hData,skillDef,
  start,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,isAttackCommandValid,buyItem,sellItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,TOWERS_PER_LANE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
 })();
