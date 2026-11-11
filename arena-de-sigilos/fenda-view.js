@@ -1025,7 +1025,7 @@ function chooseHero(){
  if(['zhira','vexor'].includes(selected)&&!pickedSummoners.includes('smite')){
   pickedSummoners=['smite',pickedSummoners[0]];saveSummoners();
  }
- $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 9.2</div><h2>FENDA DOS SIGILOS</h2>'+ 
+ $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 9.3</div><h2>FENDA DOS SIGILOS</h2>'+ 
  '<p>Três rotas, dez campeões com funções próprias, dois feitiços selecionáveis e quatorze equipamentos finais.</p>'+ 
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
@@ -1450,7 +1450,7 @@ for(const btn of desktopBar.querySelectorAll('[data-pc-spell]')){
   e.preventDefault();e.stopPropagation();useSummoner(Number(btn.dataset.pcSpell));
  });
 }
-$('pcWard').addEventListener('click',deployWard);
+$('pcWard').addEventListener('click',()=>deployWard());
 $('pcShop').addEventListener('click',toggleShop);
 $('pcRecall').addEventListener('click',beginRecall);
 $('pcRosterToggle').addEventListener('click',()=>{
