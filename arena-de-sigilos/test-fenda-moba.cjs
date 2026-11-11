@@ -20,7 +20,7 @@ assert.ok(E&&AI,'Motor ou coordenador tático não inicializado');
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const state=E.start('lyria');
 assert.equal(state.units.filter(u=>u.kind==='hero').length,10);
-assert.equal(state.structures.filter(u=>u.kind==='tower').length,18);
+assert.equal(state.structures.filter(u=>u.kind==='tower').length,12);
 assert.equal(E.LANE_HALF_WIDTH*2,290);
 assert.equal(E.CORE.length,2,'Cada lado tem um Núcleo independente da fonte');
 assert.equal(E.BASE_GATE.length,2,'Saídas próprias das duas equipes');
@@ -193,9 +193,9 @@ assert.ok(allTowers.filter(t=>t.tier===1).every(t=>
 for(const side of [0,1])for(const lane of [0,1,2]){
  const ts=allTowers.filter(t=>t.side===side&&t.lane===lane)
   .sort((a,b)=>a.tier-b.tier);
- assert.ok(distance(ts[0],E.CORE[side])>distance(ts[1],E.CORE[side])&&
-  distance(ts[1],E.CORE[side])>distance(ts[2],E.CORE[side]),
-  'Torres T1, T2, T3 fora da ordem correta');
+ assert.equal(ts.length,2,'Cada rota tem exatamente T1 e T2 por lado');
+ assert.ok(distance(ts[0],E.CORE[side])>distance(ts[1],E.CORE[side]),
+  'Torres T1 e T2 fora da ordem defensiva correta');
 }
 for(let i=0;i<allTowers.length;i++)for(let j=i+1;j<allTowers.length;j++){
  assert.ok(distance(allTowers[i],allTowers[j])>250,
@@ -206,9 +206,10 @@ assert.ok(read('fenda-engine.js').includes('const TOP_PATH=[')&&
  read('fenda-engine.js').includes('TOP_PATH.slice().reverse().map(rotateHalf)'),
  'Top e bot precisam ser espelhadas, e mid diagonal');
 E.start('lyria');
-assert.equal(state.structures.filter(s=>s.kind==='tower').length,18);
+assert.equal(state.structures.filter(s=>s.kind==='tower').length,12);
 assert.equal(state.structures.filter(s=>s.kind==='core').length,2);
 
+assert.equal(E.TOWERS_PER_LANE,2,'Uma torre removida de cada lado de cada rota');
 assert.equal(E.TURRET_RANGE,330,'Torre deve proteger ambos os lados da lane');
 assert.equal(E.CORE_RANGE,345,'O núcleo precisa defender sua plataforma');
 const rangedHeroes=state.units.filter(u=>u.kind==='hero'&&u.isRanged);
@@ -232,18 +233,22 @@ for(const tower of state.structures.filter(t=>t.kind==='tower')){
    'Torre deixa jogador passar pelo lado da lane: '+tower.id);
  }
 }
-assert.ok(terrainSource.includes('CAMERA_MIN_WORLD_HEIGHT=840')&&
+assert.ok(terrainSource.includes('CAMERA_MIN_WORLD_HEIGHT=620')&&
+ terrainSource.includes('LANE_CAMERA_LEAD=140')&&
+ terrainSource.includes('THREAT_CAMERA_LEAD=125')&&
  terrainSource.includes('vh/CAMERA_MIN_WORLD_HEIGHT')&&
  terrainSource.includes('d<radius+48')&&
  terrainSource.includes("danger?'#ff849b'"),
  'A câmera e a indicação de perigo não previnem ataques invisíveis');
 const viewportCases=[[924,416],[800,360],[1800,830],[420,300]];
 for(const [width,height] of viewportCases){
- const comfortable=width>=1250?1.14:width>=750?1.07:.98;
- const zoom=Math.min(comfortable,height/840);
- const bottomClearance=.45*(height/zoom);
+ const comfortable=width>=1250?1.50:width>=750?1.35:1.17;
+ const zoom=Math.min(comfortable,height/620);
+ const bottomClearance=.45*(height/zoom)+125;
  assert.ok(bottomClearance>E.CORE_RANGE+21+8,
   'A estrutura pode atingir um campeão invisível no viewport '+width+' × '+height);
+ assert.ok(height/zoom<=620+1,'A câmera mostrou demasiada área vertical');
+
 }
 assert.ok(terrainSource.includes('mc.lineWidth=E.LANE_HALF_WIDTH*2'),
  'A largura representada no minimapa diverge da largura real da lane');
@@ -277,8 +282,8 @@ E.start('lyria');
 
 for(const side of [0,1])for(const lane of [0,1,2]){
  const ts=state.structures.filter(t=>t.kind==='tower'&&t.side===side&&t.lane===lane);
- assert.equal(ts.length,3,'Exatamente três torres por equipe em cada lane');
- assert.deepEqual(ts.map(t=>t.tier).sort(),[1,2,3]);
+ assert.equal(ts.length,2,'Exatamente duas torres por equipe em cada lane');
+ assert.deepEqual(ts.map(t=>t.tier).sort(),[1,2]);
 }
 assert.ok(state.walls.length>=120,'A jungle e as bases precisam de paredes físicas suficientes');
 assert.ok(state.walls.filter(w=>w.wallClass==='base').length>=48,
@@ -322,14 +327,13 @@ for(const lane of [0,1,2]){
  const redT1=state.structures.find(t=>t.kind==='tower'&&t.side===1&&t.lane===lane&&t.tier===1);
  const firstGap=distance(blueT1,redT1);
  const blueT2=state.structures.find(t=>t.kind==='tower'&&t.side===0&&t.lane===lane&&t.tier===2);
- const blueT3=state.structures.find(t=>t.kind==='tower'&&t.side===0&&t.lane===lane&&t.tier===3);
- const secondGap=distance(blueT1,blueT2),thirdGap=distance(blueT2,blueT3);
- assert.ok(firstGap>=570&&firstGap<=770,
-  'Intervalo entre T1 inimigas desproporcional na rota '+lane);
- assert.ok(secondGap>=360&&thirdGap>=340,
-  'Torres aliadas agrupadas na rota '+lane);
- assert.ok(firstGap<Math.max(secondGap,thirdGap)*1.8,
-  'Separação entre T1 maior que a progressão defensiva da rota '+lane);
+ const secondGap=distance(blueT1,blueT2);
+ assert.ok(firstGap>=570&&firstGap<=800,
+  'Intervalo entre as T1 inimigas desproporcional na rota '+lane);
+ assert.ok(secondGap>=600,
+  'Duas torres aliadas ainda aparecem amontoadas na mesma rota '+lane);
+ assert.ok(secondGap>=firstGap*.9,
+  'Separação defensiva insuficiente em comparação às T1 '+lane);
 }
 const topMid=E.pathPos(0,.55),centralMid=E.pathPos(1,.50),bottomMid=E.pathPos(2,.55);
 assert.ok(distance(topMid,centralMid)>350&&distance(bottomMid,centralMid)>350,
