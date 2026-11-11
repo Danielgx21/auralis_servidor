@@ -156,6 +156,7 @@ const THREAT_CAMERA_LEAD=125,LANE_CAMERA_LEAD=140;
 const fogCanvas=document.createElement('canvas'),fogContext=fogCanvas.getContext('2d');
 let fogAt=-1,fogCamX=-99999,fogCamY=-99999;
 const keys=new Set(),joy={ptr:null,x:0,y:0,sx:0,sy:0},pointers={aa:null,skill:null};
+let aaAim=null; // Alvo marcado ao arrastar o botão ATACAR.
 let aimPreview=null,desktopScheme='arrows',clickDestination=null,mouseFollow=null;
 let wardAim=null,cameraPeek=null,cameraPeekUntil=0;
 const desktopPointer={over:false,x:0,y:0,lastWorld:null};
@@ -639,6 +640,23 @@ function drawAim(){
  if(S.hero&&S.hero.focusTarget&&S.hero.focusUntil>S.time&&S.hero.focusTarget.hp>0){
   const structure=S.hero.focusTarget,radius=structure.r||(structure.kind==='boss'?38:28);
   ctx.save();circle(structure.x,structure.y,radius+15,null,'#f3e2a4a8',2.1);ctx.restore();
+ }
+ const locked=S.hero?.mobileAttackTarget;
+ if(locked&&locked.hp>0&&E.isAttackCommandValid(S.hero,locked))
+  circle(locked.x,locked.y,(locked.r||25)+15,null,'#ffe3a3ce',2.5);
+ if(aaAim?.dragged&&S.hero&&S.hero.hp>0){
+  const h=S.hero,r=E.attackRange(h),target=aaAim.target;
+  ctx.save();ctx.strokeStyle='#f5da9bbd';ctx.lineWidth=2.1;
+  ctx.setLineDash([7,7]);ctx.beginPath();ctx.arc(h.x,h.y,r,0,E.TAU);ctx.stroke();
+  ctx.setLineDash([]);
+  const dir=E.norm(aaAim.dx,aaAim.dy);
+  const tx=target?target.x:h.x+dir.x*r,ty=target?target.y:h.y+dir.y*r;
+  ctx.beginPath();ctx.moveTo(h.x,h.y);ctx.lineTo(tx,ty);ctx.stroke();
+  if(target){
+   circle(target.x,target.y,(target.r||23)+18,null,'#fff0aa',3);
+   circle(target.x,target.y,(target.r||23)+9,null,'#fff0aa99',1.5);
+  }else circle(tx,ty,12,null,'#f7ddb68c',2);
+  ctx.restore();
  }
  if((pointers.aa!==null||S.hero&&S.time-(S.hero.attackStartedAt||-100)<.65)&&S.hero&&S.hero.hp>0){
   const r=E.attackRange(S.hero),target=E.findAA(S.hero);
@@ -1346,7 +1364,7 @@ function startGame(){
  shopTab='recommended';shopFilter='all';shopSelectedId=null;shopQueuedId=null;
  E.start(C.getHeroChoice(),pickedSummoners);setScoreboardVisible(false);endedShown=false;clickDestination=null;mouseFollow=null;rosterLastUpdate=-1;cameraPeek=null;cameraPeekUntil=0;wardAim=null;keys.clear();
  desktopPointer.over=false;desktopPointer.lastWorld=null;spaceCenterHeld=false;cameraDrag=null;syncCameraControl();
- joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
+ joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;aaAim=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
  shop.classList.remove('open');$('overlay').classList.add('hidden');$('missionShelf').hidden=true;
  resize();if(desktopCamera())cameraCenterAt(S.hero.x,S.hero.y);
  drawTerrain();last=performance.now();hudCountdown=0;hudUpdate();
@@ -1462,20 +1480,64 @@ function selectTowerAt(clientX,clientY){
  else E.announce(result.attacked?'OBELISCO SELECIONADO · AA INICIADO':'OBELISCO SELECIONADO · AA EM RECARGA',.9);
  return true;
 }
+// Como no Wild Rift, arrastar o AA cria uma mira direcional.
+function attackStickTarget(hero,dx,dy){
+ const dir=E.norm(dx,dy),maxRange=Math.max(360,E.attackRange(hero)+155);
+ if(!dir.x&&!dir.y)return null;
+ const candidates=[
+  ...S.units.filter(u=>u.hp>0&&u.side!==hero.side&&
+   (u.kind==='hero'||u.kind==='minion')&&E.isAttackCommandValid(hero,u)),
+  ...S.structures.filter(t=>t.hp>0&&t.side!==hero.side&&E.isAttackCommandValid(hero,t)),
+  ...S.camps.filter(t=>t.hp>0&&E.isAttackCommandValid(hero,t))
+ ];
+ let selected=null,score=Infinity;
+ for(const t of candidates){
+  const distance=E.dist(hero,t),reach=maxRange+(t.r||24);
+  if(distance>reach||distance<.1)continue;
+  const heading=E.norm(t.x-hero.x,t.y-hero.y);
+  const dot=heading.x*dir.x+heading.y*dir.y;
+  if(dot<.40)continue;
+  const weight=(1-dot)*300+distance*.16+
+   (t.kind==='hero'?-15:t.kind==='minion'?3:0);
+  if(weight<score){score=weight;selected=t;}
+ }
+ return selected;
+}
 function aaStart(e){
  if(S.mode!=='playing'||S.shopOpen||S.showPause||!S.hero||S.hero.hp<=0)return;
  e.preventDefault();e.stopPropagation();
- // Cada dedo conserva seu pointerId: o do joystick continua movendo,
- // enquanto o da mão direita ataca durante a pressão prolongada.
  if(pointers.aa!==null&&pointers.aa!==e.pointerId)return;
  pointers.aa=e.pointerId;
- E.autoAttack(S.hero);
+ aaAim={ptr:e.pointerId,sx:e.clientX,sy:e.clientY,dx:0,dy:0,
+  dragged:false,target:null,started:performance.now()};
+ E.clearAttackCommand(S.hero);
+ $('fireBtn').classList.add('target-holding');
  try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_){}
+}
+function aaMove(e){
+ if(pointers.aa!==e.pointerId||!aaAim)return;
+ e.preventDefault();e.stopPropagation();
+ aaAim.dx=e.clientX-aaAim.sx;aaAim.dy=e.clientY-aaAim.sy;
+ if(Math.hypot(aaAim.dx,aaAim.dy)>19)aaAim.dragged=true;
+ if(aaAim.dragged){
+  aaAim.target=attackStickTarget(S.hero,aaAim.dx,aaAim.dy);
+  $('fireBtn').classList.toggle('target-selected',!!aaAim.target);
+ }
 }
 function aaEnd(e){
  if(pointers.aa!==e.pointerId)return;
  e.preventDefault();e.stopPropagation();
- pointers.aa=null;
+ const aim=aaAim;
+ pointers.aa=null;aaAim=null;
+ $('fireBtn').classList.remove('target-holding','target-selected');
+ if(e.type==='pointercancel'||!S.hero||S.hero.hp<=0)return;
+ if(aim?.dragged){
+  if(aim.target){
+   const result=E.lockAttackTarget(S.hero,aim.target);
+   if(result.ok)E.autoAttack(S.hero);
+   else warn(result.reason);
+  }
+ }else E.autoAttack(S.hero);
 }
 
 function pickAttackTarget(clientX,clientY){
@@ -1755,7 +1817,8 @@ function loop(now){
    // AA parado é automático pelo motor; o AA manual também funciona em movimento.
    // Wild Rift: AA continua enquanto o botão está pressionado. O motor
    // respeita o cooldown e o joystick nunca é limpo ao atacar.
-   if(pointers.aa!==null&&S.hero?.hp>0&&!S.shopOpen)E.autoAttack(S.hero);
+   if(pointers.aa!==null&&S.hero?.hp>0&&!S.shopOpen&&!aaAim?.dragged&&
+      performance.now()-(aaAim?.started||0)>115)E.autoAttack(S.hero);
    if(S.hero?.commandTarget){
     const t=S.hero.commandTarget;
     if(!E.isAttackCommandValid(S.hero,t))E.clearAttackCommand(S.hero);
@@ -1823,6 +1886,7 @@ for(const [i,id] of ['dashBtn','pulseBtn','shieldBtn','ultBtn'].entries()){
  for(const type of ['pointerup','pointercancel','lostpointercapture'])btn.addEventListener(type,skillEnd);
 }
 $('fireBtn').addEventListener('pointerdown',aaStart);
+$('fireBtn').addEventListener('pointermove',aaMove);
 for(const type of ['pointerup','pointercancel','lostpointercapture'])$('fireBtn').addEventListener(type,aaEnd);
 cv.addEventListener('pointerdown',worldDown);
 cv.addEventListener('contextmenu',e=>e.preventDefault());
@@ -1839,7 +1903,9 @@ window.addEventListener('keyup',e=>{
  if(key==='tab'&&scoreboardHeld){e.preventDefault();setScoreboardVisible(false);}
 });
 window.addEventListener('blur',()=>{
- keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;mouseFollow=null;clickDestination=null;
+ keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;aaAim=null;
+ $('fireBtn').classList.remove('target-holding','target-selected');
+ pointers.skill=null;mouseFollow=null;clickDestination=null;
  desktopPointer.over=false;cameraDrag=null;spaceCenterHeld=false;
 });
 $('fendaShopBtn').onclick=toggleShop;$('fendaShopClose').onclick=toggleShop;
