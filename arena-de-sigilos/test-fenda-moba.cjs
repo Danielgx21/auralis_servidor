@@ -20,9 +20,11 @@ assert.ok(E&&AI,'Motor ou coordenador tático não inicializado');
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const state=E.start('lyria');
 assert.equal(Object.keys(heroes).length,12,'Elenco precisa ter 12 campeões');
-assert.ok(state.units.filter(u=>u.kind==='hero').every(u=>
- Object.values(u.skillLevels).filter(rank=>rank>0).length===1),
- 'Cada campeão deve começar com uma única habilidade básica');
+assert.ok(Object.values(state.hero.skillLevels).every(rank=>rank===0)&&state.hero.skillPoints===1,
+ 'O jogador deve começar sem habilidades aprendidas, mas com 1 ponto livre');
+assert.ok(state.units.filter(u=>u.kind==='hero'&&!u.controlled).every(u=>
+ Object.values(u.skillLevels).filter(rank=>rank>0).length===1&&u.skillPoints===0),
+ 'Os bots devem escolher uma habilidade no nível 1, gastando o ponto disponível');
 assert.ok(E.SUMMONERS.smite&&E.SUMMONERS.freecast,
  'Feitiços de invocador Selo da Caça e Transe Arcano não cadastrados');
 assert.equal(E.ITEMS.filter(item=>item.tier===2).length,14,
@@ -769,7 +771,10 @@ E.start('lyria');
  hero.x=1500;hero.y=1200;
  assert.equal(E.buyItem('lens').ok,false,'Compra remota fora do santuário');
  hero.x=E.HOME[0].x;hero.y=E.HOME[0].y;
- assert.equal(E.skillRank(hero,'lyria_pierce'),1,'Habilidade inicial precisa estar ativa');
+ assert.equal(E.skillRank(hero,'lyria_pierce'),0,'Nenhuma habilidade é atribuída automaticamente');
+ assert.equal(hero.skillPoints,1,'O jogador começa com 1 ponto livre');
+ assert.ok(E.upgradeSkill(hero,'lyria_pierce').ok,'Jogador deve poder escolher Q no nível 1');
+ assert.equal(E.skillRank(hero,'lyria_pierce'),1,'Q aprendida deve ficar ativa');
  assert.equal(E.skillRank(hero,'lyria_ult'),0,'Ultimate não começa desbloqueada');
  hero.level=2;hero.skillPoints=1;
  assert.equal(E.skillRankCap(hero,'lyria_pierce'),2);
@@ -901,8 +906,10 @@ E.start('lyria');
   assert.equal(game.units.filter(u=>u.kind==='hero'&&u.side===0).length,5);
   assert.equal(game.units.filter(u=>u.kind==='hero'&&u.side===1).length,5);
   assert.ok(h.skills.every(s=>skills[s])&&skills[h.ultimate], 'Kit incompleto: '+id);
+  assert.ok(h.skills.every(s=>E.skillRank(self,s)===0));
+  assert.equal(self.skillPoints,1);
+  assert.ok(E.upgradeSkill(self,h.skills[0]).ok);
   assert.equal(E.skillRank(self,h.skills[0]),1);
-  assert.ok(h.skills.slice(1).every(s=>E.skillRank(self,s)===0));
   self.level=5;self.skillPoints=3;
   for(const s of [...h.skills.slice(1),h.ultimate])
    assert.ok(E.upgradeSkill(self,s).ok,'Não aprende: '+s);
@@ -1076,9 +1083,10 @@ console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livr
   const m=E.start(id),h=m.hero,kit=heroes[id];
   assert.equal(m.units.filter(u=>u.kind==='hero'&&u.side===0).length,5);
   assert.equal(m.units.filter(u=>u.kind==='hero'&&u.side===1).length,5);
-  assert.equal(E.skillRank(h,kit.skills[0]),1,'Campeão não inicia com uma única habilidade: '+id);
-  assert.ok(kit.skills.slice(1).every(s=>E.skillRank(h,s)===0)&&E.skillRank(h,kit.ultimate)===0,
-   'Habilidades precisam ser aprendidas por nível: '+id);
+  assert.ok(kit.skills.every(s=>E.skillRank(h,s)===0)&&E.skillRank(h,kit.ultimate)===0,
+   'Nenhuma habilidade deve estar aprendida ao nascer: '+id);
+  assert.equal(h.skillPoints,1,'Jogador precisa começar com 1 ponto disponível: '+id);
+  assert.ok(E.upgradeSkill(h,kit.skills[0]).ok,'Q deve poder ser escolhida no nível 1: '+id);
   h.level=5;h.skillPoints=3;
   for(const skill of [...kit.skills.slice(1),kit.ultimate]){
    assert.ok(E.upgradeSkill(h,skill).ok,'Poder não foi aprendido: '+skill);
