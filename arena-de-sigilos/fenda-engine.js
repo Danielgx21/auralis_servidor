@@ -800,6 +800,21 @@ function clearAttackCommand(hero){
  hero.commandTarget=null;
  hero.focusTarget=null;hero.focusUntil=0;
 }
+// AA sem comando explícito: primeiro campeões visíveis, depois último golpe,
+// depois tropas comuns. Estruturas nunca são atacadas sem selecionar a torre.
+function playerAutoTarget(u,range){
+ const enemies=living(1-u.side).filter(e=>visibleTo(u.side,e)&&
+   dist(u,e)<=range+e.r+2);
+ const champions=enemies.filter(e=>e.kind==='hero').sort((a,b)=>
+   dist(u,a)-dist(u,b));
+ if(champions.length)return champions[0];
+ const minions=enemies.filter(e=>e.kind==='minion');
+ const killable=minions.filter(e=>e.hp<=attackDamage(u)+itemStats(u,'ad')*.25+5)
+   .sort((a,b)=>a.hp-b.hp||dist(u,a)-dist(u,b));
+ if(killable.length)return killable[0];
+ minions.sort((a,b)=>dist(u,a)-dist(u,b));
+ return minions[0]||null;
+}
 function findAA(u){
  if(!u||u.hp<=0)return null;
  const range=attackRange(u);
@@ -820,9 +835,12 @@ function findAA(u){
      (u.controlled||u.teamFightUntil>state.time&&chosen.kind==='hero')&&
      (chosen.kind==='tower'||chosen.kind==='core'||visibleTo(u.side,chosen))&&
      (chosen.kind!=='tower'&&chosen.kind!=='core'||structureExposed(chosen)))return chosen;
+ if(u.controlled){
+  const target=playerAutoTarget(u,range);
+  return target||enemyCreep(u,range);
+ }
  const target=u.kind==='minion'?laneTarget(u,range):nearestEnemy(u,range,true);
  if(target)return target;
- if(u.controlled)return enemyCreep(u,range);
  return null;
 }
 function focusTower(u,requested=null){
@@ -840,10 +858,12 @@ function focusTower(u,requested=null){
  const attack=autoAttack(u);
  return {ok:true,attacked:attack,tower:t};
 }
-function missile(source,target,damageValue,kind='aa',speed=410){
+function missile(source,target,damageValue,kind='aa',speed=410,empowered=false){
  if(!source||!target)return;
  state.projectiles.push({x:source.x,y:source.y,source,target,side:source.side,
-  damage:damageValue,speed,kind,r:kind==='skill'?9:5,life:7,color:source.side===0?'#8af4e2':'#ff91b0'});
+  damage:damageValue,speed,kind,empowered,r:kind==='skill'?9:5,life:7,
+  color:source.kind==='hero'?hData(source.id).color:
+   source.side===0?'#8af4e2':'#ff91b0'});
 }
 function autoAttack(u){
  if(u.hp<=0||u.attackCd>0||u.casting||u.stun>0)return false;
@@ -851,12 +871,19 @@ function autoAttack(u){
  if(u.recall>0){u.recall=0;if(u.controlled)announce('RETORNO CANCELADO: ATAQUE',1.2)}
  const attackFactor=u.kind==='hero'?HERO_AA_SPEED_FACTOR[u.id]||1:1;
  u.attackCd=u.kind==='hero'?
-  Math.max(.55,hData(u.id).attackTime*attackFactor*
+  Math.max(.52,hData(u.id).attackTime*attackFactor*
    (1-Math.min(.20,Math.max(0,u.level-1)*.014))):
   u.id==='siege'?2.15:u.ranged?1.5:1.25;
- u.attackAnim=u.kind==='hero'?.39:.29;
+ // Cada classe possui um ritmo visual próprio; a recuperação permite se
+ // reposicionar entre tiros sem adicionar atraso artificial ao movimento.
+ const windupRatio=u.kind!=='hero'?.13:
+  ['lyria','tessa'].includes(u.id)?.205:
+  ['nyra','kaelis','seris'].includes(u.id)?.235:
+  ['vexor','zhira'].includes(u.id)?.15:.27;
+ u.attackWindup=Math.min(.31,Math.max(.095,u.attackCd*windupRatio));
+ u.attackAnim=u.attackWindup+Math.min(.28,u.attackCd*.18);
  u.attackTotal=u.attackAnim;
- u.attackWindup=u.kind==='hero'?(u.isRanged?.15:.13):.11;
+ u.attackStartedAt=state.time;
  let damageVal=attackDamage(u)+(u.homeBuff>state.time?4:0);
  // Passivos dos itens completos: bônus situacionais, não somente estatísticas.
  if(u.kind==='hero'){
@@ -881,6 +908,10 @@ function autoAttack(u){
   }
  }
  if(u.kind==='hero'){
+  if(u.id==='vexor'&&target.kind==='hero'&&target.marked>0)
+   damageVal+=Math.round(9+u.level*.8);
+  if(u.id==='lyria'&&target.kind==='hero'&&u.passiveAttacks%3===0)
+   damageVal+=Math.round(3+u.level*.6);
   if(u.huntUntil>state.time)damageVal+=Math.round(6+u.level*.8);
   if(u.id==='zhira'&&['camp','buff','boss'].includes(target.kind))damageVal*=1.23;
   if(u.items.includes('huntress')&&['camp','buff','boss'].includes(target.kind))damageVal*=1.17;
@@ -901,13 +932,16 @@ function autoAttack(u){
   damageVal=Math.round(damageVal*(u.kind==='hero'?1.60:u.id==='siege'?1.45:1.0));
  if(u.controlled&&(target.kind==='tower'||target.kind==='core')&&!u.commandTarget)u.focusUntil=state.time+5;
  u.facing=Math.atan2(target.y-u.y,target.x-u.x);
- u.attackPending={target,damage:damageVal,time:u.attackWindup};
+ u.attackPending={target,damage:damageVal,time:u.attackWindup,
+  empowered:u.kind==='hero'&&u.passiveAttacks%3===0};
  return true;
 }
 function finishAttack(u,shot){
  if(!shot||!shot.target||shot.target.hp<=0||u.hp<=0||u.stun>0)return false;
  const t=shot.target;
  u.attackHit=.20;
+ u.lastAttackRelease=state.time;
+ if(u.kind==='hero')addEffect(u.x,u.y,hData(u.id).color,u.r+11,.19,'attackLaunch');
  if(attackRange(u)<=75){
   damage(t,shot.damage,u);
   if(u.kind==='hero'&&u.id==='orun'&&u.passiveAttacks%3===0&&
@@ -917,7 +951,9 @@ function finishAttack(u,shot){
   if(u.kind==='hero'&&u.id==='zhira'&&['camp','buff','boss'].includes(t.kind))heal(u,5);
   if(u.kind==='hero'&&u.id==='rokar'&&u.passiveAttacks%3===0&&t.kind==='hero')grantShield(u,Math.round(19+u.level*2),2.2);
   addEffect(t.x,t.y,u.side===0?'#84ead9':'#f7a3b0',27,.28,'hit');
- }else missile(u,t,shot.damage,'aa',u.kind==='hero'?530:380);
+ }else missile(u,t,shot.damage,'aa',
+  u.kind==='hero'?(u.id==='tessa'?710:u.id==='lyria'?625:550):380,
+  shot.empowered);
  return true;
 }
 function chooseEnemyForStructure(t){
@@ -1842,9 +1878,12 @@ function tickProjectiles(dt){
     if(p.kind==='aa'&&p.source?.kind==='hero'&&p.source.id==='seris'&&
      p.target.kind==='hero')p.target.slow=Math.max(p.target.slow,.55);
     if(p.kind==='aa'&&p.source?.kind==='hero'&&p.target.kind==='hero'&&
-       p.source.passiveAttacks%3===0&&
+       p.empowered&&
        (p.source.id==='kaelis'||p.source.items.includes('glacier')))
      p.target.slow=Math.max(p.target.slow,1.15);
+    if(p.kind==='aa'&&p.source?.kind==='hero')
+     addEffect(p.target.x,p.target.y,hData(p.source.id).color,
+      p.empowered?34:21,.25,p.empowered?'burst':'hit');
    }else{p.x+=dx/d*step;p.y+=dy/d*step}
   }else if(p.kind==='skillline'){
    const ax=p.x,ay=p.y,bx=p.x+p.vx*dt,by=p.y+p.vy*dt;
