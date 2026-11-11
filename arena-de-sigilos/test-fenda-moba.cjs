@@ -58,10 +58,10 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=9.7')&&
- html.includes('fenda-team-ai.js?v=9.7')&&
- html.includes('fenda-scenery.js?v=9.7')&&
- html.includes('fenda-view.js?v=9.7'),'O site precisa carregar o cenário procedural antes da câmera.');
+assert.ok(html.includes('fenda-engine.js?v=9.8')&&
+ html.includes('fenda-team-ai.js?v=9.8')&&
+ html.includes('fenda-scenery.js?v=9.8')&&
+ html.includes('fenda-view.js?v=9.8'),'O site precisa carregar o cenário procedural antes da câmera.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -966,7 +966,7 @@ E.start('lyria');
  assert.ok(view.includes("isDesktop?$('pcSkill'+i):b")&&
   css.includes('#fendaTeamRoster.collapsed .pc-roster-list'),
   'Evolução de habilidades e recolhimento do quadro não foram adaptados');
- assert.ok(html.includes('fenda-view.js?v=9.7')&&html.includes('fenda.css?v=9.7'),
+ assert.ok(html.includes('fenda-view.js?v=9.8')&&html.includes('fenda.css?v=9.8'),
   'Cache precisa trazer a versão 9.7');
 }
 // V9.4 — novas prioridades de AA, tempo de ataque, decisões dos bots e retratos.
@@ -1074,7 +1074,7 @@ E.start('lyria');
  assert.ok(site.includes('.stage.fenda-on #fendaSummoners .fenda-summoner small{')&&
   site.includes('font-size:10px!important')&&site.includes('#fendaMobileGuide'),
   'CSS do celular não tornou feitiços e habilidades legíveis');
- assert.ok(site.includes('fenda-view.js?v=9.7')&&site.includes('fenda.css?v=9.7'),
+ assert.ok(site.includes('fenda-view.js?v=9.8')&&site.includes('fenda.css?v=9.8'),
   'O cache do jogo precisa apontar para a versão 9.5');
 }
 console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livre e feitiços legíveis.');
@@ -1189,7 +1189,7 @@ console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livr
  assert.ok(view.includes("id==='sahra_ult'&&h.sahraSecondUntil>S.time")&&
   view.includes("id==='mirielle_distort'&&h.mirrorReturn?.until>S.time"),
   'As habilidades reativáveis precisam estar habilitadas no painel');
- assert.ok(source.includes('fenda-engine.js?v=9.7')&&source.includes('fenda-view.js?v=9.7'),
+ assert.ok(source.includes('fenda-engine.js?v=9.8')&&source.includes('fenda-view.js?v=9.8'),
   'Cache de versão deve usar os novos campeões');
 }
 console.log('OK: V9.6 com duas assassinas, fumaça, retorno, execução, combos e ADCs distintos.');
@@ -1261,3 +1261,36 @@ console.log('OK: tiros perfurantes de Lyria e Tessa e evasão de áreas persiste
    'Tela de seleção não pode afirmar que Q vem aprendida automaticamente');
 }
 console.log('OK: V9.7 com primeira habilidade Q, W ou E escolhida pelo jogador.');
+
+// V9.8 — feitiços móveis compactos, fora do centro e junto às habilidades.
+{
+ const html=read('index.html'),view=read('fenda-view.js');
+ const mobileCss=html.slice(html.lastIndexOf('/* Fenda 9.8 — Feitiços compactos'));
+ assert.ok(mobileCss.includes('@media (pointer:coarse)')&&
+  mobileCss.includes('.stage.fenda-on #fendaSummoners'),
+  'A interface de feitiços compactos precisa valer somente para toque');
+ assert.ok(mobileCss.includes('grid-template-columns:48px!important')&&
+  mobileCss.includes('grid-template-rows:repeat(2,48px)!important')&&
+  mobileCss.includes('border-radius:50%!important'),
+  'Os dois feitiços precisam ser botões circulares pequenos, empilhados');
+ assert.ok(mobileCss.includes('right:calc(clamp(235px,39vw,310px) - 48px)!important')&&
+  mobileCss.includes('bottom:max(15px,env(safe-area-inset-bottom))!important'),
+  'Feitiços precisam acompanhar o grupo de habilidades no canto inferior direito');
+ assert.ok(mobileCss.includes('.fenda-summoner small,')&&
+  mobileCss.includes('.fenda-summoner .spell-effect{')&&
+  mobileCss.includes('display:none!important'),
+  'Descrições grandes dos feitiços não podem cobrir o campo');
+ assert.ok(mobileCss.includes('.fenda-summoner.oncd em:not(:empty)')&&
+  mobileCss.includes('display:flex!important'),
+  'Recarga deve continuar visível no ícone');
+ assert.ok(view.includes("summonerPanel.querySelectorAll('button')")&&
+  view.includes('useSummoner(Number(btn.dataset.slot))'),
+  'Botões compactos precisam continuar acionando feitiços');
+ assert.ok(view.includes("mobileHelpBtn.addEventListener('click'")&&
+  view.includes('mobileGuideUpdate()'),
+  'Descrição dos feitiços deve continuar acessível pelo painel de ajuda');
+ assert.ok(html.includes('fenda-view.js?v=9.8')&&
+  html.includes('fenda.css?v=9.8'),
+  'Atualização deve invalidar o cache do jogo');
+}
+console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda preservado.');
