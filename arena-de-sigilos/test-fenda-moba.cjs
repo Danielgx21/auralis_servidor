@@ -478,6 +478,8 @@ defender.x=projectileWall.x-normalShot.x*100;defender.y=projectileWall.y-normalS
 defender.stun=10;
 for(const t of state.structures)t.attackCd=100;
 state.units=[caster,defender];
+// O teste verifica exclusivamente a colisão do projétil, não o novo AA automático.
+caster.attackCd=100;
 const defenderHp=defender.hp;
 state.projectiles=[{kind:'skillline',x:caster.x,y:caster.y,vx:-normalShot.x*550,
  vy:-normalShot.y*550,life:2,range:230,travel:0,damage:95,
