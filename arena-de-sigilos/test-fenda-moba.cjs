@@ -1122,8 +1122,8 @@ console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livr
  }
  {
   const {m,h,e}=duel('mirielle');
-  h.level=6;h.skillLevels.mirielle_distort=1;h.skillLevels.mirielle_chain=1;
-  h.skillLevels.mirielle_ult=1;
+  h.level=6;h.skillLevels.mirielle_sigil=1;h.skillLevels.mirielle_distort=1;
+  h.skillLevels.mirielle_chain=1;h.skillLevels.mirielle_ult=1;
   const startX=h.x,startY=h.y;
   assert.ok(E.cast(h,'mirielle_distort',{x:1,y:0,distance:155}),
    'Avanço ilusório não funciona');
