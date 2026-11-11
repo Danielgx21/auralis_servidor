@@ -199,7 +199,7 @@ function botUpgradeSkills(unit){
 const state={mode:'menu',time:0,w:W,h:H,camera:{x:0,y:0},units:[],structures:[],projectiles:[],
  effects:[],jungle:[],camps:[],obstacles:[],walls:[],wards:[],brushes:[],sight:[[],[]],seen:[null,null],
  visionUpdate:-1,teamBuffs:[{serpe:0,titan:0},{serpe:0,titan:0}],
- hero:null,focused:null,kills:[0,0],wave:0,nextWave:4,phase:'laning',zones:[],
+ hero:null,focused:null,kills:[0,0],wave:0,nextWave:4,phase:'laning',zones:[],attackAimActive:false,
  flash:0,score:0,marker:null,shopOpen:false,showPause:false,notice:'',noticeUntil:0,
  nextObjectives:50,buffUntil:0,win:null,selectedHero:'lyria',seq:0,sounds:true};
 const rando=(a,b)=>a+Math.random()*(b-a),hData=id=>C.heroes[id];
@@ -560,6 +560,7 @@ function createMinion(side,lane,type=0,slot=0){
 }
 function start(hero='lyria',summoners=null){
  state.mode='playing';state.time=0;state.units=[];state.projectiles=[];state.effects=[];state.zones=[];
+ state.attackAimActive=false;
  state.selectedHero=C.heroes[hero]?hero:'lyria';state.hero=null;state.structures=[];
  state.phase='laning';
  state.kills=[0,0];state.win=null;state.marker=null;state.nextWave=5;state.wave=0;
@@ -2414,7 +2415,8 @@ function step(dt,movement={x:0,y:0}){
  for(const u of state.units){tickUnit(u,dt);if(state.mode!=='playing')break}
  if(state.mode!=='playing')return;
  // Ataque automático: apenas quando imóvel e um alvo entrar no alcance.
- if(hero&&hero.hp>0&&!state.shopOpen&&Math.hypot(movement.x,movement.y)<.06&&
+ if(hero&&hero.hp>0&&!state.shopOpen&&!state.attackAimActive&&
+    Math.hypot(movement.x,movement.y)<.06&&
     !hero.recall&&!hero.dash&&!hero.casting&&hero.attackCd<=0)autoAttack(hero);
  separateUnits();
  refreshVision();
