@@ -808,11 +808,13 @@ function skillStart(e,index){
 }
 function skillMove(e){
  const p=pointers.skill;if(!p||p.ptr!==e.pointerId)return;
+ e.preventDefault();e.stopPropagation();
  p.x=e.clientX;p.y=e.clientY;if(Math.hypot(p.x-p.sx,p.y-p.sy)>10)p.dragged=true;
  if(performance.now()-p.started>190)aimPreview=p;
 }
 function skillEnd(e){
  const p=pointers.skill;if(!p||p.ptr!==e.pointerId)return;
+ e.preventDefault();e.stopPropagation();
  if(e.type==='pointerup'){
   // Deslizar para o canto superior direito cancela sem consumir energia.
   const cancel=p.dragged&&e.clientX>vw*.77&&e.clientY<vh*.20;
@@ -845,6 +847,7 @@ function aaStart(e){
 }
 function aaEnd(e){
  if(pointers.aa!==e.pointerId)return;
+ e.preventDefault();e.stopPropagation();
  pointers.aa=null;
 }
 
@@ -882,21 +885,40 @@ function issueRightClick(clientX,clientY){
    y:clamp(S.camera.y+(clientY-rect.top)/cameraZoom,15,E.H-15)};
  }
 }
+function tapWhileWalking(clientX,clientY){
+ // Um segundo dedo aponta alvos sem interferir no primeiro, que mantém
+ // o joystick em movimento. Se estiver distante, prioriza-o no AA quando
+ // entrar no alcance; não assume controle do deslocamento do jogador.
+ const selected=pickAttackTarget(clientX,clientY);
+ if(selected){
+  if(selected.kind==='tower'||selected.kind==='core'){
+   const result=E.focusTower(S.hero,selected);
+   if(!result.ok)warn(result.reason);
+  }else{
+   S.hero.focusTarget=selected;S.hero.focusUntil=S.time+4;
+   E.autoAttack(S.hero);
+  }
+  return true;
+ }
+ return E.autoAttack(S.hero);
+}
 function worldDown(e){
  if(S.mode!=='playing'||S.showPause||S.shopOpen)return;
  if(e.pointerType==='mouse'){
-  const rect=cv.getBoundingClientRect();
   if(e.button===2)issueRightClick(e.clientX,e.clientY);
-  // AA no PC é exclusivamente por ordem de ataque (clique direito).
   e.preventDefault();return;
  }
  const rect=cv.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;
+ e.preventDefault();
  if(x<vw*.47&&joy.ptr===null){
   joy.ptr=e.pointerId;joy.sx=x;joy.sy=y;joy.x=joy.y=0;
-  $('joy').style.left=clamp(x,45,vw*.46)+'px';$('joy').style.top=clamp(y,50,vh-50)+'px';
+  $('joy').style.left=clamp(x,45,vw*.46)+'px';
+  $('joy').style.top=clamp(y,50,vh-50)+'px';
   $('joy').classList.add('active');
-  e.preventDefault();try{cv.setPointerCapture(e.pointerId)}catch(_){}
- }else if(x>=vw*.47&&!selectTowerAt(e.clientX,e.clientY))E.autoAttack(S.hero);
+  try{cv.setPointerCapture(e.pointerId)}catch(_){}
+  return;
+ }
+ if(e.pointerId!==joy.ptr)tapWhileWalking(e.clientX,e.clientY);
 }
 function worldMove(e){
  if(joy.ptr!==e.pointerId)return;
@@ -909,7 +931,8 @@ function worldMove(e){
 }
 function worldEnd(e){
  if(joy.ptr!==e.pointerId)return;
- e.preventDefault();joy.ptr=null;joy.x=joy.y=0;
+ e.preventDefault();
+ joy.ptr=null;joy.x=joy.y=0;
  $('joy').classList.remove('active');$('joyKnob').style.transform='translate(-50%,-50%)';
 }
 function wardPoint(p){
@@ -1013,7 +1036,9 @@ function movement(){
  let len=Math.hypot(x,y);
  if(len>.08){
   clickDestination=null;
-  E.clearAttackCommand(S.hero);
+  // Joystick sempre tem prioridade sobre uma ordem automática de perseguir.
+  // O foco de AA mantém o alvo, mas não sequestra o controle de movimento.
+  if(S.hero?.commandTarget)E.clearAttackCommand(S.hero);
   return len>1?{x:x/len,y:y/len}:{x,y};
  }
  if(S.hero?.commandTarget){
