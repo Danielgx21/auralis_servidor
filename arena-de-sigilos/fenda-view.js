@@ -1246,6 +1246,16 @@ function pause(){
  '<button class="secondary" id="menuFenda">MENU</button></div>';
  $('resumeFenda').onclick=pause;$('resetFenda').onclick=startGame;$('menuFenda').onclick=chooseHero;
 }
+// Desktop: mira no ponteiro real e nunca adquire automaticamente o inimigo mais próximo.
+function desktopMouseAim(id){
+ const h=S.hero,range=E.skillDef(id).range||140;
+ const cursor=desktopPointer.over?{x:S.camera.x+desktopPointer.x/cameraZoom,
+  y:S.camera.y+desktopPointer.y/cameraZoom}:desktopPointer.lastWorld;
+ const angle=h.facing||0,dx=cursor?cursor.x-h.x:Math.cos(angle)*range,
+  dy=cursor?cursor.y-h.y:Math.sin(angle)*range;
+ const dir=E.norm(dx,dy),distance=clamp(Math.hypot(dx,dy),0,range);
+ return {x:dir.x,y:dir.y,distance,center:{x:h.x+dir.x*distance,y:h.y+dir.y*distance}};
+}
 function aimData(p){
  const h=S.hero,def=E.skillDef(p.id),enemy=E.nearestEnemy(h,def.range||320,true);
  let dx=enemy?enemy.x-h.x:1,dy=enemy?enemy.y-h.y:0;
@@ -1270,6 +1280,12 @@ function skillStart(e,index){
  if(S.hero.cooldowns[id]>.02){warn('HABILIDADE EM RECARGA');return}
  if(S.hero.mana<def.cost&&S.hero.manaFreeUntil<=S.time){warn('MANA INSUFICIENTE');return}
  e.preventDefault();e.stopPropagation();
+ // Clicar na barra de habilidades do PC usa a última posição real do mouse no mapa.
+ if(desktopCamera()&&e.pointerType==='mouse'){
+  const aim=def.aim==='self'?null:desktopMouseAim(id);
+  if(!E.cast(S.hero,id,aim))warn('NÃO FOI POSSÍVEL LANÇAR A HABILIDADE');
+  hudUpdate();return;
+ }
  if(def.aim==='self'){E.cast(S.hero,id);hudUpdate();return}
  pointers.skill={id,ptr:e.pointerId,sx:e.clientX,sy:e.clientY,x:e.clientX,y:e.clientY,
   dragged:false,started:performance.now()};
@@ -1374,6 +1390,14 @@ function tapWhileWalking(clientX,clientY){
 function worldDown(e){
  if(S.mode!=='playing'||S.showPause||S.shopOpen)return;
  if(e.pointerType==='mouse'){
+  if(e.button===1){
+   e.preventDefault();e.stopPropagation();
+   if(cameraMode!=='free')setCameraMode('free',true);
+   cameraDrag={ptr:e.pointerId,x:e.clientX,y:e.clientY};
+   desktopPointer.over=false;
+   try{cv.setPointerCapture(e.pointerId)}catch(_){}
+   return;
+  }
   if(e.button===2)issueRightClick(e.clientX,e.clientY);
   else if(e.button===0)tapWhileWalking(e.clientX,e.clientY);
   if(e.button===0||e.button===2){
@@ -1395,6 +1419,21 @@ function worldDown(e){
  if(e.pointerId!==joy.ptr)tapWhileWalking(e.clientX,e.clientY);
 }
 function worldMove(e){
+ if(e.pointerType==='mouse'){
+  const rect=cv.getBoundingClientRect();
+  desktopPointer.x=clamp(e.clientX-rect.left,0,vw);
+  desktopPointer.y=clamp(e.clientY-rect.top,0,vh);
+  desktopPointer.over=true;
+  desktopPointer.lastWorld={x:S.camera.x+desktopPointer.x/cameraZoom,
+   y:S.camera.y+desktopPointer.y/cameraZoom};
+  if(cameraDrag&&cameraDrag.ptr===e.pointerId){
+   if(!(e.buttons&4)){cameraDrag=null;return}
+   S.camera.x=cameraClampX(S.camera.x-(e.clientX-cameraDrag.x)/cameraZoom);
+   S.camera.y=cameraClampY(S.camera.y-(e.clientY-cameraDrag.y)/cameraZoom);
+   cameraDrag.x=e.clientX;cameraDrag.y=e.clientY;
+   desktopPointer.over=false;e.preventDefault();return;
+  }
+ }
  if(mouseFollow&&e.pointerId===mouseFollow.ptr&&e.pointerType==='mouse'){
   if(!(e.buttons&(mouseFollow.button===2?2:1))){mouseFollow=null;return}
   const moved=Math.hypot(e.clientX-mouseFollow.sx,e.clientY-mouseFollow.sy)>7;
@@ -1416,6 +1455,9 @@ function worldMove(e){
  $('joyKnob').style.transform='translate(calc(-50% + '+(joy.x*27)+'px),calc(-50% + '+(joy.y*27)+'px))';
 }
 function worldEnd(e){
+ if(cameraDrag&&cameraDrag.ptr===e.pointerId){
+  cameraDrag=null;e.preventDefault();return;
+ }
  if(mouseFollow&&mouseFollow.ptr===e.pointerId){
   if(mouseFollow.moved)clickDestination=null;
   mouseFollow=null;
@@ -1520,7 +1562,10 @@ function keyDown(e){
  const i=slots[k];
  if(i!==undefined){
   const kit=C.heroes[S.hero.id].skills.concat([C.heroes[S.hero.id].ultimate]);
-  if(!E.cast(S.hero,kit[i]))warn('HABILIDADE INDISPONÍVEL OU EM RECARGA');return;
+  const id=kit[i],def=E.skillDef(id);
+  const aim=desktopCamera()&&def.aim!=='self'?desktopMouseAim(id):null;
+  if(!E.cast(S.hero,id,aim))warn('HABILIDADE INDISPONÍVEL OU EM RECARGA');
+  return;
  }
  if(k==='v')deployWard();
  else if(k==='b')beginRecall();
@@ -1640,6 +1685,9 @@ for(const type of ['pointerup','pointercancel','lostpointercapture'])$('fireBtn'
 cv.addEventListener('pointerdown',worldDown);
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 cv.addEventListener('pointermove',worldMove);
+cv.addEventListener('pointerleave',()=>{
+ if(!cameraDrag&&!mouseFollow)desktopPointer.over=false;
+});
 for(const type of ['pointerup','pointercancel','lostpointercapture'])cv.addEventListener(type,worldEnd);
 window.addEventListener('keydown',keyDown);
 window.addEventListener('keyup',e=>{
