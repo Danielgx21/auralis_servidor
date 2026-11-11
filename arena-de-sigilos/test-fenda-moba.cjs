@@ -932,4 +932,31 @@ E.start('lyria');
  assert.ok(view.includes("<em>'+sp.desc+'</em></button>'")&&css.includes('.fenda-summoner-picker button em'),
   'Explicações dos feitiços não estão visíveis na seleção');
 }
-console.log('OK: V9.2 com 10 campeões, 14 itens finais, AA automático parado e ponteiro segurado.');
+// V9.3 — HUD desktop não pode misturar controles mobile com quadro de campeão.
+{
+ const view=read('fenda-view.js'),css=read('fenda.css'),html=read('index.html');
+ assert.ok(view.includes("desktopBar.id='fendaDesktopBar'")&&
+  view.includes("teamRoster.id='fendaTeamRoster'"),'Barra de campeão ou quadro de equipes ausente');
+ assert.ok(css.includes('.stage.fenda-on .mobile-controls{display:none!important')&&
+  css.includes('.stage.fenda-on #fendaSummoners,')&&
+  css.includes('.stage.fenda-on #fendaWardBtn,'),
+  'Controles do celular precisam desaparecer completamente no PC');
+ assert.ok(view.includes("id=\"pcPortrait\"")&&view.includes("id=\"pcItems\"")&&
+  view.includes("id=\"pcHPFill\"")&&view.includes("id=\"pcManaFill\""),
+  'Barra de campeão precisa mostrar retrato, itens, vida e mana');
+ assert.ok(view.includes("data-pc-skill")&&
+  view.includes("btn.addEventListener('pointerdown',e=>skillStart(e,i))")&&
+  view.includes("data-pc-spell")&&view.includes("useSummoner(Number(btn.dataset.pcSpell))"),
+  'Habilidades e feitiços da barra devem ser acionáveis');
+ assert.ok(view.includes("$('pcWard').addEventListener('click',()=>deployWard());"),
+  'Botão de visão precisa receber clique sem repassar o evento como coordenada');
+ assert.ok(view.includes('desktopRosterUpdate()')&&
+  view.includes('SEM VISÃO')&&view.includes('scoreOrder'),
+  'Quadro deve mostrar os dez heróis sem revelar HP de inimigos ocultos');
+ assert.ok(view.includes("isDesktop?$('pcSkill'+i):b")&&
+  css.includes('#fendaTeamRoster.collapsed .pc-roster-list'),
+  'Evolução de habilidades e recolhimento do quadro não foram adaptados');
+ assert.ok(html.includes('fenda-view.js?v=9.3')&&html.includes('fenda.css?v=9.3'),
+  'Cache precisa trazer a versão 9.3');
+}
+console.log('OK: V9.3 com HUD desktop, quadro 5x5, botões funcionais e controles mobile isolados.');
