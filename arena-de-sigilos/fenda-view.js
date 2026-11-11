@@ -520,11 +520,13 @@ function hudUpdate(){
  $('fendaPlayerStats').textContent='K/D/A '+h.kills+'/'+h.deaths+'/'+(h.assists||0)+' · FARM '+h.cs;
  $('fendaGold').textContent='✦ '+Math.round(h.gold)+' OURO';
  $('fendaTime').textContent=String(Math.floor(time/60)).padStart(2,'0')+':'+String(time%60).padStart(2,'0');
- $('fendaName').textContent=C.heroes[h.id].name+' · NV '+h.level+(h.hp<=0?' · RESSURGE '+Math.ceil(h.respawn)+'s':'');
+ $('fendaName').textContent=C.heroes[h.id].name+' · NV '+h.level+
+  (h.skillPoints>0?' · ✦ '+h.skillPoints+' PONTOS':'')+
+  (h.hp<=0?' · RESSURGE '+Math.ceil(h.respawn)+'s':'');
  $('fendaHP').style.width=(h.hp/h.maxHp*100)+'%';
  $('fendaMana').style.width=(h.mana/E.maxMana(h)*100)+'%';
  $('fendaManaText').textContent='MANA '+Math.ceil(h.mana)+'/'+E.maxMana(h);
- $('fendaXP').style.width=(h.level<12?h.xp/(42+h.level*24)*100:100)+'%';
+ $('fendaXP').style.width=(h.level<15?h.xp/(42+h.level*24)*100:100)+'%';
  const towerList=S.structures.filter(s=>s.kind==='tower'&&s.hp>0);
  const bossStatus=id=>{
   const c=S.camps.find(o=>o.id===id);
@@ -548,10 +550,23 @@ function hudUpdate(){
  const kit=C.heroes[h.id].skills.concat([C.heroes[h.id].ultimate]);
  for(let i=0;i<kit.length;i++){
   const b=$(['dashBtn','pulseBtn','shieldBtn','ultBtn'][i]),id=kit[i],def=E.skillDef(id),
-    lock=def.ultimate&&h.level<5,cd=h.cooldowns[id]||0;
-  b.querySelector('b').textContent=def.icon;b.querySelector('small').textContent=lock?'NV 5':def.short;
+    rank=E.skillRank(h,id),cap=E.skillRankCap(h,id),
+    lock=rank===0,cd=h.cooldowns[id]||0;
+  b.querySelector('b').textContent=def.icon;
+  b.querySelector('small').textContent=lock?(def.ultimate&&h.level<5?'NV 5':'EVOLUIR'):def.short;
   b.classList.toggle('oncd',cd>.03||lock||h.mana<def.cost||h.hp<=0);
-  const el=b.querySelector('.cd-text');el.hidden=cd<=.03&&!lock;el.textContent=lock?'🔒':cd>.03?Math.ceil(cd):'';
+  const el=b.querySelector('.cd-text');el.hidden=cd<=.03&&!lock;
+  el.textContent=lock?'🔒':cd>.03?Math.ceil(cd):'';
+  let rankBadge=b.querySelector('.fenda-skill-rank');
+  if(!rankBadge){rankBadge=document.createElement('span');rankBadge.className='fenda-skill-rank';b.appendChild(rankBadge);}
+  rankBadge.textContent=rank+'/'+(def.ultimate?3:5);
+  const upgrade=upgradeButtons[i],canUp=h.skillPoints>0&&rank<cap&&h.hp>0;
+  upgrade.hidden=!canUp;
+  if(canUp){
+   const bounds=b.getBoundingClientRect(),stageBounds=stage.getBoundingClientRect();
+   upgrade.style.left=Math.round(bounds.left-stageBounds.left+bounds.width*.70)+'px';
+   upgrade.style.top=Math.max(5,Math.round(bounds.top-stageBounds.top-16))+'px';
+  }
  }
  $('fireBtn').querySelector('b').textContent='➤';
  $('fireBtn').querySelector('small').textContent=h.hp<=0?'RESSURGIR':'ATACAR';
@@ -781,7 +796,8 @@ function aimData(p){
 function skillStart(e,index){
  if(S.mode!=='playing'||S.showPause||S.shopOpen||pointers.skill||!S.hero||S.hero.hp<=0)return;
  const id=C.heroes[S.hero.id].skills.concat([C.heroes[S.hero.id].ultimate])[index],def=E.skillDef(id);
- if(def.ultimate&&S.hero.level<5){warn('ULTIMATE LIBERADA NO NÍVEL 5');return}
+ if(E.skillRank(S.hero,id)<=0){warn(def.ultimate&&S.hero.level<5?
+  'ULTIMATE NO NÍVEL 5':'USE O BOTÃO + PARA EVOLUIR');return}
  if(S.hero.cooldowns[id]>.02){warn('HABILIDADE EM RECARGA');return}
  if(S.hero.mana<def.cost){warn('MANA INSUFICIENTE');return}
  e.preventDefault();e.stopPropagation();
@@ -967,6 +983,12 @@ function keyDown(e){
  keys.add(k);
  if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();
  if(e.repeat)return;
+ if(e.shiftKey&&['1','2','3','4'].includes(k)){
+  e.preventDefault();
+  const index=Number(k)-1,kit=C.heroes[S.hero.id].skills.concat([C.heroes[S.hero.id].ultimate]);
+  const res=E.upgradeSkill(S.hero,kit[index]);
+  if(!res.ok)warn(res.reason);hudUpdate();return;
+ }
  if(k===' '){if(!E.autoAttack(S.hero))warn('NENHUM ALVO DISPONÍVEL PARA AA');return}
  const slots=desktopScheme==='wasd'?
   {'1':0,'2':1,'3':2,'4':3,q:0,e:2,r:3}:
@@ -1042,6 +1064,18 @@ function loop(now){
   }
  }else if(S.mode==='ended'){view(0);endScreen();}
  requestAnimationFrame(loop);
+}
+for(const [i,rankBtn] of upgradeButtons.entries()){
+ rankBtn.addEventListener('pointerdown',e=>{
+  if(S.mode!=='playing'||S.shopOpen||S.showPause)return;
+  e.preventDefault();e.stopPropagation();
+  // Upgrade é independente de qualquer outro dedo pressionando joystick/AA.
+  const kit=C.heroes[S.hero.id].skills.concat([C.heroes[S.hero.id].ultimate]);
+  const result=E.upgradeSkill(S.hero,kit[i]);
+  if(!result.ok)warn(result.reason);
+  hudUpdate();
+ });
+ rankBtn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation()});
 }
 for(const [i,id] of ['dashBtn','pulseBtn','shieldBtn','ultBtn'].entries()){
  const btn=$(id);
