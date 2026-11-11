@@ -152,7 +152,8 @@ function applyItemPurchase(unit,id,ai=false){
  return{ok:true,item,cost:recipe.remaining,consumed:recipe.used};
 }
 // Ranks escolhidos pelo jogador, bots evoluem automaticamente.
-// Habilidades básicas: rank 1 inicial, até 5. Ultimate: níveis 5/9/13.
+// Nível 1: um ponto livre para escolher Q/W/E (inclusive para os bots).
+// Habilidades básicas até rank 5; ultimate desbloqueia nos níveis 5/9/13.
 const BASIC_RANK_MAX=5,ULT_RANK_MAX=3,MAX_HERO_LEVEL=15;
 const skillRank=(unit,id)=>unit?.skillLevels?.[id]||0;
 const skillRankCap=(unit,id)=>{
@@ -525,8 +526,8 @@ function makeHero(id,side,controlled=false){
  atk:h.damage*HERO_AA_DAMAGE_FACTOR[id],
  baseHp:h.hp*1.3,maxHp:Math.round(h.hp*1.3),hp:Math.round(h.hp*1.3),
  mana:320,maxMana:320,level:1,xp:0,gold:controlled?550:350,items:[],
- skillLevels:Object.fromEntries([...h.skills,h.ultimate].map((id,index)=>[id,index===0?1:0])),
- skillPoints:0,passiveCd:0,surgeUntil:0,huntUntil:0,manaFreeUntil:0,
+ skillLevels:Object.fromEntries([...h.skills,h.ultimate].map(id=>[id,0])),
+ skillPoints:1,passiveCd:0,surgeUntil:0,huntUntil:0,manaFreeUntil:0,
  windStacks:0,windUntil:0,loadedRoundUntil:0,shroudUntil:0,shroudBreakUntil:0,
  sahraSecondUntil:0,mirrorReturn:null,mirrorLastSpell:null,mirrorEchoUntil:0,
  summoners:['flash','ignite'],summonerCooldowns:{},
@@ -589,11 +590,14 @@ function start(hero='lyria',summoners=null){
   const playerJungle=units.some(u=>u.controlled&&(['zhira','vexor','sahra'].includes(u.id)||u.summoners.includes('smite')));
   const jungler=playerJungle?null:bots.find(u=>u.id==='zhira')||bots.find(u=>u.id==='sahra')||bots.find(u=>u.id==='vexor')||bots[0];
   if(jungler){jungler.jungler=true;jungler.jungleGoal=null}
-  for(const u of bots)u.summoners=u.jungler?['smite','flash']:u.id==='seris'?['heal','shield']:['flash','ignite'];
+  for(const u of bots){
+   u.summoners=u.jungler?['smite','flash']:u.id==='seris'?['heal','shield']:['flash','ignite'];
+   botUpgradeSkills(u); // Bot também decide a primeira habilidade no nível 1.
+  }
  }
  refreshVision(true);
  state.camera={x:clamp(state.hero.x-400,0,W-800),y:clamp(state.hero.y-220,0,H-440)};
- announce('FENDA DOS SIGILOS · DESTRUA O NÚCLEO RUBRO',3.3);
+ announce('NÍVEL 1 · ESCOLHA SUA PRIMEIRA HABILIDADE: Q, W OU E',4.2);
  return state;
 }
 function announce(text,seconds=2.2){state.notice=text;state.noticeUntil=state.time+seconds}
