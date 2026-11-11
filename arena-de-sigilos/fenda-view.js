@@ -740,7 +740,9 @@ const ITEM_ART={
  swiftboots:'<path d="M16 20L29 16L30 32L45 38H55L56 49L49 55H10V44L18 36Z"/><path d="M7 18L20 14M6 27L18 25M4 36L15 34M20 49H53"/>',
  archmage:'<path d="M29 55L34 14M28 57H40M24 13L33 3L42 13L33 26Z" fill="currentColor" opacity=".25"/><path d="M12 31Q21 23 26 31M40 31Q49 23 56 31M18 41L27 36M42 36L50 41"/>',
  hourglass:'<path d="M19 7H45M19 57H45M21 9Q21 23 32 31Q43 23 43 9M21 55Q21 41 32 33Q43 41 43 55"/><path d="M24 16H40L32 27Z" fill="currentColor" opacity=".32"/><path d="M32 38L25 51H39Z" fill="currentColor" opacity=".32"/>',
- deepsea:'<circle cx="32" cy="32" r="24"/><circle cx="32" cy="32" r="13" fill="currentColor" opacity=".22"/><path d="M10 35Q21 26 32 36Q43 45 54 34M9 44Q21 36 33 45Q43 52 55 44"/><circle cx="27" cy="22" r="4" fill="currentColor" opacity=".45"/>'
+ deepsea:'<circle cx="32" cy="32" r="24"/><circle cx="32" cy="32" r="13" fill="currentColor" opacity=".22"/><path d="M10 35Q21 26 32 36Q43 45 54 34M9 44Q21 36 33 45Q43 52 55 44"/><circle cx="27" cy="22" r="4" fill="currentColor" opacity=".45"/>',
+ warheart:'<path d="M32 57Q8 40 11 23Q13 13 24 13L32 21L40 13Q51 13 53 23Q56 40 32 57Z"/><path d="M32 51V21M17 32H47"/><path d="M25 9L32 4L39 9"/><circle cx="32" cy="34" r="7" fill="currentColor" opacity=".24"/>',
+ huntress:'<path d="M13 52L46 9L54 6L50 17L25 56Z"/><path d="M20 21L27 30L42 13M8 36L21 42M12 55L5 59M49 34L57 26"/><path d="M17 10Q29 8 35 18Q26 13 19 24Z" fill="currentColor" opacity=".21"/>'
 };
 function itemGlyph(it,large=false){
  const kind=shopKinds[it.id]||'utility';
@@ -900,7 +902,7 @@ function chooseHero(){
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice(),hero=C.heroes[selected];
- $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 9.0</div><h2>FENDA DOS SIGILOS</h2>'+ 
+ $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 9.1</div><h2>FENDA DOS SIGILOS</h2>'+ 
  '<p>Três rotas, sete campeões com funções próprias, duas opções de feitiços e dez equipamentos finais com pré-itens.</p>'+ 
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
