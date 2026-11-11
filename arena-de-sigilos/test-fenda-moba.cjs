@@ -644,4 +644,96 @@ E.start('lyria');
  assert.ok(bots.filter(bot=>maxMoved.get(bot.uid)>350).length>=8,
   'Bots ficaram parados por um minuto após a mudança na IA');
 }
+
+// Fenda 8.5 — equipamentos por receitas, evolução manual e multitouch.
+{
+ const components=E.ITEMS.filter(i=>i.tier===1);
+ const completed=E.ITEMS.filter(i=>i.tier===2);
+ assert.equal(components.length,6,'Loja precisa de seis pré-itens');
+ assert.equal(completed.length,8,'Loja precisa de oito itens completos');
+ assert.ok(completed.every(i=>i.recipe.length>=3),'Itens completos exigem componentes reais');
+ assert.ok(completed.every(i=>i.recipe.reduce((v,id)=>v+E.ITEMS.find(p=>p.id===id).price,0)<i.price),
+  'Custo de combinação deve ser adicional ao custo dos componentes');
+ E.start('lyria');
+ const hero=state.hero;hero.gold=7000;hero.x=E.HOME[0].x;hero.y=E.HOME[0].y;
+ const initialGold=hero.gold,baseAD=hero.atk;
+ assert.equal(E.buyItem('astralbow').ok,false,'Item completo não pode ser comprado sem componentes');
+ for(const part of ['lens','lens','stride'])assert.ok(E.buyItem(part).ok,'Componente impossível de comprar');
+ const recipe=E.recipeStatus(hero,'astralbow');
+ assert.ok(recipe.ready&&recipe.remaining===490,'Dois componentes iguais precisam ser reconhecidos');
+ const afterComponents=hero.gold;
+ assert.equal(E.buyItem('astralbow').ok,true,'Receita completa não combina');
+ assert.equal(afterComponents-hero.gold,490,'Compra cobrou novamente pelos componentes');
+ assert.deepEqual(hero.items,['astralbow'],'Combinação não devolveu os espaços usados');
+ assert.equal(initialGold-hero.gold,1380,'Preço total do item final mudou');
+ assert.equal(E.itemStats(hero,'ad'),41,'Componentes continuam somando após combinação');
+ assert.equal(E.attackDamage?.(hero)??baseAD+E.itemStats(hero,'ad'),baseAD+41);
+ const hpBefore=hero.maxHp;
+ for(const part of ['ward','ward','core'])assert.ok(E.buyItem(part).ok);
+ assert.ok(E.buyItem('bulwark').ok,'Segunda receita precisa ser independente');
+ assert.equal(hero.maxHp,hpBefore+350,'Combinação deve atualizar a vida máxima sem somar dupla');
+ assert.equal(hero.items.length,2);
+ const duplicate=E.buyItem('bulwark');
+ assert.equal(duplicate.ok,false,'Um item completo único não pode equipar duas vezes');
+ const at=hero.items.indexOf('bulwark'),wallet=hero.gold;
+ assert.ok(E.sellItem(at).ok,'Venda na base não funciona');
+ assert.equal(hero.maxHp,hpBefore,'Venda não restaurou status de vida');
+ assert.ok(hero.gold>wallet,'Venda não devolveu ouro');
+ hero.x=1500;hero.y=1200;
+ assert.equal(E.buyItem('lens').ok,false,'Compra remota fora do santuário');
+ hero.x=E.HOME[0].x;hero.y=E.HOME[0].y;
+ const basic=C=>C;
+ assert.equal(E.skillRank(hero,'lyria_pierce'),1,'Habilidade inicial precisa estar ativa');
+ assert.equal(E.skillRank(hero,'lyria_ult'),0,'Ultimate não começa desbloqueada');
+ hero.level=2;hero.skillPoints=1;
+ assert.equal(E.skillRankCap(hero,'lyria_pierce'),2);
+ assert.ok(E.upgradeSkill(hero,'lyria_pierce').ok,'Não é possível evoluir habilidade no nível 2');
+ assert.equal(E.skillRank(hero,'lyria_pierce'),2);
+ assert.equal(E.upgradeSkill(hero,'lyria_rain').ok,false,'Upgrade deve consumir pontos');
+ hero.level=4;hero.skillPoints=1;
+ assert.equal(E.upgradeSkill(hero,'lyria_ult').ok,false,'Ultimate não pode ser aprendida antes do nível 5');
+ hero.level=5;
+ assert.ok(E.upgradeSkill(hero,'lyria_ult').ok,'Ultimate não evoluiu ao nível 5');
+ assert.equal(E.skillRank(hero,'lyria_ult'),1);
+ assert.equal(E.skillRankCap(hero,'lyria_ult'),1);
+ hero.level=9;hero.skillPoints=1;
+ assert.ok(E.upgradeSkill(hero,'lyria_ult').ok,'Ultimate não recebeu segundo rank no nível 9');
+ hero.level=13;hero.skillPoints=1;
+ assert.ok(E.upgradeSkill(hero,'lyria_ult').ok,'Ultimate não recebeu terceiro rank no nível 13');
+ const bot=state.units.find(u=>u.kind==='hero'&&!u.controlled);
+ bot.level=10;bot.skillPoints=9;E.botUpgradeSkills(bot);
+ assert.equal(bot.skillPoints,0,'Bots não distribuem pontos de habilidade');
+ assert.ok(E.skillRank(bot,C.heroes[bot.id].ultimate)>=2,'Bots não priorizam ultimates');
+ const beforeXP=hero.level;hero.level=1;hero.skillPoints=0;hero.xp=0;
+ const unit=state.units.find(u=>u.kind==='hero'&&u.side===1);
+ unit.hp=1;unit.x=hero.x+20;unit.y=hero.y;
+ E.damage(unit,9999,hero);
+ assert.ok(hero.level>beforeXP-13&&hero.skillPoints>0,
+  'Ganhar XP no combate deve liberar ponto de habilidade');
+}
+// Interação: tocar na área enquanto o primeiro dedo caminha não altera o ponteiro de joy.
+{
+ const view=read('fenda-view.js'),css=read('fenda.css');
+ assert.ok(view.includes('function tapWhileWalking(clientX,clientY)')&&
+  view.includes('if(e.pointerId!==joy.ptr)tapWhileWalking(e.clientX,e.clientY)'),
+  'O segundo dedo deixou de selecionar alvos durante movimento');
+ assert.ok(view.includes('function skillStart(e,index)')&&
+  view.includes('pointers.aa=e.pointerId')&&
+  view.includes('joy.ptr=e.pointerId')&&
+  view.includes('pointers.skill={id,ptr:e.pointerId'),
+  'AA, joystick e skill perderam ponteiros independentes');
+ assert.ok(view.includes("rankBtn.addEventListener('pointerdown'")&&
+  view.includes('E.upgradeSkill(S.hero,kit[i])')&&
+  css.includes('.fenda-upgrade-button')&&
+  css.includes('touch-action:none;pointer-events:auto'),
+  'Evolução de habilidades não é acessível durante movimentação');
+ assert.ok(view.includes("function shopRender()")&&
+  view.includes('E.recipeStatus(h,it.id)')&&
+  view.includes("data-buy=")&&
+  view.includes('shopHash')&&view.includes('shopLastPaint'),
+  'Loja não mostra receitas ou destrói os botões a cada quadro');
+ assert.ok(read('fenda-team-ai.js').includes('E.skillRank(h,id)>0'),
+  'IA precisa verificar ranks reais antes de tentar usar as habilidades');
+}
+
 console.log('OK: estilo Teamfight sem estradas/imagens, portoes solidos, jungles fisicas, torres e 5x5.');
