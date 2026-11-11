@@ -10,7 +10,7 @@ const ctx=cv.getContext('2d',{alpha:false});
 const hud=document.createElement('div');hud.id='fendaHUD';
 hud.innerHTML='<div class="fenda-meta"><button id="fendaScoreBtn" type="button" title="Abrir o placar da partida (TAB)" aria-label="Abrir placar dos dois times"><span id="fendaTopScore">AZUL 0 × 0 RUBRO</span> <span class="fenda-score-icon">☷</span></button><span id="fendaPlayerStats">K/D/A 0/0/0 · FARM 0</span><div id="fendaGold">✦ 0 OURO</div><div id="fendaTime">00:00</div></div>'+
 '<div class="fenda-personal"><div class="fenda-name" id="fendaName">CAMPEÃO · NV 1</div><div class="fenda-bar"><i id="fendaHP"></i></div><div class="fenda-bar mana"><i id="fendaMana"></i><span id="fendaManaText">MANA 320/320</span></div><div class="fenda-bar xp"><i id="fendaXP"></i></div></div>'+
-'<div class="fenda-actions"><button id="fendaShopBtn">⚒ LOJA</button><button id="fendaRecallBtn">⌂ RETORNO</button><button id="fendaPauseBtn">Ⅱ</button></div>'+
+'<div class="fenda-actions"><button id="fendaShopBtn">⚒ LOJA</button><button id="fendaRecallBtn">⌂ RETORNO</button><button id="fendaCameraBtn" type="button" title="Alternar câmera travada/livre · Y" aria-label="Alternar modo da câmera">◎ TRAVADA</button><button id="fendaPauseBtn">Ⅱ</button></div>'+
 '<button id="fendaTowerBtn" title="Priorizar obelisco no AA" aria-label="Atacar torre ou núcleo com o ataque básico">⬡<small>TORRE</small></button>'+
 '<canvas id="fendaMinimap" width="220" height="152" aria-label="Minimapa tático"></canvas>'+
 '<div id="fendaInfo">3 ROTAS · DESTRUA O NÚCLEO INIMIGO</div><div id="fendaObjectives">SERPE · TITÃ</div><div id="fendaNotice"></div>'+
@@ -107,6 +107,48 @@ let fogAt=-1,fogCamX=-99999,fogCamY=-99999;
 const keys=new Set(),joy={ptr:null,x:0,y:0,sx:0,sy:0},pointers={aa:null,skill:null};
 let aimPreview=null,desktopScheme='arrows',clickDestination=null,mouseFollow=null;
 let wardAim=null,cameraPeek=null,cameraPeekUntil=0;
+const desktopPointer={over:false,x:0,y:0,lastWorld:null};
+let cameraDrag=null,spaceCenterHeld=false,cameraMode='locked';
+try{cameraMode=localStorage.getItem('fenda-camera-v1')==='free'?'free':'locked'}catch(_){}
+const desktopCamera=()=>!!window.matchMedia?.('(hover:hover) and (pointer:fine)').matches;
+const cameraClampX=x=>clamp(x,0,Math.max(0,E.W-worldVW));
+const cameraClampY=y=>clamp(y,0,Math.max(0,E.H-worldVH));
+function cameraCenterAt(x,y){
+ S.camera.x=cameraClampX(x-worldVW/2);
+ S.camera.y=cameraClampY(y-worldVH/2);
+}
+function syncCameraControl(){
+ const b=$('fendaCameraBtn');if(!b)return;
+ const free=cameraMode==='free';
+ b.textContent=free?'⌖ CÂMERA LIVRE':'◎ CÂMERA TRAVADA';
+ b.title=free?'Livre: bordas da tela ou arraste com botão do meio · Y troca · Espaço centra':
+  'Travada: campeão permanece centralizado · Y para liberar';
+ b.setAttribute('aria-pressed',String(free));
+ stage.classList.toggle('fenda-camera-free',free);
+}
+function setCameraMode(mode,silent=false){
+ cameraMode=mode==='free'?'free':'locked';
+ cameraDrag=null;cameraPeek=null;cameraPeekUntil=0;
+ if(cameraMode==='locked'&&S.hero)cameraCenterAt(S.hero.x,S.hero.y);
+ try{localStorage.setItem('fenda-camera-v1',cameraMode)}catch(_){}
+ syncCameraControl();
+ if(!silent&&S.mode==='playing')E.announce(cameraMode==='free'?
+  'CÂMERA LIVRE · PONTEIRO NAS BORDAS OU BOTÃO DO MEIO PARA ARRASTAR':
+  'CÂMERA TRAVADA · CAMPEÃO NO CENTRO · TECLA Y',2.6);
+ return cameraMode;
+}
+function panFreeCamera(dt){
+ if(!desktopCamera()||!desktopPointer.over||cameraDrag||
+  S.shopOpen||S.showPause||scoreboardVisible)return;
+ const edge=33,px=desktopPointer.x,py=desktopPointer.y;
+ const x=px<edge?-(1-px/edge):px>vw-edge?(1-(vw-px)/edge):0;
+ const y=py<edge?-(1-py/edge):py>vh-edge?(1-(vh-py)/edge):0;
+ if(Math.abs(x)+Math.abs(y)>.02){
+  const n=Math.max(1,Math.hypot(x,y));
+  S.camera.x=cameraClampX(S.camera.x+x/n*650*dt);
+  S.camera.y=cameraClampY(S.camera.y+y/n*650*dt);
+ }
+}
 let scoreboardVisible=false,scoreboardHeld=false,scoreboardLastUpdate=-1;
 let lastWarningAt=-100;
 function warn(text){
@@ -571,43 +613,48 @@ function view(dt){
  const h=S.hero;
  if(h){
   const observing=cameraPeek&&(cameraPeek.ptr!==null||S.time<cameraPeekUntil);
-  const focus=observing?cameraPeek:{x:h.x,y:h.y};
-  // Câmera de combate: valoriza o avanço pela lane, não as torres
-  // que já ficaram atrás. Na jungle permanece próxima ao personagem.
-  // Perto de uma estrutura inimiga antecipa sua zona de ataque.
-  if(!observing&&h.hp>0){
-   const lane=h.lane??2,projection=E.routeProjection(lane,h);
-   if(projection.distance<E.LANE_HALF_WIDTH+35){
-    const t=projection.progress/E.ROUTE_TOTALS[lane],step=.006;
-    const prev=E.pathPos(lane,clamp(t-step,0,1));
-    const next=E.pathPos(lane,clamp(t+step,0,1));
-    const dir=E.norm(next.x-prev.x,next.y-prev.y);
-    const forward=h.side===0?1:-1;
-    focus.x+=dir.x*forward*LANE_CAMERA_LEAD;
-    focus.y+=dir.y*forward*LANE_CAMERA_LEAD;
+  if(desktopCamera()){
+   if(observing){
+    // Minimap livre para exploração; câmera travada retorna somente após o peek.
+    cameraCenterAt(cameraPeek.x,cameraPeek.y);
+   }else if(cameraMode==='locked'||spaceCenterHeld){
+    // Centro verdadeiro, sem antecipação de rota, ameaça ou atraso de interpolação.
+    cameraCenterAt(h.x,h.y);
+   }else{
+    // Câmera livre nunca recentraliza sozinha, nem quando a rota muda.
+    panFreeCamera(dt);
    }
-   const threat=S.structures.filter(t=>t.hp>0&&t.side!==h.side&&
+  }else{
+   // Mobile preserva a antecipação suave para ameaças e torres.
+   const focus=observing?{x:cameraPeek.x,y:cameraPeek.y}:{x:h.x,y:h.y};
+   if(!observing&&h.hp>0){
+    const lane=h.lane??2,projection=E.routeProjection(lane,h);
+    if(projection.distance<E.LANE_HALF_WIDTH+35){
+     const t=projection.progress/E.ROUTE_TOTALS[lane],step=.006;
+     const prev=E.pathPos(lane,clamp(t-step,0,1));
+     const next=E.pathPos(lane,clamp(t+step,0,1));
+     const dir=E.norm(next.x-prev.x,next.y-prev.y),forward=h.side===0?1:-1;
+     focus.x+=dir.x*forward*LANE_CAMERA_LEAD;
+     focus.y+=dir.y*forward*LANE_CAMERA_LEAD;
+    }
+    const threat=S.structures.filter(t=>t.hp>0&&t.side!==h.side&&
      E.dist(t,h)<700).sort((a,b)=>E.dist(a,h)-E.dist(b,h))[0];
-   if(threat){
-    const d=Math.max(1,E.dist(h,threat));
-    const ahead=THREAT_CAMERA_LEAD*clamp((700-d)/320,0,1);
-    focus.x+=(threat.x-h.x)/d*ahead;
-    focus.y+=(threat.y-h.y)/d*ahead;
+    if(threat){
+     const d=Math.max(1,E.dist(h,threat));
+     const ahead=THREAT_CAMERA_LEAD*clamp((700-d)/320,0,1);
+     focus.x+=(threat.x-h.x)/d*ahead;
+     focus.y+=(threat.y-h.y)/d*ahead;
+    }
+    const forwardX=focus.x-h.x,forwardY=focus.y-h.y,magnitude=Math.hypot(forwardX,forwardY);
+    if(magnitude>185){focus.x=h.x+forwardX/magnitude*185;focus.y=h.y+forwardY/magnitude*185}
    }
-   const forwardX=focus.x-h.x,forwardY=focus.y-h.y;
-   const magnitude=Math.hypot(forwardX,forwardY);
-   if(magnitude>185){
-    focus.x=h.x+forwardX/magnitude*185;
-    focus.y=h.y+forwardY/magnitude*185;
+   const wantX=cameraClampX(focus.x-worldVW*.44),wantY=cameraClampY(focus.y-worldVH*.55);
+   const snap=h.cameraSnapAt&&S.time-h.cameraSnapAt<.23&&!observing;
+   if(snap){S.camera.x=wantX;S.camera.y=wantY;}
+   else{
+    S.camera.x+=(wantX-S.camera.x)*Math.min(1,dt*(observing?18:12));
+    S.camera.y+=(wantY-S.camera.y)*Math.min(1,dt*(observing?18:12));
    }
-  }
-  const wantX=clamp(focus.x-worldVW*.44,0,Math.max(0,E.W-worldVW));
-  const wantY=clamp(focus.y-worldVH*.55,0,Math.max(0,E.H-worldVH));
-  const snap=h.cameraSnapAt&&S.time-h.cameraSnapAt<.23&&!observing;
-  if(snap){S.camera.x=wantX;S.camera.y=wantY;}
-  else{
-   S.camera.x+=(wantX-S.camera.x)*Math.min(1,dt*(observing?18:12));
-   S.camera.y+=(wantY-S.camera.y)*Math.min(1,dt*(observing?18:12));
   }
   if(cameraPeek&&cameraPeek.ptr===null&&S.time>=cameraPeekUntil)cameraPeek=null;
  }
@@ -1161,7 +1208,9 @@ function chooseHero(){
 function startGame(){
  C.suspendClassic?.();
  shopTab='recommended';shopFilter='all';shopSelectedId=null;shopQueuedId=null;
- E.start(C.getHeroChoice(),pickedSummoners);setScoreboardVisible(false);endedShown=false;clickDestination=null;mouseFollow=null;rosterLastUpdate=-1;cameraPeek=null;cameraPeekUntil=0;wardAim=null;keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
+ E.start(C.getHeroChoice(),pickedSummoners);setScoreboardVisible(false);endedShown=false;clickDestination=null;mouseFollow=null;rosterLastUpdate=-1;cameraPeek=null;cameraPeekUntil=0;wardAim=null;keys.clear();
+ desktopPointer.over=false;desktopPointer.lastWorld=null;spaceCenterHeld=false;cameraDrag=null;syncCameraControl();
+ if(desktopCamera())cameraCenterAt(S.hero.x,S.hero.y);joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
  shop.classList.remove('open');$('overlay').classList.add('hidden');$('missionShelf').hidden=true;
  resize();drawTerrain();last=performance.now();hudCountdown=0;hudUpdate();
  if(stage.requestFullscreen&&!document.fullscreenElement){
@@ -1437,6 +1486,15 @@ function keyDown(e){
   if(k==='escape'){e.preventDefault();setScoreboardVisible(false); }
   return;
  }
+ if(k==='y'){
+  e.preventDefault();if(!e.repeat)setCameraMode(cameraMode==='free'?'locked':'free');
+  return;
+ }
+ if(k===' '&&desktopCamera()){
+  e.preventDefault();spaceCenterHeld=true;
+  if(S.hero)cameraCenterAt(S.hero.x,S.hero.y);
+  return;
+ }
  if(k==='f2'){
   e.preventDefault();
   if(e.repeat)return;
@@ -1454,7 +1512,7 @@ function keyDown(e){
   const res=E.upgradeSkill(S.hero,kit[index]);
   if(!res.ok)warn(res.reason);hudUpdate();return;
  }
- if(k===' '){if(!E.autoAttack(S.hero))warn('NENHUM ALVO DISPONÍVEL PARA AA');return}
+ if(k==='a'||k===' '){if(!E.autoAttack(S.hero))warn('NENHUM ALVO DISPONÍVEL PARA AA');return}
  const slots=desktopScheme==='wasd'?
   {'1':0,'2':1,'3':2,'4':3,q:0,e:2,r:3}:
   {'1':0,'2':1,'3':2,'4':3,q:0,w:1,e:2,r:3};
@@ -1587,10 +1645,12 @@ window.addEventListener('keydown',keyDown);
 window.addEventListener('keyup',e=>{
  const key=e.key.toLowerCase();
  keys.delete(key);
+ if(key===' ')spaceCenterHeld=false;
  if(key==='tab'&&scoreboardHeld){e.preventDefault();setScoreboardVisible(false);}
 });
 window.addEventListener('blur',()=>{
  keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;pointers.skill=null;mouseFollow=null;clickDestination=null;
+ desktopPointer.over=false;cameraDrag=null;spaceCenterHeld=false;
 });
 $('fendaShopBtn').onclick=toggleShop;$('fendaShopClose').onclick=toggleShop;
 $('fendaScoreBtn').addEventListener('click',()=>setScoreboardVisible(!scoreboardVisible));
@@ -1600,6 +1660,8 @@ $('fendaWardBtn').addEventListener('pointermove',wardMove);
 for(const type of ['pointerup','pointercancel','lostpointercapture'])
  $('fendaWardBtn').addEventListener(type,wardEnd);
 $('fendaRecallBtn').onclick=beginRecall;$('fendaPauseBtn').onclick=pause;
+$('fendaCameraBtn').addEventListener('click',()=>setCameraMode(cameraMode==='free'?'locked':'free'));
+syncCameraControl();
 $('fendaTowerBtn').addEventListener('pointerdown',e=>{
  e.preventDefault();e.stopPropagation();
  if(S.mode!=='playing'||S.shopOpen||S.showPause||!S.hero||S.hero.hp<=0)return;
@@ -1618,6 +1680,10 @@ function minimapPoint(e){
 function minimapStart(e){
  if(S.mode!=='playing'||S.shopOpen||S.showPause)return;
  e.preventDefault();e.stopPropagation();
+ if(desktopCamera()&&cameraMode==='free'){
+  cameraCenterAt(minimapPoint(e).x,minimapPoint(e).y);
+  cameraPeek=null;return;
+ }
  cameraPeek={...minimapPoint(e),ptr:e.pointerId};
  cameraPeekUntil=S.time+2.2;
  try{mm.setPointerCapture(e.pointerId)}catch(_){}
@@ -1638,7 +1704,10 @@ mm.addEventListener('pointerdown',minimapStart);
 mm.addEventListener('pointermove',minimapMove);
 for(const type of ['pointerup','pointercancel','lostpointercapture'])
  mm.addEventListener(type,minimapEnd);
-mm.addEventListener('dblclick',()=>{cameraPeek=null;cameraPeekUntil=0});
+mm.addEventListener('dblclick',()=>{
+ cameraPeek=null;cameraPeekUntil=0;
+ if(S.hero&&desktopCamera())cameraCenterAt(S.hero.x,S.hero.y);
+});
 window.addEventListener('resize',resize);
 if(window.ResizeObserver)new ResizeObserver(resize).observe(stage);
 window.FendaView={chooseHero,startGame,pause,view,resize,toggleShop,hudUpdate,pickAttackTarget,issueRightClick,movement,minimapPoint,wardPoint,wardStart,wardMove,wardEnd,minimapStart,minimapMove,minimapEnd,renderScoreboard,setScoreboardVisible};
