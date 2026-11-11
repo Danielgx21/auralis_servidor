@@ -251,6 +251,169 @@ canvas {width:100%;height:100%;}
  pointer-events:none;line-height:1
 }
 .mobile-controls #ultBtn::after{background:#6c4b22f0;color:#fff0b4;border-color:#e6bc73}
+
+/* Fenda 9.5 — Mobile: painel sem microtexto e feitiços independentes das habilidades. */
+#fendaMobileHelpBtn,#fendaMobileGuide{display:none}
+@media (hover:hover) and (pointer:fine){
+ .stage.fenda-on #fendaCameraBtn{display:inline-flex;align-items:center;justify-content:center;
+  background:linear-gradient(145deg,#1d5262,#0c2539);border-color:#92dccc;
+  min-width:126px;color:#e5fbf4}
+ .stage.fenda-on #fendaCameraBtn[aria-pressed="true"]{
+  border-color:#f2ca83;background:linear-gradient(145deg,#5a4735,#1e3040);color:#fff0c7}
+ .stage.fenda-on.fenda-camera-free #fendaCanvas{cursor:crosshair}
+}
+@media (pointer:coarse){
+ .stage.fenda-on #fendaCameraBtn{display:none!important}
+ .stage.fenda-on .mobile-controls .skill-controls{
+  --aa-size:clamp(61px,19vh,85px);
+  --skill-size:clamp(46px,13vh,61px);
+  width:clamp(235px,39vw,310px)!important;
+  height:clamp(181px,49vh,249px)!important;
+  bottom:max(9px,env(safe-area-inset-bottom))!important;
+  right:max(11px,env(safe-area-inset-right))!important;
+ }
+ .stage.fenda-on .mobile-controls .skill-btn{
+  border-width:2px!important;min-width:0!important;
+  backdrop-filter:blur(5px);
+  box-shadow:0 6px 18px #000d,inset 0 1px 5px #ffffff3c!important;
+ }
+ .stage.fenda-on .mobile-controls .skill-btn b{font-size:clamp(22px,6.6vh,30px)!important}
+ .stage.fenda-on .mobile-controls .skill-btn small{
+  display:block;max-width:95%;font-size:clamp(9px,2.55vh,12px)!important;
+  line-height:1.13!important;font-weight:900;letter-spacing:.006em;
+  color:#f4fbff;text-shadow:0 1px 4px #001e32,0 2px 3px #000;
+ }
+ .stage.fenda-on .mobile-controls .skill-btn .fenda-skill-rank{
+  display:block;top:auto;bottom:-2px;right:2px;font-size:8px;padding:2px 3px;
+  border:1px solid #5d9caa7d;background:#071c2eea;border-radius:5px;
+ }
+ .stage.fenda-on .mobile-controls #dashBtn{right:calc(var(--aa-size) + 11px)!important;bottom:6px!important}
+ .stage.fenda-on .mobile-controls #pulseBtn{right:calc(var(--aa-size) + var(--skill-size) + 16px)!important;
+  bottom:calc(var(--skill-size) + 8px)!important}
+ .stage.fenda-on .mobile-controls #shieldBtn{right:calc(var(--aa-size) + 13px)!important;
+  bottom:calc(var(--skill-size) * 2 + 17px)!important}
+ .stage.fenda-on .mobile-controls #ultBtn{right:1px!important;
+  bottom:calc(var(--skill-size) * 2 + 17px)!important}
+ .stage.fenda-on .mobile-controls #fireBtn{right:0!important;bottom:0!important;
+  border:3px solid #9affed!important}
+ .stage.fenda-on .mobile-controls #fireBtn b{font-size:clamp(29px,8.7vh,39px)!important}
+ .stage.fenda-on .mobile-controls .skill-btn:not(.fire)::after{
+  top:-7px;right:-6px;min-width:22px;height:22px;border-radius:50%;
+  background:#092436;border:1px solid #a0cad5;
+  color:#e3f4ff;font-size:12px;font-weight:950
+ }
+ .stage.fenda-on #fendaSummoners{
+  position:absolute!important;
+  right:calc(clamp(235px,39vw,310px) + 21px)!important;
+  bottom:max(38px,10vh,env(safe-area-inset-bottom))!important;
+  display:grid!important;grid-template-columns:134px!important;
+  grid-auto-rows:50px;gap:7px!important;
+  z-index:10;touch-action:manipulation;
+ }
+ .stage.fenda-on #fendaSummoners .fenda-summoner{
+  width:134px!important;min-width:134px!important;height:50px!important;
+  border-radius:12px!important;display:grid!important;
+  grid-template-columns:30px minmax(0,1fr);
+  grid-template-rows:22px 15px;
+  align-content:center;align-items:center;justify-items:stretch;
+  gap:0 6px;padding:4px 7px!important;
+  background:linear-gradient(145deg,#4a3d65f2,#1b2d44f2)!important;
+  border:1.5px solid #cbb5ee!important;text-align:left;
+  box-shadow:0 3px 12px #000b,inset 0 1px #edddff44!important;
+ }
+ .stage.fenda-on #fendaSummoners .fenda-summoner b{
+  grid-column:1;grid-row:1/3;font-size:26px!important;
+  line-height:1.1!important;justify-self:center;color:#f4d4ff;
+ }
+ .stage.fenda-on #fendaSummoners .fenda-summoner small{
+  grid-column:2;grid-row:1;font-size:10px!important;
+  line-height:1.15!important;max-width:none!important;
+  white-space:normal!important;overflow:visible!important;text-overflow:clip!important;
+  font-weight:950;color:#fff4ff;
+ }
+ .stage.fenda-on #fendaSummoners .fenda-summoner .spell-effect{
+  grid-column:2;grid-row:2;color:#d0c6dc;font-size:7.5px;line-height:1.15;
+  letter-spacing:.03em;font-weight:850;white-space:nowrap;
+ }
+ .stage.fenda-on #fendaSummoners .fenda-summoner.oncd{opacity:.8}
+ .stage.fenda-on #fendaSummoners .fenda-summoner em{
+  display:none;grid-column:1/-1;grid-row:1/3;font-style:normal;font-size:18px;
+  background:#060d1ce8;border-radius:10px;color:#fff8df;
+  align-items:center;justify-content:center;position:absolute;inset:0;
+ }
+ .stage.fenda-on #fendaSummoners .fenda-summoner.oncd em:not(:empty){display:flex}
+ .stage.fenda-on #fendaHUD #fendaWardBtn,
+ .stage.fenda-on #fendaHUD #fendaTowerBtn{
+  position:absolute!important;display:grid!important;place-items:center;
+  width:44px!important;height:44px!important;min-width:0;
+  right:calc(clamp(235px,39vw,310px) + 21px)!important;
+  bottom:calc(max(38px,10vh,env(safe-area-inset-bottom)) + 127px)!important;
+  font-size:19px!important;border-radius:11px!important;
+ }
+ .stage.fenda-on #fendaHUD #fendaTowerBtn{
+  right:calc(clamp(235px,39vw,310px) + 72px)!important;
+ }
+ .stage.fenda-on #fendaHUD #fendaWardBtn small,
+ .stage.fenda-on #fendaHUD #fendaTowerBtn small{font-size:8px!important}
+ .stage.fenda-on #fendaMobileHelpBtn{
+  display:grid;place-items:center;
+  position:absolute;z-index:11;pointer-events:auto;touch-action:manipulation;
+  right:calc(clamp(235px,39vw,310px) + 125px);
+  bottom:calc(max(38px,10vh,env(safe-area-inset-bottom)) + 132px);
+  width:35px;height:35px;padding:0;border-radius:50%;
+  font-size:21px;font-weight:950;color:#f9e6aa;border:2px solid #d8bd7c;
+  background:#213e4bea;box-shadow:0 4px 12px #0009;
+ }
+ .stage.fenda-on #fendaMobileHelpBtn.active{background:#606046}
+ .stage.fenda-on #fendaMobileGuide:not([hidden]){
+  display:block;position:absolute;z-index:17;pointer-events:auto;
+  right:calc(clamp(235px,39vw,310px) + 10px);
+  bottom:max(12px,env(safe-area-inset-bottom));
+  width:min(410px,calc(100vw - 260px));
+  max-height:calc(100% - 50px);overflow-y:auto;overscroll-behavior:contain;
+  border-radius:13px;border:1px solid #c6d8a4;
+  background:linear-gradient(145deg,#122c3df8,#091827f8);
+  padding:10px;box-shadow:0 10px 25px #000c;color:#eaf5f1;
+ }
+ .stage.fenda-on #fendaMobileGuide .mobile-guide-head{
+  position:sticky;top:-10px;display:flex;justify-content:space-between;
+  align-items:center;gap:10px;margin:-1px 0 9px;
+  background:#173547f9;padding:6px 3px;border-bottom:1px solid #648e8c;
+ }
+ .stage.fenda-on #fendaMobileGuide .mobile-guide-head strong{
+  color:#f6e3ab;font-size:11px;letter-spacing:.05em}
+ .stage.fenda-on #fendaMobileGuide .mobile-guide-head button{
+  min-width:33px;min-height:30px;border:1px solid #aaccca;
+  background:#294557;border-radius:7px;color:white}
+ .stage.fenda-on #fendaMobileGuide .mobile-guide-line{
+  display:flex;align-items:flex-start;gap:8px;padding:6px 3px;
+  border-bottom:1px solid #8fbaa730}
+ .stage.fenda-on #fendaMobileGuide .mobile-guide-line>b{
+  display:grid;place-items:center;min-width:30px;min-height:30px;
+  border:1px solid #8bb8af;border-radius:8px;background:#264659;
+  color:#fff0b9;font-size:16px}
+ .stage.fenda-on #fendaMobileGuide .mobile-guide-line div{min-width:0;flex:1}
+ .stage.fenda-on #fendaMobileGuide .mobile-guide-line strong{font-size:11px;color:#fff0d6}
+ .stage.fenda-on #fendaMobileGuide .mobile-guide-line p{
+  margin:2px 0;font-size:10px;line-height:1.3;color:#c6dfdf}
+ .stage.fenda-on #fendaMobileGuide .mobile-guide-line small{font-size:9px;color:#a4dcce}
+ .stage.fenda-on #fendaMobileGuide .mobile-guide-section{
+  padding:9px 3px 3px;font-size:10px;color:#f2d79f;font-weight:950;letter-spacing:.07em}
+}
+@media(pointer:coarse) and (max-width:720px){
+ .stage.fenda-on .mobile-controls .skill-controls{width:225px!important;--skill-size:44px;--aa-size:61px}
+ .stage.fenda-on #fendaSummoners{right:244px!important;grid-template-columns:112px!important}
+ .stage.fenda-on #fendaSummoners .fenda-summoner{
+  width:112px!important;min-width:112px!important;
+  grid-template-columns:24px minmax(0,1fr);padding:4px 5px!important;gap:4px}
+ .stage.fenda-on #fendaSummoners .fenda-summoner small{font-size:9px!important}
+ .stage.fenda-on #fendaSummoners .fenda-summoner .spell-effect{font-size:7px}
+ .stage.fenda-on #fendaHUD #fendaWardBtn{right:244px!important}
+ .stage.fenda-on #fendaHUD #fendaTowerBtn{right:295px!important}
+ .stage.fenda-on #fendaMobileHelpBtn{right:362px}
+ .stage.fenda-on #fendaMobileGuide:not([hidden]){
+  right:235px;width:min(365px,calc(100vw - 245px))}
+}
 </style>
 </head>
 <body>
