@@ -4,12 +4,12 @@
 const E=window.FendaEngine,C=window.SigilsCore;
 if(!E||!C){console.error('Fenda Team AI: dependências ausentes');return}
 const S=E.state,clamp=E.clamp,dist=E.dist,norm=E.norm;
-const roles={orun:'tank',vexor:'assassin',lyria:'carry',nyra:'mage',seris:'support'};
+const roles={orun:'tank',vexor:'assassin',lyria:'carry',nyra:'mage',seris:'support',brax:'fighter',zhira:'jungler'};
 let nextScan=0;
 const living=(side)=>E.living(side,'hero');
 const visibleFoes=(side)=>living(1-side).filter(e=>E.visibleTo(side,e));
 const hp=h=>h.hp/Math.max(1,h.maxHp);
-const canCast=(h,id)=>h.cooldowns[id]<=.01&&h.mana>=E.skillDef(id).cost&&
+const canCast=(h,id)=>h.cooldowns[id]<=.01&&(h.mana>=E.skillDef(id).cost||h.manaFreeUntil>S.time)&&
  h.stun<=0&&E.skillRank(h,id)>0;
 function strength(h){
  const ult=C.heroes[h.id].ultimate;
@@ -31,7 +31,7 @@ function scan(){
    const friends=allies.filter(a=>dist(a,center)<475);
    const rivals=foes.filter(e=>dist(e,center)<400);
    if(friends.length<2||rivals.length<1||!friends.some(a=>!a.controlled))continue;
-   const frontline=friends.some(a=>a.id==='orun');
+   const frontline=friends.some(a=>a.id==='orun'||a.id==='brax');
    const sustain=friends.some(a=>a.id==='seris');
    const dps=friends.some(a=>a.id==='lyria'||a.id==='nyra');
    const synergy=1+(frontline&&dps?0.09:0)+(sustain&&friends.length>=3?0.08:0);
@@ -49,11 +49,11 @@ function scan(){
    let mode=enemyTurret&&ratio<1.55?'retreat':
      ratio<.74?'retreat':ratio>=(enemyTurret?1.55:.96)?'engage':'hold';
    // Quando o tanque está ausente, uma iniciação 2v2 fica mais conservadora.
-   if(mode==='engage'&&!friends.some(a=>a.id==='orun')&&ratio<1.10&&friends.length<3)
+   if(mode==='engage'&&!friends.some(a=>a.id==='orun'||a.id==='brax')&&ratio<1.10&&friends.length<3)
      mode='hold';
    const focus=rivals.map(e=>{
     const threatenedCarry=friends.some(a=>['lyria','nyra','seris'].includes(a.id)&&dist(a,e)<135);
-    const rolePriority=e.id==='lyria'?34:e.id==='nyra'?29:e.id==='seris'?25:e.id==='vexor'?12:3;
+    const rolePriority=e.id==='lyria'?34:e.id==='nyra'?29:e.id==='seris'?25:e.id==='zhira'?17:e.id==='vexor'?12:e.id==='brax'?8:3;
     return {e,score:(1-hp(e))*49+rolePriority+(threatenedCarry?19:0)-dist(e,center)*.07};
    }).sort((a,b)=>b.score-a.score)[0]?.e;
    if(!focus)continue;
@@ -89,7 +89,9 @@ function defensiveCast(u,friends,nearest){
    if(wounded)return E.cast(u,'seris_bloom',null,wounded);
   }
   if(needsHelp&&canCast(u,'seris_aegis'))return E.cast(u,'seris_aegis');
- }else if(u.id==='orun'&&dist(u,nearest)<185&&canCast(u,'orun_guard')){
+ }else if(u.id==='brax'&&dist(u,nearest)<160&&hp(u)<.70&&canCast(u,'brax_fortify')){
+   return E.cast(u,'brax_fortify');
+  }else if(u.id==='orun'&&dist(u,nearest)<185&&canCast(u,'orun_guard')){
   return E.cast(u,'orun_guard');
  }else if(u.id==='nyra'&&dist(u,nearest)<190&&canCast(u,'nyra_barrier')){
   return E.cast(u,'nyra_barrier');
@@ -107,12 +109,12 @@ function handleBot(u,dt){
  const focus=enemies.find(e=>e.uid===p.focusUid)||
    enemies.slice().sort((a,b)=>dist(u,a)-dist(u,b))[0];
  const nearest=enemies.slice().sort((a,b)=>dist(u,a)-dist(u,b))[0];
- const front=friends.find(a=>a.id==='orun');
+ const front=friends.find(a=>a.id==='orun'||a.id==='brax');
  const carry=friends.filter(a=>['lyria','nyra'].includes(a.id))
    .sort((a,b)=>hp(a)-hp(b))[0];
  u.teamFightUntil=S.time+.8;
  u.focusTarget=focus;u.focusUntil=S.time+.8;
- if(p.mode==='retreat'||hp(u)<.30&&u.id!=='orun'){
+ if(p.mode==='retreat'||hp(u)<.30&&u.id!=='orun'&&u.id!=='brax'){
   u.focusTarget=null;u.focusUntil=0;
   defensiveCast(u,friends,nearest);
   stepBack(u,nearest,dt,175);
@@ -126,7 +128,7 @@ function handleBot(u,dt){
   // Se há adversário disputando a rota, pressionar e atacar em vez de
   // simplesmente observar o combate a poucos passos.
   if(dist(u,nearest)>attackReach+8&&!p.towerDive){
-   move(u,nearest,dt,u.id==='orun'?.93:.87);
+   move(u,nearest,dt,(u.id==='orun'||u.id==='brax')?.93:.87);
   }
   if(dist(u,nearest)<attackReach+15){
    u.focusTarget=nearest;u.focusUntil=S.time+1.1;
@@ -134,10 +136,10 @@ function handleBot(u,dt){
   }
   // O tanque aguarda apoio apenas quando necessário; o time todo
   // continua podendo se reposicionar e dar AA no mesmo instante.
-  if(u.id==='vexor'){
+  if(u.id==='vexor'||u.id==='zhira'){
    const guard=front||carry||friends.find(a=>a!==u);
    if(guard&&dist(u,guard)>145)move(u,guard,dt,.72);
-  }else if(u.id==='orun'){
+  }else if(u.id==='orun'||u.id==='brax'){
    const guard=carry||friends.find(a=>a!==u);
    if(guard&&dist(u,guard)>155)move(u,guard,dt,.70);
    defensiveCast(u,friends,nearest);
@@ -161,7 +163,7 @@ function handleBot(u,dt){
   }
   return true;
  }
- if(u.id==='orun'){
+ if(u.id==='orun'||u.id==='brax'){
   // Orun é a linha de frente; intercepta investidas no carregador.
   const diver=enemies.find(e=>carry&&dist(e,carry)<155);
   const victim=diver||focus;
@@ -169,7 +171,7 @@ function handleBot(u,dt){
   if(dist(u,victim)>95+victim.r)move(u,victim,dt,.95);
   defensiveCast(u,friends,nearest);
   E.botUseSkill(u,victim);
- }else if(u.id==='vexor'){
+ }else if(u.id==='vexor'||u.id==='zhira'){
   // Vexor não inicia sozinho: espera Orun ou dois aliados pressionarem.
   const opened=front&&dist(front,focus)<183||
     friends.filter(a=>a!==u&&dist(a,focus)<195).length>=2;
