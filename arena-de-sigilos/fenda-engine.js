@@ -9,7 +9,7 @@ const MOBA_WALK_SCALE=.55;
 // para movimentação lateral e legível em landscape; paredes ficam fora dele.
 const LANE_HALF_WIDTH=145,LANE_MINION_SPREAD=33;
 // Alcances defensivos compartilhados com câmera, rota e IA.
-const TURRET_RANGE=330,CORE_RANGE=345;
+const TURRET_RANGE=330,CORE_RANGE=345,TOWERS_PER_LANE=2;
 // Fenda 6.3: desenho 100% procedural de três lanes realmente independentes.
 // Cada trajeto começa fora do santuário e termina na outra base. Simetria rotacional.
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -350,23 +350,24 @@ function buildMap(){
   state.brushes.push({id:'veil-a-'+i,...p,r});
   state.brushes.push({id:'veil-b-'+i,...mirror,r});
  }
- // Torres reais ficam ao LADO das lanes, nunca no eixo por onde andam os minions.
- // Posição definida pela mesma curva usada na movimentação e no minimapa.
+ // Duas torres por equipe e rota (T1 externa e T2 interna). Sem T3.
+ // Posições simétricas nas três rotas e espaçadas para mostrar só
+ // uma frente defensiva por vez no enquadramento próximo do combate.
  for(let side=0;side<2;side++){
   const home=CORE[side];
   state.structures.push({kind:'core',side,x:home.x,y:home.y,maxHp:1850,hp:1850,
    r:46,atk:53,range:CORE_RANGE,attackCd:0,id:'core'+side});
-  for(let lane=0;lane<3;lane++)for(let tier=0;tier<3;tier++){
+  for(let lane=0;lane<3;lane++)for(let tier=0;tier<TOWERS_PER_LANE;tier++){
    // T1 externa distante do centro; T2 e T3 recuam progressivamente à base.
    // Espaço central neutro suficiente para combate antes do alcance das torres.
-   // T1 próxima do rio, T2 na metade recuada e T3 próxima da base.
-   // Posições equilibradas em distância percorrida (e simétricas entre lados):
-   // redução do abismo entre T1 inimigas sem aglomerar três torres aliadas.
-   const positions=lane===1?[.375,.205,.05]:[.375,.225,.075];
+   // T1 próxima do centro do mapa; T2 defende o acesso à base.
+   // Composição mantém um intervalo longo entre torres da mesma rota
+   // e uma distância curta o bastante entre T1 adversárias.
+   const positions=lane===1?[.375,.085]:[.385,.13];
    const t=(side===0?positions:positions.map(t=>1-t))[tier];
    const p=pathPos(lane,t),a=pathPos(lane,Math.max(0,t-.004)),b=pathPos(lane,Math.min(1,t+.004));
    const direction=norm(b.x-a.x,b.y-a.y);
-   // Mid usa o lado oposto ao Bot: impede amontoar T3 das duas lanes.
+   // Mid usa o lado oposto ao Bot: evita torres de rotas distintas juntas.
    const sign=lane===0?1:lane===2?-1:side===0?-1:1;
    const offset=165;
    const x=p.x-direction.y*offset*sign,y=p.y+direction.x*offset*sign;
@@ -1867,6 +1868,6 @@ function recall(){
  return true;
 }
 window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,hData,skillDef,
- start,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,isAttackCommandValid,buyItem,sellItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
+ start,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,isAttackCommandValid,buyItem,sellItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,TOWERS_PER_LANE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
 })();
