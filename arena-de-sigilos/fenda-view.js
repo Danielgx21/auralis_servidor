@@ -779,7 +779,8 @@ function shopRender(){
  const inventory=Array.from({length:6},(_,index)=>{
   const id=h.items[index],it=id&&itemInfo(id);
   return '<div class="fenda-shop-slot'+(it?' filled':'')+'">'+
-   (it?itemGlyph(it):'<span class="fenda-slot-empty">'+(index+1)+'</span>')+
+   (it?'<button type="button" class="fenda-shop-slot-select" data-shop-select="'+id+'" title="Inspecionar '+it.name+'">'+
+     itemGlyph(it)+'</button>':'<span class="fenda-slot-empty">'+(index+1)+'</span>')+
    (it?'<button data-shop-sell="'+index+'" '+(!base?'disabled':'')+
     ' title="Vender '+it.name+'">✕</button>':'')+'</div>';
  }).join('');
