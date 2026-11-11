@@ -805,6 +805,7 @@ function commandAttack(hero,target){
  if((target?.kind==='tower'||target?.kind==='core')&&target.hp>0&&!structureExposed(target))
   return{ok:false,reason:'ESTRUTURA PROTEGIDA: DESTRUA OS OBELISCOS ANTERIORES'};
  if(!isAttackCommandValid(hero,target))return{ok:false,reason:'ALVO INDISPONÍVEL OU OCULTO'};
+ hero.mobileAttackTarget=null;hero.mobileAttackLockUntil=0;
  hero.commandTarget=target;
  hero.focusTarget=target;hero.focusUntil=Infinity;
  hero.recall=0;
@@ -814,9 +815,20 @@ function clearAttackCommand(hero){
  if(!hero)return;
  hero.commandTarget=null;
  hero.focusTarget=null;hero.focusUntil=0;
+ hero.mobileAttackTarget=null;hero.mobileAttackLockUntil=0;
 }
-// AA sem comando explícito: primeiro campeões visíveis, depois último golpe,
-// depois tropas comuns. Estruturas nunca são atacadas sem selecionar a torre.
+// Arrastar o botão de AA fixa um alvo sem roubar o controle do joystick.
+function lockAttackTarget(hero,target){
+ if(!hero||!hero.controlled||!isAttackCommandValid(hero,target))
+  return {ok:false,reason:'ALVO INDISPONÍVEL OU OCULTO'};
+ hero.mobileAttackTarget=target;hero.mobileAttackLockUntil=state.time+9;
+ hero.commandTarget=null;hero.focusTarget=null;hero.focusUntil=0;hero.recall=0;
+ return {ok:true,target};
+}
+function clearAttackLock(hero){
+ if(hero){hero.mobileAttackTarget=null;hero.mobileAttackLockUntil=0;}
+}
+// Ataque normal prioriza campeões e tropas, mas também ataca torres expostas.
 function playerAutoTarget(u,range){
  const enemies=living(1-u.side).filter(e=>visibleTo(u.side,e)&&
    dist(u,e)<=range+e.r+2);
@@ -828,11 +840,21 @@ function playerAutoTarget(u,range){
    .sort((a,b)=>a.hp-b.hp||dist(u,a)-dist(u,b));
  if(killable.length)return killable[0];
  minions.sort((a,b)=>dist(u,a)-dist(u,b));
- return minions[0]||null;
+ if(minions.length)return minions[0];
+ const structures=state.structures.filter(t=>t.side!==u.side&&t.hp>0&&
+  (t.kind==='tower'||t.kind==='core')&&structureExposed(t)&&
+  dist(u,t)<=range+t.r+2).sort((a,b)=>dist(u,a)-dist(u,b));
+ return structures[0]||null;
 }
 function findAA(u){
  if(!u||u.hp<=0)return null;
  const range=attackRange(u);
+ if(u.controlled&&u.mobileAttackTarget){
+  const lock=u.mobileAttackTarget;
+  if(!isAttackCommandValid(u,lock)||u.mobileAttackLockUntil<=state.time||
+   dist(u,lock)>Math.max(range+175,430))clearAttackLock(u);
+  else return dist(u,lock)<=range+solidRadius(lock)+2?lock:null;
+ }
  if(u.controlled&&u.commandTarget){
   const t=u.commandTarget;
   if(!isAttackCommandValid(u,t)){clearAttackCommand(u);}
@@ -861,7 +883,8 @@ function findAA(u){
 function focusTower(u,requested=null){
  if(!u||u.kind!=='hero'||u.hp<=0)return {ok:false,reason:'CAMPEÃO INDISPONÍVEL'};
  const towers=state.structures.filter(t=>t.side!==u.side&&t.hp>0&&
-  (t.kind==='tower'||t.kind==='core')&&dist(u,t)<=attackRange(u)+t.r+2)
+  (t.kind==='tower'||t.kind==='core')&&structureExposed(t)&&
+  dist(u,t)<=attackRange(u)+t.r+2)
   .sort((a,b)=>dist(a,u)-dist(b,u));
  if(requested&&!towers.includes(requested))return {ok:false,reason:'TORRE FORA DO ALCANCE DO AA'};
  const t=requested||towers[0];
@@ -869,7 +892,9 @@ function focusTower(u,requested=null){
  if(!structureExposed(t))return {ok:false,reason:t.kind==='core'?
   'NÚCLEO PROTEGIDO: DESTRUA OS OBELISCOS DE UMA ROTA':
   'OBELISCO PROTEGIDO: DESTRUA A TORRE EXTERNA PRIMEIRO'};
- u.focusTarget=t;u.focusUntil=state.time+5;
+ clearAttackLock(u);
+ u.commandTarget=null;
+ u.focusTarget=t;u.focusUntil=state.time+8;
  const attack=autoAttack(u);
  return {ok:true,attacked:attack,tower:t};
 }
@@ -2437,6 +2462,6 @@ function recall(){
  return true;
 }
 window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,SUMMONERS,smiteDamage,castSummoner,hData,skillDef,
- start,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,isAttackCommandValid,buyItem,sellItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,botTryGank,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,TOWERS_PER_LANE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
+ start,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,lockAttackTarget,clearAttackLock,isAttackCommandValid,buyItem,sellItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,botTryGank,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,TOWERS_PER_LANE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
 })();
