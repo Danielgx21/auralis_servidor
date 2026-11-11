@@ -560,7 +560,7 @@ function hudUpdate(){
   let rankBadge=b.querySelector('.fenda-skill-rank');
   if(!rankBadge){rankBadge=document.createElement('span');rankBadge.className='fenda-skill-rank';b.appendChild(rankBadge);}
   rankBadge.textContent=rank+'/'+(def.ultimate?3:5);
-  const upgrade=upgradeButtons[i],canUp=h.skillPoints>0&&rank<cap&&h.hp>0;
+  const upgrade=upgradeButtons[i],canUp=h.skillPoints>0&&rank<cap&&h.hp>0&&!S.shopOpen&&!S.showPause&&!scoreboardVisible;
   upgrade.hidden=!canUp;
   if(canUp){
    const bounds=b.getBoundingClientRect(),stageBounds=stage.getBoundingClientRect();
@@ -864,7 +864,7 @@ function pickAttackTarget(clientX,clientY){
  const hits=candidates.map(t=>{
   const radius=t.r||(t.kind==='boss'?38:t.kind==='buff'?28:23);
   const distance=Math.hypot(t.x-wx,t.y-wy);
-  const hitRadius=Math.max(radius+12,t.kind==='hero'?30:radius+9);
+  const hitRadius=Math.max(radius+16,t.kind==='hero'?39:radius+13);
   return{target:t,distance,hitRadius};
  }).filter(o=>o.distance<=o.hitRadius)
    .sort((a,b)=>(a.distance/a.hitRadius)-(b.distance/b.hitRadius));
@@ -906,6 +906,7 @@ function worldDown(e){
  if(S.mode!=='playing'||S.showPause||S.shopOpen)return;
  if(e.pointerType==='mouse'){
   if(e.button===2)issueRightClick(e.clientX,e.clientY);
+  else if(e.button===0)tapWhileWalking(e.clientX,e.clientY);
   e.preventDefault();return;
  }
  const rect=cv.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;
