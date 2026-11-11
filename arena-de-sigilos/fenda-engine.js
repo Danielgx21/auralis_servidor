@@ -1807,6 +1807,24 @@ function buyItem(id){
  announce(result.item.name.toUpperCase()+(result.consumed.length?' · COMBINADO!':' ADQUIRIDO'),1.8);
  return result;
 }
+function sellItem(index){
+ const hero=state.hero,at=Math.floor(index);
+ if(!hero||state.mode!=='playing'||!Number.isInteger(index))
+  return{ok:false,reason:'ITEM INVÁLIDO'};
+ if(dist(hero,HOME[0])>240||hero.hp<=0)return{ok:false,reason:'VENDA SOMENTE NO SANTUÁRIO'};
+ if(at<0||at>=hero.items.length)return{ok:false,reason:'ESPAÇO VAZIO'};
+ const item=ITEM_BY_ID[hero.items[at]];
+ if(!item)return{ok:false,reason:'ITEM INVÁLIDO'};
+ const oldHp=itemStats(hero,'hp'),oldMana=maxMana(hero);
+ hero.items.splice(at,1);
+ hero.maxHp=Math.max(1,hero.maxHp+(itemStats(hero,'hp')-oldHp));
+ hero.hp=Math.min(hero.maxHp,hero.hp);
+ hero.mana=Math.min(maxMana(hero),hero.mana);
+ const refund=Math.floor(item.price*.66);
+ hero.gold+=refund;
+ announce(item.name.toUpperCase()+' VENDIDO · +'+refund+' OURO',1.4);
+ return{ok:true,refund,item,oldMana};
+}
 function recall(){
  const p=state.hero;
  if(state.mode!=='playing'||!p||p.hp<=0)return false;
@@ -1817,6 +1835,6 @@ function recall(){
  return true;
 }
 window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,hData,skillDef,
- start,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,isAttackCommandValid,buyItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
+ start,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,isAttackCommandValid,buyItem,sellItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
 })();
