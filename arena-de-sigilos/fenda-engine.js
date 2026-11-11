@@ -1285,14 +1285,16 @@ function botShop(u){
  const priorities={
   orun:['bulwark','titanplate','hourglass','swiftboots'],
   seris:['deepsea','titanplate','hourglass','archmage'],
-  lyria:['astralbow','swiftboots','stormblade','bulwark'],
+  lyria:['barrage','astralbow','swiftboots','bulwark'],
   nyra:['archmage','deepsea','hourglass','swiftboots'],
   vexor:['stormblade','swiftboots','astralbow','bulwark'],
  brax:['warheart','bulwark','stormblade','titanplate'],
  zhira:['huntress','stormblade','astralbow','bulwark'],
  kaelis:['glacier','archmage','deepsea','hourglass'],
  rokar:['bulwark','lifebloom','titanplate','warheart'],
- tessa:['barrage','astralbow','swiftboots','phantomfang']
+ tessa:['phantomfang','astralbow','barrage','swiftboots'],
+ sahra:['phantomfang','stormblade','swiftboots','huntress'],
+ mirielle:['archmage','hourglass','deepsea','glacier']
  }[u.id]||['bulwark'];
  for(const id of priorities){
   if(u.items.includes(id))continue;
@@ -1577,6 +1579,10 @@ function botJungler(u,dt){
    cast(u,'orun_quake',null,camp);
   }else if(u.id==='zhira'){
    if(!cast(u,'zhira_strike',null,camp)&&dist(u,camp)<110)cast(u,'zhira_pounce',null,camp);
+  }else if(u.id==='sahra'){
+   const aim=norm(camp.x-u.x,camp.y-u.y);
+   if(!cast(u,'sahra_knives',{...aim,distance:dist(camp,u)},camp)&&dist(u,camp)>72)
+    cast(u,'sahra_flip',{...aim,distance:dist(camp,u)},camp);
   }else if(u.id==='brax')cast(u,'brax_cleave',null,camp);
  }
  return true;
