@@ -1741,7 +1741,8 @@ function releaseSkill(u,c){
  }
  if(id==='seris_ult'||id==='seris_aegis'||id==='orun_ult'||id==='orun_guard'||id==='nyra_barrier'||id==='brax_fortify'){
   for(const friend of living(u.side,'hero')){
-   if(dist(friend,u)<r+friend.r||friend===u){
+   if((id==='brax_fortify'||id==='orun_guard'||id==='nyra_barrier')&&friend!==u)continue;
+  if(dist(friend,u)<r+friend.r||friend===u){
     if(id==='seris_ult')heal(friend,75+lv*20);
     if(id==='orun_ult')heal(friend,25+lv*8);
     if(id==='orun_guard')heal(friend,13+lv*7);
