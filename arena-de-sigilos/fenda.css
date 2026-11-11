@@ -647,7 +647,7 @@
  #fendaTeamRoster .pc-roster-meta small{color:#d1c7e3;font-size:10px;letter-spacing:1px}
  .stage.fenda-on #fendaTeamRoster.collapsed{bottom:auto;height:29px;overflow:hidden}
  #fendaTeamRoster.collapsed .pc-roster-list{display:none}
- .stage.fenda-on #fendaMinimap{top:auto;bottom:117px;left:auto;right:12px;
+  .stage.fenda-on #fendaMinimap{top:auto;bottom:117px;left:12px;right:auto;
   width:clamp(105px,13vw,145px);z-index:8;border-radius:7px}
  .stage.fenda-on #fendaInfo{top:42px}
 }
@@ -661,12 +661,12 @@
  #fendaDesktopBar .pc-item{height:28px;font-size:13px}
  #fendaDesktopBar .pc-bar-actions button{font-size:8px}
  .stage.fenda-on #fendaTeamRoster{width:168px;bottom:116px}
- .stage.fenda-on #fendaMinimap{bottom:104px;width:105px}
+ .stage.fenda-on #fendaMinimap{bottom:104px;left:9px;right:auto;width:105px}
 }
 @media (hover:hover) and (pointer:fine) and (max-height:420px){
  .stage.fenda-on #fendaDesktopBar{bottom:3px;min-height:82px;padding-top:5px;padding-bottom:4px}
  .stage.fenda-on #fendaTeamRoster{top:37px;bottom:108px}
- .stage.fenda-on #fendaMinimap{bottom:96px;width:104px}
+ .stage.fenda-on #fendaMinimap{bottom:96px;left:9px;right:auto;width:104px}
  #fendaDesktopBar .pc-skill{height:51px}
  #fendaDesktopBar .pc-spell{height:47px}
 }
