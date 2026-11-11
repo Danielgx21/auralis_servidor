@@ -1147,6 +1147,7 @@ console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livr
   assert.ok(cds[3]<cds[0]*.85,'Ímpeto não aumenta velocidade de ataques consecutivos');
   h.skillLevels.lyria_rain=1;h.mana=E.maxMana(h);
   assert.ok(E.cast(h,'lyria_rain',{x:1,y:0,distance:80}));
+  for(let i=0;i<5;i++)E.step(.05,{x:0,y:0}); // prepara a cortina
   assert.ok(m.zones.some(z=>z.kind==='arrowstorm'),
    'Cortina da Lyria deve ser persistente, não uma explosão genérica');
   const hp=e.hp;
@@ -1164,6 +1165,7 @@ console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livr
   for(let i=0;i<8;i++)E.step(.05,{x:0,y:0});
   h.mana=E.maxMana(h);
   assert.ok(E.cast(h,'tessa_salvo',{x:1,y:0,distance:30}));
+  for(let i=0;i<3;i++)E.step(.05,{x:0,y:0}); // arma a armadilha
   assert.ok(m.zones.some(z=>z.kind==='trap'),'Tessa deve instalar armadilha, não rajada');
   const hp=e.hp;
   for(let i=0;i<10;i++)E.step(.05,{x:0,y:0});
