@@ -99,8 +99,28 @@ function useSummoner(index){
  if(S.mode!=='playing'||S.shopOpen||S.showPause||!S.hero||S.hero.hp<=0)return;
  const spell=S.hero.summoners[index];
  if(!spell)return;
- if(!E.castSummoner(S.hero,spell))warn(spell==='smite'?'SELO: APROXIME-SE DE UM MONSTRO OU CAMPEÃO':
-  spell==='ignite'?'MARCA: NENHUM CAMPEÃO AO ALCANCE':'FEITIÇO INDISPONÍVEL');
+ let pointed=null,aim=null;
+ if(desktopCamera()){
+  const point=desktopMouseWorld();
+  if(spell==='flash'){
+   const dir=point?E.norm(point.x-S.hero.x,point.y-S.hero.y):
+    {x:Math.cos(S.hero.facing||0),y:Math.sin(S.hero.facing||0)};
+   aim={x:dir.x,y:dir.y};
+  }else if(spell==='ignite'||spell==='smite'){
+   aim={manual:true};
+   if(point){
+    const pool=E.living(1-S.hero.side,'hero').filter(u=>E.visibleTo(S.hero.side,u))
+      .concat(spell==='smite'?S.camps.filter(x=>x.hp>0&&(!x.unlock||S.time>=x.unlock)):[]);
+    pointed=pool.filter(u=>Math.hypot(u.x-point.x,u.y-point.y)<(u.r||29)+24)
+     .sort((a,b)=>Math.hypot(a.x-point.x,a.y-point.y)-
+       Math.hypot(b.x-point.x,b.y-point.y))[0]||null;
+   }
+  }
+ }
+ if(!E.castSummoner(S.hero,spell,pointed,aim))warn(spell==='smite'?
+  'SELO: APONTE O MOUSE PARA UM MONSTRO OU CAMPEÃO PRÓXIMO':
+  spell==='ignite'?'MARCA: APONTE PARA UM CAMPEÃO NO ALCANCE':
+  'FEITIÇO INDISPONÍVEL');
  hudUpdate();
 }
 const scoreboard=document.createElement('section');scoreboard.id='fendaScoreboard';
@@ -1298,10 +1318,13 @@ function pause(){
  $('resumeFenda').onclick=pause;$('resetFenda').onclick=startGame;$('menuFenda').onclick=chooseHero;
 }
 // Desktop: mira no ponteiro real e nunca adquire automaticamente o inimigo mais próximo.
+function desktopMouseWorld(){
+ return desktopPointer.over?{x:S.camera.x+desktopPointer.x/cameraZoom,
+  y:S.camera.y+desktopPointer.y/cameraZoom}:desktopPointer.lastWorld;
+}
 function desktopMouseAim(id){
  const h=S.hero,range=E.skillDef(id).range||140;
- const cursor=desktopPointer.over?{x:S.camera.x+desktopPointer.x/cameraZoom,
-  y:S.camera.y+desktopPointer.y/cameraZoom}:desktopPointer.lastWorld;
+ const cursor=desktopMouseWorld();
  const angle=h.facing||0,dx=cursor?cursor.x-h.x:Math.cos(angle)*range,
   dy=cursor?cursor.y-h.y:Math.sin(angle)*range;
  const dir=E.norm(dx,dy),distance=clamp(Math.hypot(dx,dy),0,range);
