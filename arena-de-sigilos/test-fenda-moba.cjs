@@ -19,13 +19,13 @@ const E=sandbox.window.FendaEngine,AI=sandbox.window.FendaTeamAI;
 assert.ok(E&&AI,'Motor ou coordenador tático não inicializado');
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const state=E.start('lyria');
-assert.equal(Object.keys(heroes).length,7,'Brax e Zhira devem ampliar o elenco para 7');
+assert.equal(Object.keys(heroes).length,10,'Elenco precisa ter dez campeões');
 assert.ok(state.units.filter(u=>u.kind==='hero').every(u=>
  Object.values(u.skillLevels).filter(rank=>rank>0).length===1),
  'Cada campeão deve começar com uma única habilidade básica');
 assert.ok(E.SUMMONERS.smite&&E.SUMMONERS.freecast,
  'Feitiços de invocador Selo da Caça e Transe Arcano não cadastrados');
-assert.equal(E.ITEMS.filter(item=>item.tier===2).length,10,
+assert.equal(E.ITEMS.filter(item=>item.tier===2).length,14,
  'Itens de lutador e caçador não presentes na loja');
 
 assert.equal(state.units.filter(u=>u.kind==='hero').length,10);
@@ -733,8 +733,8 @@ E.start('lyria');
 {
  const components=E.ITEMS.filter(i=>i.tier===1);
  const completed=E.ITEMS.filter(i=>i.tier===2);
- assert.equal(components.length,6,'Loja precisa de seis pré-itens');
- assert.equal(completed.length,10,'Loja precisa de dez itens completos');
+ assert.equal(components.length,8,'Loja precisa de oito pré-itens');
+ assert.equal(completed.length,14,'Loja precisa de quatorze itens completos');
  assert.ok(completed.every(i=>i.recipe.length>=3),'Itens completos exigem componentes reais');
  assert.ok(completed.every(i=>i.recipe.reduce((v,id)=>v+E.ITEMS.find(p=>p.id===id).price,0)<i.price),
   'Custo de combinação deve ser adicional ao custo dos componentes');
@@ -890,4 +890,44 @@ E.start('lyria');
   'Equipe do lutador deve manter suporte');
 }
 
-console.log('OK: estilo Teamfight sem estradas/imagens, portoes solidos, jungles fisicas, torres e 5x5.');
+// V9.2 — teste do elenco expandido, controle automático e itens.
+{
+ for(const id of ['kaelis','rokar','tessa']){
+  const game=E.start(id),self=game.hero,h=heroes[id];
+  assert.equal(self.id,id,'Campeão não foi selecionado: '+id);
+  assert.equal(game.units.filter(u=>u.kind==='hero'&&u.side===0).length,5);
+  assert.equal(game.units.filter(u=>u.kind==='hero'&&u.side===1).length,5);
+  assert.ok(h.skills.every(s=>skills[s])&&skills[h.ultimate], 'Kit incompleto: '+id);
+  assert.equal(E.skillRank(self,h.skills[0]),1);
+  assert.ok(h.skills.slice(1).every(s=>E.skillRank(self,s)===0));
+  self.level=5;self.skillPoints=3;
+  for(const s of [...h.skills.slice(1),h.ultimate])
+   assert.ok(E.upgradeSkill(self,s).ok,'Não aprende: '+s);
+  for(const s of [...h.skills,h.ultimate]){
+   const def=E.skillDef(s);
+   self.cooldowns[s]=0;self.mana=E.maxMana(self);
+   assert.ok(E.cast(self,s,{x:1,y:0,distance:Math.min(100,def.range||80)}),
+    'Habilidade não dispara: '+s);
+   self.casting=null;self.dash=null;
+  }
+ }
+ const game=E.start('tessa'),self=game.hero;
+ const foe=game.units.find(u=>u.kind==='hero'&&u.side===1);
+ game.units=[self,foe];game.structures=[];game.walls=[];game.camps=[];
+ self.x=1300;self.y=1600;foe.x=1420;foe.y=1600;foe.stun=20;
+ self.attackCd=0;self.recall=0;self.casting=null;self.dash=null;
+ const hp=foe.hp;
+ for(let k=0;k<60;k++)E.step(.05,{x:0,y:0});
+ assert.ok(foe.hp<hp,'O AA automático não atingiu inimigo com jogador parado');
+ self.attackCd=0;self.attackPending=null;game.projectiles=[];foe.hp=foe.maxHp;
+ E.step(.05,{x:1,y:0});
+ assert.equal(self.attackCd,0,'O AA automático não deve iniciar quando o jogador anda');
+ assert.ok(['fang','sprout','phantomfang','glacier','lifebloom','barrage']
+  .every(id=>E.ITEMS.some(it=>it.id===id)),'Os seis novos equipamentos devem existir');
+ const view=read('fenda-view.js'),css=read('fenda.css');
+ assert.ok(view.includes('mouseFollow.moved=true')&&view.includes('clickDestination=null;')&&
+  view.includes('mouseFollow={ptr:e.pointerId'),'Clique segurado não segue o ponteiro');
+ assert.ok(view.includes("'<em>'+sp.desc+'</em>'")&&css.includes('.fenda-summoner-picker button em'),
+  'Explicações dos feitiços não estão visíveis na seleção');
+}
+console.log('OK: V9.2 com 10 campeões, 14 itens finais, AA automático parado e ponteiro segurado.');
