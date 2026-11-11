@@ -518,3 +518,155 @@
  .fenda-summoner-picker button{min-height:62px}
  .fenda-summoner-picker button em{font-size:8px}}
 .stage.fenda-on #fendaCanvas{cursor:crosshair;touch-action:none}
+
+/* Fenda 9.3 — HUD de computador: barra de campeão estilo MOBA, sem os botões mobile. */
+#fendaDesktopBar,#fendaTeamRoster{display:none}
+@media (hover:hover) and (pointer:fine){
+ .stage.fenda-on .mobile-controls{display:none!important;pointer-events:none!important}
+ .stage.fenda-on #fendaSummoners,
+ .stage.fenda-on #fendaWardBtn,
+ .stage.fenda-on #fendaTowerBtn{display:none!important;pointer-events:none!important}
+ .stage.fenda-on .fenda-personal{display:none!important}
+ .stage.fenda-on .fenda-actions #fendaShopBtn,
+ .stage.fenda-on .fenda-actions #fendaRecallBtn{display:none!important}
+ .stage.fenda-on #fendaDesktopBar{
+  position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+  z-index:10;display:grid;grid-template-columns:66px minmax(110px,.95fr) minmax(210px,1.8fr) minmax(86px,.72fr) minmax(152px,1.22fr);
+  align-items:stretch;gap:9px;width:min(900px,calc(100vw - 34px));min-height:100px;
+  padding:9px 11px 8px;box-sizing:border-box;pointer-events:auto;
+  background:linear-gradient(180deg,#173343f7,#0c202ffb 46%,#071625fd);
+  border:1px solid #8eb1a477;border-top:2px solid #c4a87299;border-radius:9px;
+  box-shadow:0 0 0 1px #030e17b5,inset 0 1px #e9e6c138,0 10px 32px #000d;
+  color:#e9f5f4;font-family:inherit;user-select:none;
+ }
+ #fendaDesktopBar button{pointer-events:auto;cursor:pointer;user-select:none}
+ #fendaDesktopBar .pc-champion{display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;min-width:0;padding-right:6px;
+  border-right:1px solid #7ca7ac4e;text-align:center}
+ #fendaDesktopBar .pc-portrait{width:44px;height:44px;flex:none;display:grid;
+  place-items:center;border-radius:10px;border:2px solid #8debd2;
+  background:radial-gradient(circle at 50% 23%,#31556d,#081723 78%);
+  box-shadow:inset 0 1px 7px #f2fff622,0 2px 9px #0008;font-size:27px}
+ #fendaDesktopBar .pc-champion strong{font-size:10px;letter-spacing:.045em;
+  overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%}
+ #fendaDesktopBar .pc-champion>span{font-size:8px;font-weight:900;color:#eccb84}
+ #fendaDesktopBar .pc-vitals{display:flex;flex-direction:column;justify-content:center;gap:4px;min-width:0}
+ #fendaDesktopBar .pc-statline{display:flex;flex-wrap:wrap;justify-content:space-between;gap:3px;font-size:9px}
+ #fendaDesktopBar .pc-statline strong{color:#b2f3d4}
+ #fendaDesktopBar .pc-statline span{color:#a4c5ec;font-size:8px}
+ #fendaDesktopBar .pc-meter{height:9px;overflow:hidden;border:1px solid #ffffff24;
+  background:#04121e;border-radius:4px}
+ #fendaDesktopBar .pc-meter i{height:100%;display:block;transition:width .13s}
+ #fendaDesktopBar .pc-hp i{background:linear-gradient(90deg,#238f83,#70ecd1)}
+ #fendaDesktopBar .pc-mana{height:7px}
+ #fendaDesktopBar .pc-mana i{background:linear-gradient(90deg,#3476a8,#83bbef)}
+ #fendaDesktopBar .pc-xp{height:3px}
+ #fendaDesktopBar .pc-xp i{background:linear-gradient(90deg,#ae8643,#f9d282)}
+ #fendaDesktopBar .pc-statfoot{font-size:8px;line-height:1.2;color:#abc6cd;white-space:normal}
+ #fendaDesktopBar .pc-group-title{height:14px;display:flex;justify-content:space-between;
+  align-items:center;gap:4px;color:#b4cccd;font-size:8px;font-weight:900;letter-spacing:.065em;
+  white-space:nowrap;margin:0 0 5px}
+ #fendaDesktopBar .pc-group-title small{font-size:8px;letter-spacing:normal;color:#dfc28b}
+ #fendaDesktopBar .pc-ability-group,#fendaDesktopBar .pc-spell-group,
+ #fendaDesktopBar .pc-inventory{min-width:0;display:flex;flex-direction:column;justify-content:center}
+ #fendaDesktopBar .pc-skills{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+ #fendaDesktopBar .pc-skill{position:relative;min-width:0;height:62px;display:flex;
+  flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:12px 2px 2px;
+  color:#e7f8f6;background:linear-gradient(160deg,#365763,#142c3f 65%,#0c1e2e);
+  border:1px solid #8fbbba99;border-radius:6px;box-shadow:inset 0 1px #e2fff328,0 3px 8px #0008}
+ #fendaDesktopBar .pc-skill[data-pc-skill="3"]{border-color:#ddc17e;color:#ffedba;
+  background:linear-gradient(155deg,#79613c,#2a3042 66%,#102033)}
+ #fendaDesktopBar .pc-skill b{font-size:23px;line-height:24px;text-shadow:0 2px 7px #000}
+ #fendaDesktopBar .pc-skill small{max-width:95%;font-size:8px;line-height:10px;
+  color:#cce4e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ #fendaDesktopBar .pc-key{position:absolute;top:1px;left:3px;z-index:2;
+  font-size:9px;font-weight:950;color:#fbe5ad;text-shadow:0 1px 3px #000}
+ #fendaDesktopBar .pc-rank{position:absolute;right:2px;top:2px;color:#d3ecdd;
+  font-size:7px;background:#04131a8c;padding:0 2px;border-radius:3px}
+ #fendaDesktopBar .pc-skill .pc-cooldown,#fendaDesktopBar .pc-spell .pc-cooldown{
+  display:none;position:absolute;inset:0;align-items:center;justify-content:center;
+  background:#031424cd;color:#fff;font-size:16px;font-weight:900;font-style:normal;border-radius:5px}
+ #fendaDesktopBar .pc-skill.oncd .pc-cooldown:not(:empty),
+ #fendaDesktopBar .pc-spell.oncd .pc-cooldown:not(:empty){display:flex}
+ #fendaDesktopBar .pc-skill.oncd,#fendaDesktopBar .pc-spell.oncd{filter:saturate(.55);opacity:.77}
+ #fendaDesktopBar .pc-skill:active,#fendaDesktopBar .pc-spell:active{filter:brightness(1.28)}
+ #fendaDesktopBar .pc-spells{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+ #fendaDesktopBar .pc-spell{position:relative;height:56px;min-width:0;padding:6px 0 0;
+  border:1px solid #bb9cc9a3;border-radius:6px;background:linear-gradient(150deg,#4a486b,#142538);
+  box-shadow:inset 0 1px #f9f4ff2a,0 3px 8px #0008;color:#e7d7ff}
+ #fendaDesktopBar .pc-spell b{font-size:23px;line-height:26px}
+ #fendaDesktopBar .pc-ward{border-color:#7ad9b9;color:#9af0d3;
+  background:linear-gradient(150deg,#2c655b,#132e38)}
+ #fendaDesktopBar .pc-items{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:3px}
+ #fendaDesktopBar .pc-item{display:grid;place-items:center;min-width:0;height:32px;
+  border:1px solid #788c9b72;background:#0d1f30;border-radius:5px;font-size:16px;
+  color:#efd59b;box-shadow:inset 0 0 7px #0006}
+ #fendaDesktopBar .pc-item.occupied{background:linear-gradient(150deg,#4c4937,#273447 60%,#102036);
+  border-color:#c2a66c9e}
+ #fendaDesktopBar .pc-item.empty{color:#567585}
+ #fendaDesktopBar .pc-bar-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;margin-top:5px}
+ #fendaDesktopBar .pc-bar-actions button{padding:5px 1px;border:1px solid #7baba77d;
+  border-radius:5px;background:#22414e;color:#d9f6e9;font-size:9px;font-weight:900}
+ #fendaDesktopBar .pc-bar-actions button:hover{background:#376773}
+ .stage.fenda-on #fendaTeamRoster{display:flex;position:absolute;right:10px;top:43px;bottom:124px;
+  z-index:8;flex-direction:column;width:195px;min-height:0;pointer-events:auto;
+  border:1px solid #7eada276;border-radius:8px;background:linear-gradient(155deg,#102b3ce8,#081623eb);
+  color:#e5f4f0;box-shadow:0 5px 20px #000b;overflow:hidden}
+ #fendaTeamRoster #pcRosterToggle{width:100%;min-height:28px;border:0;border-bottom:1px solid #86aaa353;
+  background:linear-gradient(90deg,#294c59,#142b3c);color:#e1f1e8;
+  display:flex;justify-content:space-between;align-items:center;padding:5px 9px;
+  font-size:10px;font-weight:950;letter-spacing:.045em;pointer-events:auto}
+ #fendaTeamRoster #pcRosterToggle small{font-size:8px;color:#d1bc8a;margin-left:4px}
+ #fendaTeamRoster #pcRosterToggle b{font-size:16px;line-height:1}
+ #fendaTeamRoster .pc-roster-list{overflow-y:auto;min-height:0;overscroll-behavior:contain;
+  scrollbar-width:thin;scrollbar-color:#49727c #0c2534;padding:3px}
+ #fendaTeamRoster .pc-roster-heading{display:block;font-size:8px;letter-spacing:.085em;
+  padding:5px 4px 3px;border-bottom:1px solid #6c999c43}
+ #fendaTeamRoster .blue .pc-roster-heading{color:#87e6df}
+ #fendaTeamRoster .red .pc-roster-heading{color:#ff9fb4}
+ #fendaTeamRoster .pc-roster-entry{display:grid;grid-template-columns:24px minmax(0,1fr) 32px;
+  align-items:center;gap:4px;padding:3px 3px;margin-top:2px;border-radius:4px;
+  background:#1b3a4849;min-width:0;border-left:2px solid transparent}
+ #fendaTeamRoster .pc-roster-entry.self{border-color:#f6cc79;background:#3d524868}
+ #fendaTeamRoster .pc-roster-entry.dead{opacity:.55}
+ #fendaTeamRoster .pc-roster-entry.unseen .pc-roster-hp,
+ #fendaTeamRoster .pc-roster-entry.unseen .pc-roster-mana{opacity:.25}
+ #fendaTeamRoster .pc-roster-portrait{display:grid;place-items:center;width:23px;height:23px;
+  border:1px solid;border-radius:5px;font-size:17px;background:#153044}
+ #fendaTeamRoster .pc-roster-main{min-width:0;display:flex;flex-direction:column;gap:2px}
+ #fendaTeamRoster .pc-roster-name{display:flex;justify-content:space-between;gap:3px;
+  font-size:8px;font-weight:900;min-width:0;white-space:nowrap}
+ #fendaTeamRoster .pc-roster-name>span{font-size:7px;color:#b7cbce;font-weight:600}
+ #fendaTeamRoster .pc-roster-hp,#fendaTeamRoster .pc-roster-mana{
+  height:4px;background:#051623;border-radius:3px;overflow:hidden}
+ #fendaTeamRoster .pc-roster-hp i{display:block;height:100%;background:#73dcc4}
+ #fendaTeamRoster .pc-roster-mana{height:3px}
+ #fendaTeamRoster .pc-roster-mana i{display:block;height:100%;background:#76a5ed}
+ #fendaTeamRoster .pc-roster-meta{display:flex;flex-direction:column;align-items:center;gap:2px;
+  white-space:nowrap;font-size:8px}
+ #fendaTeamRoster .pc-roster-meta small{color:#d1c7e3;font-size:10px;letter-spacing:1px}
+ .stage.fenda-on #fendaTeamRoster.collapsed{bottom:auto;height:29px;overflow:hidden}
+ #fendaTeamRoster.collapsed .pc-roster-list{display:none}
+ .stage.fenda-on #fendaMinimap{top:auto;bottom:117px;left:auto;right:12px;
+  width:clamp(105px,13vw,145px);z-index:8;border-radius:7px}
+ .stage.fenda-on #fendaInfo{top:42px}
+}
+@media (hover:hover) and (pointer:fine) and (max-width:760px){
+ .stage.fenda-on #fendaDesktopBar{width:calc(100vw - 12px);grid-template-columns:44px 88px minmax(170px,1fr) 77px 116px;
+  gap:4px;padding:6px 5px;min-height:90px}
+ #fendaDesktopBar .pc-portrait{width:34px;height:34px;font-size:21px}
+ #fendaDesktopBar .pc-skill{height:56px}
+ #fendaDesktopBar .pc-skill b{font-size:19px}
+ #fendaDesktopBar .pc-spell{height:50px}
+ #fendaDesktopBar .pc-item{height:28px;font-size:13px}
+ #fendaDesktopBar .pc-bar-actions button{font-size:8px}
+ .stage.fenda-on #fendaTeamRoster{width:168px;bottom:116px}
+ .stage.fenda-on #fendaMinimap{bottom:104px;width:105px}
+}
+@media (hover:hover) and (pointer:fine) and (max-height:420px){
+ .stage.fenda-on #fendaDesktopBar{bottom:3px;min-height:82px;padding-top:5px;padding-bottom:4px}
+ .stage.fenda-on #fendaTeamRoster{top:37px;bottom:108px}
+ .stage.fenda-on #fendaMinimap{bottom:96px;width:104px}
+ #fendaDesktopBar .pc-skill{height:51px}
+ #fendaDesktopBar .pc-spell{height:47px}
+}
