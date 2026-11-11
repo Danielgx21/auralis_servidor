@@ -728,13 +728,13 @@ function chooseHero(){
  shop.classList.remove('open');$('overlay').classList.remove('hidden','arsenal-open','hero-open');
  $('overlay').classList.add('picker-open');$('missionShelf').hidden=true;
  const selected=C.getHeroChoice();
- $('modalContent').innerHTML='<div class="eyebrow">NOVO MOBA · VERSÃO 6.1</div><h2>FENDA DOS SIGILOS</h2>'+
- '<p>Rotas de curvas suaves, tropas em formação e torres nas laterais. IA de teamfight coordenada: iniciação, proteção, flanco e recuo.</p>'+
+ $('modalContent').innerHTML='<div class="eyebrow">MOBA · VERSÃO 8.5</div><h2>FENDA DOS SIGILOS</h2>'+ 
+ '<p>Três rotas, selva estratégica, campeões com habilidades evolutivas e oito equipamentos completos com componentes.</p>'+ 
  '<div class="fenda-hero-list">'+Object.entries(C.heroes).map(([id,h])=>
   '<button class="fenda-hero '+(id===selected?'picked':'')+'" data-hero="'+id+'"><span style="color:'+h.color+'">'+h.symbol+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small></button>').join('')+'</div>'+
- '<div class="teamfight-tip">5×5 com IA tática · composição de equipe · foco conjunto · recuo e iniciação · névoa de guerra · jungle e ganks · objetivos · loja e XP.</div>'+
+ '<div class="teamfight-tip">5×5 com bots táticos · 6 pré-itens e 8 receitas · habilidades com ranks · último golpe · ganks · objetivos e visão.</div>'+ 
  '<div class="actions" style="margin-top:10px"><button class="primary" id="playFenda">▶ JOGAR FENDA 5×5</button><button class="secondary" id="playClassic">MODO ARENA RÁPIDA</button></div>'+
- '<p style="font-size:10px;margin:9px 0 0">Celular: joystick, habilidades e toque no placar para abrir o TAB. PC: clique direito para andar/atacar; TAB mostra o placar, F2 alterna para WASD + 1/2/3/4, B retorno, P loja, V sentinela.</p>';
+ '<p style="font-size:10px;margin:9px 0 0">Celular: mantenha o joystick com um dedo e ataque/mire com o outro. Ao subir de nível, toque em + para melhorar habilidades. Loja: compre componentes e combine-os. PC: Shift+1/2/3/4 para evoluir habilidades; TAB placar, P loja, B retorno.</p>';
  for(const b of $('modalContent').querySelectorAll('[data-hero]'))b.onclick=()=>{C.setHeroChoice(b.dataset.hero);chooseHero()};
  $('playFenda').onclick=startGame;
  $('playClassic').onclick=()=>{S.mode='classic';stage.classList.remove('fenda-on');C.showClassic()};
