@@ -362,7 +362,7 @@ function buildMap(){
    // T1 próxima do rio, T2 na metade recuada e T3 próxima da base.
    // Posições equilibradas em distância percorrida (e simétricas entre lados):
    // redução do abismo entre T1 inimigas sem aglomerar três torres aliadas.
-   const positions=lane===1?[.375,.19,.035]:[.375,.225,.075];
+   const positions=lane===1?[.375,.205,.05]:[.375,.225,.075];
    const t=(side===0?positions:positions.map(t=>1-t))[tier];
    const p=pathPos(lane,t),a=pathPos(lane,Math.max(0,t-.004)),b=pathPos(lane,Math.min(1,t+.004));
    const direction=norm(b.x-a.x,b.y-a.y);
