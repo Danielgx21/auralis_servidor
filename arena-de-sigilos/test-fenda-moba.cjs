@@ -56,10 +56,10 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=9.4')&&
- html.includes('fenda-team-ai.js?v=9.4')&&
- html.includes('fenda-scenery.js?v=9.4')&&
- html.includes('fenda-view.js?v=9.4'),'O site precisa carregar o cenário procedural antes da câmera.');
+assert.ok(html.includes('fenda-engine.js?v=9.5')&&
+ html.includes('fenda-team-ai.js?v=9.5')&&
+ html.includes('fenda-scenery.js?v=9.5')&&
+ html.includes('fenda-view.js?v=9.5'),'O site precisa carregar o cenário procedural antes da câmera.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -957,8 +957,8 @@ E.start('lyria');
  assert.ok(view.includes("isDesktop?$('pcSkill'+i):b")&&
   css.includes('#fendaTeamRoster.collapsed .pc-roster-list'),
   'Evolução de habilidades e recolhimento do quadro não foram adaptados');
- assert.ok(html.includes('fenda-view.js?v=9.4')&&html.includes('fenda.css?v=9.4'),
-  'Cache precisa trazer a versão 9.4');
+ assert.ok(html.includes('fenda-view.js?v=9.5')&&html.includes('fenda.css?v=9.5'),
+  'Cache precisa trazer a versão 9.5');
 }
 // V9.4 — novas prioridades de AA, tempo de ataque, decisões dos bots e retratos.
 {
