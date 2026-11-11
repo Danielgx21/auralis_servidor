@@ -620,8 +620,8 @@ const scoreApi=new Function('E','C','S',scoreCode+'return {scoreTeam};')(E,{hero
 const blueHTML=scoreApi.scoreTeam(0),redHTML=scoreApi.scoreTeam(1);
 assert.equal((blueHTML.match(/class="fenda-scoreboard-player/g)||[]).length,5);
 assert.equal((redHTML.match(/class="fenda-scoreboard-player/g)||[]).length,5);
-assert.ok(blueHTML.includes('LYRIA')&&redHTML.includes('LYRIA'),
- 'Campeoes dos dois times precisam aparecer');
+assert.ok(blueHTML.includes('LYRIA')&&redHTML.includes('TESSA')&&redHTML.includes('KAELIS'),
+ 'Campeoes dos dois times precisam aparecer no placar');
 const self=state.hero;self.kills=4;self.deaths=2;self.assists=6;self.cs=34;
 self.items.push('lens');
 const populated=scoreApi.scoreTeam(0);
