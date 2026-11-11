@@ -1364,7 +1364,8 @@ function startGame(){
  shopTab='recommended';shopFilter='all';shopSelectedId=null;shopQueuedId=null;
  E.start(C.getHeroChoice(),pickedSummoners);setScoreboardVisible(false);endedShown=false;clickDestination=null;mouseFollow=null;rosterLastUpdate=-1;cameraPeek=null;cameraPeekUntil=0;wardAim=null;keys.clear();
  desktopPointer.over=false;desktopPointer.lastWorld=null;spaceCenterHeld=false;cameraDrag=null;syncCameraControl();
- joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;aaAim=null;pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
+ joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;aaAim=null;S.attackAimActive=false;
+ pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
  shop.classList.remove('open');$('overlay').classList.add('hidden');$('missionShelf').hidden=true;
  resize();if(desktopCamera())cameraCenterAt(S.hero.x,S.hero.y);
  drawTerrain();last=performance.now();hudCountdown=0;hudUpdate();
@@ -1390,7 +1391,9 @@ function pause(){
  if(S.showPause){
    setScoreboardVisible(false);
   S.shopOpen=false;shop.classList.remove('open');
-  joy.x=joy.y=0;joy.ptr=null;keys.clear();pointers.aa=null;pointers.skill=null;wardAim=null;cameraPeek=null;aimPreview=null;mouseFollow=null;clickDestination=null;
+  joy.x=joy.y=0;joy.ptr=null;keys.clear();pointers.aa=null;aaAim=null;S.attackAimActive=false;
+  $('fireBtn').classList.remove('target-holding','target-selected');
+  pointers.skill=null;wardAim=null;cameraPeek=null;aimPreview=null;mouseFollow=null;clickDestination=null;
  }
  if(!S.showPause){$('overlay').classList.add('hidden');return}
  $('overlay').classList.remove('hidden','picker-open','hero-open','arsenal-open');$('missionShelf').hidden=true;
@@ -1520,6 +1523,7 @@ function aaMove(e){
  aaAim.dx=e.clientX-aaAim.sx;aaAim.dy=e.clientY-aaAim.sy;
  if(Math.hypot(aaAim.dx,aaAim.dy)>19)aaAim.dragged=true;
  if(aaAim.dragged){
+  S.attackAimActive=true;
   aaAim.target=attackStickTarget(S.hero,aaAim.dx,aaAim.dy);
   $('fireBtn').classList.toggle('target-selected',!!aaAim.target);
  }
@@ -1528,7 +1532,7 @@ function aaEnd(e){
  if(pointers.aa!==e.pointerId)return;
  e.preventDefault();e.stopPropagation();
  const aim=aaAim;
- pointers.aa=null;aaAim=null;
+ pointers.aa=null;aaAim=null;S.attackAimActive=false;
  $('fireBtn').classList.remove('target-holding','target-selected');
  if(e.type==='pointercancel'||!S.hero||S.hero.hp<=0)return;
  if(aim?.dragged){
@@ -1903,7 +1907,7 @@ window.addEventListener('keyup',e=>{
  if(key==='tab'&&scoreboardHeld){e.preventDefault();setScoreboardVisible(false);}
 });
 window.addEventListener('blur',()=>{
- keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;aaAim=null;
+ keys.clear();joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;aaAim=null;S.attackAimActive=false;
  $('fireBtn').classList.remove('target-holding','target-selected');
  pointers.skill=null;mouseFollow=null;clickDestination=null;
  desktopPointer.over=false;cameraDrag=null;spaceCenterHeld=false;
