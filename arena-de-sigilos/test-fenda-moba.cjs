@@ -58,10 +58,10 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=9.6')&&
- html.includes('fenda-team-ai.js?v=9.6')&&
- html.includes('fenda-scenery.js?v=9.6')&&
- html.includes('fenda-view.js?v=9.6'),'O site precisa carregar o cenário procedural antes da câmera.');
+assert.ok(html.includes('fenda-engine.js?v=9.7')&&
+ html.includes('fenda-team-ai.js?v=9.7')&&
+ html.includes('fenda-scenery.js?v=9.7')&&
+ html.includes('fenda-view.js?v=9.7'),'O site precisa carregar o cenário procedural antes da câmera.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -966,8 +966,8 @@ E.start('lyria');
  assert.ok(view.includes("isDesktop?$('pcSkill'+i):b")&&
   css.includes('#fendaTeamRoster.collapsed .pc-roster-list'),
   'Evolução de habilidades e recolhimento do quadro não foram adaptados');
- assert.ok(html.includes('fenda-view.js?v=9.6')&&html.includes('fenda.css?v=9.6'),
-  'Cache precisa trazer a versão 9.6');
+ assert.ok(html.includes('fenda-view.js?v=9.7')&&html.includes('fenda.css?v=9.7'),
+  'Cache precisa trazer a versão 9.7');
 }
 // V9.4 — novas prioridades de AA, tempo de ataque, decisões dos bots e retratos.
 {
@@ -1073,7 +1073,7 @@ E.start('lyria');
  assert.ok(site.includes('.stage.fenda-on #fendaSummoners .fenda-summoner small{')&&
   site.includes('font-size:10px!important')&&site.includes('#fendaMobileGuide'),
   'CSS do celular não tornou feitiços e habilidades legíveis');
- assert.ok(site.includes('fenda-view.js?v=9.6')&&site.includes('fenda.css?v=9.6'),
+ assert.ok(site.includes('fenda-view.js?v=9.7')&&site.includes('fenda.css?v=9.7'),
   'O cache do jogo precisa apontar para a versão 9.5');
 }
 console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livre e feitiços legíveis.');
@@ -1188,7 +1188,7 @@ console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livr
  assert.ok(view.includes("id==='sahra_ult'&&h.sahraSecondUntil>S.time")&&
   view.includes("id==='mirielle_distort'&&h.mirrorReturn?.until>S.time"),
   'As habilidades reativáveis precisam estar habilitadas no painel');
- assert.ok(source.includes('fenda-engine.js?v=9.6')&&source.includes('fenda-view.js?v=9.6'),
+ assert.ok(source.includes('fenda-engine.js?v=9.7')&&source.includes('fenda-view.js?v=9.7'),
   'Cache de versão deve usar os novos campeões');
 }
 console.log('OK: V9.6 com duas assassinas, fumaça, retorno, execução, combos e ADCs distintos.');
