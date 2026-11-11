@@ -929,7 +929,7 @@ E.start('lyria');
  const view=read('fenda-view.js'),css=read('fenda.css');
  assert.ok(view.includes('mouseFollow.moved=true')&&view.includes('clickDestination=null;')&&
   view.includes('mouseFollow={ptr:e.pointerId'),'Clique segurado não segue o ponteiro');
- assert.ok(view.includes("'<em>'+sp.desc+'</em>'")&&css.includes('.fenda-summoner-picker button em'),
+ assert.ok(view.includes("'<em>'+sp.desc+'</em></button>'")&&css.includes('.fenda-summoner-picker button em'),
   'Explicações dos feitiços não estão visíveis na seleção');
 }
 console.log('OK: V9.2 com 10 campeões, 14 itens finais, AA automático parado e ponteiro segurado.');
