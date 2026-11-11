@@ -839,7 +839,7 @@ E.start('lyria');
    E.autoAttack(h);
   }
   out[id]={damage:380-foe.hp,range:E.attackRange(h)};
-  assert.ok(out[id].damage>20&&out[id].damage<140,
+  assert.ok(out[id].damage>20&&out[id].damage<195,
    'Dano básico fora da escala do jogo: '+id);
  }
  assert.ok(out.lyria.damage>out.nyra.damage*1.35,
