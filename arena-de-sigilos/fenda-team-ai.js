@@ -4,13 +4,15 @@
 const E=window.FendaEngine,C=window.SigilsCore;
 if(!E||!C){console.error('Fenda Team AI: dependências ausentes');return}
 const S=E.state,clamp=E.clamp,dist=E.dist,norm=E.norm;
-const roles={orun:'tank',vexor:'assassin',lyria:'carry',nyra:'mage',seris:'support',brax:'fighter',zhira:'jungler',rokar:'tank',kaelis:'mage',tessa:'carry'};
+const roles={orun:'tank',vexor:'assassin',lyria:'carry',nyra:'mage',seris:'support',brax:'fighter',zhira:'jungler',rokar:'tank',kaelis:'mage',tessa:'carry',sahra:'assassin',mirielle:'assassin'};
 let nextScan=0;
 const living=(side)=>E.living(side,'hero');
 const visibleFoes=(side)=>living(1-side).filter(e=>E.visibleTo(side,e));
 const hp=h=>h.hp/Math.max(1,h.maxHp);
-const canCast=(h,id)=>h.cooldowns[id]<=.01&&(h.mana>=E.skillDef(id).cost||h.manaFreeUntil>S.time)&&
- h.stun<=0&&E.skillRank(h,id)>0;
+const canCast=(h,id)=>h.stun<=0&&E.skillRank(h,id)>0&&
+ ((id==='sahra_ult'&&h.sahraSecondUntil>S.time)||
+ (id==='mirielle_distort'&&h.mirrorReturn?.until>S.time)||
+ (h.cooldowns[id]<=.01&&(h.mana>=E.skillDef(id).cost||h.manaFreeUntil>S.time)));
 // Compara vantagem real: vida, níveis, equipamentos completos e ultimate.
 function strength(h){
  const ult=C.heroes[h.id].ultimate,role=roles[h.id];
@@ -164,7 +166,7 @@ function handleBot(u,dt){
   }
   // O tanque aguarda apoio apenas quando necessário; o time todo
   // continua podendo se reposicionar e dar AA no mesmo instante.
-  if(u.id==='vexor'||u.id==='zhira'){
+  if(['vexor','zhira','sahra','mirielle'].includes(u.id)){
    const guard=front||carry||friends.find(a=>a!==u);
    if(guard&&dist(u,guard)>145)move(u,guard,dt,.72);
   }else if(['orun','brax','rokar'].includes(u.id)){
@@ -199,7 +201,7 @@ function handleBot(u,dt){
   if(dist(u,victim)>95+victim.r)move(u,victim,dt,.95);
   defensiveCast(u,friends,nearest);
   E.botUseSkill(u,victim);
- }else if(u.id==='vexor'||u.id==='zhira'){
+ }else if(['vexor','zhira','sahra','mirielle'].includes(u.id)){
   // Vexor não inicia sozinho: espera Orun ou dois aliados pressionarem.
   const opened=front&&dist(front,focus)<183||
     friends.filter(a=>a!==u&&dist(a,focus)<195).length>=2;
