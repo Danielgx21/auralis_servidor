@@ -57,7 +57,7 @@ function scan(){
    if(mode==='engage'&&!friends.some(a=>['orun','brax','rokar','tharok','varka'].includes(a.id))&&ratio<1.10&&friends.length<3)
      mode='hold';
    const focus=rivals.map(e=>{
-    const threatenedCarry=friends.some(a=>['lyria','nyra','tessa','kaelis','seris'].includes(a.id)&&dist(a,e)<155);
+    const threatenedCarry=friends.some(a=>['lyria','nyra','tessa','kaelis','kaoryn','darian','iskha','seris','elowen'].includes(a.id)&&dist(a,e)<155);
     const priority=roles[e.id]==='carry'?33:roles[e.id]==='mage'?28:
       roles[e.id]==='support'?23:roles[e.id]==='assassin'?18:roles[e.id]==='jungler'?17:5;
     const killChance=hp(e)<.38?17:0,shielded=(e.shield||0)>65?6:0;
@@ -138,7 +138,7 @@ function dodgeTelegraph(u,dt){
  const hazards=S.projectiles.filter(p=>p.kind==='damagearea'&&p.side!==u.side&&p.aoe>0&&
    p.tx!==undefined&&Math.hypot(u.x-p.tx,u.y-p.ty)<p.aoe+u.r+38)
   .concat((S.zones||[]).filter(z=>z.side!==u.side&&
-   (z.kind==='arrowstorm'||z.kind==='trap')&&
+   (z.kind==='arrowstorm'||z.kind==='trap'||z.kind==='icefield')&&
    z.until>S.time&&Math.hypot(u.x-z.x,u.y-z.y)<z.r+u.r+25)
    .map(z=>({tx:z.x,ty:z.y,aoe:z.r,kind:z.kind})));
  const hazard=hazards.sort((a,b)=>Math.hypot(u.x-a.tx,u.y-a.ty)-
