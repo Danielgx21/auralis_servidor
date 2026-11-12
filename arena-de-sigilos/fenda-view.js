@@ -96,11 +96,11 @@ let rosterCollapsed=false,rosterLastUpdate=-1;
 
 let selectedLane=null;
 const LANE_CHOICES=[
- {id:'top',short:'TOP',name:'ROTA SUPERIOR',icon:'⚔',desc:'Duelos e linha de frente',detail:'Segure sua rota e lidere as iniciações.',picks:['orun','brax','rokar']},
+ {id:'top',short:'TOP',name:'ROTA SUPERIOR',icon:'⚔',desc:'Duelos e linha de frente',detail:'Segure sua rota e lidere as iniciações.',picks:['orun','varka','brax','rokar']},
  {id:'jungle',short:'SELVA',name:'SELVA',icon:'◆',desc:'Caça e objetivos',detail:'Limpe os campos e prepare emboscadas. Selo da Caça obrigatório.',picks:['zhira','vexor','sahra']},
- {id:'mid',short:'MEIO',name:'ROTA DO MEIO',icon:'✧',desc:'Pressão e rotação',detail:'Controle a rota central e ajude as laterais.',picks:['nyra','kaelis','mirielle']},
- {id:'adc',short:'ADC',name:'ATIRADOR',icon:'➶',desc:'Dano e posicionamento',detail:'Escale com ouro e lute ao lado do suporte.',picks:['lyria','tessa']},
- {id:'support',short:'SUP',name:'SUPORTE',icon:'✚',desc:'Proteção e visão',detail:'Execute tropas com cargas e repasse o ouro integral ao ADC próximo.',picks:['seris','orun','rokar']}
+ {id:'mid',short:'MEIO',name:'ROTA DO MEIO',icon:'✧',desc:'Pressão e rotação',detail:'Controle a rota central e ajude as laterais.',picks:['nyra','iskha','kaelis','mirielle']},
+ {id:'adc',short:'ADC',name:'ATIRADOR',icon:'➶',desc:'Dano e posicionamento',detail:'Escale com ouro e lute ao lado do suporte.',picks:['lyria','kaoryn','darian','tessa']},
+ {id:'support',short:'SUP',name:'SUPORTE',icon:'✚',desc:'Proteção e visão',detail:'Execute tropas com cargas e repasse o ouro integral ao ADC próximo.',picks:['seris','elowen','tharok','orun','rokar']}
 ];
 const currentLane=()=>LANE_CHOICES.find(lane=>lane.id===selectedLane);
 
@@ -1198,14 +1198,21 @@ const suggestedBuilds={
  rokar:['boots','guardianboots','bulwark','lifebloom'],
  tessa:['boots','swiftboots','phantomfang','astralbow','barrage'],
  sahra:['boots','hunterboots','phantomfang','stormblade'],
- mirielle:['boots','arcaneboots','archmage','hourglass','glacier']
+ mirielle:['boots','arcaneboots','archmage','hourglass','glacier'],
+ kaoryn:['boots','swiftboots','bloodedge','ruinblade','barrage'],
+ darian:['boots','swiftboots','bloodedge','eclipseknife','ruinblade'],
+ elowen:['boots','guardianboots','incensario','lifebloom','deepsea'],
+ tharok:['boots','guardianboots','stoneheart','bulwark','incensario'],
+ varka:['boots','guardianboots','warheart','ruinblade','stoneheart'],
+ iskha:['boots','arcaneboots','stormcrown','voidstaff','glacier']
 };
 const itemInfo=id=>E.ITEMS.find(x=>x.id===id);
 const shopKinds={
  lens:'attack',astralbow:'attack',stormblade:'attack',stride:'speed',
  boots:'speed',swiftboots:'speed',arcaneboots:'speed',guardianboots:'speed',hunterboots:'speed',
  prism:'magic',archmage:'magic',deepsea:'magic',cell:'magic',
- ward:'defense',bulwark:'defense',titanplate:'defense',hourglass:'defense',core:'utility',warheart:'defense',huntress:'attack',fang:'attack',sprout:'defense',phantomfang:'attack',glacier:'magic',lifebloom:'defense',barrage:'attack'
+ ward:'defense',bulwark:'defense',titanplate:'defense',hourglass:'defense',core:'utility',warheart:'defense',huntress:'attack',fang:'attack',sprout:'defense',phantomfang:'attack',glacier:'magic',lifebloom:'defense',barrage:'attack',
+ ruinblade:'attack',bloodedge:'attack',eclipseknife:'attack',corruptmask:'magic',voidstaff:'magic',stormcrown:'magic',stoneheart:'defense',incensario:'magic'
 };
 const kindNames={attack:'DANO',magic:'MAGIA',defense:'DEFESA',speed:'MOBILIDADE',utility:'UTILIDADE'};
 let shopTab='recommended',shopFilter='all',shopSelectedId=null,shopQueuedId=null,shopInspectBackId=null;
@@ -1236,7 +1243,15 @@ const ITEM_ART={
  phantomfang:'<path d="M12 56L41 5L55 7L46 24L29 54Z"/><path d="M16 44L39 17M8 46L24 58M45 8L56 20"/><circle cx="43" cy="26" r="6" fill="currentColor" opacity=".4"/>',
  glacier:'<path d="M32 4V60M4 32H60M12 12L52 52M52 12L12 52"/><path d="M25 7L32 15L39 7M25 57L32 49L39 57M7 25L15 32L7 39M57 25L49 32L57 39M9 17L20 17L20 9M55 17L44 17L44 9M9 47L20 47L20 55M55 47L44 47L44 55"/><circle cx="32" cy="32" r="9" fill="currentColor" opacity=".4"/>',
  lifebloom:'<path d="M32 57V38M32 33Q7 18 15 8Q30 7 32 29Q34 7 49 8Q57 18 32 33Z"/><path d="M32 35Q6 24 6 39Q15 55 32 39Q49 55 58 39Q58 24 32 35Z"/><circle cx="32" cy="35" r="7" fill="currentColor" opacity=".4"/>',
- barrage:'<path d="M9 18L50 7L56 18L23 40L10 55L6 43Z"/><path d="M25 27L52 45M35 21L58 37M16 33L43 57"/><path d="M45 11L54 17L43 28" fill="currentColor" opacity=".35"/>'
+ barrage:'<path d="M9 18L50 7L56 18L23 40L10 55L6 43Z"/><path d="M25 27L52 45M35 21L58 37M16 33L43 57"/><path d="M45 11L54 17L43 28" fill="currentColor" opacity=".35"/>',
+ ruinblade:'<path d="M12 57L50 6L58 5L55 16L20 59Z"/><path d="M26 33L43 39M16 45L35 50"/>',
+ bloodedge:'<path d="M10 52L39 8L53 12L31 57Z" fill="currentColor" opacity=".14"/><path d="M17 37L40 12M18 50L50 50M48 18L55 25"/>',
+ eclipseknife:'<path d="M10 54Q31 49 44 9L58 8Q56 33 22 60Z"/><path d="M29 36L50 15M14 47L38 53"/>',
+ corruptmask:'<path d="M9 23Q32 1 55 23L49 53H15Z"/><circle cx="23" cy="29" r="5"/><circle cx="41" cy="29" r="5"/><path d="M23 45L32 39L41 45"/>',
+ voidstaff:'<path d="M18 58L44 6M16 59L27 55"/><path d="M42 6L54 21L39 25L33 12Z"/><path d="M16 19L27 26L14 34L3 26Z"/>',
+ stormcrown:'<path d="M8 42L14 17L27 32L33 8L41 32L54 15L60 42Z"/><path d="M7 46H60M20 53H48"/><path d="M33 15L26 35H38L31 53"/>',
+ stoneheart:'<path d="M32 7L54 18L49 48L32 59L15 48L10 18Z"/><path d="M31 15L40 28L33 38L41 49L23 43L18 29Z" fill="currentColor" opacity=".18"/>',
+ incensario:'<path d="M18 57L26 21H38L46 57Z"/><path d="M16 17Q32 3 48 17M22 12Q32 0 42 12"/><circle cx="32" cy="30" r="7"/><path d="M12 52H52"/>'
 };
 function itemGlyph(it,large=false){
  const kind=shopKinds[it.id]||'utility';
