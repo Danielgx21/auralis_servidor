@@ -1963,8 +1963,14 @@ function botJungler(u,dt){
  if(nearbyThreat){u.jungleGoal=null;u.gankUntil=Math.max(u.gankUntil||0,state.time+7);return false}
  const boss=openBoss();
  const healthy=living(u.side,'hero').filter(h=>h.hp/h.maxHp>.53);
- const supports=healthy.filter(h=>!h.jungler&&dist(h,boss||u)<880);
- const contest=boss&&healthy.length>=3&&supports.length>=1&&u.level>=3&&dist(u,boss)<950;
+ // Não iniciar Serpe ou Titã sem nível e proteção reais ao redor do objetivo.
+ const escorts=healthy.filter(h=>h!==u&&!h.jungler&&dist(h,boss||u)<390);
+ const bossLevel=boss?.id==='titan'?6:4;
+ const contest=!!boss&&u.hp/u.maxHp>.65&&u.level>=bossLevel&&
+  escorts.length>=(boss.id==='titan'?2:1)&&dist(u,boss)<820;
+ const bossRetreat=u.jungleGoal?.kind==='boss'&&u.hp/u.maxHp<.62;
+ if(u.jungleGoal?.kind==='boss'&&!contest)u.jungleGoal=null;
+ if(bossRetreat){u.aiRetreat=true;return false}
  if(contest&&(!u.jungleGoal||u.jungleGoal.kind!=='boss'))u.jungleGoal=boss;
  if(!u.jungleGoal){
   const available=state.camps.filter(c=>c.hp>0&&c.territory===u.side&&
@@ -1987,7 +1993,9 @@ function botJungler(u,dt){
   const pos={x:u.x+(camp.x-u.x)*.55,y:u.y+(camp.y-u.y)*.55};
   if(dist(u,pos)<440)placeWard(u,pos.x,pos.y);
  }
- if(u.hp/u.maxHp<.33){u.aiRetreat=true;u.jungleGoal=null;return false}
+ if(u.hp/u.maxHp<(camp.kind==='boss'?.56:.33)){
+  u.aiRetreat=true;u.jungleGoal=null;return false
+ }
  if(camp.kind==='boss'&&dist(u,camp)>1150)return false;
  approachCreep(u,camp,dt);
  if(dist(u,camp)<212&&u.summoners?.includes('smite')&&camp.hp<=smiteDamage(u)&&
@@ -2989,5 +2997,5 @@ const heroWealth=u=>Math.round((u?.gold||0)+(u?.items||[]).reduce((s,id)=>s+(ITE
 window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,heroWealth,LANE_WAVE_PACE,LANE_XP_REWARDS,JUNGLE_REWARDS,jungleReward,JUNGLE_RESPAWN,JUNGLE_BUFF_DURATION,canShop,towerCanTarget,SUMMONERS,RECALL_CHANNEL_SECONDS,smiteDamage,castSummoner,hData,skillDef,
  start,previewBlue,ROLE_ORDER,ROLE_LANES,CHAMPION_ROLES,SUPPORT_RANGE,SUPPORT_MAX_CHARGES,
  SUPPORT_CHARGE_INTERVAL,SUPPORT_QUEST_REWARD,SUPPORT_QUEST_GOAL,MINION_BOUNTIES,supportPartner,canSupportExecute,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,lockAttackTarget,clearAttackLock,isAttackCommandValid,buyItem,sellItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,botTryGank,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,TOWERS_PER_LANE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
- living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,ARENA_BOUNDARY,isInsideArena,constrainToArena,VISION_CELL,VISION_COLS,VISION_ROWS};
+ living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,botJungler,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,ARENA_BOUNDARY,isInsideArena,constrainToArena,VISION_CELL,VISION_COLS,VISION_ROWS};
 })();
