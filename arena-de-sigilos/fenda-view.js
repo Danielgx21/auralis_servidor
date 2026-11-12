@@ -478,6 +478,46 @@ function drawHero(u,t){
    circle(-r*.17,0,6,'#fff0ff');
    for(let i=0;i<3;i++){const a=t*1.1+i*TAU/3;
     circle(Math.cos(a)*r*.82,Math.sin(a)*r*.82,2.6,'#efcaff');}
+  }else if(u.id==='kaoryn'){
+   ctx.fillStyle='#244f39';techPolygon(ctx,-r*.26,0,r*.9,5,Math.PI/2);ctx.fill();
+   ctx.strokeStyle='#b5ffab';ctx.lineWidth=3.2;ctx.beginPath();
+   ctx.arc(r*.2,0,r*.79,-1.16,1.16);ctx.stroke();
+   ctx.beginPath();ctx.moveTo(-r*.10,-r*.88);ctx.lineTo(r*.9,-r*.10);
+   ctx.lineTo(-r*.1,r*.88);ctx.stroke();
+   circle(-r*.28,0,5,'#f7ffe8');
+  }else if(u.id==='darian'){
+   ctx.fillStyle='#514251';ctx.fillRect(-r*.74,-r*.65,r*1.2,r*1.3);
+   ctx.strokeStyle='#ffd29c';ctx.lineWidth=4;ctx.beginPath();
+   ctx.moveTo(-r*.10,-r*.55);ctx.lineTo(r*1.35,-r*.75);
+   ctx.moveTo(-r*.10,r*.55);ctx.lineTo(r*1.35,r*.75);ctx.stroke();
+   circle(-r*.25,0,6,'#fff1d8');
+  }else if(u.id==='elowen'){
+   ctx.fillStyle='#346c63';techPolygon(ctx,-r*.18,0,r*.85,6,Math.PI/6);ctx.fill();
+   ctx.strokeStyle='#c8ffe2';ctx.lineWidth=2;ctx.beginPath();
+   ctx.moveTo(r*.4,-r*1.1);ctx.lineTo(r*.4,r*1.1);ctx.stroke();
+   for(let i=0;i<5;i++){const a=i*TAU/5+t*.3;
+    circle(Math.cos(a)*r*.8,Math.sin(a)*r*.8,3.4,'#96f9c4')}
+   circle(-r*.24,0,6,'#eefff3');
+  }else if(u.id==='tharok'){
+   ctx.fillStyle='#356577';techPolygon(ctx,-r*.3,0,r*1.05,6,Math.PI/6);ctx.fill();
+   ctx.fillStyle='#a6faff';ctx.beginPath();
+   ctx.moveTo(r*.16,-r*.9);ctx.lineTo(r*1.16,-r*.60);
+   ctx.lineTo(r*1.16,r*.60);ctx.lineTo(r*.16,r*.9);ctx.closePath();ctx.fill();
+   ctx.strokeStyle='#e3fffa';ctx.lineWidth=3;ctx.stroke();
+   circle(-r*.35,0,6,'#ecfffd');
+  }else if(u.id==='varka'){
+   ctx.fillStyle='#703d3b';ctx.fillRect(-r*.76,-r*.72,r*1.23,r*1.44);
+   ctx.strokeStyle='#ffd2b7';ctx.lineWidth=5;ctx.beginPath();
+   ctx.moveTo(-r*.05,r*.6);ctx.lineTo(r*1.24,-r*.87);ctx.stroke();
+   ctx.fillStyle='#fa9d91';techPolygon(ctx,r*1.01,-r*.8,r*.48,3,Math.PI/6);ctx.fill();
+   circle(-r*.25,0,6,'#ffebce');
+  }else if(u.id==='iskha'){
+   ctx.fillStyle='#265777';techPolygon(ctx,-r*.14,0,r*.91,5,Math.PI/2);ctx.fill();
+   ctx.strokeStyle='#c9f5ff';ctx.lineWidth=2.4;
+   for(let i=0;i<6;i++){const a=i*TAU/6+t*.15;ctx.beginPath();
+    ctx.moveTo(Math.cos(a)*r*.42,Math.sin(a)*r*.42);
+    ctx.lineTo(Math.cos(a)*r*1.03,Math.sin(a)*r*1.03);ctx.stroke();}
+   circle(-r*.21,0,6,'#f1ffff');
   }else{
    for(let i=0;i<6;i++){const a=i*TAU/6;circle(Math.cos(a)*r*.6,Math.sin(a)*r*.6,5,'#ffcee2')}
   circle(-r*.12,0,7,'#fff3e9');
@@ -931,7 +971,13 @@ function championPortrait(id){
   rokar:'M12 38L14 12L28 12L36 4L44 12L58 12L60 38L51 33L21 33Z',
   tessa:'M14 35L18 19L32 13L45 17L57 11L58 31L46 28L28 32Z',
   sahra:'M10 35L15 12L26 20L36 5L46 20L57 12L62 35L46 30L36 36L26 30Z',
-  mirielle:'M13 34L12 18L25 24L36 4L47 24L60 18L59 34L44 29L36 33L28 29Z'
+  mirielle:'M13 34L12 18L25 24L36 4L47 24L60 18L59 34L44 29L36 33L28 29Z',
+  kaoryn:'M11 36L9 15L23 25L36 5L49 25L63 15L61 36L46 29L36 35L26 29Z',
+  darian:'M13 33L12 19L27 12L44 12L60 19L59 33L45 25L27 25Z',
+  elowen:'M8 37Q13 16 25 20L36 4L47 20Q59 16 64 37L48 28L36 37L24 28Z',
+  tharok:'M11 39L8 12L26 16L36 3L46 16L64 12L61 39L49 31L23 31Z',
+  varka:'M10 39L13 14L28 24L36 5L44 24L59 14L62 39L51 30L21 30Z',
+  iskha:'M12 36L14 19L26 23L36 3L46 23L58 19L60 36L46 30L36 35L26 30Z'
  };
  const marks={
   lyria:'M8 53Q7 29 19 17M19 17L11 26M19 17L25 28',
@@ -945,7 +991,13 @@ function championPortrait(id){
   rokar:'M6 50L16 40L23 64L7 67ZM66 50L56 40L49 64L65 67Z',
   tessa:'M7 52L19 38M65 52L53 38M56 16L65 10',
   sahra:'M5 52L19 39L25 46M67 52L53 39L47 46',
-  mirielle:'M9 18L22 15L21 28M63 18L50 15L51 28'
+  mirielle:'M9 18L22 15L21 28M63 18L50 15L51 28',
+  kaoryn:'M6 54L20 38M66 54L52 38M12 16L21 24',
+  darian:'M7 57L23 45M65 57L49 45M7 17L20 10M65 17L52 10',
+  elowen:'M12 15Q21 4 30 17M60 15Q51 4 42 17M36 7V16',
+  tharok:'M6 51L18 41L25 63M66 51L54 41L47 63',
+  varka:'M7 55L19 40M65 55L53 40M6 18L21 9M66 18L51 9',
+  iskha:'M9 17L25 25M63 17L47 25M36 2V16M16 49L25 39M56 49L47 39'
  };
  return '<svg class="fenda-champion-portrait-svg" viewBox="0 0 72 72" aria-hidden="true">'+
   '<circle cx="36" cy="36" r="34" fill="#071727" stroke="'+clr+'" stroke-width="2"/>'+
