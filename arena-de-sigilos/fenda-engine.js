@@ -59,7 +59,7 @@ const JUNGLE_RIDGES=[
  {id:'mid-3',half:30,pts:[[1095,1970],[1335,1790]]},
  {id:'mid-4',half:30,pts:[[1560,1615],[1680,1525]]}
 ];
-const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1,brax:0,zhira:1,rokar:0,kaelis:1,tessa:2,sahra:1,mirielle:2};
+const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1,brax:0,zhira:1,rokar:0,kaelis:1,tessa:2,sahra:1,mirielle:2,kaoryn:2,darian:2,elowen:2,tharok:2,varka:0,iskha:1};
 const ROLE_ORDER=['top','jungle','mid','adc','support'];
 const ROLE_LANES={top:0,jungle:1,mid:1,adc:2,support:2};
 // Emblema de suporte automático: não concorre com os seis slots de itens.
@@ -68,14 +68,15 @@ const SUPPORT_RANGE=440,SUPPORT_CHARGE_INTERVAL=30,SUPPORT_MAX_CHARGES=3;
 const SUPPORT_EXECUTE_THRESHOLD=.65,SUPPORT_QUEST_REWARD=65,SUPPORT_QUEST_GOAL=455;
 const MINION_BOUNTIES={guard:38,caster:30,siege:88};
 const minionBounty=m=>MINION_BOUNTIES[m.id]||38;
-const CHAMPION_ROLES={orun:'top',brax:'top',rokar:'top',zhira:'jungle',vexor:'jungle',
- sahra:'jungle',nyra:'mid',kaelis:'mid',mirielle:'mid',lyria:'adc',tessa:'adc',seris:'support'};
+const CHAMPION_ROLES={orun:'top',brax:'top',rokar:'top',varka:'top',zhira:'jungle',vexor:'jungle',sahra:'jungle',
+ nyra:'mid',kaelis:'mid',mirielle:'mid',iskha:'mid',lyria:'adc',tessa:'adc',kaoryn:'adc',darian:'adc',
+ seris:'support',elowen:'support',tharok:'support'};
 const ROLE_BOT_CHOICES={
- top:['orun','brax','rokar','vexor','kaelis'],
+ top:['orun','varka','brax','rokar','vexor','kaelis'],
  jungle:['zhira','vexor','sahra','brax'],
- mid:['nyra','kaelis','mirielle','lyria'],
- adc:['lyria','tessa','nyra'],
- support:['seris','orun','rokar','kaelis']
+ mid:['nyra','iskha','kaelis','mirielle','lyria'],
+ adc:['kaoryn','darian','lyria','tessa','nyra'],
+ support:['elowen','tharok','seris','orun','rokar','kaelis']
 };
 function resolveRole(role,id){return ROLE_ORDER.includes(role)?role:CHAMPION_ROLES[id]||'adc'}
 // O escolhido ocupa o posto marcado; bots preenchem os outros sem repetir campeão.
@@ -272,7 +273,13 @@ const MOBA_SKILL_RANGES={
  rokar_charge:[126,36],rokar_guard:[0,110],rokar_pulse:[0,112],rokar_ult:[0,154],
  tessa_shot:[390,13],tessa_roll:[116,0],tessa_salvo:[240,72],tessa_ult:[570,19],
  sahra_knives:[215,37],sahra_shroud:[0,120],sahra_flip:[155,31],sahra_ult:[192,40],
- mirielle_sigil:[305,17],mirielle_distort:[196,48],mirielle_chain:[303,17],mirielle_ult:[320,38]
+ mirielle_sigil:[305,17],mirielle_distort:[196,48],mirielle_chain:[303,17],mirielle_ult:[320,38],
+ kaoryn_volley:[315,16],kaoryn_stride:[118,0],kaoryn_thorns:[232,76],kaoryn_ult:[283,113],
+ darian_ricochet:[326,15],darian_dash:[122,0],darian_bomb:[252,77],darian_ult:[570,19],
+ elowen_seed:[278,17],elowen_bless:[238,89],elowen_glade:[0,147],elowen_ult:[274,139],
+ tharok_ram:[124,38],tharok_bastion:[0,150],tharok_pulse:[0,112],tharok_ult:[0,154],
+ varka_cleave:[0,103],varka_lunge:[137,33],varka_will:[0,94],varka_ult:[0,92],
+ iskha_shard:[305,17],iskha_field:[243,93],iskha_frostguard:[0,93],iskha_ult:[279,134]
 };
 const MOBA_SKILL_CACHE={};
 const skillDef=id=>{
@@ -288,9 +295,9 @@ const skillDef=id=>{
 const living=(side,kind)=>state.units.filter(u=>u.hp>0&&(side==null||u.side===side)&&(!kind||u.kind===kind));
 const maxMana=u=>320+Math.max(0,(u.level||1)-1)*16+itemStats(u,'mana');
 const WARD_RANGE=280;
-const HERO_AA_RANGE={orun:67,vexor:72,lyria:185,nyra:180,seris:176,brax:72,zhira:70,kaelis:183,rokar:70,tessa:236,sahra:69,mirielle:174};
-const HERO_AA_DAMAGE_FACTOR={orun:.78,vexor:.92,lyria:.82,nyra:.75,seris:.79,brax:.86,zhira:.83,kaelis:.77,rokar:.79,tessa:1.14,sahra:.91,mirielle:.78};
-const HERO_AA_SPEED_FACTOR={orun:1.08,vexor:.98,lyria:.86,nyra:1.04,seris:1.09,brax:1.04,zhira:.99,kaelis:1.02,rokar:1.045,tessa:1.01,sahra:.95,mirielle:1.05};
+const HERO_AA_RANGE={orun:67,vexor:72,lyria:185,nyra:180,seris:176,brax:72,zhira:70,kaelis:183,rokar:70,tessa:236,sahra:69,mirielle:174,kaoryn:188,darian:197,elowen:171,tharok:72,varka:73,iskha:181};
+const HERO_AA_DAMAGE_FACTOR={orun:.78,vexor:.92,lyria:.82,nyra:.75,seris:.79,brax:.86,zhira:.83,kaelis:.77,rokar:.79,tessa:1.14,sahra:.91,mirielle:.78,kaoryn:.81,darian:.92,elowen:.78,tharok:.82,varka:.88,iskha:.79};
+const HERO_AA_SPEED_FACTOR={orun:1.08,vexor:.98,lyria:.86,nyra:1.04,seris:1.09,brax:1.04,zhira:.99,kaelis:1.02,rokar:1.045,tessa:1.01,sahra:.95,mirielle:1.05,kaoryn:.91,darian:1.02,elowen:1.09,tharok:1.07,varka:.99,iskha:1.06};
 const attackRange=u=>u.kind==='minion'?(u.id==='siege'?207:u.ranged?140:38):
  u.kind==='creep'?48:(HERO_AA_RANGE[u.id]||170)+
  (u.id==='tessa'&&state.time-(u.stillSince??state.time)>1.1?43:0);
@@ -637,7 +644,7 @@ function makeHero(id,side,controlled=false,assignedRole=null){
  const spawnOffset=55+(state.seq%3)*13;
  return {uid:++state.seq,kind:'hero',id,side,controlled,
  x:start.x+d.x*spawnOffset+rando(-11,11),
- y:start.y+d.y*spawnOffset+rando(-11,11),r:id==='orun'||id==='rokar'?21:id==='brax'?20:17.5,speed:h.move*MOBA_WALK_SCALE,
+ y:start.y+d.y*spawnOffset+rando(-11,11),r:['orun','rokar','tharok'].includes(id)?21:['brax','varka'].includes(id)?20:17.5,speed:h.move*MOBA_WALK_SCALE,
  atk:h.damage*HERO_AA_DAMAGE_FACTOR[id],
  baseHp:h.hp*1.3,maxHp:Math.round(h.hp*1.3),hp:Math.round(h.hp*1.3),
  mana:320,maxMana:320,level:1,xp:0,gold:controlled?550:350,items:[],
@@ -655,7 +662,7 @@ function makeHero(id,side,controlled=false,assignedRole=null){
  supportCharges:roleKey==='support'?2:0,supportRecharge:0,
  supportSharedCS:0,supportReceivedCS:0,supportGoldShared:0,supportGoldReceived:0,
  supportQuestGold:0,supportProcs:0,supportQuestComplete:false,
- healthRegen:1.3,homeBuff:0,botLane:assignedLane,cs:0,focusTarget:null,focusUntil:0,isRanged:!['vexor','orun','brax','zhira','rokar','sahra'].includes(id)};
+ healthRegen:1.3,homeBuff:0,botLane:assignedLane,cs:0,focusTarget:null,focusUntil:0,isRanged:!['vexor','orun','brax','zhira','rokar','sahra','varka','tharok'].includes(id)};
 }
 function createMinion(side,lane,type=0,slot=0){
  const t=side===0?.035:.965,p=pathPos(lane,t),ranged=type>=1,siege=type===2;
@@ -690,8 +697,13 @@ function start(hero='lyria',summoners=null,selectedRole=null){
  // Os cinco papéis ficam ocupados exatamente uma vez em cada lado.
  state.selectedRole=resolveRole(selectedRole,state.selectedHero);
  const blue=previewBlue(state.selectedHero,state.selectedRole);
- const red=[{id:'rokar',role:'top'},{id:'sahra',role:'jungle'},
-  {id:'mirielle',role:'mid'},{id:'tessa',role:'adc'},{id:'seris',role:'support'}];
+ const squadIndex=Math.max(0,Object.keys(C.heroes).indexOf(state.selectedHero))%3;
+ const redSquads=[
+  ['rokar','sahra','mirielle','tessa','seris'],
+  ['varka','sahra','iskha','darian','elowen'],
+  ['tharok','zhira','nyra','kaoryn','seris']
+ ];
+ const red=ROLE_ORDER.map((role,i)=>({id:redSquads[squadIndex][i],role}));
  for(const slot of [blue.find(u=>u.controlled),...blue.filter(u=>!u.controlled)]){
   const u=makeHero(slot.id,0,slot.controlled,slot.role);
   state.units.push(u);if(slot.controlled)state.hero=u;
@@ -1530,7 +1542,13 @@ function botShop(u){
   rokar:['guardianboots','bulwark','lifebloom','titanplate'],
   tessa:['swiftboots','phantomfang','astralbow','barrage'],
   sahra:['hunterboots','phantomfang','stormblade','huntress'],
-  mirielle:['arcaneboots','archmage','hourglass','deepsea']
+  mirielle:['arcaneboots','archmage','hourglass','deepsea'],
+ kaoryn:['swiftboots','bloodedge','ruinblade','barrage'],
+ darian:['swiftboots','bloodedge','astralbow','ruinblade'],
+ elowen:['guardianboots','incensario','lifebloom','deepsea'],
+ tharok:['guardianboots','stoneheart','bulwark','incensario'],
+ varka:['guardianboots','warheart','ruinblade','stoneheart'],
+ iskha:['arcaneboots','stormcrown','voidstaff','glacier']
  }[u.id]||['bulwark'];
  for(const id of priorities){
   if(u.items.includes(id))continue;
