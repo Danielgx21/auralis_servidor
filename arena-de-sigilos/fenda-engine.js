@@ -302,7 +302,8 @@ const attackRange=u=>u.kind==='minion'?(u.id==='siege'?207:u.ranged?140:38):
  u.kind==='creep'?48:(HERO_AA_RANGE[u.id]||170)+
  (u.id==='tessa'&&state.time-(u.stillSince??state.time)>1.1?43:0);
 const moveSpeed=u=>u.speed*(1+Math.min(.24,itemStats(u,'move'))+
- (u.huntUntil>state.time?.13:0)+(u.supportQuestComplete&&supportPartner(u)?.hp>0?.065:0))*(u.slow>0?.62:1);
+ (u.huntUntil>state.time?.13:0)+(u.elowenHasteUntil>state.time?.07:0)+
+ (u.supportQuestComplete&&supportPartner(u)?.hp>0?.065:0))*(u.slow>0?.62:1);
 const attackDamage=u=>u.atk+itemStats(u,'ad');
 const spellPower=(u,id)=>1+itemStats(u,'ap')+
  (id&&['lyria','vexor','orun','brax','zhira','rokar','tessa','sahra'].includes(u.id)?itemStats(u,'ad')*.005:0);
@@ -751,6 +752,8 @@ function grantNearbyXP(pos,team,amount){
 }
 function markSupportAid(u,ally){
  if(u?.roleKey!=='support'||!ally||ally===u||ally.side!==u.side)return;
+ if(u.items?.includes('incensario'))ally.inspireUntil=state.time+4;
+ if(u.id==='elowen')ally.elowenHasteUntil=state.time+2.8;
  u.supportAided=(u.supportAided||[]).filter(e=>state.time-e.time<10&&e.uid!==ally.uid);
  u.supportAided.push({uid:ally.uid,time:state.time});
 }
@@ -2151,7 +2154,7 @@ function cast(u,id,aim=null,autoTarget=null){
   id==='lyria_step'&&!aim&&target&&target.kind==='hero'&&dist(u,target)<100?-dy:dy),range=def.range||140;
  const travel=clamp(aim?.distance??(target?dist(u,target):range),0,range);
  let center={x:u.x+dir.x*travel,y:u.y+dir.y*travel};
- if(id==='seris_bloom'&&!aim){
+ if((id==='seris_bloom'||id==='elowen_bless')&&!aim){
   const wounded=living(u.side,'hero').filter(h=>dist(h,u)<range).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
   if(wounded)center={x:wounded.x,y:wounded.y};
  }
@@ -2173,6 +2176,7 @@ function cast(u,id,aim=null,autoTarget=null){
    .sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
   if(low){if(heal(low,Math.round(5+maxLv*3))>0)markSupportAid(u,low);}
  }
+ if(u.id==='darian')u.darianRoundUntil=state.time+4.5;
  if(u.id==='mirielle'&&id!=='mirielle_ult')
   u.mirrorLastSpell=id;
  if(u.id==='sahra'&&id!=='sahra_shroud'&&u.shroudUntil>state.time)
@@ -2561,7 +2565,10 @@ function tickProjectiles(dt){
     p.x=p.tx;p.y=p.ty;p.life=0;
     addEffect(p.x,p.y,p.color,p.aoe,.46,'blast');
     if(p.kind==='healarea'){
-     for(const friend of living(p.side,'hero'))if(dist(friend,p)<p.aoe+friend.r)heal(friend,p.heal);
+     for(const friend of living(p.side,'hero'))if(dist(friend,p)<p.aoe+friend.r){
+      const amount=heal(friend,p.heal);
+      if(amount>0)markSupportAid(p.source,friend);
+     }
     }else{
      aoe(p.x,p.y,p.aoe,p.damage,p.source,p.stun,p.slow);
      if(p.mark){
