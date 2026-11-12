@@ -1934,6 +1934,74 @@ console.log('OK: Fenda 10.2, loja de mortos, inspeção de peças, botas e torre
   ai.includes("'kaoryn','darian','iskha','seris','elowen'"),
   'IA não reconhece gelo nem os novos carregadores');
 }
+
+{
+ // Smoke test do jogo clássico INTEIRO, sem navegador real:
+ // Inicializa menus/canvas, cria os 5v5 e lança QWER dos 18 campeões.
+ const original=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+ assert.ok(original&&original.includes("function finishAbility(c){"));
+ const boot=original.replace(/\}\)\(\);\s*$/,
+  "window.__classicAudit={reset,finishAbility,heroes,skillDefs,meleeClass,"+
+  "getState:()=>({allies,enemies,player,abilityShots,waves}),"+
+  "choose:id=>heroChoice=id};\n})();");
+ const noop=()=>{},nodes=new Map();
+ const canvas=new Proxy({
+  measureText:t=>({width:String(t).length*6}),
+  createLinearGradient:()=>({addColorStop:noop}),
+  createRadialGradient:()=>({addColorStop:noop})
+ },{get:(o,k)=>k in o?o[k]:noop});
+ const elem=(id)=>{
+  if(nodes.has(id))return nodes.get(id);
+  const cls=new Set();
+  const x={id,style:{setProperty:noop,removeProperty:noop},classList:{
+   add(...v){v.forEach(k=>cls.add(k))},
+   remove(...v){v.forEach(k=>cls.delete(k))},
+   contains:k=>cls.has(k),
+   toggle(k,v){if(v===undefined)v=!cls.has(k);v?cls.add(k):cls.delete(k);return v}
+  },dataset:{},hidden:false,children:[],getContext:()=>canvas,
+  getBoundingClientRect:()=>({left:0,top:0,width:900,height:560}),
+  appendChild(y){this.children.push(y);return y},
+  insertBefore(y){this.children.push(y);return y},
+  addEventListener:noop,setAttribute:noop,querySelector:()=>elem(id+'-child'),
+  querySelectorAll:()=>[],focus:noop,blur:noop,
+  innerHTML:'',textContent:'',width:900,height:560,
+  clientWidth:900,clientHeight:560,value:''};
+  nodes.set(id,x);return x;
+ };
+ const doc={getElementById:elem,querySelector:()=>elem('qs'),querySelectorAll:()=>[],
+  createElement:tag=>elem(tag+'-'+nodes.size),addEventListener:noop,
+  body:elem('body'),documentElement:elem('root')};
+ const win={devicePixelRatio:1,innerWidth:900,innerHeight:560,
+  addEventListener:noop,matchMedia:()=>({matches:false,addEventListener:noop})};
+ assert.doesNotThrow(()=>new Function('window','document','localStorage','performance',
+  'requestAnimationFrame','AudioContext','navigator','ResizeObserver',boot)(
+   win,doc,{getItem:()=>null,setItem:noop},{now:()=>100},noop,class {},{},class {}
+  ),'Arena Rápida falha ao inicializar');
+ const quick=win.__classicAudit;
+ assert.ok(quick&&quick.reset,'API de teste do clássico indisponível');
+ for(const id of Object.keys(quick.heroes)){
+  quick.choose(id);
+  quick.reset(0);
+  const game=quick.getState();
+  assert.equal(game.allies.length,5,'Arena Rápida com mais de cinco aliados: '+id);
+  assert.equal(game.enemies.length,5,'Arena Rápida com mais de cinco inimigos: '+id);
+  const melee=['vexor','orun','brax','zhira','rokar','sahra','tharok','varka'];
+  assert.equal(quick.meleeClass(id),melee.includes(id),'Melee incorreto no modo rápido: '+id);
+  for(const skill of [...quick.heroes[id].skills,quick.heroes[id].ultimate]){
+   const def=quick.skillDefs[skill],a=quick.getState();
+   const before={shot:a.abilityShots.length,wave:a.waves.length,dash:a.player.dash,
+    shield:a.player.shield,hp:a.player.hp};
+   assert.doesNotThrow(()=>quick.finishAbility({which:skill,level:1,dir:{x:1,y:0},
+    target:{x:a.player.x+Math.min(140,def.range||120),y:a.player.y}}),
+    'Habilidade clássica gerou erro: '+skill);
+   const after=quick.getState();
+   assert.ok(after.abilityShots.length!==before.shot||after.waves.length!==before.wave||
+    after.player.dash!==before.dash||after.player.shield!==before.shield||
+    after.player.hp!==before.hp,'Habilidade sem efeito no modo rápido: '+skill);
+  }
+ }
+}
+console.log('OK: Arena Rápida: 18 seleções, 18 equipes 5×5 e 72 habilidades sem falhas.');
 console.log('OK: Arena 11.1 - revisão de erros de dano, botas, projéteis, armadilhas, IA, loja, cura e sintaxe.');
 console.log('OK: Arena 11.0 com 18 campeões, 24 habilidades novas, 25 itens e IA.');
 console.log('OK: Fenda 10.1: partilha do suporte, receitas, retorno dos bots e regressões.');
