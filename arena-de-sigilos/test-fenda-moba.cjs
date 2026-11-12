@@ -58,10 +58,10 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=10.1.1')&&
+assert.ok(html.includes('fenda-engine.js?v=10.2')&&
  html.includes('fenda-team-ai.js?v=9.9')&&
  html.includes('fenda-scenery.js?v=9.9')&&
- html.includes('fenda-view.js?v=10.1.2'),'O site precisa carregar o cenário procedural antes da câmera.');
+ html.includes('fenda-view.js?v=10.2'),'O site precisa carregar o cenário procedural antes da câmera.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -983,7 +983,7 @@ E.start('lyria');
  assert.ok(view.includes("isDesktop?$('pcSkill'+i):b")&&
   css.includes('#fendaTeamRoster.collapsed .pc-roster-list'),
   'Evolução de habilidades e recolhimento do quadro não foram adaptados');
- assert.ok(html.includes('fenda-view.js?v=10.1.2')&&html.includes('fenda.css?v=10.1'),
+ assert.ok(html.includes('fenda-view.js?v=10.2')&&html.includes('fenda.css?v=10.2'),
   'Cache precisa trazer a versão 9.7');
 }
 // V9.4 — novas prioridades de AA, tempo de ataque, decisões dos bots e retratos.
@@ -1092,7 +1092,7 @@ E.start('lyria');
  assert.ok(site.includes('.stage.fenda-on #fendaSummoners .fenda-summoner small{')&&
   site.includes('font-size:10px!important')&&site.includes('#fendaMobileGuide'),
   'CSS do celular não tornou feitiços e habilidades legíveis');
- assert.ok(site.includes('fenda-view.js?v=10.1.2')&&site.includes('fenda.css?v=10.1'),
+ assert.ok(site.includes('fenda-view.js?v=10.2')&&site.includes('fenda.css?v=10.2'),
   'O cache do jogo precisa apontar para a versão 9.5');
 }
 console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livre e feitiços legíveis.');
@@ -1207,7 +1207,7 @@ console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livr
  assert.ok(view.includes("id==='sahra_ult'&&h.sahraSecondUntil>S.time")&&
   view.includes("id==='mirielle_distort'&&h.mirrorReturn?.until>S.time"),
   'As habilidades reativáveis precisam estar habilitadas no painel');
- assert.ok(source.includes('fenda-engine.js?v=10.1.1')&&source.includes('fenda-view.js?v=10.1.2'),
+ assert.ok(source.includes('fenda-engine.js?v=10.2')&&source.includes('fenda-view.js?v=10.2'),
   'Cache de versão deve usar os novos campeões');
 }
 console.log('OK: V9.6 com duas assassinas, fumaça, retorno, execução, combos e ADCs distintos.');
@@ -1306,8 +1306,8 @@ console.log('OK: V9.7 com primeira habilidade Q, W ou E escolhida pelo jogador.'
   'Botões compactos precisam continuar acionando feitiços');
  assert.ok(!view.includes('mobileHelpBtn')&&!view.includes('mobileGuideUpdate()'),
   'Ajuda central não pode reaparecer após a remoção solicitada');
- assert.ok(html.includes('fenda-view.js?v=10.1.2')&&
-  html.includes('fenda.css?v=10.1'),
+ assert.ok(html.includes('fenda-view.js?v=10.2')&&
+  html.includes('fenda.css?v=10.2'),
   'Atualização deve invalidar o cache do jogo');
 }
 console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda preservado.');
@@ -1376,8 +1376,8 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
  assert.ok(css.includes('top:clamp(54px,14vh,72px)!important')&&
   css.includes('#fendaHUD #fendaWardBtn')&&css.includes('#fendaHUD #fendaTowerBtn'),
   'Visão e torre devem sair do centro e ocupar canto superior direito');
- assert.ok(html.includes('fenda-view.js?v=10.1.2')&&
-  html.includes('fenda-engine.js?v=10.1.1'),
+ assert.ok(html.includes('fenda-view.js?v=10.2')&&
+  html.includes('fenda-engine.js?v=10.2'),
   'Cache deve carregar versão 9.9');
 }
 // Mira de AA desliga ataque automático apenas durante seleção manual.
@@ -1408,7 +1408,7 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
  for(const id of Object.keys(E.SUMMONERS))
   assert.ok(typeof labels[id]==='string'&&labels[id].length>0,
    'Feitiço sem rótulo interrompe HUD: '+id);
- assert.ok(html.includes('fenda-view.js?v=10.1.2'),
+ assert.ok(html.includes('fenda-view.js?v=10.2'),
   'O navegador deve atualizar o arquivo de controles corrigido');
 }
 // Fenda 10.0: draft deve alterar time, rota, feitiços e movimentação.
@@ -1420,8 +1420,8 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
   view.includes('data-lane=')&&view.includes('Sem fase de banimentos')&&
   view.includes('E.previewBlue(selected,selectedLane)'),
   'Seleção de rotas não conectada à formação da equipe');
- assert.ok(html.includes('fenda-engine.js?v=10.1.1')&&html.includes('fenda-view.js?v=10.1.2')&&
-  html.includes('fenda.css?v=10.1')&&css.includes('.fenda-lane-grid')&&
+ assert.ok(html.includes('fenda-engine.js?v=10.2')&&html.includes('fenda-view.js?v=10.2')&&
+  html.includes('fenda.css?v=10.2')&&css.includes('.fenda-lane-grid')&&
   css.includes('.fenda-lineup'),'Os arquivos do draft não atualizaram');
  for(const selectedRole of E.ROLE_ORDER){
   const lineup=E.previewBlue('lyria',selectedRole);
@@ -1497,8 +1497,8 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
   view.includes('scoreRoles={top:')&&view.includes('scoreOrder[a.roleKey]'),
   'HUD/placar precisa mostrar farm partilhado e função real do campeão');
  assert.ok(css.includes('#fendaShareInfo')&&
-  html.includes('fenda-engine.js?v=10.1.1')&&html.includes('fenda-view.js?v=10.1.2')&&
-  html.includes('fenda.css?v=10.1'),'Assets novos não carregaram na v10.1');
+  html.includes('fenda-engine.js?v=10.2')&&html.includes('fenda-view.js?v=10.2')&&
+  html.includes('fenda.css?v=10.2'),'Assets novos não carregaram na v10.1');
 }
 {
  // Cada bot deve construir itens completos e voltar para compras em segurança.
@@ -1587,4 +1587,91 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
   'TOP não afasta o campeão do dedo perto da borda');
 }
 console.log('OK: Fenda 10.1.2 com câmera mobile centralizada na TOP, MID e BOT.');
+// Fenda 10.2 — loja durante a morte, inspecionar antes de comprar, botas e selva segura.
+{
+ const game=E.start('nyra',null,'mid'),hero=game.hero;
+ hero.hp=0;hero.respawn=12;hero.gold=6500;hero.x=2100;hero.y=1100;
+ assert.equal(E.canShop(hero),true,'Morto fora da base deve poder abrir a loja');
+ const maxBefore=hero.maxHp,before=hero.gold;
+ assert.ok(E.buyItem('ward').ok,'Compra de componente negada ao campeão morto');
+ assert.equal(hero.hp,0,'O item ressuscitou o campeão antes da contagem');
+ assert.equal(hero.respawn,12,'O item interrompeu a contagem para renascer');
+ assert.equal(hero.maxHp-maxBefore,95,'Item comprado morto não alterou PV máximos');
+ assert.equal(before-hero.gold,325,'Compra morta com preço inesperado');
+ for(const item of ['boots','sprout'])assert.ok(E.buyItem(item).ok,'Não comprou peça morto: '+item);
+ assert.ok(E.buyItem('guardianboots').ok,'Combinação de botas mortas falhou');
+ assert.equal(hero.hp,0,'Combinar item reviveu o campeão');
+ assert.ok(hero.items.includes('guardianboots'),'Botas não foram equipadas');
+ assert.ok(!hero.items.includes('boots')&&!hero.items.includes('ward')&&!hero.items.includes('sprout'),
+  'Combinar as botas não consumiu os componentes');
+ assert.ok(E.sellItem(hero.items.indexOf('guardianboots')).ok,
+  'Vender item morto devia funcionar como no retorno à base');
+ hero.hp=hero.maxHp;
+ assert.equal(E.canShop(hero),false,'Não pode comprar vivo fora da base');
+ assert.equal(E.buyItem('boots').ok,false,'Compra remota de campeão vivo liberada');
+}
+{
+ const v=read('fenda-view.js'),css=read('fenda.css');
+ assert.ok(v.includes('shopInspectBackId=shopSelectedId;shopSelectedId=b.dataset.shopPart;')&&
+  !v.includes('E.buyItem(b.dataset.shopPart)')&&
+  v.includes('data-shop-back')&&v.includes('Ver atributos de'),
+  'Toque na peça precisa mostrar descrição antes da compra');
+ assert.ok(v.includes('const base=E.canShop(h),dead=h.hp<=0')&&
+  v.includes('ELIMINADO · COMPRAS LIBERADAS')&&
+  v.includes('E.canShop(S.hero),S.hero.hp<=0'),
+  'Loja não permite comprar e atualizar o estado de morte');
+ assert.ok(css.includes('.fenda-shop-slot .fenda-shop-slot-sell{position:absolute')&&
+  !css.includes('.fenda-shop-slot button{position:absolute')&&
+  css.includes('.fenda-shop-slot .fenda-shop-slot-select{position:relative;inset:auto'),
+  'Botão do ícone do item está flutuando fora do inventário');
+ const list=v.match(/const suggestedBuilds=(\{[\s\S]*?\});\s*const itemInfo=/);
+ assert.ok(list,'Sugestões de classes não identificadas');
+ const builds=new Function('return ('+list[1]+')')();
+ for(const id of Object.keys(C.heroes)){
+  assert.ok(builds[id]?.includes('boots'),'Sem botas básicas recomendadas: '+id);
+  assert.ok(builds[id].some(x=>['arcaneboots','guardianboots','hunterboots','swiftboots'].includes(x)),
+   'Sem evolução de botas recomendadas: '+id);
+ }
+ for(const [id,parts] of Object.entries({
+  arcaneboots:['boots','prism','core'],
+  guardianboots:['boots','ward','sprout'],
+  hunterboots:['boots','fang','core'],
+  swiftboots:['boots','stride','lens']
+ })){
+  const it=E.ITEMS.find(x=>x.id===id);
+  assert.ok(it&&it.tier===2,'Botas de classe não registradas: '+id);
+  assert.deepEqual(it.recipe,parts,'Receita das botas incorreta: '+id);
+ }
+}
+{
+ const m=E.start('lyria'),red=m.units.find(u=>u.kind==='hero'&&u.side===1);
+ const tower=m.structures.find(t=>t.kind==='tower'&&t.side===0&&t.lane===0&&t.tier===1);
+ const projection=E.routeProjection(0,tower),origin=E.pathPos(0,projection.progress/E.ROUTE_TOTALS[0]);
+ const dir=E.norm(tower.x-origin.x,tower.y-origin.y);
+ const jungle={x:tower.x+dir.x*65,y:tower.y+dir.y*65,r:19,kind:'hero',side:1};
+ assert.ok(E.dist(jungle,tower)<tower.range,'Alvo da selva não está no alcance geométrico da torre');
+ assert.ok(E.routeProjection(0,jungle).distance>E.LANE_HALF_WIDTH+19,
+  'Teste deveria estar fora do corredor da TOP');
+ assert.equal(E.towerCanTarget(tower,jungle),false,'A torre ainda atinge a selva');
+ assert.equal(E.towerCanTarget(tower,{...origin,r:19,kind:'hero',side:1}),true,
+  'Torre deixou de defender o corredor da rota');
+ for(const other of m.structures.filter(t=>t.kind==='tower')){
+  const proj=E.routeProjection(other.lane,other),
+   o=E.pathPos(other.lane,proj.progress/E.ROUTE_TOTALS[other.lane]),
+   outside=E.norm(other.x-o.x,other.y-o.y),
+   j={x:other.x+outside.x*65,y:other.y+outside.y*65,r:19,kind:'hero',side:1-other.side};
+  assert.equal(E.towerCanTarget(other,j),false,'Torre atinge selva: '+other.id);
+  assert.equal(E.towerCanTarget(other,{...o,r:19,kind:'hero',side:1-other.side}),true,
+   'Torre não protege a lane: '+other.id);
+ }
+ m.units=[red];m.structures=[tower];m.camps=[];m.obstacles=[];m.walls=[];
+ m.nextWave=99999;red.x=jungle.x;red.y=jungle.y;red.stun=8;tower.attackCd=0;
+ E.refreshVision(true);
+ for(let i=0;i<5;i++)E.step(.05,{x:0,y:0});
+ assert.ok(!m.projectiles.some(p=>p.source===tower),'A torre disparou contra herói na selva');
+ red.x=origin.x;red.y=origin.y;tower.attackCd=0;E.refreshVision(true);
+ for(let i=0;i<5;i++)E.step(.05,{x:0,y:0});
+ assert.ok(m.projectiles.some(p=>p.source===tower),'A torre não dispara mais na própria rota');
+}
+console.log('OK: Fenda 10.2, loja de mortos, inspeção de peças, botas e torres por corredor.');
 console.log('OK: Fenda 10.1: partilha do suporte, receitas, retorno dos bots e regressões.');
