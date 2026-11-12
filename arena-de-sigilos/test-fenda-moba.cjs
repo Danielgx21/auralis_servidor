@@ -1501,4 +1501,25 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
  for(let i=0;i<72;i++)E.step(.05,{x:0,y:0});
  assert.ok(E.dist(bot,E.HOME[0])<245,'Retorno do bot não o levou para compras');
 }
+// Revisão 10.1: equilíbrio entre atiradores/tanques e assistências por proteção.
+{
+ const game=E.start('tessa',null,'adc');
+ assert.ok(E.attackRange(game.hero)>=230,'Atiradora de precisão precisa de alcance distintivo');
+ assert.ok(E.skillDef('rokar_guard').cd<11.1,'Tanque iniciador precisa sobreviver entre trocas');
+ const match=E.start('seris',null,'support'),sup=match.hero,
+  ally=match.units.find(u=>u.side===0&&u.roleKey==='adc'),
+  enemy=match.units.find(u=>u.side===1&&u.roleKey==='adc');
+ match.units=[sup,ally,enemy];match.structures=[];match.camps=[];match.walls=[];
+ match.obstacles=[];match.nextWave=99999;
+ sup.x=1450;sup.y=1500;ally.x=1505;ally.y=1500;
+ enemy.x=1630;enemy.y=1500;enemy.stun=20;ally.stun=20;
+ sup.skillLevels.seris_aegis=1;sup.mana=500;
+ assert.ok(E.cast(sup,'seris_aegis'),'Suporte não lançou escudo');
+ for(let i=0;i<15;i++)E.step(.05,{x:0,y:0});
+ assert.ok((sup.supportAided||[]).some(e=>e.uid===ally.uid),
+  'Proteção do suporte não foi registrada para assistência');
+ const before=sup.assists;
+ E.damage(enemy,enemy.hp,ally);
+ assert.equal(sup.assists,before+1,'Suporte não recebeu assistência por escudo no aliado');
+}
 console.log('OK: Fenda 10.1: partilha do suporte, receitas, retorno dos bots e regressões.');
