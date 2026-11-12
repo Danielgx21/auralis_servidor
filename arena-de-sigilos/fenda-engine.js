@@ -2323,6 +2323,28 @@ function releaseSkill(u,c){
  u.skillFlash=.42;
  // Kits próprios: o assassino da fumaça e a maga de ilusões não usam
  // apenas uma variação de dash genérico.
+ // Habilidades próprias: zonas persistentes de gelo, cura e fúria.
+ if(id==='elowen_ult'){
+  state.zones.push({kind:'healinggrove',x:c.center.x,y:c.center.y,r:def.radius,
+   side:u.side,source:u,until:state.time+4.5,nextPulse:state.time+.18,
+   period:.75,heal:Math.round(22+lv*10),color:'#adffe0'});
+  addEffect(c.center.x,c.center.y,'#bdffe0',def.radius,.75,'wave');return;
+ }
+ if(id==='iskha_field'||id==='iskha_ult'){
+  const ultimate=id==='iskha_ult';
+  state.zones.push({kind:'icefield',x:c.center.x,y:c.center.y,r:def.radius,
+   side:u.side,source:u,until:state.time+(ultimate?3.6:3),
+   nextPulse:state.time+.10,period:.64,
+   damage:Math.round((ultimate?33+lv*10:15+lv*6)*power),
+   slow:ultimate?2.1:1.4,color:'#b1e8ff'});
+  if(ultimate)aoe(c.center.x,c.center.y,def.radius,Math.round((39+lv*12)*power),u,.43,2);
+  addEffect(c.center.x,c.center.y,'#bbf1ff',def.radius,.8,'telegraph');return;
+ }
+ if(id==='varka_ult'){
+  u.varkaFuryUntil=state.time+6;
+  grantShield(u,Math.round(38+lv*17),4.4);
+  addEffect(u.x,u.y,'#ffb48f',95,.65,'burst');return;
+ }
  if(id==='sahra_shroud'){
   u.shroudCenter={x:u.x,y:u.y};u.shroudUntil=state.time+4.3;
   u.shroudBreakUntil=0;
@@ -2362,7 +2384,8 @@ function releaseSkill(u,c){
   return;
  }
  const slow=(target,seconds)=>{target.slow=Math.max(target.slow,seconds)};
- if(['lyria_step','vexor_lunge','orun_charge','vexor_ult','brax_grapple','zhira_pounce','tessa_roll','rokar_charge','sahra_flip','sahra_ult','mirielle_distort'].includes(id)){
+ if(['lyria_step','vexor_lunge','orun_charge','vexor_ult','brax_grapple','zhira_pounce','tessa_roll','rokar_charge','sahra_flip','sahra_ult','mirielle_distort',
+ 'kaoryn_stride','darian_dash','tharok_ram','varka_lunge'].includes(id)){
   const dashLength=(id==='sahra_ult'&&c.stage2?208:
    id==='mirielle_distort'?196:def.range+lv*7),duration=id==='vexor_ult'?.25:.18;
   if(id==='mirielle_distort')u.mirrorReturn={x:u.x,y:u.y,until:state.time+3.5};
@@ -2373,50 +2396,62 @@ function releaseSkill(u,c){
    dmg:Math.round((id==='sahra_ult'?(c.stage2?99:42):
     id==='mirielle_distort'?55:id==='sahra_flip'?36:
     id==='vexor_ult'?85:id==='orun_charge'?31:id==='vexor_lunge'?36:
-    id==='brax_grapple'?37:id==='zhira_pounce'?34:id==='rokar_charge'?33:0)*power),
-   stun:id==='orun_charge'?.36:id==='brax_grapple'?.29:id==='vexor_ult'?.26:id==='rokar_charge'?.38:0};
-  u.invuln=id==='lyria_step'||id==='tessa_roll'?.19:.10;
+    id==='brax_grapple'?37:id==='zhira_pounce'?34:id==='rokar_charge'?33:
+    id==='tharok_ram'?30+lv*6:id==='varka_lunge'?37+lv*7:0)*power),
+   stun:id==='orun_charge'?.36:id==='brax_grapple'?.29:id==='vexor_ult'?.26:
+    id==='rokar_charge'?.38:id==='tharok_ram'?.44:0};
+  u.invuln=['lyria_step','tessa_roll','kaoryn_stride','darian_dash'].includes(id)?.19:.10;
   addEffect(u.x,u.y,hData(u.id).color,57,.42);
   return;
  }
- if(['lyria_pierce','nyra_bolt','seris_tether','zhira_strike','kaelis_lance','tessa_shot','tessa_ult','mirielle_sigil','mirielle_chain'].includes(id)){
+ if(['lyria_pierce','nyra_bolt','seris_tether','zhira_strike','kaelis_lance','tessa_shot','tessa_ult','mirielle_sigil','mirielle_chain',
+ 'kaoryn_volley','darian_ricochet','darian_ult','elowen_seed','iskha_shard'].includes(id)){
   const d=id==='lyria_pierce'?33:id==='nyra_bolt'?44:id==='zhira_strike'?39:
    id==='kaelis_lance'?43:id==='tessa_shot'?64:id==='tessa_ult'?135:
-   id==='mirielle_sigil'?47:id==='mirielle_chain'?38:24;
+   id==='mirielle_sigil'?47:id==='mirielle_chain'?38:
+   id==='kaoryn_volley'?35:id==='darian_ricochet'?42:id==='darian_ult'?108:
+   id==='elowen_seed'?27:id==='iskha_shard'?43:24;
   launchSkillLine(u,id,c.dir,def.range,
     Math.round((d+lv*8)*power),def.radius||15,{
-     pierce:['lyria_pierce','tessa_shot','tessa_ult'].includes(id),
-     slow:id==='seris_tether'?1.6:id==='kaelis_lance'?.65:0});
+     pierce:['lyria_pierce','tessa_shot','tessa_ult','kaoryn_volley','darian_ricochet','darian_ult'].includes(id),
+     slow:id==='seris_tether'?1.6:id==='kaelis_lance'?.65:
+      id==='elowen_seed'?1.2:id==='iskha_shard'?1.6:0});
   if(id==='lyria_pierce'){
    u.windStacks=Math.min(4,(u.windStacks||0)+1);
    u.windUntil=state.time+4.1;
   }
   return;
  }
- if(id==='lyria_rain'||id==='lyria_ult'){
+ if(id==='lyria_rain'||id==='lyria_ult'||id==='kaoryn_ult'){
   state.zones.push({kind:'arrowstorm',x:c.center.x,y:c.center.y,
    r:def.radius+(def.ultimate?17:0),source:u,side:u.side,
-   period:id==='lyria_ult'?.58:.62,until:state.time+(id==='lyria_ult'?2.5:3.25),
-   nextPulse:state.time+.24,damage:Math.round((id==='lyria_ult'?38+lv*11:16+lv*6)*power),
-   slow:id==='lyria_ult'?1.2:.6,color:'#84f6d6',life:3.3});
+   period:id==='lyria_ult'?.58:id==='kaoryn_ult'?.53:.62,
+   until:state.time+(id==='lyria_ult'?2.5:id==='kaoryn_ult'?2.75:3.25),
+   nextPulse:state.time+.24,
+   damage:Math.round((id==='lyria_ult'?38+lv*11:id==='kaoryn_ult'?27+lv*10:16+lv*6)*power),
+   slow:id==='lyria_ult'?1.2:id==='kaoryn_ult'?1.05:.6,color:'#84f6d6',life:3.3});
   addEffect(c.center.x,c.center.y,'#8df5d3',def.radius,.67,'telegraph');return;
  }
- if(id==='tessa_salvo'){
+ if(id==='tessa_salvo'||id==='kaoryn_thorns'){
   state.zones.push({kind:'trap',x:c.center.x,y:c.center.y,r:def.radius,
    source:u,side:u.side,until:state.time+17,
-   damage:Math.round((35+lv*11)*power),color:'#e9cd81',life:17});
+   damage:Math.round((id==='kaoryn_thorns'?27+lv*8:35+lv*11)*power),
+   color:id==='kaoryn_thorns'?'#b4f2a2':'#e9cd81',life:17});
   addEffect(c.center.x,c.center.y,'#e7c98a',def.radius,.44,'telegraph');return;
  }
  if(def.aim==='area'){
-  const isHealing=id==='seris_bloom';
+  const isHealing=id==='seris_bloom'||id==='elowen_bless';
   const aoeDamage=id==='lyria_ult'?85:id==='nyra_ult'?97:id==='lyria_rain'?43:
-   id==='nyra_rift'?54:id==='vexor_mark'?40:id==='zhira_trap'?35:id==='kaelis_frost'?47:id==='kaelis_ult'?90:id==='tessa_salvo'?49:0;
+   id==='nyra_rift'?54:id==='vexor_mark'?40:id==='zhira_trap'?35:id==='kaelis_frost'?47:id==='kaelis_ult'?90:id==='tessa_salvo'?49:
+   id==='darian_bomb'?46:0;
   const range=def.radius+(def.ultimate?15:0);
   state.projectiles.push({x:u.x,y:u.y,source:u,side:u.side,tx:c.center.x,ty:c.center.y,
    speed:780,damage:Math.round((aoeDamage+lv*9)*power),r:9,aoe:range,
-   kind:isHealing?'healarea':'damagearea',heal:isHealing?55+lv*13:0,
+   kind:isHealing?'healarea':'damagearea',
+   heal:isHealing?(id==='elowen_bless'?47+lv*14:55+lv*13):0,
    color:hData(u.id).color,stun:id==='nyra_ult'?.62:id==='nyra_rift'?.32:id==='zhira_trap'?.25:id==='kaelis_frost'?.30:id==='kaelis_ult'?.52:0,
-   slow:id==='lyria_rain'||id==='lyria_ult'?1.5:id==='nyra_rift'||id==='zhira_trap'?1.4:id==='kaelis_frost'||id==='kaelis_ult'?2:0,
+   slow:id==='lyria_rain'||id==='lyria_ult'?1.5:id==='nyra_rift'||id==='zhira_trap'?1.4:
+    id==='kaelis_frost'||id==='kaelis_ult'?2:id==='darian_bomb'?1.4:0,
    mark:id==='vexor_mark',life:2.5});
   addEffect(c.center.x,c.center.y,hData(u.id).color,range,1.05,'telegraph');
   return;
