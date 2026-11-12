@@ -27,7 +27,7 @@ assert.ok(state.units.filter(u=>u.kind==='hero'&&!u.controlled).every(u=>
  'Os bots devem escolher uma habilidade no nível 1, gastando o ponto disponível');
 assert.ok(E.SUMMONERS.smite&&E.SUMMONERS.freecast,
  'Feitiços de invocador Selo da Caça e Transe Arcano não cadastrados');
-assert.equal(E.ITEMS.filter(item=>item.tier===2).length,14,
+assert.equal(E.ITEMS.filter(item=>item.tier===2).length,17,
  'Itens de lutador e caçador não presentes na loja');
 
 assert.equal(state.units.filter(u=>u.kind==='hero').length,10);
