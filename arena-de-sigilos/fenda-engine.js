@@ -324,7 +324,9 @@ const PHYSICAL_HEROES=new Set(['lyria','vexor','orun','brax','zhira','rokar','te
  'kaoryn','darian','varka','tharok']);
 const spellPower=(u,id)=>1+itemStats(u,'ap')+
  (id&&PHYSICAL_HEROES.has(u.id)?itemStats(u,'ad')*.005:0);
-const levelXp=level=>42+level*24;
+// Evolução gradual (antes 66 XP para nível 2, agora 90 XP).
+// Mantém os mesmos níveis máximos e desbloqueios de habilidades.
+const levelXp=level=>58+level*32;
 
  // Renda regular de 3 campos por lado, sem concentrar XP em objetivos neutros.
  const JUNGLE_REWARDS={buff:{xp:58,gold:112},camp:{xp:53,gold:99}};
@@ -2994,7 +2996,7 @@ function recall(){
  return true;
 }
 const heroWealth=u=>Math.round((u?.gold||0)+(u?.items||[]).reduce((s,id)=>s+(ITEM_BY_ID[id]?.price||0),0));
-window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,heroWealth,LANE_WAVE_PACE,LANE_XP_REWARDS,JUNGLE_REWARDS,jungleReward,JUNGLE_RESPAWN,JUNGLE_BUFF_DURATION,canShop,towerCanTarget,SUMMONERS,RECALL_CHANNEL_SECONDS,smiteDamage,castSummoner,hData,skillDef,
+window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,levelXp,xpGain,heroWealth,LANE_WAVE_PACE,LANE_XP_REWARDS,JUNGLE_REWARDS,jungleReward,JUNGLE_RESPAWN,JUNGLE_BUFF_DURATION,canShop,towerCanTarget,SUMMONERS,RECALL_CHANNEL_SECONDS,smiteDamage,castSummoner,hData,skillDef,
  start,previewBlue,ROLE_ORDER,ROLE_LANES,CHAMPION_ROLES,SUPPORT_RANGE,SUPPORT_MAX_CHARGES,
  SUPPORT_CHARGE_INTERVAL,SUPPORT_QUEST_REWARD,SUPPORT_QUEST_GOAL,MINION_BOUNTIES,supportPartner,canSupportExecute,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,lockAttackTarget,clearAttackLock,isAttackCommandValid,buyItem,sellItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,botTryGank,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,TOWERS_PER_LANE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,botJungler,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,ARENA_BOUNDARY,isInsideArena,constrainToArena,VISION_CELL,VISION_COLS,VISION_ROWS};

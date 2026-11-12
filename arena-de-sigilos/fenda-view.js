@@ -399,6 +399,15 @@ function drawMinion(u,t){
  ctx.restore();
  bar(x,u.y,r,u.hp,u.maxHp,u.side,30);
 }
+// Corpos vetoriais próprios: frente aponta para +X; a direção do campeão gira a figura.
+// Apenas aparência: a colisão e o alcance continuam usando o raio original.
+const HERO_SILHOUETTES={"lyria":[[-1,-0.61],[-0.35,-0.88],[0.52,-0.72],[1.13,0],[0.52,0.72],[-0.35,0.88],[-1,0.61]],"tessa":[[-0.9,-0.62],[0.44,-0.62],[1.21,-0.28],[1.35,0],[1.21,0.28],[0.44,0.62],[-0.9,0.62]],"kaoryn":[[-1.13,-0.78],[-0.24,-0.89],[0.48,-0.52],[1.16,-0.16],[0.73,0],[1.16,0.16],[0.48,0.52],[-0.24,0.89],[-1.13,0.78],[-0.65,0]],"darian":[[-0.94,-0.77],[0.54,-0.77],[1.26,-0.38],[0.89,0],[1.26,0.38],[0.54,0.77],[-0.94,0.77]],"orun":[[-0.97,-0.85],[0.53,-0.85],[1.13,-0.37],[1.13,0.37],[0.53,0.85],[-0.97,0.85]],"rokar":[[-0.87,-0.91],[0.62,-0.91],[1.08,-0.58],[1.08,0.58],[0.62,0.91],[-0.87,0.91],[-1.13,0.38],[-1.13,-0.38]],"tharok":[[-1,-0.96],[0.25,-0.96],[0.25,-1.16],[0.98,-1.16],[1.13,-0.54],[1.13,0.54],[0.98,1.16],[0.25,1.16],[0.25,0.96],[-1,0.96]],"vexor":[[-1.04,0],[-0.49,-0.83],[0.32,-0.44],[1.29,-0.74],[0.91,0],[1.29,0.74],[0.32,0.44],[-0.49,0.83]],"zhira":[[-1.08,-0.78],[-0.37,-0.41],[0.28,-1],[1.21,0],[0.28,1],[-0.37,0.41],[-1.08,0.78]],"sahra":[[-1,-0.62],[-0.55,-1],[0.19,-0.61],[1.27,-0.86],[0.84,0],[1.27,0.86],[0.19,0.61],[-0.55,1],[-1,0.62]],"mirielle":[[-1,-0.31],[-0.55,-0.93],[0.22,-0.56],[0.92,-1.08],[1.17,0],[0.92,1.08],[0.22,0.56],[-0.55,0.93]],"brax":[[-1,-0.73],[-0.52,-1.04],[0.51,-0.91],[1.15,-0.42],[0.86,0.63],[-0.42,0.98],[-1,0.66]],"varka":[[-1.1,-0.79],[-0.33,-1],[0.53,-0.7],[1.2,-0.92],[0.96,0.19],[0.31,0.94],[-0.82,0.73]],"nyra":[[-1,-0.28],[-0.64,-0.91],[0,-0.67],[0.46,-1.12],[0.72,-0.33],[1.12,0],[0.72,0.33],[0.46,1.12],[0,0.67],[-0.64,0.91]],"kaelis":[[-0.93,-0.52],[-0.49,-1.03],[0.24,-0.72],[0.92,-0.93],[1.25,0],[0.92,0.93],[0.24,0.72],[-0.49,1.03]],"iskha":[[-1.06,-0.21],[-0.63,-0.65],[-0.34,-1.13],[0.14,-0.72],[0.76,-0.86],[0.85,-0.33],[1.19,0],[0.85,0.33],[0.76,0.86],[0.14,0.72],[-0.34,1.13],[-0.63,0.65]],"seris":[[-0.99,0],[-0.76,-0.51],[-0.54,-0.98],[-0.02,-0.82],[0.43,-1.03],[0.7,-0.48],[1.12,0],[0.7,0.48],[0.43,1.03],[-0.02,0.82],[-0.54,0.98],[-0.76,0.51]],"elowen":[[-1,-0.3],[-0.66,-0.78],[-0.16,-1.13],[0.35,-0.7],[0.84,-0.91],[1.2,0],[0.84,0.91],[0.35,0.7],[-0.16,1.13],[-0.66,0.78]]};
+function heroBodyPath(g,id,r){
+ const vertices=HERO_SILHOUETTES[id]||HERO_SILHOUETTES.lyria;
+ g.beginPath();
+ vertices.forEach(([px,py],i)=>i?g.lineTo(px*r,py*r):g.moveTo(px*r,py*r));
+ g.closePath();
+}
 function drawHero(u,t){
  if(!visible(u.x,u.y,65)||u.hp<=0)return;
  const x=u.x,y=u.y,r=u.r,h=C.heroes[u.id],col=h.color,side=E.SIDE[u.side];
@@ -408,11 +417,16 @@ function drawHero(u,t){
  const recoil=u.attackAnim>0?Math.sin(Math.PI*attackPhase)*3.3:0;
  ctx.save();ctx.translate(x,y);ctx.scale(HERO_RENDER_SCALE,HERO_RENDER_SCALE);
  ctx.fillStyle='#00151cab';ctx.beginPath();ctx.ellipse(4,9,r+6,r*.64,0,0,TAU);ctx.fill();
- circle(0,0,r+9,null,side,u.controlled?3.3:2);
- if(u.controlled)circle(0,0,r+13,null,'#e4fff183',1.4);
+ // O anel forte marca apenas o personagem controlado, não todos os campeões.
+ if(u.controlled)circle(0,0,r+14,null,side,2.4);
  if(u.shield>1)circle(0,0,r+15,'#8baeff29','#c4d7ffb3',2.5);
  ctx.translate(-Math.cos(u.facing||0)*recoil,stride-Math.sin(u.facing||0)*recoil);
- ctx.rotate(u.facing||0);circle(0,0,r,'#1b3043',col,2.6);
+ ctx.rotate(u.facing||0);
+ heroBodyPath(ctx,u.id,r);
+ ctx.fillStyle='#102b3b';ctx.shadowColor=col;ctx.shadowBlur=u.controlled?12:7;
+ ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle=col;ctx.lineWidth=3;ctx.lineJoin='round';ctx.stroke();
+ heroBodyPath(ctx,u.id,r*.75);
+ ctx.fillStyle=col+'22';ctx.fill();ctx.strokeStyle=col+'6e';ctx.lineWidth=1.1;ctx.stroke();
  if(u.id==='orun'){
   ctx.fillStyle='#5b709f';ctx.fillRect(-r*.7,-r*.8,r*1.16,r*1.6);
   ctx.beginPath();ctx.moveTo(r*.3,-r*.78);ctx.lineTo(r*1.18,-r*.3);ctx.lineTo(r*1.18,r*.3);ctx.lineTo(r*.3,r*.78);
@@ -1024,7 +1038,7 @@ function desktopHeroUpdate(h){
  $('pcManaNumber').textContent=h.manaFreeUntil>S.time?'∞ MANA':'MANA '+Math.ceil(h.mana);
  $('pcHPFill').style.width=Math.max(0,Math.min(100,h.hp/h.maxHp*100))+'%';
  $('pcManaFill').style.width=Math.max(0,Math.min(100,h.mana/E.maxMana(h)*100))+'%';
- $('pcXPFill').style.width=(lev<15?h.xp/(42+lev*24)*100:100)+'%';
+ $('pcXPFill').style.width=(lev<15?h.xp/E.levelXp(lev)*100:100)+'%';
  const buffs=(h.energyBuffUntil>S.time?' · AZUL '+Math.ceil(h.energyBuffUntil-S.time)+'s':'')+
   (h.damageBuffUntil>S.time?' · RUBRO '+Math.ceil(h.damageBuffUntil-S.time)+'s':'');
  $('pcExtraStats').textContent='K/D/A '+h.kills+'/'+h.deaths+'/'+(h.assists||0)+
@@ -1090,7 +1104,7 @@ function hudUpdate(){
  $('fendaHP').style.width=(h.hp/h.maxHp*100)+'%';
  $('fendaMana').style.width=(h.mana/E.maxMana(h)*100)+'%';
  $('fendaManaText').textContent=h.manaFreeUntil>S.time?'∞ MANA LIVRE '+Math.ceil(h.manaFreeUntil-S.time)+'s':'MANA '+Math.ceil(h.mana)+'/'+E.maxMana(h);
- $('fendaXP').style.width=(h.level<15?h.xp/(42+h.level*24)*100:100)+'%';
+ $('fendaXP').style.width=(h.level<15?h.xp/E.levelXp(h.level)*100:100)+'%';
  desktopHeroUpdate(h);
  const towerList=S.structures.filter(s=>s.kind==='tower'&&s.hp>0);
  const bossStatus=id=>{
