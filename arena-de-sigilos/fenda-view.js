@@ -415,8 +415,14 @@ function drawHero(u,t){
  const stride=walking?Math.sin((u.walkPhase||0)*1.55)*2.2:Math.sin(t*1.7+u.uid)*.58;
  const attackPhase=u.attackAnim>0?1-u.attackAnim/(u.attackTotal||.39):0;
  const recoil=u.attackAnim>0?Math.sin(Math.PI*attackPhase)*3.3:0;
- ctx.save();ctx.translate(x,y);ctx.scale(HERO_RENDER_SCALE,HERO_RENDER_SCALE);
+ const airborne=u.airborneUntil>S.time;
+ const fraction=airborne?clamp((S.time-(u.airborneStartedAt||S.time))/
+  Math.max(.12,u.airborneDuration||.55),0,1):0;
+ const lift=airborne?Math.sin(Math.PI*fraction)*31:0;
+ ctx.save();ctx.translate(x,y);
  ctx.fillStyle='#00151cab';ctx.beginPath();ctx.ellipse(4,9,r+6,r*.64,0,0,TAU);ctx.fill();
+ if(airborne)circle(0,0,r+13,null,'#ffe6a2',1.8);
+ ctx.translate(0,-lift);ctx.scale(HERO_RENDER_SCALE,HERO_RENDER_SCALE);
  // O anel forte marca apenas o personagem controlado, não todos os campeões.
  if(u.controlled)circle(0,0,r+14,null,side,2.4);
  if(u.shield>1)circle(0,0,r+15,'#8baeff29','#c4d7ffb3',2.5);
@@ -589,11 +595,11 @@ function drawHero(u,t){
  }
  ctx.restore();
  const barRadius=r*.84;
- bar(x,y,barRadius,u.hp,u.maxHp,u.side,44);
- manaBar(x,y,barRadius,u.mana,E.maxMana(u),44);
+ bar(x,y-lift,barRadius,u.hp,u.maxHp,u.side,44);
+ manaBar(x,y-lift,barRadius,u.mana,E.maxMana(u),44);
  ctx.save();ctx.textAlign='center';ctx.font='850 9px system-ui';
  ctx.shadowColor='#00111a';ctx.shadowBlur=4;ctx.fillStyle=u.side===0?'#d4fff2':'#ffdde5';
- ctx.fillText((u.controlled?'✦ ':'')+h.name+' · '+u.level,x,y-barRadius-32);ctx.restore();
+ ctx.fillText((u.controlled?'✦ ':'')+h.name+' · '+u.level,x,y-lift-barRadius-32);ctx.restore();
  if(u.casting){
   const ratio=clamp(1-u.casting.time/(u.casting.total||1),0,1);
   ctx.save();ctx.globalAlpha=.76;
@@ -659,7 +665,10 @@ function drawFX(t){
   }
   ctx.restore();
  }
- for(const u of S.units.filter(h=>h.id==='mirielle'&&h.hp>0&&h.mirrorEchoUntil>S.time&&h.mirrorEchoAt)){
+ window.FendaVFX?.zones(ctx,S,E,t);
+  window.FendaVFX?.tether(ctx,S,E,t);
+  window.FendaVFX?.status(ctx,S,E,t);
+  for(const u of S.units.filter(h=>h.id==='mirielle'&&h.hp>0&&h.mirrorEchoUntil>S.time&&h.mirrorEchoAt)){
   const p=u.mirrorEchoAt;
   if(!visible(p.x,p.y,60)||u.side===1&&!E.isPointVisible(0,p))continue;
   ctx.save();ctx.globalAlpha=.40*Math.min(1,u.mirrorEchoUntil-S.time);
@@ -714,6 +723,9 @@ function drawFX(t){
     circle(0,0,radius+12,null,col+'8c',1.3);
    }
    ctx.restore();
+  }else if(['skillline','damagearea','healarea'].includes(p.kind)&&
+      window.FendaVFX?.missile(ctx,p,t,velocity,col,radius)){
+   // Projéteis de cada habilidade possuem uma geometria própria.
   }else{
    circle(p.x,p.y,radius,col);
    circle(p.x,p.y,Math.max(2,radius*.4),'#fff9e6');
@@ -722,6 +734,8 @@ function drawFX(t){
  }
  for(const f of S.effects){
   if(!visible(f.x,f.y,f.r+8)||!E.isPointVisible(0,f))continue;
+  if(f.side===1&&!E.isPointVisible(0,f))continue;
+  if(window.FendaVFX?.effect(ctx,f,t))continue;
   if(f.kind==='damageNumber'){
    const progress=1-f.life/f.maxLife;
    ctx.save();ctx.globalAlpha=clamp(f.life/f.maxLife,0,1);
