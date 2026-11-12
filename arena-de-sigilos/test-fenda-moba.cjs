@@ -1655,7 +1655,7 @@ console.log('OK: Fenda 10.2.1 com borda fisica, cenario conectado e camera mobil
   !css.includes('.fenda-shop-slot button{position:absolute')&&
   css.includes('.fenda-shop-slot .fenda-shop-slot-select{position:relative;inset:auto'),
   'Botão do ícone do item está flutuando fora do inventário');
- const list=v.match(/const suggestedBuilds=(\{[\s\S]*?\});\s*const itemInfo=/);
+ const list=v.match(/const suggestedBuilds=(\{[\s\S]*?\});\s*\/\/ Recomendação dinâmica/);
  assert.ok(list,'Sugestões de classes não identificadas');
  const builds=new Function('return ('+list[1]+')')();
  for(const id of Object.keys(heroes)){
