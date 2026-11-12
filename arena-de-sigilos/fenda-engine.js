@@ -953,7 +953,7 @@ function findAA(u){
      (chosen.kind!=='tower'&&chosen.kind!=='core'||structureExposed(chosen)))return chosen;
  if(u.kind==='hero'&&!u.controlled&&u.roleKey==='support'){
   const enemyHero=living(1-u.side,'hero').filter(v=>visibleTo(u.side,v)&&
-   dist(u,v)<=range+v.r+2).sort((a,b)=>dist(u,a)-dist(b,a))[0];
+   dist(u,v)<=range+v.r+2).sort((a,b)=>dist(u,a)-dist(u,b))[0];
   if(enemyHero)return enemyHero;
   if(u.farmTarget&&u.farmTarget.hp>0&&
      dist(u,u.farmTarget)<=range+u.farmTarget.r+2)return u.farmTarget;
@@ -1418,6 +1418,24 @@ function botShop(u){
   if(u.items.includes(id))continue;
   const status=recipeStatus(u,id);if(!status)continue;
   const toBuy=status.missing.length?status.missing[0]:id;
+  // Libera somente componente excedente para evitar inventário de pré-itens lotado.
+  if(u.items.length===6&&status.missing.length){
+   const used=new Map();
+   for(const part of status.used)used.set(part,(used.get(part)||0)+1);
+   const spare=u.items.findIndex(part=>{
+    if(ITEM_BY_ID[part]?.tier!==1)return false;
+    const quantity=used.get(part)||0;
+    if(quantity>0){used.set(part,quantity-1);return false}
+    return true;
+   });
+   if(spare>=0){
+    const oldHp=itemStats(u,'hp'),old=ITEM_BY_ID[u.items[spare]];
+    u.items.splice(spare,1);
+    u.gold+=Math.floor(old.price*.55);
+    u.maxHp=Math.max(1,u.maxHp+itemStats(u,'hp')-oldHp);
+    u.hp=Math.min(u.hp,u.maxHp);u.mana=Math.min(u.mana,maxMana(u));
+   }
+  }
   if(!applyItemPurchase(u,toBuy,true).ok)continue;
   // Outra componente é comprada na próxima visita / pulso.
   break;
@@ -1751,6 +1769,24 @@ function botUseSummoners(u){
 function botHero(u,dt){
  botShop(u);
  if(u.stun>0||u.casting||u.dash)return;
+ if(u.recall>0){
+  const danger=living(1-u.side).some(e=>visibleTo(u.side,e)&&dist(u,e)<250);
+  if(!danger)return;
+  u.recall=0;u.botRecallWait=state.time+15;
+ }
+ // Evita bots permanentemente ricos e sem compras após o início da partida.
+ // Canaliza retorno apenas em área sem pressão inimiga e com recursos úteis.
+ if(state.time>55&&state.time>=(u.botRecallWait||0)&&
+   dist(u,HOME[u.side])>275&&
+   (u.gold>=980&&u.items.length<6||
+    u.gold>=700&&u.items.some(id=>ITEM_BY_ID[id]?.tier===1)||
+    u.hp/u.maxHp<.42)&&
+   u.hp/u.maxHp>.27&&!u.aiRetreat&&
+   !living(1-u.side).some(e=>visibleTo(u.side,e)&&dist(e,u)<300)){
+  u.recall=3.2;u.botRecallWait=state.time+48;
+  addEffect(u.x,u.y,'#c5ecfa',48,3.2,'recall');
+  return;
+ }
  botUseSummoners(u);
  const lane=u.lane,enemySide=1-u.side;
  const allies=living(u.side,'minion').filter(m=>m.lane===lane&&dist(m,u)<450);
@@ -2433,15 +2469,18 @@ function tickUnit(u,dt){
   u.hp=Math.min(u.maxHp,u.hp+dt*(dist(u,HOME[u.side])<150?24:1.15+itemStats(u,'regen')*.35+
    (state.teamBuffs[u.side].serpe>state.time?1.65:0)));
   if(u.recall>0){
-   if(u.controlled){u.recall-=dt;if(u.recall<=0){
-     u.recall=0; // Um tempo negativo ainda é truthy em JS e bloqueava os controles.
-     const home=HOME[u.side];
-     const direction=u.side===0?1:-1;
-     u.x=home.x+direction*38;u.y=home.y-direction*33;
-     pushOutsideSolids(u);
-     u.commandTarget=null;u.focusTarget=null;u.focusUntil=0;
-     u.cameraSnapAt=state.time;
-     u.hp=u.maxHp;u.mana=maxMana(u);announce('RETORNO AO SANTUÁRIO',1.6)}}
+   u.recall-=dt;
+   if(u.recall<=0){
+    u.recall=0;
+    const home=HOME[u.side],direction=u.side===0?1:-1;
+    u.x=home.x+direction*38;u.y=home.y-direction*33;
+    pushOutsideSolids(u);
+    u.commandTarget=null;u.focusTarget=null;u.focusUntil=0;
+    u.cameraSnapAt=state.time;
+    u.hp=u.maxHp;u.mana=maxMana(u);
+    if(u.controlled)announce('RETORNO AO SANTUÁRIO',1.6);
+    else botShop(u);
+   }
   }
   if(u.casting){
    if(u.stun>0){u.casting=null;return}
