@@ -1451,18 +1451,18 @@ function respawn(u){
 function botShop(u){
  if(u.controlled||u.hp<=0||dist(u,HOME[u.side])>245)return;
  const priorities={
-  orun:['bulwark','titanplate','hourglass','swiftboots'],
-  seris:['deepsea','titanplate','hourglass','archmage'],
-  lyria:['barrage','astralbow','swiftboots','bulwark'],
-  nyra:['archmage','deepsea','hourglass','swiftboots'],
-  vexor:['stormblade','swiftboots','astralbow','bulwark'],
- brax:['warheart','bulwark','stormblade','titanplate'],
- zhira:['huntress','stormblade','astralbow','bulwark'],
- kaelis:['glacier','archmage','deepsea','hourglass'],
- rokar:['bulwark','lifebloom','titanplate','warheart'],
- tessa:['phantomfang','astralbow','barrage','swiftboots'],
- sahra:['phantomfang','stormblade','swiftboots','huntress'],
- mirielle:['archmage','hourglass','deepsea','glacier']
+  orun:['guardianboots','bulwark','titanplate','hourglass'],
+  seris:['guardianboots','lifebloom','deepsea','hourglass'],
+  lyria:['swiftboots','barrage','astralbow','bulwark'],
+  nyra:['arcaneboots','archmage','deepsea','hourglass'],
+  vexor:['hunterboots','stormblade','astralbow','bulwark'],
+  brax:['guardianboots','warheart','bulwark','stormblade'],
+  zhira:['hunterboots','huntress','stormblade','astralbow'],
+  kaelis:['arcaneboots','glacier','archmage','deepsea'],
+  rokar:['guardianboots','bulwark','lifebloom','titanplate'],
+  tessa:['swiftboots','phantomfang','astralbow','barrage'],
+  sahra:['hunterboots','phantomfang','stormblade','huntress'],
+  mirielle:['arcaneboots','archmage','hourglass','deepsea']
  }[u.id]||['bulwark'];
  for(const id of priorities){
   if(u.items.includes(id))continue;
