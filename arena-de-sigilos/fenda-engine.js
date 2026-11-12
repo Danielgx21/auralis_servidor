@@ -96,6 +96,8 @@ const ITEMS=[
  {id:'lens',name:'Lente Astral',tier:1,price:300,icon:'◈',stats:{ad:12},stat:'+12 AD',desc:'Componente de dano físico'},
  {id:'ward',name:'Placa Rúnica',tier:1,price:325,icon:'⬡',stats:{hp:95},stat:'+95 PV',desc:'Componente defensivo'},
  {id:'stride',name:'Passo Veloz',tier:1,price:290,icon:'➤',stats:{move:.08},stat:'+8% MOV',desc:'Componente de mobilidade'},
+ {id:'boots',name:'Botas Simples',tier:1,price:320,icon:'🥾',stats:{move:.12},
+  stat:'+12% MOV',desc:'Botas básicas para correr, escapar e voltar mais rápido à rota'},
  {id:'cell',name:'Célula Astral',tier:1,price:300,icon:'ϟ',stats:{mana:90},stat:'+90 mana',desc:'Componente de energia'},
  {id:'prism',name:'Prisma Menor',tier:1,price:340,icon:'◇',stats:{ap:.13},stat:'+13% poder',desc:'Componente mágico'},
  {id:'core',name:'Engrenagem',tier:1,price:340,icon:'✦',stats:{haste:.08},stat:'+8% aceleração',desc:'Componente de recarga'},
@@ -113,9 +115,18 @@ const ITEMS=[
  {id:'titanplate',name:'Égide do Titã',tier:2,price:1460,icon:'▣',
   recipe:['ward','cell','core'],stats:{hp:230,mana:160,haste:.12,regen:1.8},
   stat:'+230 PV · +160 mana · +12% acel.',desc:'Resistência e regeneração'},
- {id:'swiftboots',name:'Botas do Horizonte',tier:2,price:1360,icon:'➠',
-  recipe:['stride','stride','lens'],stats:{move:.16,ad:20},passive:'pursuit',
-  stat:'+16% MOV · +20 AD',desc:'Ataques ganham vigor ao perseguir'},
+ {id:'swiftboots',name:'Botas do Horizonte',tier:2,price:1360,icon:'🥾',
+  recipe:['boots','stride','lens'],stats:{move:.18,ad:20},passive:'pursuit',
+  stat:'+18% MOV · +20 AD',desc:'Botas ofensivas: velocidade e dano em perseguições'},
+ {id:'arcaneboots',name:'Botas Arcanas',tier:2,price:1380,icon:'🥾',
+  recipe:['boots','prism','core'],stats:{move:.18,ap:.15,haste:.08},
+  stat:'+18% MOV · +15% poder · +8% acel.',desc:'Botas de mago: mobilidade e poderes mais frequentes'},
+ {id:'guardianboots',name:'Botas do Guardião',tier:2,price:1340,icon:'🥾',
+  recipe:['boots','ward','sprout'],stats:{move:.17,hp:195,regen:1.4},
+  stat:'+17% MOV · +195 PV · regeneração',desc:'Botas defensivas para tanques e suportes'},
+ {id:'hunterboots',name:'Botas do Explorador',tier:2,price:1350,icon:'🥾',
+  recipe:['boots','fang','core'],stats:{move:.20,ad:13,haste:.08},
+  stat:'+20% MOV · +13 AD · +8% acel.',desc:'Botas de selva para perseguições e rotação'},
  {id:'archmage',name:'Cetro do Arcanista',tier:2,price:1510,icon:'✺',
   recipe:['prism','prism','cell'],stats:{ap:.41,mana:225},passive:'arcane',
   stat:'+41% poder · +225 mana',desc:'Habilidades ficam mais poderosas'},
@@ -161,22 +172,27 @@ const recipeStatus=(unit,id)=>{
    ready:missing.length===0,
    spacesAfter:(unit?.items?.length||0)-used.length+1};
 };
+function canShop(unit,ai=false){
+ return unit?.kind==='hero'&&(unit.hp<=0||
+  dist(unit,HOME[unit.side])<=(ai?245:240));
+}
 function applyItemPurchase(unit,id,ai=false){
  const item=ITEM_BY_ID[id];
  if(!item)return{ok:false,reason:'ITEM DESCONHECIDO'};
- if(unit.hp<=0)return{ok:false,reason:'AGUARDE RESSURGIR'};
- if(dist(unit,HOME[unit.side])>(ai?245:240))return{ok:false,reason:'COMPRAS APENAS NO SANTUÁRIO'};
+ // É possível comprar enquanto morto, mesmo longe da fonte.
+ if(!canShop(unit,ai))return{ok:false,reason:'COMPRAS APENAS NO SANTUÁRIO'};
  if(item.tier===2&&(unit.items||[]).includes(id))return{ok:false,reason:'EQUIPAMENTO JÁ COMPLETO'};
  const recipe=recipeStatus(unit,id);
  if(recipe.missing.length)return{ok:false,reason:'ADQUIRA OS COMPONENTES ANTES DE COMBINAR'};
  if(recipe.spacesAfter>6)return{ok:false,reason:'INVENTÁRIO LOTADO (6 ESPAÇOS)'};
  if(unit.gold<recipe.remaining)return{ok:false,reason:'OURO INSUFICIENTE'};
- const oldHP=itemStats(unit,'hp'),oldMana=maxMana(unit);
+ const oldHP=itemStats(unit,'hp'),oldMana=maxMana(unit),wasDead=unit.hp<=0;
  for(const part of recipe.used)unit.items.splice(unit.items.indexOf(part),1);
  unit.items.push(id);unit.gold-=recipe.remaining;
  const hpDiff=itemStats(unit,'hp')-oldHP;
  unit.maxHp=Math.max(1,unit.maxHp+hpDiff);
- unit.hp=clamp(unit.hp+Math.max(0,hpDiff),1,unit.maxHp);
+ // Comprar PV não ressuscita o campeão antes do cronômetro.
+ unit.hp=wasDead?0:clamp(unit.hp+Math.max(0,hpDiff),1,unit.maxHp);
  const manaDiff=maxMana(unit)-oldMana;
  unit.mana=clamp(unit.mana+Math.max(0,manaDiff),0,maxMana(unit));
  return{ok:true,item,cost:recipe.remaining,consumed:recipe.used};
@@ -1124,13 +1140,22 @@ function finishAttack(u,shot){
   shot.empowered);
  return true;
 }
+// Alcance das torres restrito ao corredor físico da própria rota.
+// O núcleo permanece livre para defender sua praça.
+function towerCanTarget(t,u){
+ if(t.kind!=='tower')return true;
+ if(u.kind==='minion'&&u.lane!==t.lane)return false;
+ const lane=routeProjection(t.lane,u);
+ return lane.distance<=LANE_HALF_WIDTH+Math.min(12,u.r||0);
+}
 function chooseEnemyForStructure(t){
  const aggro=t.aggroTarget;
  if(aggro&&aggro.hp>0&&state.time<(t.aggroUntil||0)&&
-     dist(t,aggro)<t.range+aggro.r)return aggro;
+     dist(t,aggro)<t.range+aggro.r&&towerCanTarget(t,aggro))return aggro;
  t.aggroTarget=null;
  const enemies=living(1-t.side);
- const inRange=enemies.filter(u=>dist(u,t)<t.range+u.r&&visibleTo(t.side,u));
+ const inRange=enemies.filter(u=>dist(u,t)<t.range+u.r&&visibleTo(t.side,u)&&
+  towerCanTarget(t,u));
  const minions=inRange.filter(u=>u.kind==='minion');
  if(minions.length)minions.sort((a,b)=>dist(a,t)-dist(b,t));
  const champions=inRange.filter(u=>u.kind==='hero').sort((a,b)=>dist(a,t)-dist(b,t));
@@ -2619,7 +2644,7 @@ function sellItem(index){
  const hero=state.hero,at=Math.floor(index);
  if(!hero||state.mode!=='playing'||!Number.isInteger(index))
   return{ok:false,reason:'ITEM INVÁLIDO'};
- if(dist(hero,HOME[0])>240||hero.hp<=0)return{ok:false,reason:'VENDA SOMENTE NO SANTUÁRIO'};
+ if(!canShop(hero))return{ok:false,reason:'VENDA SOMENTE NO SANTUÁRIO OU MORTO'};
  if(at<0||at>=hero.items.length)return{ok:false,reason:'ESPAÇO VAZIO'};
  const item=ITEM_BY_ID[hero.items[at]];
  if(!item)return{ok:false,reason:'ITEM INVÁLIDO'};
@@ -2642,7 +2667,7 @@ function recall(){
  addEffect(p.x,p.y,'#c5ecfa',70,RECALL_CHANNEL_SECONDS,'recall');
  return true;
 }
-window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,SUMMONERS,RECALL_CHANNEL_SECONDS,smiteDamage,castSummoner,hData,skillDef,
+window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,canShop,towerCanTarget,SUMMONERS,RECALL_CHANNEL_SECONDS,smiteDamage,castSummoner,hData,skillDef,
  start,previewBlue,ROLE_ORDER,ROLE_LANES,CHAMPION_ROLES,SUPPORT_RANGE,SUPPORT_MAX_CHARGES,
  SUPPORT_CHARGE_INTERVAL,SUPPORT_QUEST_REWARD,SUPPORT_QUEST_GOAL,MINION_BOUNTIES,supportPartner,canSupportExecute,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,lockAttackTarget,clearAttackLock,isAttackCommandValid,buyItem,sellItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,botTryGank,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,TOWERS_PER_LANE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
