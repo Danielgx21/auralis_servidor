@@ -111,10 +111,10 @@ const ITEMS=[
   recipe:['lens','prism','core'],stats:{ad:24,ap:.18,haste:.10},passive:'surge',
   stat:'+24 AD · +18% poder · +10% acel.',desc:'Após usar habilidade, próximo AA causa dano extra'},
  {id:'bulwark',name:'Bastião Ancestral',tier:2,price:1480,icon:'⬢',
-  recipe:['ward','ward','core'],stats:{hp:310,haste:.11},passive:'fortify',
+  recipe:['ward','ward','core'],stats:{hp:310,armor:24,haste:.11},passive:'fortify',
   stat:'+310 PV · +11% acel.',desc:'Proteção periódica ao ficar com pouca vida'},
  {id:'titanplate',name:'Égide do Titã',tier:2,price:1460,icon:'▣',
-  recipe:['ward','cell','core'],stats:{hp:230,mana:160,haste:.12,regen:1.8},
+  recipe:['ward','cell','core'],stats:{hp:230,mana:160,mr:31,haste:.12,regen:1.8},
   stat:'+230 PV · +160 mana · +12% acel.',desc:'Resistência e regeneração'},
  {id:'swiftboots',name:'Botas do Horizonte',tier:2,price:1360,icon:'🥾',
   recipe:['boots','stride','lens'],stats:{move:.18,ad:20},passive:'pursuit',
@@ -123,7 +123,7 @@ const ITEMS=[
   recipe:['boots','prism','core'],stats:{move:.18,ap:.15,haste:.08},
   stat:'+18% MOV · +15% poder · +8% acel.',desc:'Botas de mago: mobilidade e poderes mais frequentes'},
  {id:'guardianboots',name:'Botas do Guardião',tier:2,price:1340,icon:'🥾',
-  recipe:['boots','ward','sprout'],stats:{move:.17,hp:195,regen:1.4},
+  recipe:['boots','ward','sprout'],stats:{move:.17,hp:195,mr:21,regen:1.4},
   stat:'+17% MOV · +195 PV · regeneração',desc:'Botas defensivas para tanques e suportes'},
  {id:'hunterboots',name:'Botas do Explorador',tier:2,price:1350,icon:'🥾',
   recipe:['boots','fang','core'],stats:{move:.20,ad:13,haste:.08},
@@ -2188,7 +2188,7 @@ function cast(u,id,aim=null,autoTarget=null){
   id==='lyria_step'&&!aim&&target&&target.kind==='hero'&&dist(u,target)<100?-dy:dy),range=def.range||140;
  const travel=clamp(aim?.distance??(target?dist(u,target):range),0,range);
  let center={x:u.x+dir.x*travel,y:u.y+dir.y*travel};
- if((id==='seris_bloom'||id==='elowen_bless')&&!aim){
+ if((id==='seris_bloom'||id==='elowen_bless'||id==='elowen_ult')&&!aim){
   const wounded=living(u.side,'hero').filter(h=>dist(h,u)<range).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
   if(wounded)center={x:wounded.x,y:wounded.y};
  }
