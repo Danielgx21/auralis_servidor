@@ -704,7 +704,7 @@ function start(hero='lyria',summoners=null,selectedRole=null){
  const redSquads=[
   ['rokar','sahra','mirielle','tessa','seris'],
   ['varka','sahra','iskha','darian','elowen'],
-  ['tharok','zhira','nyra','kaoryn','seris']
+  ['tharok','sahra','nyra','kaoryn','seris']
  ];
  const red=ROLE_ORDER.map((role,i)=>({id:redSquads[squadIndex][i],role}));
  for(const slot of [blue.find(u=>u.controlled),...blue.filter(u=>!u.controlled)]){
