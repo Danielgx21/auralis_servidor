@@ -1705,4 +1705,119 @@ console.log('OK: Fenda 10.2.1 com borda fisica, cenario conectado e camera mobil
  assert.ok(m.projectiles.some(p=>p.source===tower),'A torre não dispara mais na própria rota');
 }
 console.log('OK: Fenda 10.2, loja de mortos, inspeção de peças, botas e torres por corredor.');
+
+// Arena 11.0 — novos kits, builds e efeitos concretos dos 8 equipamentos.
+{
+ const names=['kaoryn','darian','elowen','tharok','varka','iskha'];
+ assert.equal(Object.keys(heroes).length,18,'Elenco novo precisa ter 18 campeões');
+ assert.equal(E.ITEMS.filter(it=>it.tier===2).length,25,'25 itens completos esperados');
+ const roles={kaoryn:'adc',darian:'adc',elowen:'support',tharok:'support',varka:'top',iskha:'mid'};
+ const view=read('fenda-view.js'),engine=read('fenda-engine.js'),ai=read('fenda-team-ai.js');
+ for(const id of names){
+  const h=heroes[id],skillsOf=[...h.skills,h.ultimate];
+  assert.equal(skillsOf.length,4,'Campeão sem QWER: '+id);
+  assert.equal(new Set(skillsOf).size,4,'Campeão com habilidade duplicada: '+id);
+  assert.equal(E.CHAMPION_ROLES[id],roles[id],'Função incorreta '+id);
+  for(const skill of skillsOf){
+   const def=E.skillDef(skill);
+   assert.ok(def&&def.cd>0&&def.cost>0&&def.aim,
+    'Nova habilidade não cadastrada no motor: '+skill);
+   assert.ok(def.range<E.TURRET_RANGE||def.ultimate,
+    'Habilidade básica supera o alcance da torre: '+skill);
+  }
+  const match=E.start(id,null,roles[id]),hero=match.hero;
+  const enemy=match.units.find(u=>u.kind==='hero'&&u.side===1);
+  assert.equal(hero.id,id,'Seleção falhou '+id);
+  assert.equal(hero.roleKey,roles[id],'Lane escolhida não chegou ao motor');
+  assert.equal(match.units.filter(u=>u.kind==='hero'&&u.side===0).length,5);
+  assert.equal(match.units.filter(u=>u.kind==='hero'&&u.side===1).length,5);
+  assert.ok(match.units.filter(u=>u.kind==='hero'&&u.side===0).every((u,i,list)=>
+   list.findIndex(t=>t.roleKey===u.roleKey)===i),'Duas vagas ocupando a mesma função');
+  assert.ok(!match.units.filter(u=>u.kind==='hero'&&u.side===1).some(u=>u.id===id),
+   'Mesmo campeão apareceu nos dois lados da partida: '+id);
+  assert.ok(view.includes("u.id==='"+id+"'")&&view.includes("  "+id+":'M"),
+   'Novo personagem sem modelo ou retrato próprio: '+id);
+  assert.ok(ai.includes(id),'Nova função ausente na IA '+id);
+  match.units=[hero,enemy];match.structures=[];match.camps=[];match.walls=[];match.obstacles=[];
+  match.nextWave=99999;
+  hero.x=1500;hero.y=1250;enemy.x=1665;enemy.y=1250;
+  enemy.stun=20;hero.mana=1500;hero.level=8;hero.skillPoints=9;
+  E.refreshVision(true);
+  for(const sk of skillsOf){
+   hero.skillLevels[sk]=1;hero.cooldowns[sk]=0;
+   assert.ok(E.cast(hero,sk,{x:1,y:0,distance:160}),
+    'Habilidade não pode ser lançada: '+sk);
+   for(let f=0;f<24;f++)E.step(.05,{x:0,y:0});
+   hero.mana=1500;
+  }
+ }
+ assert.ok(view.includes('function recommendedFor(hero)')&&
+  view.includes('const base=E.canShop(h),dead=h.hp<=0,builds=recommendedFor(h)'),
+  'Loja não adaptou recomendações ao time inimigo');
+}
+{
+ const ids=['ruinblade','bloodedge','eclipseknife','corruptmask',
+  'voidstaff','stormcrown','stoneheart','incensario'];
+ const scene=E.start('elowen',null,'support'),hero=scene.hero;
+ hero.x=E.HOME[0].x;hero.y=E.HOME[0].y;hero.gold=15000;
+ for(const id of ids){
+  const it=E.ITEMS.find(x=>x.id===id);
+  assert.ok(it&&it.tier===2&&it.recipe.length===3,
+   'Item completo sem receita: '+id);
+  const price=it.recipe.reduce((t,part)=>t+E.ITEMS.find(p=>p.id===part)?.price,0);
+  assert.ok(price<it.price,'Combinação sem custo extra: '+id);
+  for(const part of it.recipe)assert.ok(E.buyItem(part).ok,'Pré-item não comprável: '+part);
+  assert.ok(E.buyItem(id).ok,'Item completo não combina: '+id);
+  assert.equal(hero.items.length,1,'Receita não consumiu peças: '+id);
+  assert.equal(hero.items[0],id,'Item final errado: '+id);
+  assert.ok(E.sellItem(0).ok,'Venda do equipamento '+id+' falhou');
+ }
+}
+{
+ // Diferenciar efeitos de passiva por dano, cura e tempo.
+ const scene=E.start('darian',null,'adc'),hero=scene.hero,
+  enemy=scene.units.find(u=>u.side===1&&u.roleKey==='top');
+ scene.units=[hero,enemy];scene.structures=[];scene.camps=[];scene.walls=[];scene.obstacles=[];
+ scene.nextWave=99999;hero.x=1500;hero.y=1300;enemy.x=1600;enemy.y=1300;hero.gold=20000;
+ const reset=()=>{enemy.hp=enemy.maxHp=1800;enemy.shield=0;enemy.invuln=0;
+  enemy.grievousUntil=0;hero.stormCrownReady=0;hero.items=[];enemy.items=[]};
+ reset();enemy.items=['stoneheart'];
+ const normal=E.damage(enemy,100,hero,'aa');
+ reset();enemy.items=['stoneheart'];hero.items=['eclipseknife'];
+ const piercing=E.damage(enemy,100,hero,'aa');
+ assert.ok(piercing>normal,'Adaga do Eclipse não penetra armadura');
+ reset();enemy.items=['titanplate'];
+ const magic=E.damage(enemy,100,hero,'spell');
+ reset();enemy.items=['titanplate'];hero.items=['voidstaff'];
+ assert.ok(E.damage(enemy,100,hero,'spell')>magic,'Cajado do Vazio não penetra defesa mágica');
+ reset();hero.items=['corruptmask'];
+ E.damage(enemy,12,hero);
+ enemy.hp=1500;
+ const healed=E.heal(enemy,100);
+ assert.ok(healed<=60,'Feridas graves não reduziram cura em 40%');
+ reset();hero.items=['stormcrown'];
+ const burst=E.damage(enemy,30,hero,'spell');
+ const second=E.damage(enemy,30,hero,'spell');
+ assert.ok(burst>second+15,'Coroa da Tempestade não respeita o tempo entre explosões');
+ reset();hero.items=['ruinblade'];enemy.hp=enemy.maxHp=2500;
+ hero.passiveAttacks=0;hero.attackCd=0;
+ E.refreshVision(true);
+ assert.ok(E.autoAttack(hero),'AA com Lâmina da Ruína não iniciou');
+ for(let j=0;j<20;j++)E.step(.05,{x:0,y:0});
+ assert.ok(enemy.hp<enemy.maxHp,'Lâmina da Ruína não acerta campeões');
+ reset();enemy.hp=enemy.maxHp=2500;hero.items=['bloodedge'];hero.passiveAttacks=2;
+ hero.attackCd=0;E.refreshVision(true);
+ assert.ok(E.autoAttack(hero),'AA crítico não iniciou');
+ assert.equal(hero.passiveAttacks,3,'AA não contabilizado para crítico');
+ reset();const ally=scene.units[0]; // Elowen será testada na formação original.
+ const supportScene=E.start('elowen',null,'support'),sup=supportScene.hero,
+  adc=supportScene.units.find(u=>u.side===0&&u.roleKey==='adc');
+ supportScene.units=[sup,adc];supportScene.structures=[];supportScene.camps=[];supportScene.walls=[];supportScene.obstacles=[];
+ supportScene.nextWave=99999;sup.x=1500;sup.y=1200;adc.x=1530;adc.y=1200;sup.items=['incensario'];
+ sup.skillLevels.elowen_glade=1;sup.mana=400;
+ assert.ok(E.cast(sup,'elowen_glade'),'Elowen não consegue proteger com Incensário');
+ assert.ok(adc.shield>0&&adc.inspireUntil>supportScene.time,
+  'Incensário não fortalece ataques do aliado protegido');
+}
+console.log('OK: Arena 11.0 com 18 campeões, 24 habilidades novas, 25 itens e IA.');
 console.log('OK: Fenda 10.1: partilha do suporte, receitas, retorno dos bots e regressões.');
