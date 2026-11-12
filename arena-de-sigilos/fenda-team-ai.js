@@ -4,7 +4,7 @@
 const E=window.FendaEngine,C=window.SigilsCore;
 if(!E||!C){console.error('Fenda Team AI: dependências ausentes');return}
 const S=E.state,clamp=E.clamp,dist=E.dist,norm=E.norm;
-const roles={orun:'tank',vexor:'assassin',lyria:'carry',nyra:'mage',seris:'support',brax:'fighter',zhira:'jungler',rokar:'tank',kaelis:'mage',tessa:'carry',sahra:'assassin',mirielle:'assassin'};
+const roles={orun:'tank',vexor:'assassin',lyria:'carry',nyra:'mage',seris:'support',brax:'fighter',zhira:'jungler',rokar:'tank',kaelis:'mage',tessa:'carry',sahra:'assassin',mirielle:'assassin',kaoryn:'carry',darian:'carry',elowen:'support',tharok:'tank',varka:'fighter',iskha:'mage'};
 let nextScan=0;
 const living=(side)=>E.living(side,'hero');
 const visibleFoes=(side)=>living(1-side).filter(e=>E.visibleTo(side,e));
@@ -36,9 +36,9 @@ function scan(){
    const friends=allies.filter(a=>dist(a,center)<475);
    const rivals=foes.filter(e=>dist(e,center)<400);
    if(friends.length<2||rivals.length<1||!friends.some(a=>!a.controlled))continue;
-   const frontline=friends.some(a=>['orun','brax','rokar'].includes(a.id));
-   const sustain=friends.some(a=>a.id==='seris');
-   const dps=friends.some(a=>['lyria','nyra','tessa','kaelis'].includes(a.id));
+   const frontline=friends.some(a=>['orun','brax','rokar','tharok','varka'].includes(a.id));
+   const sustain=friends.some(a=>['seris','elowen'].includes(a.id));
+   const dps=friends.some(a=>['lyria','nyra','tessa','kaelis','kaoryn','darian','iskha'].includes(a.id));
    const synergy=1+(frontline&&dps?0.09:0)+(sustain&&friends.length>=3?0.08:0);
    const alliedPower=friends.reduce((s,a)=>s+strength(a),0)*synergy;
    const enemyPower=rivals.reduce((s,a)=>s+strength(a),0);
@@ -54,7 +54,7 @@ function scan(){
    let mode=enemyTurret&&ratio<1.55?'retreat':
      ratio<.74?'retreat':ratio>=(enemyTurret?1.55:.96)?'engage':'hold';
    // Quando o tanque está ausente, uma iniciação 2v2 fica mais conservadora.
-   if(mode==='engage'&&!friends.some(a=>['orun','brax','rokar'].includes(a.id))&&ratio<1.10&&friends.length<3)
+   if(mode==='engage'&&!friends.some(a=>['orun','brax','rokar','tharok','varka'].includes(a.id))&&ratio<1.10&&friends.length<3)
      mode='hold';
    const focus=rivals.map(e=>{
     const threatenedCarry=friends.some(a=>['lyria','nyra','tessa','kaelis','seris'].includes(a.id)&&dist(a,e)<155);
@@ -87,7 +87,26 @@ function stepBack(u,enemy,dt,distance=135){
    y:clamp(u.y+away.y*distance+(home.y-u.y)*.22,30,E.H-30)},dt,.94);
 }
 function defensiveCast(u,friends,nearest){
- if(u.id==='seris'){
+ if(u.id==='elowen'){
+  const hurt=friends.filter(a=>dist(u,a)<310&&hp(a)<.77);
+  if(canCast(u,'elowen_ult')&&hurt.length>=2){
+   const weak=hurt.slice().sort((a,b)=>hp(a)-hp(b))[0],
+    v=norm(weak.x-u.x,weak.y-u.y);
+   return E.cast(u,'elowen_ult',{x:v.x,y:v.y,distance:Math.min(220,dist(u,weak))});
+  }
+  if(canCast(u,'elowen_bless')&&hurt.length)
+   return E.cast(u,'elowen_bless',null,hurt.slice().sort((a,b)=>hp(a)-hp(b))[0]);
+  if(canCast(u,'elowen_glade')&&friends.some(a=>dist(u,a)<160&&hp(a)<.75))
+   return E.cast(u,'elowen_glade');
+ }else if(u.id==='tharok'){
+  if(canCast(u,'tharok_bastion')&&friends.some(a=>a!==u&&dist(u,a)<165&&hp(a)<.82))
+   return E.cast(u,'tharok_bastion');
+ }else if(u.id==='varka'){
+  if(canCast(u,'varka_will')&&hp(u)<.6)return E.cast(u,'varka_will');
+ }else if(u.id==='iskha'){
+  if(canCast(u,'iskha_frostguard')&&hp(u)<.61)return E.cast(u,'iskha_frostguard');
+ }
+ if(['seris','elowen'].includes(u.id)){
   const needsHelp=friends.some(a=>dist(u,a)<190&&hp(a)<.68);
   if(needsHelp&&canCast(u,'seris_ult')&&
      friends.filter(a=>dist(a,u)<190&&hp(a)<.75).length>=2)
@@ -144,12 +163,12 @@ function handleBot(u,dt){
  const focus=enemies.find(e=>e.uid===p.focusUid)||
    enemies.slice().sort((a,b)=>dist(u,a)-dist(u,b))[0];
  const nearest=enemies.slice().sort((a,b)=>dist(u,a)-dist(u,b))[0];
- const front=friends.find(a=>['orun','brax','rokar'].includes(a.id));
- const carry=friends.filter(a=>['lyria','nyra','tessa','kaelis'].includes(a.id))
+ const front=friends.find(a=>['orun','brax','rokar','tharok','varka'].includes(a.id));
+ const carry=friends.filter(a=>['lyria','nyra','tessa','kaelis','kaoryn','darian','iskha'].includes(a.id))
    .sort((a,b)=>hp(a)-hp(b))[0];
  u.teamFightUntil=S.time+.8;
  u.focusTarget=focus;u.focusUntil=S.time+.8;
- if(p.mode==='retreat'||hp(u)<.30&&!['orun','brax','rokar'].includes(u.id)){
+ if(p.mode==='retreat'||hp(u)<.30&&!['orun','brax','rokar','tharok','varka'].includes(u.id)){
   u.focusTarget=null;u.focusUntil=0;
   defensiveCast(u,friends,nearest);
   stepBack(u,nearest,dt,175);
@@ -163,7 +182,7 @@ function handleBot(u,dt){
   // Se há adversário disputando a rota, pressionar e atacar em vez de
   // simplesmente observar o combate a poucos passos.
   if(dist(u,nearest)>attackReach+8&&!p.towerDive){
-   move(u,nearest,dt,(['orun','brax','rokar'].includes(u.id))?.93:.87);
+   move(u,nearest,dt,(['orun','brax','rokar','tharok','varka'].includes(u.id))?.93:.87);
   }
   if(dist(u,nearest)<attackReach+15){
    u.focusTarget=nearest;u.focusUntil=S.time+1.1;
@@ -174,11 +193,11 @@ function handleBot(u,dt){
   if(['vexor','zhira','sahra','mirielle'].includes(u.id)){
    const guard=front||carry||friends.find(a=>a!==u);
    if(guard&&dist(u,guard)>145)move(u,guard,dt,.72);
-  }else if(['orun','brax','rokar'].includes(u.id)){
+  }else if(['orun','brax','rokar','tharok','varka'].includes(u.id)){
    const guard=carry||friends.find(a=>a!==u);
    if(guard&&dist(u,guard)>155)move(u,guard,dt,.70);
    defensiveCast(u,friends,nearest);
-  }else if(u.id==='seris'){
+  }else if(['seris','elowen'].includes(u.id)){
    defensiveCast(u,friends,nearest);
    const guard=carry||front;
    if(guard&&dist(u,guard)>150)move(u,guard,dt,.70);
@@ -198,7 +217,7 @@ function handleBot(u,dt){
   }
   return true;
  }
- if(['orun','brax','rokar'].includes(u.id)){
+ if(['orun','brax','rokar','tharok','varka'].includes(u.id)){
   // Orun é a linha de frente; intercepta investidas no carregador.
   const diver=enemies.find(e=>carry&&dist(e,carry)<155);
   const victim=diver||focus;
@@ -223,7 +242,7 @@ function handleBot(u,dt){
     y:clamp(focus.y-vec.y*69+vec.x*side*66,30,E.H-30)};
   if(dist(u,flank)>50&&dist(u,focus)>79)move(u,flank,dt,.94);
   E.botUseSkill(u,focus);
- }else if(u.id==='seris'){
+ }else if(['seris','elowen'].includes(u.id)){
   // Seris acompanha o aliado vulnerável e usa cura/escudo para proteger a linha de trás.
   const protect=friends.filter(a=>a!==u).sort((a,b)=>hp(a)-hp(b))[0]||front;
   if(protect){
@@ -236,8 +255,8 @@ function handleBot(u,dt){
   E.botUseSkill(u,focus);
  }else{
   // Lyria e Nyra atacam de trás: kite em aproximação inimiga e acompanham o tanque.
-  const ideal=u.id==='tessa'?285:u.id==='lyria'?265:
-   (u.id==='nyra'||u.id==='kaelis'?245:222);
+  const ideal=u.id==='tessa'?285:['lyria','kaoryn'].includes(u.id)?265:
+   u.id==='darian'?255:['nyra','kaelis','iskha'].includes(u.id)?245:222;
   // Carregadores recuam entre ataques, não abandonam o alcance de graça.
   if(dist(u,nearest)<ideal*.68&&u.attackCd>.14)stepBack(u,nearest,dt,112);
   else if(dist(u,focus)>ideal+focus.r+15){
@@ -252,7 +271,7 @@ function handleBot(u,dt){
 function aim(u,id,target){
  const p=S.teamAI?.[u.side],def=E.skillDef(id);
  if(!p||S.time>=p.until||u.teamFightUntil<S.time||!target||
-   def.aim!=='area'||id==='seris_bloom')return null;
+   def.aim!=='area'||['seris_bloom','elowen_bless','elowen_ult'].includes(id))return null;
  const enemies=visibleFoes(u.side).filter(e=>dist(u,e)<def.range+e.r);
  if(!enemies.length)return null;
  let best=null,score=-Infinity;
