@@ -1196,6 +1196,8 @@ function autoAttack(u){
     if(u.loadedRoundUntil>state.time){damageVal+=33+u.level*2;u.loadedRoundUntil=0;
      addEffect(u.x,u.y,'#ffe49b',42,.32,'burst');}
    }
+   if(u.id==='varka'&&target.kind==='hero')
+    damageVal*=1+Math.min(.16,(1-u.hp/u.maxHp)*.20);
    if(u.id==='sahra'&&target.kind==='hero'&&target.sahraMarkUntil>state.time){
     damageVal+=Math.round(19+u.level*2.3);target.sahraMarkUntil=0;
     heal(u,Math.round(5+u.level*.6));
@@ -1697,6 +1699,37 @@ function botUseSkill(u,target){
     options.push('mirielle_chain');
   if(r<305)options.push('mirielle_sigil');
   if(r>96&&r<210&&!u.mirrorReturn)options.push('mirielle_distort');
+ }else if(u.id==='kaoryn'){
+  if(ready('kaoryn_ult')&&clusters>=2&&r<310)options.push('kaoryn_ult');
+  if(r<120)options.push('kaoryn_stride');
+  if(r<260&&target.kind==='hero')options.push('kaoryn_thorns');
+  if(r<350)options.push('kaoryn_volley');
+ }else if(u.id==='darian'){
+  if(ready('darian_ult')&&r<530&&(clusters>=2||target.hp/target.maxHp<.40))options.push('darian_ult');
+  if(r<115)options.push('darian_dash');
+  if(r<275&&clusters>=2)options.push('darian_bomb');
+  if(r<370)options.push('darian_ricochet');
+ }else if(u.id==='elowen'){
+  const harmed=friendlies.filter(a=>dist(a,u)<290&&a.hp/a.maxHp<.75);
+  if(ready('elowen_ult')&&harmed.length>=2)options.push('elowen_ult');
+  if(ready('elowen_bless')&&wounded)options.push('elowen_bless');
+  if(ready('elowen_glade')&&(nearEnemies>0||harmed.length))options.push('elowen_glade');
+  if(r<290)options.push('elowen_seed');
+ }else if(u.id==='tharok'){
+  if(ready('tharok_ult')&&nearEnemies>=2)options.push('tharok_ult');
+  if(ready('tharok_bastion')&&(nearEnemies>0&&friendlies.some(a=>dist(a,u)<175)))options.push('tharok_bastion');
+  if(r<125)options.push('tharok_pulse');
+  if(r>70&&r<190)options.push('tharok_ram');
+ }else if(u.id==='varka'){
+  if(ready('varka_ult')&&nearEnemies>0&&(u.hp/u.maxHp<.78||r<85))options.push('varka_ult');
+  if(ready('varka_will')&&u.hp/u.maxHp<.64)options.push('varka_will');
+  if(r<115)options.push('varka_cleave');
+  if(r>80&&r<190)options.push('varka_lunge');
+ }else if(u.id==='iskha'){
+  if(ready('iskha_ult')&&clusters>=2&&r<320)options.push('iskha_ult');
+  if(ready('iskha_frostguard')&&u.hp/u.maxHp<.65)options.push('iskha_frostguard');
+  if(r<280&&nearEnemies>0)options.push('iskha_field');
+  if(r<345)options.push('iskha_shard');
  }else if(u.id==='zhira'){
   if(ready('zhira_ult')&&r<215)options.push('zhira_ult');
   if(r<230&&clusters>=2)options.push('zhira_trap');
@@ -1709,7 +1742,8 @@ function botUseSkill(u,target){
   return def.aim==='self'||r<=(def.range||0)+target.r+9;
  });
  if(!options.length)return false;
- const id=options[0],beneficiary=id==='seris_bloom'?wounded:target;
+ const id=options[0],beneficiary=['seris_bloom','elowen_bless','elowen_ult'].includes(id)?
+   wounded||target:target;
  if(cast(u,id,window.FendaTeamAI?.aim(u,id,beneficiary)||null,beneficiary)){
   u.aiTimer=1.65+(u.uid%5)*.13;
   return true;
@@ -2249,10 +2283,17 @@ function castSummoner(u,id,target=null,aim=null){
 function skillHit(target,source,id,baseDamage,mods={}){
  if(!target||target.hp<=0)return 0;
  let amount=Math.max(1,baseDamage);
+ if(id==='kaoryn_volley'&&source?.id==='kaoryn'&&target.kind==='hero'){
+  source.kaorynTarget=target.uid;
+  source.kaorynStacks=Math.min(4,(source.kaorynStacks||0)+1);
+  source.kaorynUntil=state.time+3.8;
+ }
  if(id==='tessa_shot'&&target.kind==='hero')
   amount*=1+Math.min(.65,Math.max(0,dist(source,target)-95)/500);
  if(id==='tessa_ult'&&target.kind==='hero')
   amount*=1+Math.min(1.1,1-target.hp/Math.max(1,target.maxHp));
+ if(id==='darian_ult'&&target.kind==='hero')
+  amount*=1+Math.min(.45,Math.max(0,dist(source,target)-120)/650);
  if(id==='sahra_ult'&&mods.stage2&&target.kind==='hero')
   amount*=1+.8*(1-target.hp/Math.max(1,target.maxHp));
  if(source?.id==='mirielle'&&target.kind==='hero'){
