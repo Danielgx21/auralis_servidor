@@ -194,8 +194,13 @@ const cameraClampX=x=>clamp(x,0,Math.max(0,E.W-worldVW));
 const cameraClampY=y=>clamp(y,0,Math.max(0,E.H-worldVH));
 // Overscan máximo reduzido: evita mostrar metade da tela fora do mapa.
 // Um pequeno espaço lateral ainda mantém o campeão longe do joystick.
-const mobileCameraClampX=x=>clamp(x,-worldVW*.20,
- Math.max(0,E.W-worldVW)+worldVW*.20);
+const mobileCameraClampX=(x,heroX,finger=0)=>{
+ // Só amplia o respiro da esquerda se o polegar realmente precisar dele.
+ // Sem joystick: no máximo 20% de cenário exterior; com joystick: até 35%.
+ const wanted=finger>0?(finger+MOBILE_THUMB_CLEARANCE_PX)/cameraZoom-heroX:0;
+ const overscan=Math.max(worldVW*.20,Math.min(worldVW*.35,wanted));
+ return clamp(x,-overscan,Math.max(0,E.W-worldVW)+worldVW*.20);
+};
 const mobileCameraClampY=y=>clamp(y,-worldVH*.15,
  Math.max(0,E.H-worldVH)+worldVH*.15);
 function cameraCenterAt(x,y){
@@ -214,7 +219,7 @@ function mobileCameraTarget(hero,observing=false){
  const x=Math.min(vw*.74,Math.max(vw*MOBILE_HERO_ANCHOR_X,
   finger+MOBILE_THUMB_CLEARANCE_PX));
  const y=vh*MOBILE_HERO_ANCHOR_Y;
- return{x:mobileCameraClampX(hero.x-x/cameraZoom),
+ return{x:mobileCameraClampX(hero.x-x/cameraZoom,hero.x,finger),
   y:mobileCameraClampY(hero.y-y/cameraZoom)};
 }
 function syncCameraControl(){
