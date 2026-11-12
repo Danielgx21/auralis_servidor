@@ -24,13 +24,27 @@ function path(g,pts){
  g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y));
 }
 function fond(g,E){
- // Fundo discreto da arena original, com grade e duas tonalidades de piso.
- g.fillStyle='#091c2a';g.fillRect(0,0,E.W,E.H);
+ // Escuro fora do perímetro; piso contínuo apenas dentro da arena física.
+ g.fillStyle='#05111b';g.fillRect(0,0,E.W,E.H);
+ g.save();
+ path(g,E.ARENA_BOUNDARY);
+ g.fillStyle='#091f2b';g.fill();
+ g.clip();
  g.strokeStyle='#82bacc14';g.lineWidth=1;
  g.beginPath();
  for(let x=0;x<=E.W;x+=115){g.moveTo(x,0);g.lineTo(x,E.H)}
  for(let y=0;y<=E.H;y+=115){g.moveTo(0,y);g.lineTo(E.W,y)}
  g.stroke();
+ g.restore();
+}
+function arenaRim(g,E){
+ // O contorno é desenhado exatamente onde a física impede atravessar.
+ g.save();g.lineJoin='round';
+ path(g,E.ARENA_BOUNDARY);
+ g.strokeStyle='#020b13';g.lineWidth=22;g.stroke();
+ g.strokeStyle='#487e8199';g.lineWidth=8;g.stroke();
+ g.strokeStyle='#b5d3aa48';g.lineWidth=2;g.stroke();
+ g.restore();
 }
 function jungleZones(g,E){
  // GROUND jungle diferente da lane; não são paredes fantasmas.
@@ -182,6 +196,7 @@ function terrain(E,S){
  }
  for(const group of chains.values())wallChain(g,group);
  for(const o of S.obstacles)rock(g,o);
+ arenaRim(g,E);
  return c;
 }
 window.FendaScenery={drawTerrain:terrain,drawBase:base,drawWall:wall,drawRock:rock};
