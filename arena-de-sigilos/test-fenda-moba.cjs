@@ -58,10 +58,10 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=11.2.1')&&
- html.includes('fenda-team-ai.js?v=11.2.1')&&
+assert.ok(html.includes('fenda-engine.js?v=11.3')&&
+ html.includes('fenda-team-ai.js?v=11.3')&&
  html.includes('fenda-scenery.js?v=10.2.1')&&
- html.includes('fenda-view.js?v=11.2.1'),'O site precisa carregar o cenário procedural antes da câmera.');
+ html.includes('fenda-view.js?v=11.3'),'O site precisa carregar o cenário procedural antes da câmera.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -983,7 +983,7 @@ E.start('lyria');
  assert.ok(view.includes("isDesktop?$('pcSkill'+i):b")&&
   css.includes('#fendaTeamRoster.collapsed .pc-roster-list'),
   'Evolução de habilidades e recolhimento do quadro não foram adaptados');
- assert.ok(html.includes('fenda-view.js?v=11.2.1')&&html.includes('fenda.css?v=10.2'),
+ assert.ok(html.includes('fenda-view.js?v=11.3')&&html.includes('fenda.css?v=10.2'),
   'Cache precisa trazer a versão 9.7');
 }
 // V9.4 — novas prioridades de AA, tempo de ataque, decisões dos bots e retratos.
@@ -1092,7 +1092,7 @@ E.start('lyria');
  assert.ok(site.includes('.stage.fenda-on #fendaSummoners .fenda-summoner small{')&&
   site.includes('font-size:10px!important')&&site.includes('#fendaMobileGuide'),
   'CSS do celular não tornou feitiços e habilidades legíveis');
- assert.ok(site.includes('fenda-view.js?v=11.2.1')&&site.includes('fenda.css?v=10.2'),
+ assert.ok(site.includes('fenda-view.js?v=11.3')&&site.includes('fenda.css?v=10.2'),
   'O cache do jogo precisa apontar para a versão 9.5');
 }
 console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livre e feitiços legíveis.');
@@ -1207,7 +1207,7 @@ console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livr
  assert.ok(view.includes("id==='sahra_ult'&&h.sahraSecondUntil>S.time")&&
   view.includes("id==='mirielle_distort'&&h.mirrorReturn?.until>S.time"),
   'As habilidades reativáveis precisam estar habilitadas no painel');
- assert.ok(source.includes('fenda-engine.js?v=11.2.1')&&source.includes('fenda-view.js?v=11.2.1'),
+ assert.ok(source.includes('fenda-engine.js?v=11.3')&&source.includes('fenda-view.js?v=11.3'),
   'Cache de versão deve usar os novos campeões');
 }
 console.log('OK: V9.6 com duas assassinas, fumaça, retorno, execução, combos e ADCs distintos.');
@@ -1306,7 +1306,7 @@ console.log('OK: V9.7 com primeira habilidade Q, W ou E escolhida pelo jogador.'
   'Botões compactos precisam continuar acionando feitiços');
  assert.ok(!view.includes('mobileHelpBtn')&&!view.includes('mobileGuideUpdate()'),
   'Ajuda central não pode reaparecer após a remoção solicitada');
- assert.ok(html.includes('fenda-view.js?v=11.2.1')&&
+ assert.ok(html.includes('fenda-view.js?v=11.3')&&
   html.includes('fenda.css?v=10.2'),
   'Atualização deve invalidar o cache do jogo');
 }
@@ -1376,8 +1376,8 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
  assert.ok(css.includes('top:clamp(54px,14vh,72px)!important')&&
   css.includes('#fendaHUD #fendaWardBtn')&&css.includes('#fendaHUD #fendaTowerBtn'),
   'Visão e torre devem sair do centro e ocupar canto superior direito');
- assert.ok(html.includes('fenda-view.js?v=11.2.1')&&
-  html.includes('fenda-engine.js?v=11.2.1'),
+ assert.ok(html.includes('fenda-view.js?v=11.3')&&
+  html.includes('fenda-engine.js?v=11.3'),
   'Cache deve carregar versão 9.9');
 }
 // Mira de AA desliga ataque automático apenas durante seleção manual.
@@ -1408,7 +1408,7 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
  for(const id of Object.keys(E.SUMMONERS))
   assert.ok(typeof labels[id]==='string'&&labels[id].length>0,
    'Feitiço sem rótulo interrompe HUD: '+id);
- assert.ok(html.includes('fenda-view.js?v=11.2.1'),
+ assert.ok(html.includes('fenda-view.js?v=11.3'),
   'O navegador deve atualizar o arquivo de controles corrigido');
 }
 // Fenda 10.0: draft deve alterar time, rota, feitiços e movimentação.
@@ -1420,7 +1420,7 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
   view.includes('data-lane=')&&view.includes('Sem fase de banimentos')&&
   view.includes('E.previewBlue(selected,selectedLane)'),
   'Seleção de rotas não conectada à formação da equipe');
- assert.ok(html.includes('fenda-engine.js?v=11.2.1')&&html.includes('fenda-view.js?v=11.2.1')&&
+ assert.ok(html.includes('fenda-engine.js?v=11.3')&&html.includes('fenda-view.js?v=11.3')&&
   html.includes('fenda.css?v=10.2')&&css.includes('.fenda-lane-grid')&&
   css.includes('.fenda-lineup'),'Os arquivos do draft não atualizaram');
  for(const selectedRole of E.ROLE_ORDER){
@@ -1497,7 +1497,7 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
   view.includes('scoreRoles={top:')&&view.includes('scoreOrder[a.roleKey]'),
   'HUD/placar precisa mostrar farm partilhado e função real do campeão');
  assert.ok(css.includes('#fendaShareInfo')&&
-  html.includes('fenda-engine.js?v=11.2.1')&&html.includes('fenda-view.js?v=11.2.1')&&
+  html.includes('fenda-engine.js?v=11.3')&&html.includes('fenda-view.js?v=11.3')&&
   html.includes('fenda.css?v=10.2'),'Assets novos não carregaram na v10.1');
 }
 {
@@ -2045,4 +2045,35 @@ console.log('OK: Fenda 10.1: partilha do suporte, receitas, retorno dos bots e r
   'Caçador distante demais da experiência de uma rota solo com farm perfeito');
  assert.ok(jungleGoldPerSecond/soloGoldPerSecond>.64&&jungleGoldPerSecond/soloGoldPerSecond<.88,
   'Economia de monstros supera CS perfeito ou deixa o caçador sem recursos');
+}
+
+{
+ // Revisão 11.3: primeiras ondas, experiência, jungle/CS e valores da loja.
+ const scene=E.start('lyria',null,'adc');
+ assert.equal(E.LANE_WAVE_PACE.length,3);
+ assert.ok(E.LANE_WAVE_PACE[0]>E.LANE_WAVE_PACE[1]&&
+  E.LANE_WAVE_PACE[2]>E.LANE_WAVE_PACE[1]);
+ E.makeWave();
+ const a=scene.units.find(m=>m.kind==='minion'&&m.side===0&&m.lane===0&&m.id==='guard');
+ const b=scene.units.find(m=>m.kind==='minion'&&m.side===0&&m.lane===1&&m.id==='guard');
+ assert.ok(a.speed>b.speed,'Tropas laterais ainda atrasam no primeiro confronto');
+ const target=scene.units.find(m=>m.kind==='minion'&&m.side===1&&m.lane===0);
+ const ally=scene.units.find(h=>h.kind==='hero'&&h.side===0&&h.roleKey==='top');
+ ally.x=target.x+45;ally.y=target.y;const before=ally.xp;
+ target.hp=1;E.damage(target,5,ally);
+ assert.ok(ally.xp>before,'Laner perdeu toda XP da onda perto de si');
+ const jg=scene.units.find(h=>h.kind==='hero'&&h.side===0&&h.jungler);
+ const camp=scene.camps.find(c=>c.territory===0);scene.time=25;
+ jg.x=camp.x+45;jg.y=camp.y;E.damage(camp,camp.hp+5,jg);
+ assert.equal(jg.jungleCS,1,'Monstro não contabilizado na selva');
+ assert.equal(jg.cs,0,'Monstro não deve contabilizar como tropa');
+ assert.ok(jg.jungleGoldEarned>0,'Ouro da selva não foi registrado');
+ const prior=E.heroWealth(jg);jg.items.push('boots');
+ assert.equal(E.heroWealth(jg),prior+E.ITEMS.find(i=>i.id==='boots').price);
+ const enemy=scene.units.find(h=>h.kind==='hero'&&h.side===1);
+ jg.x=enemy.x-42;jg.y=enemy.y;jg.attackCd=0;
+ jg.farmTarget=target;target.hp=30;target.x=jg.x+23;target.y=jg.y;
+ jg.teamFightUntil=scene.time+1;jg.focusTarget=enemy;
+ E.refreshVision(true);
+ assert.equal(E.findAA(jg),enemy,'IA atacou minion apesar da ordem de foco');
 }

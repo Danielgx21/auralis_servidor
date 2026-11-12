@@ -140,7 +140,7 @@ const scoreboard=document.createElement('section');scoreboard.id='fendaScoreboar
 scoreboard.setAttribute('role','dialog');
 scoreboard.setAttribute('aria-label','Placar de jogadores e estatísticas da partida');
 scoreboard.setAttribute('aria-modal','false');
-scoreboard.innerHTML='<div class="fenda-scoreboard-head"><div><strong>PLACAR DA FENDA</strong><small>Equipes · K/D/A · Farm · Ouro · Itens</small></div><button id="fendaScoreClose" type="button" aria-label="Fechar placar">✕</button></div>'+
+scoreboard.innerHTML='<div class="fenda-scoreboard-head"><div><strong>PLACAR DA FENDA</strong><small>Equipes · K/D/A · Tropas / Selva · Patrimônio · Itens</small></div><button id="fendaScoreClose" type="button" aria-label="Fechar placar">✕</button></div>'+
  '<div id="fendaScoreboardTeams" class="fenda-scoreboard-teams"></div>'+
  '<div class="fenda-scoreboard-foot">Toque na pontuação para fechar · TAB no PC</div>';
 stage.appendChild(scoreboard);
@@ -1027,7 +1027,8 @@ function desktopHeroUpdate(h){
  $('pcXPFill').style.width=(lev<15?h.xp/(42+lev*24)*100:100)+'%';
  const buffs=(h.energyBuffUntil>S.time?' · AZUL '+Math.ceil(h.energyBuffUntil-S.time)+'s':'')+
   (h.damageBuffUntil>S.time?' · RUBRO '+Math.ceil(h.damageBuffUntil-S.time)+'s':'');
- $('pcExtraStats').textContent='K/D/A '+h.kills+'/'+h.deaths+'/'+(h.assists||0)+' · '+h.cs+' CS'+buffs+
+ $('pcExtraStats').textContent='K/D/A '+h.kills+'/'+h.deaths+'/'+(h.assists||0)+
+' · '+h.cs+' TROPAS'+(h.roleKey==='jungle'||h.jungleCS>0?' · '+h.jungleCS+' MONSTROS':'')+buffs+
   (h.roleKey==='support'?' · SUP '+h.supportCharges+'/'+E.SUPPORT_MAX_CHARGES+
    ' · '+h.supportSharedCS+' REPASSADOS':
    h.supportReceivedCS>0?' · +'+h.supportReceivedCS+' REPASSADOS':'')+
@@ -1070,6 +1071,7 @@ function hudUpdate(){
  const time=Math.floor(S.time);
  $('fendaTopScore').textContent='✦ '+S.kills[0]+' AZUL × '+S.kills[1]+' RUBRO';
  $('fendaPlayerStats').textContent='K/D/A '+h.kills+'/'+h.deaths+'/'+(h.assists||0)+' · FARM '+h.cs+
+(h.roleKey==='jungle'||h.jungleCS>0?' · SELVA '+h.jungleCS:'')+
   (h.energyBuffUntil>S.time?' · AZUL '+Math.ceil(h.energyBuffUntil-S.time)+'s':'')+
   (h.damageBuffUntil>S.time?' · VERMELHO '+Math.ceil(h.damageBuffUntil-S.time)+'s':'');
  shareInfo.hidden=h.roleKey!=='support'&&!(h.supportReceivedCS>0);
@@ -1207,7 +1209,8 @@ function scoreTeam(side){
   .sort((a,b)=>(scoreOrder[a.roleKey]??9)-(scoreOrder[b.roleKey]??9));
  const aliveTowers=S.structures.filter(t=>t.kind==='tower'&&t.side===side&&t.hp>0).length;
  const farm=heroes.reduce((sum,u)=>sum+(u.cs||0),0);
- const totalGold=heroes.reduce((sum,u)=>sum+Math.round(u.gold||0),0);
+ const monsters=heroes.reduce((sum,u)=>sum+(u.jungleCS||0),0);
+ const totalGold=heroes.reduce((sum,u)=>sum+E.heroWealth(u),0);
  const color=side===0?'azul':'rubro',title=side===0?'EQUIPE AZUL':'EQUIPE RUBRA';
  const rows=heroes.map(u=>{
   const hero=C.heroes[u.id],dead=u.hp<=0;
@@ -1218,16 +1221,17 @@ function scoreTeam(side){
    '<span><strong>'+hero.name+'</strong><small>'+(u.controlled?'VOCÊ':'BOT')+deathInfo+'</small></span></div>'+
    '<strong class="fenda-scoreboard-kda">'+u.kills+'/'+u.deaths+'/'+(u.assists||0)+'</strong>'+
    '<span class="fenda-scoreboard-cs">'+(u.cs||0)+' <small>CS</small>'+
+(u.roleKey==='jungle'||u.jungleCS>0?'<small>+'+(u.jungleCS||0)+' SELVA</small>':'')+
     (u.supportReceivedCS>0?'<small> +'+u.supportReceivedCS+' PART.</small>':
      u.roleKey==='support'?'<small> '+u.supportSharedCS+' REP.</small>':'')+'</span>'+
-   '<span class="fenda-scoreboard-gold">'+Math.round(u.gold||0)+' ✦</span>'+
+   '<span class="fenda-scoreboard-gold" title="Patrimônio (ouro + itens): '+E.heroWealth(u)+' · Disponível: '+Math.round(u.gold||0)+'">'+E.heroWealth(u)+' ✦</span>'+
    scoreboardItems(u)+'</div>';
  }).join('');
  return '<section class="fenda-scoreboard-team '+color+'">'+
   '<div class="fenda-scoreboard-teamhead"><strong>'+title+' <em>'+S.kills[side]+' ABATES</em></strong>'+
-  '<span>'+aliveTowers+' TORRES · '+farm+' CS · '+totalGold+' ✦</span></div>'+
+  '<span>'+aliveTowers+' TORRES · '+farm+' CS · '+monsters+' SELVA · '+totalGold+' ✦</span></div>'+
   '<div class="fenda-scoreboard-colheads"><span>ROTA</span><span>CAMPEÃO</span>'+
-  '<span>K/D/A</span><span>FARM</span><span>OURO</span><span>ITENS</span></div>'+rows+'</section>';
+  '<span>K/D/A</span><span>FARM</span><span>PATR.</span><span>ITENS</span></div>'+rows+'</section>';
 }
 function renderScoreboard(){
  $('fendaScoreboardTeams').innerHTML=scoreTeam(0)+scoreTeam(1);

@@ -183,7 +183,7 @@
 .fenda-scoreboard-champion small{font-size:8px;color:#a6b8c5;white-space:nowrap}
 .fenda-scoreboard-kda,.fenda-scoreboard-cs,.fenda-scoreboard-gold{
  text-align:center;white-space:nowrap;font-size:10px;font-weight:900}
-.fenda-scoreboard-cs small{font-size:7px;color:#a6bbc0}
+.fenda-scoreboard-cs small{display:block;font-size:7px;color:#a6bbc0;line-height:1.05}
 .fenda-scoreboard-gold{color:#e8c984;font-size:9px}
 .fenda-scoreboard-items{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:2px;min-width:0}
 .fenda-scoreboard-item{height:21px;min-width:0;border-radius:4px;

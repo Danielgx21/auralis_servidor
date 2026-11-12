@@ -67,6 +67,10 @@ const RECALL_CHANNEL_SECONDS=6.0;
 const SUPPORT_RANGE=440,SUPPORT_CHARGE_INTERVAL=30,SUPPORT_MAX_CHARGES=3;
 const SUPPORT_EXECUTE_THRESHOLD=.65,SUPPORT_QUEST_REWARD=65,SUPPORT_QUEST_GOAL=455;
 const MINION_BOUNTIES={guard:38,caster:30,siege:88};
+// As pistas laterais têm 48% mais trajeto que o meio; a compensação
+// aproxima as ondas sem reposicionar o mapa nem acelerar os campeões.
+const LANE_WAVE_PACE=[1.18,.94,1.18];
+const LANE_XP_REWARDS={guard:19,caster:19,siege:34};
 const minionBounty=m=>MINION_BOUNTIES[m.id]||38;
 const CHAMPION_ROLES={orun:'top',brax:'top',rokar:'top',varka:'top',zhira:'jungle',vexor:'jungle',sahra:'jungle',
  nyra:'mid',kaelis:'mid',mirielle:'mid',iskha:'mid',lyria:'adc',tessa:'adc',kaoryn:'adc',darian:'adc',
@@ -693,7 +697,7 @@ function makeHero(id,side,controlled=false,assignedRole=null){
  supportCharges:roleKey==='support'?2:0,supportRecharge:0,
  supportSharedCS:0,supportReceivedCS:0,supportGoldShared:0,supportGoldReceived:0,
  supportQuestGold:0,supportProcs:0,supportQuestComplete:false,
- healthRegen:1.3,homeBuff:0,botLane:assignedLane,cs:0,focusTarget:null,focusUntil:0,isRanged:!['vexor','orun','brax','zhira','rokar','sahra','varka','tharok'].includes(id)};
+ healthRegen:1.3,homeBuff:0,botLane:assignedLane,cs:0,jungleCS:0,jungleGoldEarned:0,objectiveKills:0,focusTarget:null,focusUntil:0,isRanged:!['vexor','orun','brax','zhira','rokar','sahra','varka','tharok'].includes(id)};
 }
 function createMinion(side,lane,type=0,slot=0){
  const t=side===0?.035:.965,p=pathPos(lane,t),ranged=type>=1,siege=type===2;
@@ -707,7 +711,7 @@ function createMinion(side,lane,type=0,slot=0){
  return{uid:++state.seq,kind:'minion',id:siege?'siege':ranged?'caster':'guard',side,lane,
  x:spawnX+rando(-2.5,2.5),y:spawnY+rando(-2.5,2.5),r:siege?17.5:ranged?11:13,
  hp,maxHp:hp,atk:Math.round((siege?34:ranged?20:19)*wavePower),
- speed:siege?59:ranged?74:83,attackCd:rando(.1,.5),ranged,site:type,slot,
+ speed:(siege?59:ranged?74:83)*LANE_WAVE_PACE[lane],attackCd:rando(.1,.5),ranged,site:type,slot,
  routeProgress:t*ROUTE_TOTALS[lane],routeReturning:false,
  pathIndex:side===0?0:ROUTE_PATHS[lane].length-1,focus:null,
  stun:0,slow:0,shield:state.teamBuffs[side].titan>state.time?42:0,
@@ -778,8 +782,10 @@ function xpGain(hero,amount){
  }
 }
 function grantNearbyXP(pos,team,amount){
- const near=living(team,'hero').filter(h=>dist(h,pos)<450);
- const xpFactor=near.length<=1?1:near.length===2?.65:near.length===3?.49:.38;
+ // Laners recebem XP atrás de sua onda; junglers só quando perto do combate.
+ const near=living(team,'hero').filter(h=>
+  dist(h,pos)<(h.roleKey==='jungle'?365:h.lane===pos.lane?560:430));
+ const xpFactor=near.length<=1?1:near.length===2?.68:near.length===3?.48:.36;
  for(const h of near)xpGain(h,Math.round(amount*xpFactor));
 }
 function markSupportAid(u,ally){
@@ -860,7 +866,7 @@ function onDeath(victim,source){
  }else if(victim.kind==='minion'){
   const rewardSide=1-victim.side,g=minionBounty(victim);
   // XP por proximidade mesmo com último golpe de tropa ou torre.
-  grantNearbyXP(victim,rewardSide,victim.id==='siege'?28:15);
+  grantNearbyXP(victim,rewardSide,LANE_XP_REWARDS[victim.id]||19);
   if(source?.kind==='hero'&&source.side===rewardSide){
    source.cs=(source.cs||0)+1;
    if(source.roleKey==='support'){
@@ -901,6 +907,11 @@ function onDeath(victim,source){
    if(source.kind==='hero'){
     const loot=victim.boss?{gold:135,xp:55}:jungleReward(victim,source);
     source.gold+=loot.gold;xpGain(source,loot.xp);
+    if(victim.boss)source.objectiveKills=(source.objectiveKills||0)+1;
+    else{
+     source.jungleCS=(source.jungleCS||0)+1;
+     source.jungleGoldEarned=(source.jungleGoldEarned||0)+loot.gold;
+    }
     heal(source,victim.boss?75:victim.buff?44:32);
     if(victim.buff==='energy'){
      source.mana=maxMana(source);source.energyBuffUntil=state.time+JUNGLE_BUFF_DURATION;
@@ -1132,6 +1143,10 @@ function findAA(u){
   if(!isAttackCommandValid(u,t)){clearAttackCommand(u);}
   else return dist(u,t)<=range+solidRadius(t)+2?t:null;
  }
+ if(u.kind==='hero'&&!u.controlled&&u.teamFightUntil>state.time&&
+    u.focusTarget?.kind==='hero'&&u.focusTarget.hp>0&&
+    visibleTo(u.side,u.focusTarget)&&
+    dist(u,u.focusTarget)<=range+u.focusTarget.r+2)return u.focusTarget;
  if(u.kind==='hero'&&!u.controlled&&u.farmTarget&&u.farmTarget.hp>0&&
      u.farmTarget.kind==='minion'&&
      dist(u,u.farmTarget)<=range+u.farmTarget.r+2)return u.farmTarget;
@@ -2099,8 +2114,8 @@ function botHero(u,dt){
  const farmKill=enemyWave.filter(e=>{
   const predicted=predictedHp(e);
   return (canSupportExecute(u,e)&&predicted>0||
-   predicted>0&&predicted<=attackDamage(u)*1.38)&&
-   dist(u,e)<attackRange(u)+e.r+32;
+   predicted>0&&predicted<=attackDamage(u)*1.20)&&
+   dist(u,e)<attackRange(u)+e.r+27;
  }).sort((a,b)=>predictedHp(a)-predictedHp(b))[0];
  // O suporte bot não compete por últimos golpes com o atirador.
  u.farmTarget=u.roleKey==='support'?
@@ -2118,7 +2133,8 @@ function botHero(u,dt){
  else if(enemyNear&&dist(u,enemyNear)<attackRange(u)+85)target=enemyNear;
  // Farmar tropas e escoltar as sentinelas é mais importante do que perseguição longa.
  else if(u.roleKey==='support'&&u.farmTarget)target=u.farmTarget;
- else if(u.roleKey!=='support'&&enemyWave.length)target=farmKill||enemyWave[0];
+ else if(u.roleKey!=='support'&&enemyWave.length)target=farmKill||
+  enemyWave.find(e=>dist(u,e)<(u.isRanged?340:245))||null;
  else if(objective&&dist(u,objective)<390&&hasWave)target=objective;
  else if(enemyNear&&dist(u,enemyNear)<240)target=enemyNear;
  // Espera o avanço da onda ao invés de avançar sozinho sob um obelisco inimigo.
@@ -2969,7 +2985,8 @@ function recall(){
  addEffect(p.x,p.y,'#c5ecfa',70,RECALL_CHANNEL_SECONDS,'recall');
  return true;
 }
-window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,JUNGLE_REWARDS,jungleReward,JUNGLE_RESPAWN,JUNGLE_BUFF_DURATION,canShop,towerCanTarget,SUMMONERS,RECALL_CHANNEL_SECONDS,smiteDamage,castSummoner,hData,skillDef,
+const heroWealth=u=>Math.round((u?.gold||0)+(u?.items||[]).reduce((s,id)=>s+(ITEM_BY_ID[id]?.price||0),0));
+window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,heroWealth,LANE_WAVE_PACE,LANE_XP_REWARDS,JUNGLE_REWARDS,jungleReward,JUNGLE_RESPAWN,JUNGLE_BUFF_DURATION,canShop,towerCanTarget,SUMMONERS,RECALL_CHANNEL_SECONDS,smiteDamage,castSummoner,hData,skillDef,
  start,previewBlue,ROLE_ORDER,ROLE_LANES,CHAMPION_ROLES,SUPPORT_RANGE,SUPPORT_MAX_CHARGES,
  SUPPORT_CHARGE_INTERVAL,SUPPORT_QUEST_REWARD,SUPPORT_QUEST_GOAL,MINION_BOUNTIES,supportPartner,canSupportExecute,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,lockAttackTarget,clearAttackLock,isAttackCommandValid,buyItem,sellItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,botTryGank,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,TOWERS_PER_LANE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,ARENA_BOUNDARY,isInsideArena,constrainToArena,VISION_CELL,VISION_COLS,VISION_ROWS};
