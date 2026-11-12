@@ -1258,7 +1258,7 @@ console.log('OK: tiros perfurantes de Lyria e Tessa e evasão de áreas persiste
  assert.ok(css.includes('#fendaFirstSkillPanel:not([hidden])')&&
    css.includes('fenda-first-skill-options'),
    'Primeiro painel de escolha precisa ser visível no celular e no PC');
- assert.ok(v.includes('NO NÍVEL 1: você escolhe')&&
+ assert.ok(v.includes('Escolha a primeira habilidade (Q/W/E) após entrar.')&&
    !v.includes('HABILIDADE INICIAL: '),
    'Tela de seleção não pode afirmar que Q vem aprendida automaticamente');
 }
