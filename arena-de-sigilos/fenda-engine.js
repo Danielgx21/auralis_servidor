@@ -64,7 +64,7 @@ const ROLE_ORDER=['top','jungle','mid','adc','support'];
 const ROLE_LANES={top:0,jungle:1,mid:1,adc:2,support:2};
 // Emblema de suporte automático: não concorre com os seis slots de itens.
 const SUPPORT_RANGE=440,SUPPORT_CHARGE_INTERVAL=30,SUPPORT_MAX_CHARGES=3;
-const SUPPORT_EXECUTE_THRESHOLD=.65,SUPPORT_QUEST_REWARD=65,SUPPORT_QUEST_GOAL=520;
+const SUPPORT_EXECUTE_THRESHOLD=.65,SUPPORT_QUEST_REWARD=65,SUPPORT_QUEST_GOAL=455;
 const MINION_BOUNTIES={guard:38,caster:30,siege:88};
 const minionBounty=m=>MINION_BOUNTIES[m.id]||38;
 const CHAMPION_ROLES={orun:'top',brax:'top',rokar:'top',zhira:'jungle',vexor:'jungle',
@@ -254,6 +254,7 @@ const skillDef=id=>{
  const original=C.skills[id];if(!original)return null;
  const val=MOBA_SKILL_RANGES[id];
  return MOBA_SKILL_CACHE[id]={...original,
+  ...(id==='rokar_guard'?{cd:10.9}:{}),
   ...(val?val[0]?{range:val[0]}:{}:{}),
   ...(val&&val[1]?{radius:val[1]}:{}),
   cost:Math.round(original.cost*1.55)};
@@ -261,9 +262,9 @@ const skillDef=id=>{
 const living=(side,kind)=>state.units.filter(u=>u.hp>0&&(side==null||u.side===side)&&(!kind||u.kind===kind));
 const maxMana=u=>320+Math.max(0,(u.level||1)-1)*16+itemStats(u,'mana');
 const WARD_RANGE=280;
-const HERO_AA_RANGE={orun:67,vexor:72,lyria:185,nyra:180,seris:176,brax:72,zhira:70,kaelis:183,rokar:70,tessa:224,sahra:69,mirielle:174};
-const HERO_AA_DAMAGE_FACTOR={orun:.78,vexor:.92,lyria:.82,nyra:.75,seris:.79,brax:.86,zhira:.83,kaelis:.77,rokar:.77,tessa:1.08,sahra:.91,mirielle:.78};
-const HERO_AA_SPEED_FACTOR={orun:1.08,vexor:.98,lyria:.86,nyra:1.04,seris:1.09,brax:1.04,zhira:.99,kaelis:1.02,rokar:1.07,tessa:1.06,sahra:.95,mirielle:1.05};
+const HERO_AA_RANGE={orun:67,vexor:72,lyria:185,nyra:180,seris:176,brax:72,zhira:70,kaelis:183,rokar:70,tessa:236,sahra:69,mirielle:174};
+const HERO_AA_DAMAGE_FACTOR={orun:.78,vexor:.92,lyria:.82,nyra:.75,seris:.79,brax:.86,zhira:.83,kaelis:.77,rokar:.79,tessa:1.14,sahra:.91,mirielle:.78};
+const HERO_AA_SPEED_FACTOR={orun:1.08,vexor:.98,lyria:.86,nyra:1.04,seris:1.09,brax:1.04,zhira:.99,kaelis:1.02,rokar:1.045,tessa:1.01,sahra:.95,mirielle:1.05};
 const attackRange=u=>u.kind==='minion'?(u.id==='siege'?207:u.ranged?140:38):
  u.kind==='creep'?48:(HERO_AA_RANGE[u.id]||170)+
  (u.id==='tessa'&&state.time-(u.stillSince??state.time)>1.1?43:0);
@@ -651,6 +652,11 @@ function grantNearbyXP(pos,team,amount){
  const xpFactor=near.length<=1?1:near.length===2?.65:near.length===3?.49:.38;
  for(const h of near)xpGain(h,Math.round(amount*xpFactor));
 }
+function markSupportAid(u,ally){
+ if(u?.roleKey!=='support'||!ally||ally===u||ally.side!==u.side)return;
+ u.supportAided=(u.supportAided||[]).filter(e=>state.time-e.time<10&&e.uid!==ally.uid);
+ u.supportAided.push({uid:ally.uid,time:state.time});
+}
 function supportPartner(u){
  if(!u||u.roleKey!=='support'||u.hp<=0)return null;
  const near=living(u.side,'hero').filter(h=>h!==u&&dist(h,u)<SUPPORT_RANGE);
@@ -692,10 +698,20 @@ function onDeath(victim,source){
   const winningSide=killer?.side??(source?.side!==victim.side?source?.side:null);
   if(winningSide===0||winningSide===1)state.kills[winningSide]++;
   if(killer){killer.kills++;killer.gold+=210;xpGain(killer,90);}
+  const credited=new Set([killer,...recent.map(e=>e.hero)]);
   for(const assist of new Set(recent.map(e=>e.hero))){
-   if(assist===killer)continue; // O aliado eliminado durante a luta ainda recebe assistencia.
+   if(assist===killer)continue;
    assist.assists=(assist.assists||0)+1;
    assist.gold+=65;xpGain(assist,42);
+  }
+  // Cura ou escudo em quem elimina o alvo contam como contribuição do SUP.
+  if(killer){
+   for(const ally of living(killer.side,'hero')){
+    if(credited.has(ally)||ally.roleKey!=='support')continue;
+    if(!(ally.supportAided||[]).some(e=>e.uid===killer.uid&&state.time-e.time<10))continue;
+    ally.assists=(ally.assists||0)+1;
+    ally.gold+=65;xpGain(ally,42);
+   }
   }
   victim.recentDamagers=[];
   if(victim.controlled)announce('VOCÊ FOI ELIMINADO · RESSURGINDO...',3);
@@ -1403,7 +1419,7 @@ function respawn(u){
  if(!u.controlled)botShop(u);u.guard=0;u.casting=null;
  u.shroudUntil=0;u.sahraSecondUntil=0;u.mirrorReturn=null;u.windStacks=0;u.loadedRoundUntil=0;
  u.attackCd=0;u.stun=0;u.slow=0;u.dash=null;u.recall=0;u.attackPending=null;u.attackAnim=0;u.skillFlash=0;
- u.death=0;u.respawn=0;u.focus=null;u.aiTimer=.5;u.recentDamagers=[];
+ u.death=0;u.respawn=0;u.focus=null;u.aiTimer=.5;u.recentDamagers=[];u.supportAided=[];
  addEffect(u.x,u.y,u.side===0?'#82f0e1':'#f8aac3',85,.62);
 }
 function botShop(u){
@@ -1997,12 +2013,12 @@ function cast(u,id,aim=null,autoTarget=null){
  if(u.items.includes('lifebloom')){
   const ally=living(u.side,'hero').filter(h=>dist(h,u)<215&&h.hp<h.maxHp)
    .sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
-  if(ally)heal(ally,Math.round(12+u.level*1.7));
+  if(ally){if(heal(ally,Math.round(12+u.level*1.7))>0)markSupportAid(u,ally);}
  }
  if(u.id==='seris'){
   const low=living(u.side,'hero').filter(h=>dist(h,u)<175)
    .sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
-  if(low)heal(low,Math.round(5+maxLv*3));
+  if(low){if(heal(low,Math.round(5+maxLv*3))>0)markSupportAid(u,low);}
  }
  if(u.id==='mirielle'&&id!=='mirielle_ult')
   u.mirrorLastSpell=id;
@@ -2269,6 +2285,7 @@ function releaseSkill(u,c){
     if(id==='rokar_guard'&&friend===u)heal(friend,14+lv*5);
     grantShield(friend,id==='orun_ult'?95:id==='seris_ult'?90:id==='rokar_ult'?82+lv*11:id==='seris_aegis'?40:id==='brax_fortify'?68+lv*11:id==='rokar_guard'?75+lv*11:60,
       id==='orun_ult'||id==='seris_ult'?4.2:2.9);
+    markSupportAid(u,friend);
    }
   }
   if(id==='orun_ult')aoe(u.x,u.y,r,Math.round((50+lv*15)*power),u,.55);
