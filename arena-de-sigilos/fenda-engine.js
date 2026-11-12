@@ -62,6 +62,11 @@ const JUNGLE_RIDGES=[
 const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1,brax:0,zhira:1,rokar:0,kaelis:1,tessa:2,sahra:1,mirielle:2};
 const ROLE_ORDER=['top','jungle','mid','adc','support'];
 const ROLE_LANES={top:0,jungle:1,mid:1,adc:2,support:2};
+// Emblema de suporte automático: não concorre com os seis slots de itens.
+const SUPPORT_RANGE=440,SUPPORT_CHARGE_INTERVAL=30,SUPPORT_MAX_CHARGES=3;
+const SUPPORT_EXECUTE_THRESHOLD=.65,SUPPORT_QUEST_REWARD=65;
+const MINION_BOUNTIES={guard:38,caster:30,siege:88};
+const minionBounty=m=>MINION_BOUNTIES[m.id]||38;
 const CHAMPION_ROLES={orun:'top',brax:'top',rokar:'top',zhira:'jungle',vexor:'jungle',
  sahra:'jungle',nyra:'mid',kaelis:'mid',mirielle:'mid',lyria:'adc',tessa:'adc',seris:'support'};
 const ROLE_BOT_CHOICES={
@@ -562,6 +567,9 @@ function makeHero(id,side,controlled=false,assignedRole=null){
  vision:350,death:0,respawn:0,recall:0,lastDamage:0,focus:null,
  aiTimer:rando(.6,1.8),visionCd:0,jungleGoal:null,gankUntil:0,kills:0,deaths:0,assists:0,
  recentDamagers:[],dash:null,commandTarget:null,
+ supportCharges:roleKey==='support'?2:0,supportRecharge:0,
+ supportSharedCS:0,supportReceivedCS:0,supportGoldShared:0,
+ supportQuestGold:0,supportProcs:0,
  healthRegen:1.3,homeBuff:0,botLane:assignedLane,cs:0,focusTarget:null,focusUntil:0,isRanged:!['vexor','orun','brax','zhira','rokar','sahra'].includes(id)};
 }
 function createMinion(side,lane,type=0,slot=0){
@@ -638,7 +646,33 @@ function xpGain(hero,amount){
  }
 }
 function grantNearbyXP(pos,team,amount){
- for(const h of living(team,'hero'))if(dist(h,pos)<450)xpGain(h,amount);
+ const near=living(team,'hero').filter(h=>dist(h,pos)<450);
+ const xpFactor=near.length<=1?1:near.length===2?.65:near.length===3?.49:.38;
+ for(const h of near)xpGain(h,Math.round(amount*xpFactor));
+}
+function supportPartner(u){
+ if(!u||u.roleKey!=='support'||u.hp<=0)return null;
+ const near=living(u.side,'hero').filter(h=>h!==u&&dist(h,u)<SUPPORT_RANGE);
+ return near.find(h=>h.roleKey==='adc')||
+  near.sort((a,b)=>dist(a,u)-dist(b,u))[0]||null;
+}
+function canSupportExecute(u,m){
+ return u?.kind==='hero'&&u.roleKey==='support'&&m?.kind==='minion'&&
+  m.hp>0&&m.side!==u.side&&u.supportCharges>0&&
+  m.hp/m.maxHp<=SUPPORT_EXECUTE_THRESHOLD&&!!supportPartner(u);
+}
+// A execução consome carga apenas quando o ataque acerta; skills não executam.
+function applyBasicHit(u,t,raw){
+ if(!t||t.hp<=0)return 0;
+ if(canSupportExecute(u,t)){
+  const partner=supportPartner(u);
+  if(partner){
+   u.supportCharges--;u.supportRecharge=0;
+   t.supportShare={supportUid:u.uid,recipientUid:partner.uid,charged:true};
+   return damage(t,Math.max(raw,t.hp+1),u);
+  }
+ }
+ return damage(t,raw,u);
 }
 function onDeath(victim,source){
  victim.death=1;
@@ -665,11 +699,36 @@ function onDeath(victim,source){
   victim.recentDamagers=[];
   if(victim.controlled)announce('VOCÊ FOI ELIMINADO · RESSURGINDO...',3);
  }else if(victim.kind==='minion'){
-  if(source&&source.side!==victim.side){
-   const g=source.kind==='hero'?(victim.id==='siege'?80:34):0;
-   if(g){source.gold+=g;source.cs=(source.cs||0)+1;if(source.controlled)state.score+=g}
-   grantNearbyXP(victim,victim.side===0?1:0,victim.id==='siege'?28:15);
+  const rewardSide=1-victim.side,g=minionBounty(victim);
+  // XP por proximidade mesmo com último golpe de tropa ou torre.
+  grantNearbyXP(victim,rewardSide,victim.id==='siege'?28:15);
+  if(source?.kind==='hero'&&source.side===rewardSide){
+   source.cs=(source.cs||0)+1;
+   if(source.roleKey==='support'){
+    const share=victim.supportShare;
+    const partner=share?.recipientUid?
+     living(source.side,'hero').find(u=>u.uid===share.recipientUid):
+     supportPartner(source);
+    if(partner){
+     partner.gold+=g;
+     partner.supportReceivedCS=(partner.supportReceivedCS||0)+1;
+     source.supportSharedCS=(source.supportSharedCS||0)+1;
+     source.supportGoldShared=(source.supportGoldShared||0)+g;
+     const charged=share?.charged&&share.supportUid===source.uid;
+     const supportGold=charged?SUPPORT_QUEST_REWARD:Math.round(g*.5);
+     source.gold+=supportGold;
+     if(charged){
+      source.supportProcs=(source.supportProcs||0)+1;
+      source.supportQuestGold=(source.supportQuestGold||0)+supportGold;
+      heal(source,Math.round(18+source.level*2.5));
+      addEffect(source.x,source.y,'#b7f2d4',47,.46,'wave');
+      if(source.controlled)announce('PARTILHA · +'+supportGold+' OURO · ALIADO +'+g,1.3);
+     }
+     if(partner.controlled)announce('SUPORTE COMPARTILHOU +'+g+' OURO',1.1);
+    }else source.gold+=Math.round(g*.5);
+   }else{source.gold+=g;if(source.controlled)state.score+=g;}
   }
+  victim.supportShare=null;
  }else if(victim.kind==='creep'){
   if(source&&source.side!==undefined&&(source.side===0||source.side===1)){
    const owner=source.side;
@@ -892,6 +951,16 @@ function findAA(u){
      (u.controlled||u.teamFightUntil>state.time&&chosen.kind==='hero')&&
      (chosen.kind==='tower'||chosen.kind==='core'||visibleTo(u.side,chosen))&&
      (chosen.kind!=='tower'&&chosen.kind!=='core'||structureExposed(chosen)))return chosen;
+ if(u.kind==='hero'&&!u.controlled&&u.roleKey==='support'){
+  const enemyHero=living(1-u.side,'hero').filter(v=>visibleTo(u.side,v)&&
+   dist(u,v)<=range+v.r+2).sort((a,b)=>dist(u,a)-dist(b,a))[0];
+  if(enemyHero)return enemyHero;
+  if(u.farmTarget&&u.farmTarget.hp>0&&
+     dist(u,u.farmTarget)<=range+u.farmTarget.r+2)return u.farmTarget;
+  return state.structures.filter(v=>v.side!==u.side&&v.hp>0&&
+   (v.kind==='tower'||v.kind==='core')&&structureExposed(v)&&
+   dist(u,v)<range+v.r+2).sort((a,b)=>dist(u,a)-dist(u,b))[0]||null;
+ }
  if(u.controlled){
   const target=playerAutoTarget(u,range);
   return target||enemyCreep(u,range);
@@ -1017,7 +1086,7 @@ function finishAttack(u,shot){
  u.lastAttackRelease=state.time;
  if(u.kind==='hero')addEffect(u.x,u.y,hData(u.id).color,u.r+11,.19,'attackLaunch');
  if(attackRange(u)<=75){
-  damage(t,shot.damage,u);
+  applyBasicHit(u,t,shot.damage);
   if(u.kind==='hero'&&u.id==='orun'&&u.passiveAttacks%3===0&&
    t.kind!=='tower'&&t.kind!=='core')heal(u,15);
   if(u.kind==='hero'&&t.kind==='hero'&&u.id==='brax')heal(u,Math.round(3+u.level*.55));
@@ -1705,6 +1774,14 @@ function botHero(u,dt){
  if(window.FendaTeamAI?.handleBot(u,dt))return;
  if(botJungler(u,dt))return;
  if(botSupportBoss(u,dt))return;
+ if(u.roleKey==='support'){
+  const adc=living(u.side,'hero').find(h=>h.roleKey==='adc');
+  const foes=living(enemySide,'hero').some(h=>visibleTo(u.side,h)&&dist(u,h)<240);
+  if(adc&&dist(u,adc)>235&&!foes){
+   moveToward(u,{x:adc.x+(u.uid%2?45:-45),y:adc.y+36},dt,.94);
+   return;
+  }
+ }
  const enemyHeroes=living(enemySide,'hero')
   .filter(e=>visibleTo(u.side,e)&&dist(e,u)<340).sort((a,b)=>dist(u,a)-dist(u,b));
  const enemyWave=living(enemySide,'minion')
@@ -1716,10 +1793,14 @@ function botHero(u,dt){
    p.side===u.side).reduce((total,p)=>total+(p.damage||0),0);
  const farmKill=enemyWave.filter(e=>{
   const predicted=predictedHp(e);
-  return predicted>0&&predicted<=attackDamage(u)*1.38&&
+  return (canSupportExecute(u,e)&&predicted>0||
+   predicted>0&&predicted<=attackDamage(u)*1.38)&&
    dist(u,e)<attackRange(u)+e.r+32;
  }).sort((a,b)=>predictedHp(a)-predictedHp(b))[0];
- u.farmTarget=farmKill||enemyWave.find(e=>dist(u,e)<attackRange(u)+e.r+13)||null;
+ // O suporte bot não compete por últimos golpes com o atirador.
+ u.farmTarget=u.roleKey==='support'?
+  (farmKill&&(!supportPartner(u)||canSupportExecute(u,farmKill))?farmKill:null):
+  farmKill||enemyWave.find(e=>dist(u,e)<attackRange(u)+e.r+13)||null;
  const objective=state.structures.filter(t=>t.side===enemySide&&t.hp>0&&
   (t.kind==='tower'&&t.lane===lane||t.kind==='core'&&laneCleared(enemySide,lane))&&structureExposed(t))
   .sort((a,b)=>dist(u,a)-dist(u,b))[0];
@@ -1731,7 +1812,8 @@ function botHero(u,dt){
  // Equipe entra em combate se um inimigo estiver perto o suficiente.
  else if(enemyNear&&dist(u,enemyNear)<attackRange(u)+85)target=enemyNear;
  // Farmar tropas e escoltar as sentinelas é mais importante do que perseguição longa.
- else if(enemyWave.length)target=farmKill||enemyWave[0];
+ else if(u.roleKey==='support'&&u.farmTarget)target=u.farmTarget;
+ else if(u.roleKey!=='support'&&enemyWave.length)target=farmKill||enemyWave[0];
  else if(objective&&dist(u,objective)<390&&hasWave)target=objective;
  else if(enemyNear&&dist(u,enemyNear)<240)target=enemyNear;
  // Espera o avanço da onda ao invés de avançar sozinho sob um obelisco inimigo.
@@ -2184,7 +2266,9 @@ function tickProjectiles(dt){
    if(p.target.hp<=0){p.life=0;continue}
    const dx=p.target.x-p.x,dy=p.target.y-p.y,d=Math.hypot(dx,dy)||1,step=p.speed*dt;
    if(d<=step+p.target.r+4){
-    p.x=p.target.x;p.y=p.target.y;p.life=0;damage(p.target,p.damage,p.source);
+    p.x=p.target.x;p.y=p.target.y;p.life=0;
+    if(p.kind==='aa')applyBasicHit(p.source,p.target,p.damage);
+    else damage(p.target,p.damage,p.source);
     if(p.kind==='aa'&&p.source?.kind==='hero'&&p.source.id==='seris'&&
      p.target.kind==='hero')p.target.slow=Math.max(p.target.slow,.55);
     if(p.kind==='aa'&&p.source?.kind==='hero'&&p.target.kind==='hero'&&
@@ -2280,6 +2364,15 @@ function tickUnit(u,dt){
   return;
  }
  u.stun=Math.max(0,u.stun-dt);u.slow=Math.max(0,u.slow-dt);
+ if(u.kind==='hero'&&u.roleKey==='support'&&u.hp>0){
+  if(u.supportCharges<SUPPORT_MAX_CHARGES){
+   u.supportRecharge=(u.supportRecharge||0)+dt;
+   if(u.supportRecharge>=SUPPORT_CHARGE_INTERVAL){
+    u.supportCharges=Math.min(SUPPORT_MAX_CHARGES,u.supportCharges+1);
+    u.supportRecharge-=SUPPORT_CHARGE_INTERVAL;
+   }
+  }else u.supportRecharge=0;
+ }
  if(u.kind==='hero'){
   if(u.id==='lyria'&&u.windUntil<state.time)u.windStacks=0;
   if(u.id==='mirielle'&&u.mirrorReturn?.until<=state.time)u.mirrorReturn=null;
@@ -2483,6 +2576,7 @@ function recall(){
  return true;
 }
 window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,SUMMONERS,smiteDamage,castSummoner,hData,skillDef,
- start,previewBlue,ROLE_ORDER,ROLE_LANES,CHAMPION_ROLES,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,lockAttackTarget,clearAttackLock,isAttackCommandValid,buyItem,sellItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,botTryGank,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,TOWERS_PER_LANE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
+ start,previewBlue,ROLE_ORDER,ROLE_LANES,CHAMPION_ROLES,SUPPORT_RANGE,SUPPORT_MAX_CHARGES,
+ SUPPORT_CHARGE_INTERVAL,SUPPORT_QUEST_REWARD,MINION_BOUNTIES,supportPartner,canSupportExecute,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,lockAttackTarget,clearAttackLock,isAttackCommandValid,buyItem,sellItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,botTryGank,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,TOWERS_PER_LANE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
 })();
