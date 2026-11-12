@@ -1722,7 +1722,7 @@ console.log('OK: Fenda 10.2, loja de mortos, inspeção de peças, botas e torre
    const def=E.skillDef(skill);
    assert.ok(def&&def.cd>0&&def.cost>0&&def.aim,
     'Nova habilidade não cadastrada no motor: '+skill);
-   assert.ok(def.range<E.TURRET_RANGE||def.ultimate,
+   assert.ok(def.aim==='self'||def.range<E.TURRET_RANGE||def.ultimate,
     'Habilidade básica supera o alcance da torre: '+skill);
   }
   const match=E.start(id,null,roles[id]),hero=match.hero;
