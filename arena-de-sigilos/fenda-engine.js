@@ -64,7 +64,7 @@ const ROLE_ORDER=['top','jungle','mid','adc','support'];
 const ROLE_LANES={top:0,jungle:1,mid:1,adc:2,support:2};
 // Emblema de suporte automático: não concorre com os seis slots de itens.
 const SUPPORT_RANGE=440,SUPPORT_CHARGE_INTERVAL=30,SUPPORT_MAX_CHARGES=3;
-const SUPPORT_EXECUTE_THRESHOLD=.65,SUPPORT_QUEST_REWARD=65;
+const SUPPORT_EXECUTE_THRESHOLD=.65,SUPPORT_QUEST_REWARD=65,SUPPORT_QUEST_GOAL=520;
 const MINION_BOUNTIES={guard:38,caster:30,siege:88};
 const minionBounty=m=>MINION_BOUNTIES[m.id]||38;
 const CHAMPION_ROLES={orun:'top',brax:'top',rokar:'top',zhira:'jungle',vexor:'jungle',
@@ -267,7 +267,8 @@ const HERO_AA_SPEED_FACTOR={orun:1.08,vexor:.98,lyria:.86,nyra:1.04,seris:1.09,b
 const attackRange=u=>u.kind==='minion'?(u.id==='siege'?207:u.ranged?140:38):
  u.kind==='creep'?48:(HERO_AA_RANGE[u.id]||170)+
  (u.id==='tessa'&&state.time-(u.stillSince??state.time)>1.1?43:0);
-const moveSpeed=u=>u.speed*(1+Math.min(.24,itemStats(u,'move'))+(u.huntUntil>state.time?.13:0))*(u.slow>0?.62:1);
+const moveSpeed=u=>u.speed*(1+Math.min(.24,itemStats(u,'move'))+
+ (u.huntUntil>state.time?.13:0)+(u.supportQuestComplete&&supportPartner(u)?.hp>0?.065:0))*(u.slow>0?.62:1);
 const attackDamage=u=>u.atk+itemStats(u,'ad');
 const spellPower=(u,id)=>1+itemStats(u,'ap')+
  (id&&['lyria','vexor','orun','brax','zhira','rokar','tessa','sahra'].includes(u.id)?itemStats(u,'ad')*.005:0);
@@ -569,7 +570,7 @@ function makeHero(id,side,controlled=false,assignedRole=null){
  recentDamagers:[],dash:null,commandTarget:null,
  supportCharges:roleKey==='support'?2:0,supportRecharge:0,
  supportSharedCS:0,supportReceivedCS:0,supportGoldShared:0,
- supportQuestGold:0,supportProcs:0,
+ supportQuestGold:0,supportProcs:0,supportQuestComplete:false,
  healthRegen:1.3,homeBuff:0,botLane:assignedLane,cs:0,focusTarget:null,focusUntil:0,isRanged:!['vexor','orun','brax','zhira','rokar','sahra'].includes(id)};
 }
 function createMinion(side,lane,type=0,slot=0){
@@ -720,6 +721,12 @@ function onDeath(victim,source){
      if(charged){
       source.supportProcs=(source.supportProcs||0)+1;
       source.supportQuestGold=(source.supportQuestGold||0)+supportGold;
+      if(!source.supportQuestComplete&&source.supportQuestGold>=SUPPORT_QUEST_GOAL){
+       source.supportQuestComplete=true;
+       source.maxHp+=95;source.hp=Math.min(source.maxHp,source.hp+95);
+       addEffect(source.x,source.y,'#d8ffbb',79,.75,'burst');
+       if(source.controlled)announce('EMBLEMA EVOLUÍDO · +95 PV · BÔNUS DE REGENERAÇÃO',2.4);
+      }
       heal(source,Math.round(18+source.level*2.5));
       addEffect(source.x,source.y,'#b7f2d4',47,.46,'wave');
       if(source.controlled)announce('PARTILHA · +'+supportGold+' OURO · ALIADO +'+g,1.3);
@@ -1436,8 +1443,9 @@ function botShop(u){
     u.hp=Math.min(u.hp,u.maxHp);u.mana=Math.min(u.mana,maxMana(u));
    }
   }
-  if(!applyItemPurchase(u,toBuy,true).ok)continue;
-  // Outra componente é comprada na próxima visita / pulso.
+  // Build sequencial: não espalhar ouro entre 4 receitas incompletas.
+  // Sem recursos suficientes para a primeira receita, aguarda mais ouro.
+  applyItemPurchase(u,toBuy,true);
   break;
  }
 }
@@ -2467,6 +2475,7 @@ function tickUnit(u,dt){
     (state.teamBuffs[u.side].serpe>state.time?2.4:0)),0,maxMana(u));
   u.aiTimer-=dt;
   u.hp=Math.min(u.maxHp,u.hp+dt*(dist(u,HOME[u.side])<150?24:1.15+itemStats(u,'regen')*.35+
+    (u.supportQuestComplete?1.2:0)+
    (state.teamBuffs[u.side].serpe>state.time?1.65:0)));
   if(u.recall>0){
    u.recall-=dt;
@@ -2616,6 +2625,6 @@ function recall(){
 }
 window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,SUMMONERS,smiteDamage,castSummoner,hData,skillDef,
  start,previewBlue,ROLE_ORDER,ROLE_LANES,CHAMPION_ROLES,SUPPORT_RANGE,SUPPORT_MAX_CHARGES,
- SUPPORT_CHARGE_INTERVAL,SUPPORT_QUEST_REWARD,MINION_BOUNTIES,supportPartner,canSupportExecute,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,lockAttackTarget,clearAttackLock,isAttackCommandValid,buyItem,sellItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,botTryGank,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,TOWERS_PER_LANE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
+ SUPPORT_CHARGE_INTERVAL,SUPPORT_QUEST_REWARD,SUPPORT_QUEST_GOAL,MINION_BOUNTIES,supportPartner,canSupportExecute,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,lockAttackTarget,clearAttackLock,isAttackCommandValid,buyItem,sellItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,botTryGank,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,TOWERS_PER_LANE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
 })();
