@@ -58,7 +58,7 @@ for(let side=0;side<2;side++){
 }
 assert.equal(E.JUNGLE_LINKS.length,4);
 assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suavizadas.');
-assert.ok(html.includes('fenda-engine.js?v=10.1')&&
+assert.ok(html.includes('fenda-engine.js?v=10.1.1')&&
  html.includes('fenda-team-ai.js?v=9.9')&&
  html.includes('fenda-scenery.js?v=9.9')&&
  html.includes('fenda-view.js?v=10.1'),'O site precisa carregar o cenário procedural antes da câmera.');
@@ -536,11 +536,27 @@ assert.ok(state.sight[0].some(s=>s.x===towerVision.x&&s.y===towerVision.y),
 assert.ok(view.includes("fogContext.globalCompositeOperation='destination-out'")&&
  view.includes('for(const src of S.sight[0]||[])'),
  'A névoa não remove o sombreado de cada fonte aliada');
+// B é interrompido por movimento, ataque e dano recebido.
+{
+ E.start('lyria');
+ const hero=E.state.hero,enemy=E.state.units.find(u=>u.side===1&&u.kind==='hero');
+ hero.x=1040;hero.y=900;enemy.x=hero.x+55;enemy.y=hero.y;
+ assert.ok(E.recall(),'Recall não começou para testar interrupções');
+ E.step(.05,{x:1,y:0});
+ assert.equal(hero.recall,0,'Movimentação não interrompeu o B');
+ hero.x=1040;hero.y=900;
+ assert.ok(E.recall(),'Recall não pode ser reiniciado');
+ E.damage(hero,4,enemy);
+ assert.equal(hero.recall,0,'Dano recebido não interrompeu o B');
+}
 // Regressão: recall negativo (truthy) bloqueava para sempre a movimentação.
 E.start('lyria');
 const recalled=state.hero;recalled.x=1040;recalled.y=900;
+assert.equal(E.RECALL_CHANNEL_SECONDS,6,'Retorno B deve canalizar por seis segundos');
 assert.equal(E.recall(),true);
-for(let i=0;i<73;i++)E.step(.05,{x:0,y:0});
+for(let i=0;i<100;i++)E.step(.05,{x:0,y:0});
+assert.ok(recalled.recall>0,'O retorno terminou antes dos seis segundos');
+for(let i=0;i<25;i++)E.step(.05,{x:0,y:0});
 assert.equal(recalled.recall,0,'O retorno deixou um tempo negativo ativo');
 assert.ok(distance(recalled,E.HOME[0])<95,'Retorno para o ponto da fonte');
 const beforeWalk={x:recalled.x,y:recalled.y};
@@ -1191,7 +1207,7 @@ console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livr
  assert.ok(view.includes("id==='sahra_ult'&&h.sahraSecondUntil>S.time")&&
   view.includes("id==='mirielle_distort'&&h.mirrorReturn?.until>S.time"),
   'As habilidades reativáveis precisam estar habilitadas no painel');
- assert.ok(source.includes('fenda-engine.js?v=10.1')&&source.includes('fenda-view.js?v=10.1'),
+ assert.ok(source.includes('fenda-engine.js?v=10.1.1')&&source.includes('fenda-view.js?v=10.1'),
   'Cache de versão deve usar os novos campeões');
 }
 console.log('OK: V9.6 com duas assassinas, fumaça, retorno, execução, combos e ADCs distintos.');
@@ -1361,7 +1377,7 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
   css.includes('#fendaHUD #fendaWardBtn')&&css.includes('#fendaHUD #fendaTowerBtn'),
   'Visão e torre devem sair do centro e ocupar canto superior direito');
  assert.ok(html.includes('fenda-view.js?v=10.1')&&
-  html.includes('fenda-engine.js?v=10.1'),
+  html.includes('fenda-engine.js?v=10.1.1'),
   'Cache deve carregar versão 9.9');
 }
 // Mira de AA desliga ataque automático apenas durante seleção manual.
@@ -1404,7 +1420,7 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
   view.includes('data-lane=')&&view.includes('Sem fase de banimentos')&&
   view.includes('E.previewBlue(selected,selectedLane)'),
   'Seleção de rotas não conectada à formação da equipe');
- assert.ok(html.includes('fenda-engine.js?v=10.1')&&html.includes('fenda-view.js?v=10.1')&&
+ assert.ok(html.includes('fenda-engine.js?v=10.1.1')&&html.includes('fenda-view.js?v=10.1')&&
   html.includes('fenda.css?v=10.1')&&css.includes('.fenda-lane-grid')&&
   css.includes('.fenda-lineup'),'Os arquivos do draft não atualizaram');
  for(const selectedRole of E.ROLE_ORDER){
@@ -1481,7 +1497,7 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
   view.includes('scoreRoles={top:')&&view.includes('scoreOrder[a.roleKey]'),
   'HUD/placar precisa mostrar farm partilhado e função real do campeão');
  assert.ok(css.includes('#fendaShareInfo')&&
-  html.includes('fenda-engine.js?v=10.1')&&html.includes('fenda-view.js?v=10.1')&&
+  html.includes('fenda-engine.js?v=10.1.1')&&html.includes('fenda-view.js?v=10.1')&&
   html.includes('fenda.css?v=10.1'),'Assets novos não carregaram na v10.1');
 }
 {
@@ -1498,7 +1514,9 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
  S.time=70;bot.botRecallWait=0;
  E.step(.05,{x:0,y:0});
  assert.ok(bot.recall>0,'Bot com ouro deve retornar à base quando seguro');
- for(let i=0;i<72;i++)E.step(.05,{x:0,y:0});
+ for(let i=0;i<100;i++)E.step(.05,{x:0,y:0});
+ assert.ok(bot.recall>0,'Bot completou o retorno antes dos seis segundos');
+ for(let i=0;i<25;i++)E.step(.05,{x:0,y:0});
  assert.ok(E.dist(bot,E.HOME[0])<245,'Retorno do bot não o levou para compras');
 }
 // Revisão 10.1: equilíbrio entre atiradores/tanques e assistências por proteção.
