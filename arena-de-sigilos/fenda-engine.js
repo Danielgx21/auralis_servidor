@@ -321,6 +321,18 @@ const PHYSICAL_HEROES=new Set(['lyria','vexor','orun','brax','zhira','rokar','te
 const spellPower=(u,id)=>1+itemStats(u,'ap')+
  (id&&PHYSICAL_HEROES.has(u.id)?itemStats(u,'ad')*.005:0);
 const levelXp=level=>42+level*24;
+
+ // Renda regular de 3 campos por lado, sem concentrar XP em objetivos neutros.
+ const JUNGLE_REWARDS={buff:{xp:61,gold:112},camp:{xp:56,gold:99}};
+ const JUNGLE_RESPAWN=76,JUNGLE_BUFF_DURATION=68;
+ function jungleReward(c,hero){
+  const base=JUNGLE_REWARDS[c.buff?'buff':'camp'];
+  const time=Math.max(0,state.time);
+  return{
+   gold:Math.round(base.gold*(hero?.jungler?1.07:1)*(1+Math.min(.23,time/480*.23))),
+   xp:Math.round(base.xp*(hero?.jungler?1.08:1)*(1+Math.min(.14,time/510*.14)))
+  };
+ }
 // Trajetos curvos compartilhados por física, tropas, torres e renderização.
 // Cada esquina vira uma transição quadrática, evitando quinas de 90°.
 function roundRoute(points){
@@ -554,13 +566,16 @@ function buildMap(){
   }
  }
  // Acampamentos apenas nas áreas não pavimentadas, longe das três rotas.
+ // Acampamentos espelhados: mana, dano e campo menor para cada equipe.
  const camps=[
-  {id:'veilA',x:880,y:830,kind:'buff',name:'Véu Azul',color:'#75caff',hp:630,buff:'energy'},
-  {id:'emberA',x:2420,y:1670,kind:'buff',name:'Brasa Rubra',color:'#ff9c74',hp:630,buff:'damage'},
-  {id:'wolvesA',x:1230,y:1000,kind:'camp',name:'Lobos Astrais',color:'#a7c2ef',hp:360},
-  {id:'golemA',x:2070,y:1500,kind:'camp',name:'Golem Sigilar',color:'#e5c58f',hp:450},
-  {id:'serpe',x:1560,y:730,kind:'boss',name:'Serpe Astral',color:'#9bf6e9',hp:1030,unlock:55},
-  {id:'titan',x:1740,y:1770,kind:'boss',name:'Titã do Abismo',color:'#dfb1fa',hp:1500,unlock:110}
+  {id:'veilA',x:880,y:830,kind:'buff',name:'Véu Azul',color:'#75caff',hp:610,buff:'energy',territory:0,unlock:16},
+  {id:'emberA',x:2420,y:1670,kind:'buff',name:'Brasa Rubra',color:'#ff9c74',hp:610,buff:'damage',territory:1,unlock:16},
+  {id:'wolvesA',x:1230,y:1000,kind:'camp',name:'Lobos Astrais',color:'#a7c2ef',hp:410,territory:0,unlock:16},
+  {id:'golemA',x:2070,y:1500,kind:'camp',name:'Golem Sigilar',color:'#e5c58f',hp:410,territory:1,unlock:16},
+  {id:'emberB',x:1100,y:650,kind:'buff',name:'Brasa Rubra',color:'#ff9c74',hp:610,buff:'damage',territory:0,unlock:16},
+  {id:'veilB',x:2200,y:1850,kind:'buff',name:'Véu Azul',color:'#75caff',hp:610,buff:'energy',territory:1,unlock:16},
+  {id:'serpe',x:1560,y:730,kind:'boss',name:'Serpe Astral',color:'#9bf6e9',hp:1220,unlock:100},
+  {id:'titan',x:1740,y:1770,kind:'boss',name:'Titã do Abismo',color:'#dfb1fa',hp:1740,unlock:160}
  ];
  state.camps=camps.map(o=>({...o,maxHp:o.hp,respawn:0}));
  // Divisórias reais, sem ornamentos falsos e sem blocos desenhados no solo.
@@ -798,6 +813,9 @@ function applyBasicHit(u,t,raw){
  }
  const hit=damage(t,raw,u,'aa');
  if(u?.kind==='hero'&&t.kind==='hero'&&hit>0){
+  if(u.damageBuffUntil>state.time&&(u.nextDamageBuffSlow||0)<=state.time){
+   t.slow=Math.max(t.slow,.52);u.nextDamageBuffSlow=state.time+4.6;
+  }
   if(u.id==='varka')heal(u,Math.min(25,Math.round(hit*.12)));
   if(u.id==='iskha'&&u.passiveAttacks%3===0)t.slow=Math.max(t.slow,1.25);
   if(u.id==='tharok'&&u.passiveAttacks%3===0)
@@ -881,18 +899,23 @@ function onDeath(victim,source){
   if(source&&source.side!==undefined&&(source.side===0||source.side===1)){
    const owner=source.side;
    if(source.kind==='hero'){
-    source.gold+=victim.boss?230:105;
-    xpGain(source,victim.boss?130:65);
-    heal(source,victim.boss?90:36);
-    if(victim.buff==='energy')source.mana=maxMana(source);
-    if(victim.buff)source.homeBuff=state.time+72;
+    const loot=victim.boss?{gold:180,xp:120}:jungleReward(victim,source);
+    source.gold+=loot.gold;xpGain(source,loot.xp);
+    heal(source,victim.boss?75:victim.buff?44:32);
+    if(victim.buff==='energy'){
+     source.mana=maxMana(source);source.energyBuffUntil=state.time+JUNGLE_BUFF_DURATION;
+    }
+    if(victim.buff==='damage')source.damageBuffUntil=state.time+JUNGLE_BUFF_DURATION;
+    if(source.controlled&&!victim.boss)
+     announce('SELVA · +'+loot.gold+' OURO · +'+loot.xp+' XP'+
+      (victim.buff==='energy'?' · VÉU AZUL':victim.buff==='damage'?' · BRASA RUBRA':''),2.1);
    }
    if(victim.boss){
     const buff=victim.id==='titan'?'titan':'serpe';
     state.teamBuffs[owner][buff]=state.time+95;
     for(const teammate of living(owner,'hero')){
-     teammate.gold+=95;xpGain(teammate,55);
-     heal(teammate,46);teammate.guard=Math.max(teammate.guard,38);
+     teammate.gold+=68;xpGain(teammate,40);
+     heal(teammate,40);teammate.guard=Math.max(teammate.guard,34);
     }
     announce((owner===0?'AZUL':'RUBRO')+' CONQUISTOU '+victim.name.toUpperCase()+' · BÊNÇÃO DE EQUIPE!',4);
     addEffect(victim.x,victim.y,victim.color,145,.9,'burst');
@@ -1188,7 +1211,9 @@ function autoAttack(u){
  u.attackAnim=u.attackWindup+Math.min(.28,u.attackCd*.18);
  u.attackTotal=u.attackAnim;
  u.attackStartedAt=state.time;
- let damageVal=attackDamage(u)+(u.homeBuff>state.time?4:0);
+ let damageVal=attackDamage(u);
+ if(u.kind==='hero'&&target.kind==='hero'&&u.damageBuffUntil>state.time)
+  damageVal+=Math.round(5+u.level*.55);
  // Passivos dos itens completos: bônus situacionais, não somente estatísticas.
  if(u.kind==='hero'){
   if(u.items.includes('astralbow')&&target.kind!=='tower'&&target.kind!=='core'&&
@@ -1916,7 +1941,7 @@ function botJungler(u,dt){
  if(botTryGank(u,dt))return true;
  if(u.jungleGoal&&(u.jungleGoal.hp<=0||
     (u.jungleGoal.unlock&&state.time<u.jungleGoal.unlock))){
-  u.jungleGoal=null;u.gankUntil=state.time+15;
+  u.jungleGoal=null;u.gankUntil=state.time;
  }
  const nearbyThreat=living(1-u.side,'hero')
   .some(e=>visibleTo(u.side,e)&&dist(e,u)<225);
@@ -1924,19 +1949,24 @@ function botJungler(u,dt){
  const boss=openBoss();
  const healthy=living(u.side,'hero').filter(h=>h.hp/h.maxHp>.53);
  const supports=healthy.filter(h=>!h.jungler&&dist(h,boss||u)<880);
- const contest=boss&&healthy.length>=3&&u.level>=3;
+ const contest=boss&&healthy.length>=3&&supports.length>=1&&u.level>=3&&dist(u,boss)<950;
  if(contest&&(!u.jungleGoal||u.jungleGoal.kind!=='boss'))u.jungleGoal=boss;
  if(!u.jungleGoal){
-  if((u.gankUntil||0)>state.time)return false;
-  const preferred=u.side===0?['wolvesA','veilA','emberA','golemA']:['golemA','emberA','veilA','wolvesA'];
-  const available=state.camps.filter(c=>c.hp>0&&c.kind!=='boss'&&
+  const available=state.camps.filter(c=>c.hp>0&&c.territory===u.side&&
      (!c.unlock||state.time>=c.unlock));
-  available.sort((a,b)=>preferred.indexOf(a.id)-preferred.indexOf(b.id)+
-    (dist(a,u)-dist(b,u))*.0016);
+  available.sort((a,b)=>dist(a,u)-dist(b,u));
   u.jungleGoal=available[0]||null;
  }
  const camp=u.jungleGoal;
- if(!camp)return false;
+ if(!camp){
+  // Entre ciclos aguarda campo próximo ou procura gank; não rouba XP do mid.
+  const soon=state.camps.filter(c=>c.territory===u.side)
+   .sort((a,b)=>(a.hp<=0?a.respawn:Math.max(0,(a.unlock||0)-state.time))-
+                (b.hp<=0?b.respawn:Math.max(0,(b.unlock||0)-state.time)))[0];
+  if(soon&&dist(u,soon)>125)
+   moveViaJungle(u,{x:soon.x+(u.side===0?-92:92),y:soon.y+(u.side===0?55:-55)},dt);
+  return true;
+ }
  if(u.visionCd<=0&&state.time>26&&
     (camp.kind==='boss'||state.brushes.some(b=>dist(b,u)<240))){
   const pos={x:u.x+(camp.x-u.x)*.55,y:u.y+(camp.y-u.y)*.55};
@@ -2170,7 +2200,7 @@ function damageCreep(c,amount,source){
  c.hp=Math.max(0,c.hp-amount);
  addEffect(c.x,c.y,c.color,17,.21);
  if(c.hp<=0){
-  c.respawn=c.kind==='boss'?125:78;
+  c.respawn=c.kind==='boss'?125:JUNGLE_RESPAWN;
   c.boss=c.kind==='boss';
   c.kind='creep'; // Reward logic only needs kind / buff.
   onDeath(c,source);
@@ -2775,13 +2805,15 @@ function tickUnit(u,dt){
  }
  if(u.kind==='hero'){
   const latest=maxMana(u);u.maxMana=latest;
-  for(const id in u.cooldowns)u.cooldowns[id]=Math.max(0,u.cooldowns[id]-dt);
+  for(const id in u.cooldowns)
+   u.cooldowns[id]=Math.max(0,u.cooldowns[id]-dt*((u.energyBuffUntil||0)>state.time?1.10:1));
   for(const id in u.summonerCooldowns)u.summonerCooldowns[id]=Math.max(0,u.summonerCooldowns[id]-dt);
  }
  if(u.kind==='hero'){
   u.visionCd=Math.max(0,(u.visionCd||0)-dt);
   u.gold=Math.min(20000,u.gold+dt*1.8);
-  u.mana=clamp(u.mana+dt*((dist(u,HOME[u.side])<160?27:4.2+itemStats(u,'regen'))+
+  const blueBuffActive=(u.energyBuffUntil||0)>state.time;
+  u.mana=clamp(u.mana+dt*((dist(u,HOME[u.side])<160?27:4.2+itemStats(u,'regen')+(blueBuffActive?3.8:0))+
     (state.teamBuffs[u.side].serpe>state.time?2.4:0)),0,maxMana(u));
   u.aiTimer-=dt;
   // Feridas graves e queimadura reduzem também a regeneração contínua,
@@ -2937,7 +2969,7 @@ function recall(){
  addEffect(p.x,p.y,'#c5ecfa',70,RECALL_CHANNEL_SECONDS,'recall');
  return true;
 }
-window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,canShop,towerCanTarget,SUMMONERS,RECALL_CHANNEL_SECONDS,smiteDamage,castSummoner,hData,skillDef,
+window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,JUNGLE_REWARDS,jungleReward,JUNGLE_RESPAWN,JUNGLE_BUFF_DURATION,canShop,towerCanTarget,SUMMONERS,RECALL_CHANNEL_SECONDS,smiteDamage,castSummoner,hData,skillDef,
  start,previewBlue,ROLE_ORDER,ROLE_LANES,CHAMPION_ROLES,SUPPORT_RANGE,SUPPORT_MAX_CHARGES,
  SUPPORT_CHARGE_INTERVAL,SUPPORT_QUEST_REWARD,SUPPORT_QUEST_GOAL,MINION_BOUNTIES,supportPartner,canSupportExecute,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,lockAttackTarget,clearAttackLock,isAttackCommandValid,buyItem,sellItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,botTryGank,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,TOWERS_PER_LANE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,ARENA_BOUNDARY,isInsideArena,constrainToArena,VISION_CELL,VISION_COLS,VISION_ROWS};

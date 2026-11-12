@@ -1025,7 +1025,9 @@ function desktopHeroUpdate(h){
  $('pcHPFill').style.width=Math.max(0,Math.min(100,h.hp/h.maxHp*100))+'%';
  $('pcManaFill').style.width=Math.max(0,Math.min(100,h.mana/E.maxMana(h)*100))+'%';
  $('pcXPFill').style.width=(lev<15?h.xp/(42+lev*24)*100:100)+'%';
- $('pcExtraStats').textContent='K/D/A '+h.kills+'/'+h.deaths+'/'+(h.assists||0)+' · '+h.cs+' CS'+
+ const buffs=(h.energyBuffUntil>S.time?' · AZUL '+Math.ceil(h.energyBuffUntil-S.time)+'s':'')+
+  (h.damageBuffUntil>S.time?' · RUBRO '+Math.ceil(h.damageBuffUntil-S.time)+'s':'');
+ $('pcExtraStats').textContent='K/D/A '+h.kills+'/'+h.deaths+'/'+(h.assists||0)+' · '+h.cs+' CS'+buffs+
   (h.roleKey==='support'?' · SUP '+h.supportCharges+'/'+E.SUPPORT_MAX_CHARGES+
    ' · '+h.supportSharedCS+' REPASSADOS':
    h.supportReceivedCS>0?' · +'+h.supportReceivedCS+' REPASSADOS':'')+
@@ -1067,7 +1069,9 @@ function hudUpdate(){
  firstSkillUpdate(h);
  const time=Math.floor(S.time);
  $('fendaTopScore').textContent='✦ '+S.kills[0]+' AZUL × '+S.kills[1]+' RUBRO';
- $('fendaPlayerStats').textContent='K/D/A '+h.kills+'/'+h.deaths+'/'+(h.assists||0)+' · FARM '+h.cs;
+ $('fendaPlayerStats').textContent='K/D/A '+h.kills+'/'+h.deaths+'/'+(h.assists||0)+' · FARM '+h.cs+
+  (h.energyBuffUntil>S.time?' · AZUL '+Math.ceil(h.energyBuffUntil-S.time)+'s':'')+
+  (h.damageBuffUntil>S.time?' · VERMELHO '+Math.ceil(h.damageBuffUntil-S.time)+'s':'');
  shareInfo.hidden=h.roleKey!=='support'&&!(h.supportReceivedCS>0);
  shareInfo.classList.toggle('complete',!!h.supportQuestComplete);
  shareInfo.textContent=h.roleKey==='support'?
