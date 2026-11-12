@@ -192,6 +192,15 @@ function applyItemPurchase(unit,id,ai=false){
  // É possível comprar enquanto morto, mesmo longe da fonte.
  if(!canShop(unit,ai))return{ok:false,reason:'COMPRAS APENAS NO SANTUÁRIO'};
  if(item.tier===2&&(unit.items||[]).includes(id))return{ok:false,reason:'EQUIPAMENTO JÁ COMPLETO'};
+ // Botas têm slot único na build: duas botas comuns ou evoluções diferentes
+ // não podem ser acumuladas para obter atributos extras.
+ const bootItems=new Set(['boots','swiftboots','arcaneboots','guardianboots','hunterboots']);
+ const shoes=(unit.items||[]).filter(part=>bootItems.has(part));
+ if(bootItems.has(id)){
+  const ownedUpgrade=shoes.some(part=>part!=='boots');
+  if(ownedUpgrade||(id==='boots'&&shoes.includes('boots')))
+   return{ok:false,reason:'VOCÊ JÁ POSSUI BOTAS · VENDA ANTES DE TROCAR'};
+ }
  const recipe=recipeStatus(unit,id);
  if(recipe.missing.length)return{ok:false,reason:'ADQUIRA OS COMPONENTES ANTES DE COMBINAR'};
  if(recipe.spacesAfter>6)return{ok:false,reason:'INVENTÁRIO LOTADO (6 ESPAÇOS)'};
@@ -305,8 +314,12 @@ const moveSpeed=u=>u.speed*(1+Math.min(.24,itemStats(u,'move'))+
  (u.huntUntil>state.time?.13:0)+(u.elowenHasteUntil>state.time?.07:0)+
  (u.supportQuestComplete&&supportPartner(u)?.hp>0?.065:0))*(u.slow>0?.62:1);
 const attackDamage=u=>u.atk+itemStats(u,'ad');
+// Feitiços físicos também escalam com dano de ataque. Sem isso os novos ADCs
+// e a lutadora Varka perdiam quase toda a progressão de dano no late game.
+const PHYSICAL_HEROES=new Set(['lyria','vexor','orun','brax','zhira','rokar','tessa','sahra',
+ 'kaoryn','darian','varka','tharok']);
 const spellPower=(u,id)=>1+itemStats(u,'ap')+
- (id&&['lyria','vexor','orun','brax','zhira','rokar','tessa','sahra'].includes(u.id)?itemStats(u,'ad')*.005:0);
+ (id&&PHYSICAL_HEROES.has(u.id)?itemStats(u,'ad')*.005:0);
 const levelXp=level=>42+level*24;
 // Trajetos curvos compartilhados por física, tropas, torres e renderização.
 // Cada esquina vira uma transição quadrática, evitando quinas de 90°.
@@ -2373,7 +2386,7 @@ function tickZones(dt){
     .sort((a,b)=>(a.kind==='hero'?-10:0)-(b.kind==='hero'?-10:0)||dist(a,z)-dist(b,z));
    if(victims.length){
     const enemy=victims[0];
-    skillHit(enemy,z.source,'tessa_salvo',z.damage);
+    skillHit(enemy,z.source,z.skillId||'tessa_salvo',z.damage);
     enemy.stun=Math.max(enemy.stun,.46);
     enemy.slow=Math.max(enemy.slow,2.3);
     z.until=now;addEffect(z.x,z.y,z.color,z.r,.58,'burst');
@@ -2498,7 +2511,7 @@ function releaseSkill(u,c){
   addEffect(c.center.x,c.center.y,'#8df5d3',def.radius,.67,'telegraph');return;
  }
  if(id==='tessa_salvo'||id==='kaoryn_thorns'){
-  state.zones.push({kind:'trap',x:c.center.x,y:c.center.y,r:def.radius,
+  state.zones.push({kind:'trap',skillId:id,x:c.center.x,y:c.center.y,r:def.radius,
    source:u,side:u.side,until:state.time+17,
    damage:Math.round((id==='kaoryn_thorns'?27+lv*8:35+lv*11)*power),
    color:id==='kaoryn_thorns'?'#b4f2a2':'#e9cd81',life:17});
