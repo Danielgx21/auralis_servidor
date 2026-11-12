@@ -569,7 +569,7 @@ function makeHero(id,side,controlled=false,assignedRole=null){
  aiTimer:rando(.6,1.8),visionCd:0,jungleGoal:null,gankUntil:0,kills:0,deaths:0,assists:0,
  recentDamagers:[],dash:null,commandTarget:null,
  supportCharges:roleKey==='support'?2:0,supportRecharge:0,
- supportSharedCS:0,supportReceivedCS:0,supportGoldShared:0,
+ supportSharedCS:0,supportReceivedCS:0,supportGoldShared:0,supportGoldReceived:0,
  supportQuestGold:0,supportProcs:0,supportQuestComplete:false,
  healthRegen:1.3,homeBuff:0,botLane:assignedLane,cs:0,focusTarget:null,focusUntil:0,isRanged:!['vexor','orun','brax','zhira','rokar','sahra'].includes(id)};
 }
@@ -713,6 +713,7 @@ function onDeath(victim,source){
     if(partner){
      partner.gold+=g;
      partner.supportReceivedCS=(partner.supportReceivedCS||0)+1;
+     partner.supportGoldReceived=(partner.supportGoldReceived||0)+g;
      source.supportSharedCS=(source.supportSharedCS||0)+1;
      source.supportGoldShared=(source.supportGoldShared||0)+g;
      const charged=share?.charged&&share.supportUid===source.uid;
