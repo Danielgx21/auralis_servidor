@@ -1363,6 +1363,49 @@ function finishAbility(c){
    toast('ULTIMATE · AURORA VITAL');tone(870,.39,'sine',.072);
    break;
   }
+  default:{
+   // Modo Arena Rápida: suporte genérico para os kits que nasceram no
+   // MOBA. Antes gastavam mana e cooldown sem produzir efeito algum.
+   // Os efeitos avançados exclusivos permanecem na Fenda 5x5.
+   const color=heroes[player.heroId]?.color||'#a4e8d4';
+   const healing=/bloom|bless|healing|aurora|grove|santuario|sanctuary|elowen_ult/i.test(which);
+   const shielding=/shield|guard|barrier|aegis|glade|bastion|veil|fortify|will|frostguard|shroud/i.test(which);
+   const mobility=/step|stride|dash|lunge|charge|ram|pounce|grapple|roll|flip|distort/i.test(which);
+   const bonus=28+lvl*9;
+   if(spell.aim==='direction'){
+    if(mobility){
+     heroDash(dir,spell.range+6*(lvl-1),lvl,which,
+      shielding?0:bonus,spell.radius||32,which.includes('ram')?.37:0);
+    }else{
+     launchLineSkill(which,dir,bonus,lvl,color,which.includes('bolt'));
+     toast(spell.name.toUpperCase());
+    }
+   }else if(spell.aim==='area'){
+    launchAreaSkill(which,target,spell.radius+4*(lvl-1),healing?0:bonus,
+     color,healing?0:.7,which.includes('ult')?.33:0);
+    if(healing){
+     const projectile=abilityShots[abilityShots.length-1];
+     if(projectile){projectile.effect='heal';projectile.heal=30+11*lvl;}
+    }
+    toast(spell.name.toUpperCase());
+   }else{
+    if(healing||shielding){
+     for(const friend of living(0)){
+      if(friend!==player&&dist(friend,player)>(spell.radius||125)+friend.r)continue;
+      if(shielding)friend.shield=Math.max(friend.shield,1.1+lvl*.22);
+      if(healing||which==='varka_will')healUnit(friend,15+8*lvl,player);
+     }
+     if(which==='sahra_shroud')player.invuln=Math.max(player.invuln,.65);
+    }else{
+     skillRadiusDamage(player,spell.radius||107,bonus,color,which.includes('frost')?1.4:0,
+      which.includes('ult')?.4:0);
+     if(which==='varka_ult')player.shield=Math.max(player.shield,1.4+lvl*.22);
+    }
+    addWave(player.x,player.y,spell.radius||105,.49,color,3);
+    toast(spell.name.toUpperCase());
+   }
+   break;
+  }
 
  }
  updateHud();
