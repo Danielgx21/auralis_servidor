@@ -61,7 +61,7 @@ assert.equal(E.ROUTE_PATHS.length,3,'As três rotas devem usar trajetórias suav
 assert.ok(html.includes('fenda-engine.js?v=10.1.1')&&
  html.includes('fenda-team-ai.js?v=9.9')&&
  html.includes('fenda-scenery.js?v=9.9')&&
- html.includes('fenda-view.js?v=10.1'),'O site precisa carregar o cenário procedural antes da câmera.');
+ html.includes('fenda-view.js?v=10.1.2'),'O site precisa carregar o cenário procedural antes da câmera.');
 // Curvas reais: uma curva não pode rotacionar repentinamente como uma esquina de 90°.
 for(const pts of E.ROUTE_PATHS){
  let largestTurn=0;
@@ -245,8 +245,8 @@ for(const tower of state.structures.filter(t=>t.kind==='tower')){
  }
 }
 assert.ok(terrainSource.includes('CAMERA_MIN_WORLD_HEIGHT=620')&&
- terrainSource.includes('LANE_CAMERA_LEAD=140')&&
- terrainSource.includes('THREAT_CAMERA_LEAD=125')&&
+ terrainSource.includes('MOBILE_HERO_ANCHOR_X=.54')&&
+ terrainSource.includes('MOBILE_THUMB_CLEARANCE_PX=108')&&
  terrainSource.includes('vh/CAMERA_MIN_WORLD_HEIGHT')&&
  terrainSource.includes('d<radius+48')&&
  terrainSource.includes("danger?'#ff849b'"),
@@ -279,9 +279,9 @@ for(const [width,height] of viewportCases){
  assert.ok(onScreen(E.pathPos(lane,.5)),'O avanço na Bot deixou de aparecer');
  assert.ok(visibleOwn.length<=1,'Câmera continua mostrando duas torres azuis e a wave na Bot');
  assert.ok(zoom>1.25,'Zoom quase igual ao da versão antiga');
- assert.ok(terrainSource.includes('LANE_CAMERA_LEAD=140')&&
-  terrainSource.includes('const forwardX=focus.x-h.x'),
-  'Câmera perdeu antecipação ao longo da rota');
+ assert.ok(terrainSource.includes('function mobileCameraTarget(hero,observing=false)')&&
+  terrainSource.includes('const target=mobileCameraTarget(h,observing)'),
+  'Câmera mobile precisa acompanhar o campeão em vez de antecipar a lane');
 }
 assert.ok(terrainSource.includes('mc.lineWidth=E.LANE_HALF_WIDTH*2'),
  'A largura representada no minimapa diverge da largura real da lane');
@@ -983,7 +983,7 @@ E.start('lyria');
  assert.ok(view.includes("isDesktop?$('pcSkill'+i):b")&&
   css.includes('#fendaTeamRoster.collapsed .pc-roster-list'),
   'Evolução de habilidades e recolhimento do quadro não foram adaptados');
- assert.ok(html.includes('fenda-view.js?v=10.1')&&html.includes('fenda.css?v=10.1'),
+ assert.ok(html.includes('fenda-view.js?v=10.1.2')&&html.includes('fenda.css?v=10.1'),
   'Cache precisa trazer a versão 9.7');
 }
 // V9.4 — novas prioridades de AA, tempo de ataque, decisões dos bots e retratos.
@@ -1092,7 +1092,7 @@ E.start('lyria');
  assert.ok(site.includes('.stage.fenda-on #fendaSummoners .fenda-summoner small{')&&
   site.includes('font-size:10px!important')&&site.includes('#fendaMobileGuide'),
   'CSS do celular não tornou feitiços e habilidades legíveis');
- assert.ok(site.includes('fenda-view.js?v=10.1')&&site.includes('fenda.css?v=10.1'),
+ assert.ok(site.includes('fenda-view.js?v=10.1.2')&&site.includes('fenda.css?v=10.1'),
   'O cache do jogo precisa apontar para a versão 9.5');
 }
 console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livre e feitiços legíveis.');
@@ -1207,7 +1207,7 @@ console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livr
  assert.ok(view.includes("id==='sahra_ult'&&h.sahraSecondUntil>S.time")&&
   view.includes("id==='mirielle_distort'&&h.mirrorReturn?.until>S.time"),
   'As habilidades reativáveis precisam estar habilitadas no painel');
- assert.ok(source.includes('fenda-engine.js?v=10.1.1')&&source.includes('fenda-view.js?v=10.1'),
+ assert.ok(source.includes('fenda-engine.js?v=10.1.1')&&source.includes('fenda-view.js?v=10.1.2'),
   'Cache de versão deve usar os novos campeões');
 }
 console.log('OK: V9.6 com duas assassinas, fumaça, retorno, execução, combos e ADCs distintos.');
@@ -1306,7 +1306,7 @@ console.log('OK: V9.7 com primeira habilidade Q, W ou E escolhida pelo jogador.'
   'Botões compactos precisam continuar acionando feitiços');
  assert.ok(!view.includes('mobileHelpBtn')&&!view.includes('mobileGuideUpdate()'),
   'Ajuda central não pode reaparecer após a remoção solicitada');
- assert.ok(html.includes('fenda-view.js?v=10.1')&&
+ assert.ok(html.includes('fenda-view.js?v=10.1.2')&&
   html.includes('fenda.css?v=10.1'),
   'Atualização deve invalidar o cache do jogo');
 }
@@ -1376,7 +1376,7 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
  assert.ok(css.includes('top:clamp(54px,14vh,72px)!important')&&
   css.includes('#fendaHUD #fendaWardBtn')&&css.includes('#fendaHUD #fendaTowerBtn'),
   'Visão e torre devem sair do centro e ocupar canto superior direito');
- assert.ok(html.includes('fenda-view.js?v=10.1')&&
+ assert.ok(html.includes('fenda-view.js?v=10.1.2')&&
   html.includes('fenda-engine.js?v=10.1.1'),
   'Cache deve carregar versão 9.9');
 }
@@ -1408,7 +1408,7 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
  for(const id of Object.keys(E.SUMMONERS))
   assert.ok(typeof labels[id]==='string'&&labels[id].length>0,
    'Feitiço sem rótulo interrompe HUD: '+id);
- assert.ok(html.includes('fenda-view.js?v=10.1'),
+ assert.ok(html.includes('fenda-view.js?v=10.1.2'),
   'O navegador deve atualizar o arquivo de controles corrigido');
 }
 // Fenda 10.0: draft deve alterar time, rota, feitiços e movimentação.
@@ -1420,7 +1420,7 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
   view.includes('data-lane=')&&view.includes('Sem fase de banimentos')&&
   view.includes('E.previewBlue(selected,selectedLane)'),
   'Seleção de rotas não conectada à formação da equipe');
- assert.ok(html.includes('fenda-engine.js?v=10.1.1')&&html.includes('fenda-view.js?v=10.1')&&
+ assert.ok(html.includes('fenda-engine.js?v=10.1.1')&&html.includes('fenda-view.js?v=10.1.2')&&
   html.includes('fenda.css?v=10.1')&&css.includes('.fenda-lane-grid')&&
   css.includes('.fenda-lineup'),'Os arquivos do draft não atualizaram');
  for(const selectedRole of E.ROLE_ORDER){
@@ -1497,7 +1497,7 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
   view.includes('scoreRoles={top:')&&view.includes('scoreOrder[a.roleKey]'),
   'HUD/placar precisa mostrar farm partilhado e função real do campeão');
  assert.ok(css.includes('#fendaShareInfo')&&
-  html.includes('fenda-engine.js?v=10.1.1')&&html.includes('fenda-view.js?v=10.1')&&
+  html.includes('fenda-engine.js?v=10.1.1')&&html.includes('fenda-view.js?v=10.1.2')&&
   html.includes('fenda.css?v=10.1'),'Assets novos não carregaram na v10.1');
 }
 {
@@ -1540,4 +1540,51 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
  E.damage(enemy,enemy.hp,ally);
  assert.equal(sup.assists,before+1,'Suporte não recebeu assistência por escudo no aliado');
 }
+// Fenda 10.1.2: acompanhar o campeão na TOP, MID e BOT sem ocultá-lo
+// debaixo do dedo do joystick flutuante, inclusive nos limites do mundo.
+{
+ const view=read('fenda-view.js'),block=view.slice(view.indexOf('const cameraClampX='),
+  view.indexOf('function syncCameraControl()'));
+ assert.ok(block.includes('function mobileCameraTarget(hero,observing=false)'));
+ assert.ok(view.includes('joy.fx=e.clientX-rect.left;')&&
+  view.includes('ctx.fillRect(S.camera.x,S.camera.y,worldVW,worldVH);')&&
+  view.includes('Object.assign(S.camera,mobileCameraTarget(S.hero));'),
+  'Câmera ou joystick não acompanham o redimensionamento e o polegar');
+ for(const [width,height] of [[800,360],[924,416],[420,300],[1800,830]]){
+  const zoom=Math.min(width>=1250?1.5:width>=750?1.35:1.17,height/620),
+   worldVW=width/zoom,worldVH=height/zoom;
+  for(const lane of [0,1,2])for(const t of [.07,.2,.42,.63,.84]){
+   const hero=E.pathPos(lane,t);
+   for(const touchRatio of [0,.18,.32,.45]){
+    const fx=touchRatio?width*touchRatio+18:0,
+     joy={ptr:touchRatio?9:null,sx:width*touchRatio,fx};
+    const cam=new Function('E','S','worldVW','worldVH','clamp','vw','vh',
+     'cameraZoom','joy','cameraPeek','MOBILE_HERO_ANCHOR_X',
+     'MOBILE_HERO_ANCHOR_Y','MOBILE_THUMB_CLEARANCE_PX',
+     block+'return {mobileCameraTarget};'
+    )(E,state,worldVW,worldVH,E.clamp,width,height,zoom,joy,null,.54,.48,108);
+    const wanted=cam.mobileCameraTarget(hero);
+    const hx=(hero.x-wanted.x)*zoom,hy=(hero.y-wanted.y)*zoom;
+    assert.ok(Math.abs(hy-height*.48)<.01,'Jogador verticalmente fora do centro útil');
+    assert.ok(hx>=width*.54-.01&&hx<=width*.74+.01,
+     'Jogador horizontalmente fora do centro útil na lane '+lane);
+    if(touchRatio)assert.ok(hx-fx>=Math.min(107,width*.74-fx)-.01,
+     'O polegar do joystick ficou sobre o campeão: '+width+' lane '+lane);
+    assert.ok(Number.isFinite(wanted.x)&&Number.isFinite(wanted.y));
+   }
+  }
+ }
+ const earlyTop=E.pathPos(0,.08),zoom=360/620;
+ const example=new Function('E','S','worldVW','worldVH','clamp','vw','vh',
+  'cameraZoom','joy','cameraPeek','MOBILE_HERO_ANCHOR_X',
+  'MOBILE_HERO_ANCHOR_Y','MOBILE_THUMB_CLEARANCE_PX',
+  block+'return {mobileCameraTarget};'
+ )(E,state,800/zoom,360/zoom,E.clamp,800,360,zoom,
+  {ptr:5,sx:280,fx:305},null,.54,.48,108);
+ const at=example.mobileCameraTarget(earlyTop);
+ assert.ok(at.x<0,'Perto da lateral esquerda da TOP a câmera continua travando no mapa');
+ assert.ok((earlyTop.x-at.x)*zoom>430,
+  'TOP não afasta o campeão do dedo perto da borda');
+}
+console.log('OK: Fenda 10.1.2 com câmera mobile centralizada na TOP, MID e BOT.');
 console.log('OK: Fenda 10.1: partilha do suporte, receitas, retorno dos bots e regressões.');
