@@ -192,6 +192,12 @@ try{cameraMode=localStorage.getItem('fenda-camera-v1')==='free'?'free':'locked'}
 const desktopCamera=()=>!!window.matchMedia?.('(hover:hover) and (pointer:fine)').matches;
 const cameraClampX=x=>clamp(x,0,Math.max(0,E.W-worldVW));
 const cameraClampY=y=>clamp(y,0,Math.max(0,E.H-worldVH));
+// Overscan máximo reduzido: evita mostrar metade da tela fora do mapa.
+// Um pequeno espaço lateral ainda mantém o campeão longe do joystick.
+const mobileCameraClampX=x=>clamp(x,-worldVW*.20,
+ Math.max(0,E.W-worldVW)+worldVW*.20);
+const mobileCameraClampY=y=>clamp(y,-worldVH*.15,
+ Math.max(0,E.H-worldVH)+worldVH*.15);
 function cameraCenterAt(x,y){
  S.camera.x=cameraClampX(x-worldVW/2);
  S.camera.y=cameraClampY(y-worldVH/2);
@@ -208,7 +214,8 @@ function mobileCameraTarget(hero,observing=false){
  const x=Math.min(vw*.74,Math.max(vw*MOBILE_HERO_ANCHOR_X,
   finger+MOBILE_THUMB_CLEARANCE_PX));
  const y=vh*MOBILE_HERO_ANCHOR_Y;
- return{x:hero.x-x/cameraZoom,y:hero.y-y/cameraZoom};
+ return{x:mobileCameraClampX(hero.x-x/cameraZoom),
+  y:mobileCameraClampY(hero.y-y/cameraZoom)};
 }
 function syncCameraControl(){
  const b=$('fendaCameraBtn');if(!b)return;
@@ -843,6 +850,10 @@ function minimap(){
  const scale=Math.min((mm.width-14)/E.W,(mm.height-14)/E.H);
  const ox=(mm.width-E.W*scale)/2,oy=(mm.height-E.H*scale)/2;
  mc.save();mc.translate(ox,oy);mc.scale(scale,scale);mc.lineCap='round';mc.lineJoin='round';
+ // Mesmo limite físico do cenário: não sugerir que o vazio é explorável.
+ mc.beginPath();
+ E.ARENA_BOUNDARY.forEach((p,i)=>i?mc.lineTo(p.x,p.y):mc.moveTo(p.x,p.y));
+ mc.closePath();mc.strokeStyle='#72a9a477';mc.lineWidth=13;mc.stroke();
  // Minimapa fiel à geometria jogável: só as três rotas, sem caminhos de selva.
  for(const path of E.ROUTE_PATHS){
   mc.beginPath();path.forEach((p,i)=>i?mc.lineTo(p.x,p.y):mc.moveTo(p.x,p.y));
