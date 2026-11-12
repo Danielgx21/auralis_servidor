@@ -1787,9 +1787,10 @@ console.log('OK: Fenda 10.2, loja de mortos, inspeção de peças, botas e torre
  const piercing=E.damage(enemy,100,hero,'aa');
  assert.ok(piercing>normal,'Adaga do Eclipse não penetra armadura');
  reset();enemy.items=['titanplate'];
- const magic=E.damage(enemy,100,hero,'spell');
- reset();enemy.items=['titanplate'];hero.items=['voidstaff'];
- assert.ok(E.damage(enemy,100,hero,'spell')>magic,'Cajado do Vazio não penetra defesa mágica');
+ const mage={...hero,id:'nyra',items:[]};
+ const magic=E.damage(enemy,100,mage,'spell');
+ reset();enemy.items=['titanplate'];mage.items=['voidstaff'];
+ assert.ok(E.damage(enemy,100,mage,'spell')>magic,'Cajado do Vazio não penetra defesa mágica');
  reset();hero.items=['corruptmask'];
  E.damage(enemy,12,hero);
  enemy.hp=1500;
