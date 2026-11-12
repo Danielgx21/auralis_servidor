@@ -323,7 +323,7 @@ const spellPower=(u,id)=>1+itemStats(u,'ap')+
 const levelXp=level=>42+level*24;
 
  // Renda regular de 3 campos por lado, sem concentrar XP em objetivos neutros.
- const JUNGLE_REWARDS={buff:{xp:61,gold:112},camp:{xp:56,gold:99}};
+ const JUNGLE_REWARDS={buff:{xp:58,gold:112},camp:{xp:53,gold:99}};
  const JUNGLE_RESPAWN=76,JUNGLE_BUFF_DURATION=68;
  function jungleReward(c,hero){
   const base=JUNGLE_REWARDS[c.buff?'buff':'camp'];
@@ -899,7 +899,7 @@ function onDeath(victim,source){
   if(source&&source.side!==undefined&&(source.side===0||source.side===1)){
    const owner=source.side;
    if(source.kind==='hero'){
-    const loot=victim.boss?{gold:180,xp:120}:jungleReward(victim,source);
+    const loot=victim.boss?{gold:135,xp:55}:jungleReward(victim,source);
     source.gold+=loot.gold;xpGain(source,loot.xp);
     heal(source,victim.boss?75:victim.buff?44:32);
     if(victim.buff==='energy'){
@@ -914,7 +914,7 @@ function onDeath(victim,source){
     const buff=victim.id==='titan'?'titan':'serpe';
     state.teamBuffs[owner][buff]=state.time+95;
     for(const teammate of living(owner,'hero')){
-     teammate.gold+=68;xpGain(teammate,40);
+     teammate.gold+=80;xpGain(teammate,48);
      heal(teammate,40);teammate.guard=Math.max(teammate.guard,34);
     }
     announce((owner===0?'AZUL':'RUBRO')+' CONQUISTOU '+victim.name.toUpperCase()+' · BÊNÇÃO DE EQUIPE!',4);
