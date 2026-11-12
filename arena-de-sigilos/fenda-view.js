@@ -16,6 +16,9 @@ hud.innerHTML='<div class="fenda-meta"><button id="fendaScoreBtn" type="button" 
 '<div id="fendaInfo">3 ROTAS · DESTRUA O NÚCLEO INIMIGO</div><div id="fendaObjectives">SERPE · TITÃ</div><div id="fendaNotice"></div>'+
 '<button id="fendaWardBtn" aria-label="Colocar sentinela de visão" title="Coloca visão à frente do campeão · Tecla V">◉<small>VISÃO</small><em id="fendaWardCD"></em></button>';
 stage.appendChild(hud);
+// Partilha sempre no painel do próprio campeão, nunca sobre o mapa.
+const shareInfo=document.createElement('div');shareInfo.id='fendaShareInfo';
+hud.querySelector('.fenda-personal').appendChild(shareInfo);
 // Feitiços ficam fora da área do joystick, com controles próprios de toque.
 const summonerPanel=document.createElement('div');summonerPanel.id='fendaSummoners';
 summonerPanel.innerHTML=[0,1].map(i=>'<button type="button" class="fenda-summoner" data-slot="'+i+'" aria-label="Usar feitiço '+(i+1)+'"><b>◇</b><small>FEITIÇO</small><span class="spell-effect">EFEITO</span><em></em></button>').join('');
@@ -97,7 +100,7 @@ const LANE_CHOICES=[
  {id:'jungle',short:'SELVA',name:'SELVA',icon:'◆',desc:'Caça e objetivos',detail:'Limpe os campos e prepare emboscadas. Selo da Caça obrigatório.',picks:['zhira','vexor','sahra']},
  {id:'mid',short:'MEIO',name:'ROTA DO MEIO',icon:'✧',desc:'Pressão e rotação',detail:'Controle a rota central e ajude as laterais.',picks:['nyra','kaelis','mirielle']},
  {id:'adc',short:'ADC',name:'ATIRADOR',icon:'➶',desc:'Dano e posicionamento',detail:'Escale com ouro e lute ao lado do suporte.',picks:['lyria','tessa']},
- {id:'support',short:'SUP',name:'SUPORTE',icon:'✚',desc:'Proteção e visão',detail:'Proteja o atirador e controle os combates.',picks:['seris','orun','rokar']}
+ {id:'support',short:'SUP',name:'SUPORTE',icon:'✚',desc:'Proteção e visão',detail:'Execute tropas com cargas e repasse o ouro integral ao ADC próximo.',picks:['seris','orun','rokar']}
 ];
 const currentLane=()=>LANE_CHOICES.find(lane=>lane.id===selectedLane);
 
@@ -948,6 +951,9 @@ function desktopHeroUpdate(h){
  $('pcManaFill').style.width=Math.max(0,Math.min(100,h.mana/E.maxMana(h)*100))+'%';
  $('pcXPFill').style.width=(lev<15?h.xp/(42+lev*24)*100:100)+'%';
  $('pcExtraStats').textContent='K/D/A '+h.kills+'/'+h.deaths+'/'+(h.assists||0)+' · '+h.cs+' CS'+
+  (h.roleKey==='support'?' · SUP '+h.supportCharges+'/'+E.SUPPORT_MAX_CHARGES+
+   ' · '+h.supportSharedCS+' REPASSADOS':
+   h.supportReceivedCS>0?' · +'+h.supportReceivedCS+' REPASSADOS':'')+
   (h.skillPoints>0?' · '+h.skillPoints+' PONTOS +':'');
  $('pcGold').textContent='✦ '+Math.round(h.gold);
  const html=Array.from({length:6},(_,i)=>{
@@ -960,7 +966,7 @@ function desktopHeroUpdate(h){
 function desktopRosterUpdate(){
  const sections=[0,1].map(side=>{
   const players=S.units.filter(u=>u.kind==='hero'&&u.side===side)
-   .sort((a,b)=>(scoreOrder[a.id]??9)-(scoreOrder[b.id]??9));
+   .sort((a,b)=>(scoreOrder[a.roleKey]??9)-(scoreOrder[b.roleKey]??9));
   const rows=players.map(u=>{
    const data=C.heroes[u.id],dead=u.hp<=0,seen=side===0||dead||E.visibleTo(0,u);
    const life=seen&&!dead?Math.max(0,Math.min(100,u.hp/u.maxHp*100)):0;
@@ -987,6 +993,14 @@ function hudUpdate(){
  const time=Math.floor(S.time);
  $('fendaTopScore').textContent='✦ '+S.kills[0]+' AZUL × '+S.kills[1]+' RUBRO';
  $('fendaPlayerStats').textContent='K/D/A '+h.kills+'/'+h.deaths+'/'+(h.assists||0)+' · FARM '+h.cs;
+ shareInfo.hidden=h.roleKey!=='support'&&!(h.supportReceivedCS>0);
+ shareInfo.classList.toggle('complete',!!h.supportQuestComplete);
+ shareInfo.textContent=h.roleKey==='support'?
+  'EMBLEMA '+h.supportCharges+'/'+E.SUPPORT_MAX_CHARGES+' · QUEST '+
+  Math.min(E.SUPPORT_QUEST_GOAL,h.supportQuestGold)+'/'+E.SUPPORT_QUEST_GOAL+
+  ' · '+h.supportGoldShared+'G REPASSADOS':
+  h.supportReceivedCS>0?'SUP: '+h.supportReceivedCS+
+   ' TROPAS · +'+h.supportGoldReceived+' OURO':'';
  $('fendaGold').textContent='✦ '+Math.round(h.gold)+' OURO';
  $('fendaTime').textContent=String(Math.floor(time/60)).padStart(2,'0')+':'+String(time%60).padStart(2,'0');
  $('fendaName').textContent=C.heroes[h.id].name+' · '+(currentLane()?.short||'')+' · NV '+h.level+
@@ -1099,8 +1113,8 @@ function hudUpdate(){
  }
 }
 // Placar de partida: as mesmas informações acionadas pelo placar do Wild Rift.
-const scoreRoles={orun:'TOP',vexor:'SELVA',nyra:'MEIO',lyria:'ATIR.',seris:'SUP.',brax:'TOP',zhira:'SELVA',rokar:'TOP',kaelis:'MEIO',tessa:'ATIR.',sahra:'SELVA',mirielle:'MEIO'};
-const scoreOrder={orun:0,vexor:1,nyra:2,lyria:3,seris:4,brax:0,zhira:1,rokar:0,kaelis:2,tessa:3,sahra:1,mirielle:2};
+const scoreRoles={top:'TOP',jungle:'SELVA',mid:'MEIO',adc:'ATIR.',support:'SUP.'};
+const scoreOrder={top:0,jungle:1,mid:2,adc:3,support:4};
 function scoreboardItems(hero){
  const slots=Array.from({length:6},(_,i)=>hero.items[i]||null);
  return '<div class="fenda-scoreboard-items">'+slots.map(id=>{
@@ -1111,7 +1125,7 @@ function scoreboardItems(hero){
 }
 function scoreTeam(side){
  const heroes=S.units.filter(u=>u.kind==='hero'&&u.side===side)
-  .sort((a,b)=>(scoreOrder[a.id]??9)-(scoreOrder[b.id]??9));
+  .sort((a,b)=>(scoreOrder[a.roleKey]??9)-(scoreOrder[b.roleKey]??9));
  const aliveTowers=S.structures.filter(t=>t.kind==='tower'&&t.side===side&&t.hp>0).length;
  const farm=heroes.reduce((sum,u)=>sum+(u.cs||0),0);
  const totalGold=heroes.reduce((sum,u)=>sum+Math.round(u.gold||0),0);
@@ -1120,11 +1134,13 @@ function scoreTeam(side){
   const hero=C.heroes[u.id],dead=u.hp<=0;
   const deathInfo=dead?' · RESSURGE '+Math.ceil(u.respawn)+'s':' · NV '+u.level;
   return '<div class="fenda-scoreboard-player'+(u.controlled?' is-self':'')+(dead?' is-dead':'')+'">'+
-   '<span class="fenda-scoreboard-role">'+(scoreRoles[u.id]||'ROTA')+'</span>'+
+   '<span class="fenda-scoreboard-role">'+(scoreRoles[u.roleKey]||'ROTA')+'</span>'+
    '<div class="fenda-scoreboard-champion"><span class="fenda-scoreboard-symbol" style="color:'+hero.color+'">'+championPortrait(u.id)+'</span>'+
    '<span><strong>'+hero.name+'</strong><small>'+(u.controlled?'VOCÊ':'BOT')+deathInfo+'</small></span></div>'+
    '<strong class="fenda-scoreboard-kda">'+u.kills+'/'+u.deaths+'/'+(u.assists||0)+'</strong>'+
-   '<span class="fenda-scoreboard-cs">'+(u.cs||0)+' <small>CS</small></span>'+
+   '<span class="fenda-scoreboard-cs">'+(u.cs||0)+' <small>CS</small>'+
+    (u.supportReceivedCS>0?'<small> +'+u.supportReceivedCS+' PART.</small>':
+     u.roleKey==='support'?'<small> '+u.supportSharedCS+' REP.</small>':'')+'</span>'+
    '<span class="fenda-scoreboard-gold">'+Math.round(u.gold||0)+' ✦</span>'+
    scoreboardItems(u)+'</div>';
  }).join('');
@@ -1406,7 +1422,9 @@ function chooseHero(){
   (recommended.includes(id)?'INDICADO':'LIVRE')+'</small></button>').join('')+'</div>'+
  '<div class="fenda-hero-detail"><strong>'+hero.name+' · '+hero.role+'</strong>'+
  '<p>'+hero.summary+'</p><span>Você jogará '+lane.short+
- ' com esse campeão. Escolha a primeira habilidade (Q/W/E) após entrar.</span></div>'+
+ ' com esse campeão. '+(selectedLane==='support'?
+ 'O Emblema executa tropas com cargas e divide o ouro com o ADC.':
+ 'Escolha a primeira habilidade (Q/W/E) após entrar.')+'</span></div>'+
  '<div class="fenda-lineup-label">SUA EQUIPE 5×5 <small>4 BOTS EM FUNÇÕES COMPLEMENTARES</small></div>'+
  '<div class="fenda-lineup">'+lineup.map(slot=>
   '<div class="'+(slot.controlled?'player':'')+'"><small>'+
