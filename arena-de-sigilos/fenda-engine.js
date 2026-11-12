@@ -914,18 +914,25 @@ function damage(victim,amount,source=null,attackKind='spell'){
   addEffect(victim.x,victim.y,'#d8e1ba',victim.r+18,.23);return 0;
  }
  let raw=Math.max(1,amount);
- if(victim.kind==='hero'&&source?.kind==='hero'&&source.side!==victim.side){
-  const armor=itemStats(victim,attackKind==='aa'?'armor':'mr');
-  const pen=attackKind==='aa'&&source.items.includes('eclipseknife')?.35:
-   attackKind!=='aa'&&source.items.includes('voidstaff')?.35:0;
-  raw*=1-Math.min(.42,armor*(1-pen)/400);
-  if(attackKind==='aa'&&victim.items.includes('stoneheart'))raw*=.91;
-  if(source.items.includes('corruptmask'))victim.grievousUntil=state.time+3.5;
-  if(attackKind!=='aa'&&source.items.includes('stormcrown')&&
-     (source.stormCrownReady||0)<=state.time){
-   raw+=Math.round(35+source.level*3.1);
-   source.stormCrownReady=state.time+8;
-   addEffect(victim.x,victim.y,'#bde9ff',55,.42,'burst');
+ if(victim.kind==='hero'&&source?.side!==undefined&&source.side!==victim.side){
+  // AAs, torres e tropas são físicos; feitiços acompanham a classe
+  // de dano de seus campeões. Resistências afetam todas essas fontes.
+  const basic=attackKind==='aa'||['minion','tower','core'].includes(source.kind);
+  const physical=basic||source.kind==='hero'&&PHYSICAL_HEROES.has(source.id);
+  const resistance=itemStats(victim,physical?'armor':'mr');
+  const pen=source.kind==='hero'?
+   (basic&&source.items.includes('eclipseknife')?.35:
+    !physical&&source.items.includes('voidstaff')?.35:0):0;
+  raw*=1-Math.min(.42,resistance*(1-pen)/400);
+  if(basic&&victim.items.includes('stoneheart'))raw*=.91;
+  if(source.kind==='hero'){
+   if(source.items.includes('corruptmask'))victim.grievousUntil=state.time+3.5;
+   if(!basic&&source.items.includes('stormcrown')&&
+      (source.stormCrownReady||0)<=state.time){
+    raw+=Math.round(35+source.level*3.1);
+    source.stormCrownReady=state.time+8;
+    addEffect(victim.x,victim.y,'#bde9ff',55,.42,'burst');
+   }
   }
  }
  if(victim.shield>0){const absorbed=Math.min(victim.shield,raw);victim.shield-=absorbed;raw-=absorbed;}
