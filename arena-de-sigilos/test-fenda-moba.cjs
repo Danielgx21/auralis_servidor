@@ -1820,5 +1820,120 @@ console.log('OK: Fenda 10.2, loja de mortos, inspeção de peças, botas e torre
  assert.ok(adc.shield>0&&adc.inspireUntil>supportScene.time,
   'Incensário não fortalece ataques do aliado protegido');
 }
+
+{
+ // Revisão 11.1: validar que todos os arquivos JS, inclusive a arena antiga, são sintaticamente válidos.
+ for(const filename of ['fenda-engine.js','fenda-team-ai.js','fenda-scenery.js','fenda-view.js'])
+  assert.doesNotThrow(()=>new Function(read(filename)),filename+' contém erro de sintaxe');
+ const classic=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+ assert.ok(classic&&classic.length>1000,'Código da arena clássica não encontrado');
+ assert.doesNotThrow(()=>new Function(classic),'Arena clássica com erro de sintaxe');
+}
+{
+ // Botas não podem ser acumuladas. As evoluções continuam consumindo a bota básica.
+ const game=E.start('lyria',null,'adc'),h=game.hero;
+ h.gold=20000;h.x=E.HOME[0].x;h.y=E.HOME[0].y;
+ assert.ok(E.buyItem('boots').ok,'Primeira bota básica não pode ser comprada');
+ assert.equal(E.buyItem('boots').ok,false,'Botas básicas duplicadas');
+ assert.ok(E.buyItem('stride').ok&&E.buyItem('lens').ok,'Pré-itens de botas inválidos');
+ assert.ok(E.buyItem('swiftboots').ok,'Não combinou botas sem perder o par básico');
+ assert.equal(E.buyItem('boots').ok,false,'Bota básica comprada sobre bota evoluída');
+ assert.equal(E.buyItem('swiftboots').ok,false,'Conseguiu duplicar a bota completa');
+ assert.ok(E.sellItem(h.items.indexOf('swiftboots')).ok,'Não conseguiu vender botas');
+ assert.ok(E.buyItem('boots').ok,'Não pode comprar novo par depois de vender');
+}
+{
+ // Preços, componentes e slots de todas as receitas continuam válidos.
+ const all=E.ITEMS;
+ assert.equal(new Set(all.map(it=>it.id)).size,all.length,'Itens com identificadores repetidos');
+ for(const item of all){
+  assert.ok(Number.isFinite(item.price)&&item.price>0&&item.price%1===0,'Preço inválido: '+item.id);
+  assert.ok(item.tier===1||item.tier===2,'Categoria inválida: '+item.id);
+  if(item.tier!==2)continue;
+  assert.equal(item.recipe.length,3,'Receita incorreta: '+item.id);
+  const sum=item.recipe.reduce((v,k)=>{
+   const part=all.find(it=>it.id===k);
+   assert.ok(part&&part.tier===1,'Componente inválido: '+k+' em '+item.id);
+   return v+part.price;
+  },0);
+  assert.ok(sum<item.price,'Combinação que cria ouro: '+item.id);
+ }
+}
+{
+ // Os novos campeões físicos precisam escalar habilidades com seus itens de AD.
+ for(const [heroId,role,skill] of [
+  ['kaoryn','adc','kaoryn_volley'],['darian','adc','darian_ricochet']]){
+  const game=E.start(heroId,null,role),h=game.hero;
+  game.units=[h];game.structures=[];game.walls=[];game.obstacles=[];game.camps=[];
+  game.nextWave=999999;h.x=1600;h.y=1200;h.mana=1000;h.skillLevels[skill]=1;
+  const aim={x:1,y:0,distance:180};
+  assert.ok(E.cast(h,skill,aim),'Não lançou Q básico: '+heroId);
+  for(let i=0;i<5;i++)E.step(.05,{x:0,y:0});
+  const original=game.projectiles.find(p=>p.skillId===skill)?.damage;
+  assert.ok(original>0,'Projétil não foi criado: '+skill);
+  game.projectiles=[];h.cooldowns[skill]=0;h.mana=1000;h.items=['bloodedge'];
+  assert.ok(E.cast(h,skill,aim),'Não lançou Q com equipamento: '+heroId);
+  for(let i=0;i<5;i++)E.step(.05,{x:0,y:0});
+  const scaled=game.projectiles.find(p=>p.skillId===skill)?.damage;
+  assert.ok(scaled>original*1.10,'Habilidade de '+heroId+' não escala com AD');
+ }
+ const game=E.start('varka',null,'top'),h=game.hero,enemy=game.units.find(u=>u.side===1&&u.kind==='hero');
+ game.units=[h,enemy];game.structures=[];game.camps=[];game.obstacles=[];game.walls=[];game.nextWave=999999;
+ h.x=1500;h.y=1300;enemy.x=1540;enemy.y=1300;
+ h.skillLevels.varka_cleave=1;h.mana=1000;enemy.hp=enemy.maxHp=3000;
+ assert.ok(E.cast(h,'varka_cleave'),'Q da Varka não ativou');
+ const original=3000-enemy.hp;
+ enemy.hp=3000;h.items=['bloodedge'];h.cooldowns.varka_cleave=0;h.mana=1000;
+ assert.ok(E.cast(h,'varka_cleave'),'Q da Varka não ativou com item');
+ assert.ok(3000-enemy.hp>original*1.10,'Machado da Varka não escala com AD');
+}
+{
+ // Kaoryn usa a própria armadilha e não empresta o identificador de Tessa.
+ const game=E.start('kaoryn',null,'adc'),h=game.hero;
+ game.units=[h];game.camps=[];game.structures=[];game.nextWave=999999;
+ h.skillLevels.kaoryn_thorns=1;h.mana=1000;
+ assert.ok(E.cast(h,'kaoryn_thorns',{x:1,y:0,distance:190}),'Não instalou a armadilha da Kaoryn');
+ for(let i=0;i<5;i++)E.step(.05,{x:0,y:0});
+ assert.ok(game.zones.some(z=>z.kind==='trap'&&z.skillId==='kaoryn_thorns'),
+  'Armadilha de Kaoryn identificada como a de Tessa');
+}
+{
+ // Resistências físicas/mágicas reduzem fontes compatíveis, inclusive tropas.
+ const game=E.start('varka',null,'top'),victim=game.units.find(u=>u.side===1&&u.kind==='hero'),
+  attacker=game.hero;
+ game.structures=[];game.camps=[];game.obstacles=[];game.walls=[];game.nextWave=999999;
+ const fresh=(items)=>{victim.items=items;victim.hp=victim.maxHp=2800;victim.shield=0;victim.invuln=0;};
+ fresh([]);const physical=E.damage(victim,100,attacker,'spell');
+ fresh(['stoneheart']);const protectedHit=E.damage(victim,100,attacker,'spell');
+ assert.ok(protectedHit<physical,'Armadura não protege contra habilidade física');
+ const mage={...attacker,id:'nyra',items:[]};
+ fresh([]);const magical=E.damage(victim,100,mage,'spell');
+ fresh(['titanplate']);const magicalReduced=E.damage(victim,100,mage,'spell');
+ assert.ok(magicalReduced<magical,'Resistência mágica não protege contra magia');
+ const minion={kind:'minion',side:attacker.side,id:'guard'};
+ fresh([]);const minionHit=E.damage(victim,100,minion,'aa');
+ fresh(['stoneheart']);const minionReduced=E.damage(victim,100,minion,'aa');
+ assert.ok(minionReduced<minionHit,'Coração de Pedra não protege contra AAs de tropas');
+}
+{
+ // Feridas graves precisam reduzir tanto curas ativas quanto regeneração passiva.
+ const regen=(wounded)=>{
+  const game=E.start('lyria',null,'adc'),h=game.hero;
+  game.units=[h];game.structures=[];game.camps=[];game.obstacles=[];game.walls=[];
+  game.nextWave=999999;h.x=1500;h.y=1000;h.hp=100;
+  h.grievousUntil=wounded?200:0;
+  for(let i=0;i<120;i++)E.step(.05,{x:0,y:0});
+  return h.hp-100;
+ };
+ const normal=regen(false),reduced=regen(true);
+ assert.ok(normal>2&&reduced<normal*.65,'Feridas graves não afetam regeneração');
+}
+{
+ const ai=read('fenda-team-ai.js');
+ assert.ok(ai.includes("z.kind==='icefield'")&&
+  ai.includes("'kaoryn','darian','iskha','seris','elowen'"),
+  'IA não reconhece gelo nem os novos carregadores');
+}
+console.log('OK: Arena 11.1 - revisão de erros de dano, botas, projéteis, armadilhas, IA, loja, cura e sintaxe.');
 console.log('OK: Arena 11.0 com 18 campeões, 24 habilidades novas, 25 itens e IA.');
 console.log('OK: Fenda 10.1: partilha do suporte, receitas, retorno dos bots e regressões.');
