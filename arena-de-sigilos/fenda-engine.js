@@ -652,6 +652,8 @@ function makeHero(id,side,controlled=false,assignedRole=null){
  skillPoints:1,passiveCd:0,surgeUntil:0,huntUntil:0,manaFreeUntil:0,
  windStacks:0,windUntil:0,loadedRoundUntil:0,shroudUntil:0,shroudBreakUntil:0,
  sahraSecondUntil:0,mirrorReturn:null,mirrorLastSpell:null,mirrorEchoUntil:0,
+ kaorynStacks:0,kaorynTarget:null,kaorynUntil:0,darianRoundUntil:0,varkaFuryUntil:0,
+ inspireUntil:0,grievousUntil:0,stormCrownReady:0,
  summoners:['flash','ignite'],summonerCooldowns:{},
  lane:assignedLane,roleKey,jungler:roleKey==='jungle',waypoint:side===0?0:ROUTE_PATHS[assignedLane].length-1,attackCd:0,casting:null,
  cooldowns:Object.fromEntries([...h.skills,h.ultimate].map(k=>[k,0])),
@@ -771,10 +773,17 @@ function applyBasicHit(u,t,raw){
   if(partner){
    u.supportCharges--;u.supportRecharge=0;
    t.supportShare={supportUid:u.uid,recipientUid:partner.uid,charged:true};
-   return damage(t,Math.max(raw,t.hp+1),u);
+   return damage(t,Math.max(raw,t.hp+1),u,'aa');
   }
  }
- return damage(t,raw,u);
+ const hit=damage(t,raw,u,'aa');
+ if(u?.kind==='hero'&&t.kind==='hero'&&hit>0){
+  if(u.id==='varka')heal(u,Math.min(25,Math.round(hit*.12)));
+  if(u.id==='iskha'&&u.passiveAttacks%3===0)t.slow=Math.max(t.slow,1.25);
+  if(u.id==='tharok'&&u.passiveAttacks%3===0)
+   grantShield(u,Math.round(35+u.level*3),2.8);
+ }
+ return hit;
 }
 function onDeath(victim,source){
  victim.death=1;
@@ -871,7 +880,7 @@ function onDeath(victim,source){
   }
  }
 }
-function damage(victim,amount,source=null){
+function damage(victim,amount,source=null,attackKind='spell'){
  if(!victim||victim.hp<=0||state.mode!=='playing')return 0;
  if(victim.invuln>0)return 0;
  // Para avançar rumo ao núcleo, conquiste uma rota e derrube seus obeliscos em ordem.
@@ -885,6 +894,20 @@ function damage(victim,amount,source=null){
   addEffect(victim.x,victim.y,'#d8e1ba',victim.r+18,.23);return 0;
  }
  let raw=Math.max(1,amount);
+ if(victim.kind==='hero'&&source?.kind==='hero'&&source.side!==victim.side){
+  const armor=itemStats(victim,attackKind==='aa'?'armor':'mr');
+  const pen=attackKind==='aa'&&source.items.includes('eclipseknife')?.35:
+   attackKind!=='aa'&&source.items.includes('voidstaff')?.35:0;
+  raw*=1-Math.min(.42,armor*(1-pen)/400);
+  if(attackKind==='aa'&&victim.items.includes('stoneheart'))raw*=.91;
+  if(source.items.includes('corruptmask'))victim.grievousUntil=state.time+3.5;
+  if(attackKind!=='aa'&&source.items.includes('stormcrown')&&
+     (source.stormCrownReady||0)<=state.time){
+   raw+=Math.round(35+source.level*3.1);
+   source.stormCrownReady=state.time+8;
+   addEffect(victim.x,victim.y,'#bde9ff',55,.42,'burst');
+  }
+ }
  if(victim.shield>0){const absorbed=Math.min(victim.shield,raw);victim.shield-=absorbed;raw-=absorbed;}
  if(victim.guard>0){const ab=Math.min(victim.guard,raw);victim.guard-=ab;raw-=ab;}
  if(raw<=0){addEffect(victim.x,victim.y,'#a8d8fe',23,.22);return 0}
@@ -939,7 +962,8 @@ function grantShield(target,amount,seconds=3){
 }
 function heal(target,amount){
  if(!target||target.hp<=0)return 0;
- const v=Math.max(0,Math.round(Math.min(amount*(target.burnUntil>state.time?.55:1),target.maxHp-target.hp)));
+ const v=Math.max(0,Math.round(Math.min(amount*(target.burnUntil>state.time?.55:1)*
+ (target.grievousUntil>state.time?.60:1),target.maxHp-target.hp)));
  target.hp+=v;if(v)addEffect(target.x,target.y,'#97f6c0',24,.38);
  return v;
 }
@@ -1121,6 +1145,8 @@ function autoAttack(u){
  let attackFactor=u.kind==='hero'?HERO_AA_SPEED_FACTOR[u.id]||1:1;
  if(u.kind==='hero'&&u.id==='lyria'&&u.windUntil>state.time)
   attackFactor*=1-Math.min(.29,(u.windStacks||0)*.072);
+ if(u.kind==='hero'&&u.id==='kaoryn'&&u.kaorynUntil>state.time)
+  attackFactor*=1-Math.min(.30,(u.kaorynStacks||0)*.075);
  u.attackCd=u.kind==='hero'?
   Math.max(.52,hData(u.id).attackTime*attackFactor*
    (1-Math.min(.20,Math.max(0,u.level-1)*.014))):
@@ -1141,6 +1167,8 @@ function autoAttack(u){
   if(u.items.includes('astralbow')&&target.kind!=='tower'&&target.kind!=='core'&&
     target.hp/Math.max(1,target.maxHp)<.45)damageVal*=1.21;
   if(u.items.includes('swiftboots')&&u.walkUntil>state.time)damageVal*=1.075;
+  if(u.varkaFuryUntil>state.time)damageVal*=1.22+(1-u.hp/u.maxHp)*.15;
+  if(u.inspireUntil>state.time)damageVal+=Math.round(8+u.level*.8);
   // Passivas de classe adicionam identidade sem bônus contra estruturas.
   if(target.kind!=='tower'&&target.kind!=='core'){
    u.passiveAttacks=(u.passiveAttacks||0)+1;
@@ -1148,6 +1176,16 @@ function autoAttack(u){
     u.windStacks=u.windUntil>state.time?Math.min(4,(u.windStacks||0)+1):1;
     u.windUntil=state.time+4.1;
     if(u.windStacks===4)damageVal+=12+u.level*1.4;
+   }
+   if(u.id==='kaoryn'){
+    const same=u.kaorynTarget===target.uid&&u.kaorynUntil>state.time;
+    u.kaorynStacks=same?Math.min(4,u.kaorynStacks+1):1;
+    u.kaorynTarget=target.uid;u.kaorynUntil=state.time+3.8;
+    if(u.kaorynStacks===4)damageVal+=16+u.level*1.8;
+   }
+   if(u.id==='darian'&&u.darianRoundUntil>state.time){
+    damageVal+=22+u.level*1.6;u.darianRoundUntil=0;
+    addEffect(u.x,u.y,'#ffd0a1',46,.3,'burst');
    }
    if(u.id==='nyra'&&u.passiveAttacks%3===0)damageVal+=14;
    if(u.id==='tessa'){
@@ -1160,6 +1198,9 @@ function autoAttack(u){
     heal(u,Math.round(5+u.level*.6));
    }
    if(u.items.includes('barrage')&&u.passiveAttacks%3===0)damageVal+=19+u.level;
+   if(u.items.includes('bloodedge')&&u.passiveAttacks%3===0)damageVal*=1.45;
+   if(u.items.includes('ruinblade')&&target.kind==='hero')
+    damageVal+=Math.min(36,Math.round(target.maxHp*.035));
    if(u.items.includes('phantomfang')&&target.kind==='hero'&&target.hp/target.maxHp<.4)damageVal+=15+u.level*.6;
    if(u.id==='vexor'&&u.empoweredUntil>state.time){
     damageVal+=13;u.empoweredUntil=0;
