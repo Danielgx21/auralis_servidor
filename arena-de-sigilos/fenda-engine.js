@@ -2388,12 +2388,19 @@ function skillHit(target,source,id,baseDamage,mods={}){
    target.mirrorMarkSource=source.uid;
   }
   if(id==='mirielle_chain'||mods.echoType==='chain'){
-   target.tetherUntil=state.time+1.05;
+   target.tetherUntil=state.time+1.3;
+   target.tetherStartedAt=state.time;
    target.tetherSource=source;
    target.slow=Math.max(target.slow,.9);
+   addEffect(target.x,target.y,'#e4b5ff',target.r+16,.34,'chainAttach');
   }
  }
  const hit=damage(target,Math.round(amount),source);
+ if(hit>0&&source?.kind==='hero'){
+  state.effects.push({kind:'abilityImpact',skillId:id,side:source.side,
+   x:target.x,y:target.y,r:target.r+23,color:hData(source.id).color,
+   life:.34,maxLife:.34});
+ }
  if(source?.id==='sahra'&&target.kind==='hero'&&
   ['sahra_knives','sahra_flip','sahra_ult'].includes(id)){
   target.sahraMarkUntil=state.time+4.0;
@@ -2462,6 +2469,16 @@ function releaseSkill(u,c){
  if(!u||u.hp<=0)return;
  const id=c.id,def=skillDef(id),power=spellPower(u,id),enemy=1-u.side,lv=c.level;
  u.skillFlash=.42;
+ const cueLife=def.ultimate?.86:.48;
+ state.effects.push({kind:'abilityCast',skillId:id,side:u.side,source:u,
+  x:u.x,y:u.y,r:def.radius||54,life:cueLife,maxLife:cueLife,color:hData(u.id).color});
+ if(def.aim==='area'){
+  const areaLife=Math.min(1.15,.52+dist(u,c.center)/780);
+  state.effects.push({kind:'abilityArea',skillId:id,side:u.side,
+   x:c.center.x,y:c.center.y,r:def.radius||78,
+   life:areaLife,maxLife:areaLife,color:hData(u.id).color});
+ }
+ if(state.effects.length>160)state.effects.splice(0,state.effects.length-160);
  // Kits próprios: o assassino da fumaça e a maga de ilusões não usam
  // apenas uma variação de dash genérico.
  // Habilidades próprias: zonas persistentes de gelo, cura e fúria.
@@ -2539,8 +2556,8 @@ function releaseSkill(u,c){
     id==='vexor_ult'?85:id==='orun_charge'?31:id==='vexor_lunge'?36:
     id==='brax_grapple'?37:id==='zhira_pounce'?34:id==='rokar_charge'?33:
     id==='tharok_ram'?30+lv*6:id==='varka_lunge'?37+lv*7:0)*power),
-   stun:id==='orun_charge'?.36:id==='brax_grapple'?.29:id==='vexor_ult'?.26:
-    id==='rokar_charge'?.38:id==='tharok_ram'?.44:0};
+   stun:id==='orun_charge'?.56:id==='brax_grapple'?.50:id==='vexor_ult'?.26:
+    id==='rokar_charge'?.56:id==='tharok_ram'?.62:0};
   u.invuln=['lyria_step','tessa_roll','kaoryn_stride','darian_dash'].includes(id)?.19:.10;
   addEffect(u.x,u.y,hData(u.id).color,57,.42);
   return;
@@ -2588,7 +2605,7 @@ function releaseSkill(u,c){
   const range=def.radius+(def.ultimate?15:0);
   state.projectiles.push({x:u.x,y:u.y,source:u,side:u.side,tx:c.center.x,ty:c.center.y,
    speed:780,damage:Math.round((aoeDamage+lv*9)*power),r:9,aoe:range,
-   kind:isHealing?'healarea':'damagearea',
+   kind:isHealing?'healarea':'damagearea',skillId:id,
    heal:isHealing?(id==='elowen_bless'?47+lv*14:55+lv*13):0,
    color:hData(u.id).color,stun:id==='nyra_ult'?.62:id==='nyra_rift'?.32:id==='zhira_trap'?.25:id==='kaelis_frost'?.30:id==='kaelis_ult'?.52:0,
    slow:id==='lyria_rain'||id==='lyria_ult'?1.5:id==='nyra_rift'||id==='zhira_trap'?1.4:
@@ -2603,7 +2620,7 @@ function releaseSkill(u,c){
   addEffect(u.x,u.y,'#91ed84',115,.6,'wave');return;
  }
  if(id==='brax_ult'){
-  aoe(u.x,u.y,r,Math.round((66+lv*18)*power),u,.53,1.1);
+  aoe(u.x,u.y,r,Math.round((66+lv*18)*power),u,.62,1.1,.62);
   grantShield(u,Math.round(38+lv*16),3);
   addEffect(u.x,u.y,'#f6ca85',r,.64,'burst');return;
  }
@@ -2627,8 +2644,8 @@ function releaseSkill(u,c){
     markSupportAid(u,friend);
    }
   }
-  if(id==='orun_ult')aoe(u.x,u.y,r,Math.round((50+lv*15)*power),u,.55);
-  if(id==='rokar_ult')aoe(u.x,u.y,r,Math.round((44+lv*13)*power),u,.48);
+  if(id==='orun_ult')aoe(u.x,u.y,r,Math.round((50+lv*15)*power),u,.55,0,.55);
+  if(id==='rokar_ult')aoe(u.x,u.y,r,Math.round((44+lv*13)*power),u,.48,0,.48);
   addEffect(u.x,u.y,hData(u.id).color,r,.69);
   return;
  }
@@ -2636,19 +2653,29 @@ function releaseSkill(u,c){
   const val=id==='orun_quake'?43:id==='brax_cleave'?38:id==='rokar_pulse'?42:
    id==='tharok_pulse'?35:id==='tharok_ult'?68:id==='varka_cleave'?43:48;
   const hits=aoe(u.x,u.y,r,Math.round((val+lv*9)*power),u,
-   id==='orun_quake'?.33:id==='tharok_ult'?.65:0,
-   ['rokar_pulse','tharok_pulse'].includes(id)?1.15:0);
+   id==='orun_quake'?.48:id==='tharok_ult'?.65:0,
+   ['rokar_pulse','tharok_pulse'].includes(id)?1.15:0,
+    id==='orun_quake'?.48:id==='tharok_ult'?.65:0);
   if(id==='brax_cleave'&&hits)heal(u,Math.min(37,6+lv*4+hits*3));
   if(id==='varka_cleave'&&hits)heal(u,Math.min(45,8+lv*5+hits*5));
   addEffect(u.x,u.y,hData(u.id).color,r,.54);
  }
 }
-function aoe(x,y,r,damageVal,source,stun=0,slow=0){
+function knockUp(target,duration=.55){
+ if(!target||target.hp<=0||target.kind!=='hero')return;
+ target.stun=Math.max(target.stun,duration);
+ target.airborneStartedAt=state.time;
+ target.airborneUntil=state.time+duration;
+ target.airborneDuration=duration;
+ addEffect(target.x,target.y,'#fff1ba',target.r+22,.38,'knockUp');
+}
+function aoe(x,y,r,damageVal,source,stun=0,slow=0,airborne=0){
  let hits=0;
  for(const t of living(1-source.side)){
   if(Math.hypot(t.x-x,t.y-y)<r+t.r){
    hits++;damage(t,damageVal,source);
    t.stun=Math.max(t.stun,stun);t.slow=Math.max(t.slow,slow);
+    if(airborne>0)knockUp(t,airborne);
   }
  }
  for(const c of state.camps){
@@ -2788,13 +2815,18 @@ function tickUnit(u,dt){
   if(u.id==='mirielle'&&u.mirrorReturn?.until<=state.time)u.mirrorReturn=null;
   if(u.id==='sahra'&&u.shroudUntil<state.time)u.shroudCenter=null;
  }
- if(u.tetherUntil>0&&u.tetherUntil<=state.time){
-  if(u.tetherSource?.hp>0&&dist(u,u.tetherSource)<375){
-   u.stun=Math.max(u.stun,.85);
-   addEffect(u.x,u.y,'#cf9cf6',39,.44,'burst');
+ if(u.tetherUntil>0){
+   const linked=u.tetherSource?.hp>0&&dist(u,u.tetherSource)<375;
+   if(!linked){
+    addEffect(u.x,u.y,'#ddbbff',32,.36,'chainBreak');
+    u.tetherUntil=0;u.tetherSource=null;
+   }else if(u.tetherUntil<=state.time){
+    u.stun=Math.max(u.stun,.85);
+    u.chainRootUntil=state.time+.85;
+    addEffect(u.x,u.y,'#cf9cf6',48,.58,'chainLock');
+    u.tetherUntil=0;u.tetherSource=null;
+   }
   }
-  u.tetherUntil=0;u.tetherSource=null;
- }
  if(u.kind==='hero'&&u.burnUntil>state.time&&u.burnSource){
   u.burnPulse=(u.burnPulse||0)+dt;
   if(u.burnPulse>=.5){
@@ -2878,6 +2910,9 @@ function tickUnit(u,dt){
      d.hit.add(target.uid);
      if(d.dmg>0)skillHit(target,u,d.skillId||'',d.dmg,{stage2:d.stage2});
      target.stun=Math.max(target.stun,d.stun);
+     if(['orun_charge','rokar_charge','tharok_ram','brax_grapple'].includes(d.skillId))
+      knockUp(target,Math.max(.50,d.stun));
+     addEffect(target.x,target.y,'#ffe5b5',target.r+23,.32,'chargeImpact');
     }
    }
    d.t-=dt;
@@ -2888,7 +2923,9 @@ function tickUnit(u,dt){
     }
     u.dash=null;
    }
-   addEffect(ox,oy,hData(u.id).color,21,.21);
+   state.effects.push({kind:'dashTrail',skillId:d.skillId,x:ox,y:oy,
+    tx:u.x,ty:u.y,side:u.side,color:hData(u.id).color,
+    r:u.r+11,life:.27,maxLife:.27});
    return;
   }
  }
