@@ -1627,7 +1627,7 @@ console.log('OK: Fenda 10.1.2 com câmera mobile centralizada na TOP, MID e BOT.
  const list=v.match(/const suggestedBuilds=(\{[\s\S]*?\});\s*const itemInfo=/);
  assert.ok(list,'Sugestões de classes não identificadas');
  const builds=new Function('return ('+list[1]+')')();
- for(const id of Object.keys(C.heroes)){
+ for(const id of Object.keys(heroes)){
   assert.ok(builds[id]?.includes('boots'),'Sem botas básicas recomendadas: '+id);
   assert.ok(builds[id].some(x=>['arcaneboots','guardianboots','hunterboots','swiftboots'].includes(x)),
    'Sem evolução de botas recomendadas: '+id);
