@@ -352,7 +352,7 @@ function arenaHull(){
  const sources=[...ROUTE_PATHS.flat(),...HOME,...CORE,
   ...JUNGLE_RIDGES.flatMap(r=>r.pts.flatMap(([x,y])=>
    [{x,y},rotateHalf({x,y})]))];
- const padding=LANE_HALF_WIDTH+40;
+ const padding=LANE_HALF_WIDTH+95;
  const points=sources.flatMap(p=>Array.from({length:12},(_,i)=>{
   const angle=i*TAU/12;
   return{x:p.x+padding*Math.cos(angle),y:p.y+padding*Math.sin(angle)};
