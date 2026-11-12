@@ -789,8 +789,10 @@ function positionPillars(n){const pts=n===2?[[.34,.43],[.66,.57]]:n===3?[[.29,.3
 }
 
 function meleeClass(id){
- const role=heroes[id]?.role;
- return role==='DUELISTA'||role==='GUARDIÃO';
+ // Classes reais do elenco: role é uma descrição, não uma enumeração fixa.
+ // A comparação antiga com 'DUELISTA' deixava vários personagens corpo a
+ // corpo disparando projéteis de velocidade zero no modo Arena Rápida.
+ return ['vexor','orun','brax','zhira','rokar','sahra','tharok','varka'].includes(id);
 }
 function unitRange(u){
  return meleeClass(u.heroId)?(u.heroId==='orun'?62:63):Math.min(400,heroes[u.heroId].range*.76);
@@ -844,8 +846,10 @@ function reset(level){
  firePointer=null;fireTouch=false;clearSkillTouch();shotQueue.length=0;
  joy.x=0;joy.y=0;joy.id=null;
  $('joy').classList.remove('active');$('fireBtn').classList.remove('aiming');$('aimPad').classList.remove('active');
- const heroIds=Object.keys(heroes),friends=[heroChoice,...heroIds.filter(id=>id!==heroChoice)];
- const leader=missions[level].hero,foes=[leader,...heroIds.filter(id=>id!==leader)];
+ const heroIds=Object.keys(heroes),classicCore=['orun','vexor','lyria','nyra','seris'];
+ const selectFive=champion=>[champion,...classicCore.filter(id=>id!==champion),
+   ...heroIds.filter(id=>id!==champion&&!classicCore.includes(id))].slice(0,5);
+ const friends=selectFive(heroChoice),foes=selectFive(missions[level].hero);
  allies=friends.map((id,i)=>createUnit(id,0,i,i===0));
  enemies=foes.map((id,i)=>createUnit(id,1,i,false));
  player=allies[0];
