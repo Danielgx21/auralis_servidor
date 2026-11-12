@@ -112,10 +112,10 @@ const ITEMS=[
   stat:'+24 AD · +18% poder · +10% acel.',desc:'Após usar habilidade, próximo AA causa dano extra'},
  {id:'bulwark',name:'Bastião Ancestral',tier:2,price:1480,icon:'⬢',
   recipe:['ward','ward','core'],stats:{hp:310,armor:24,haste:.11},passive:'fortify',
-  stat:'+310 PV · +11% acel.',desc:'Proteção periódica ao ficar com pouca vida'},
+  stat:'+310 PV · +24 armadura · +11% acel.',desc:'Proteção periódica ao ficar com pouca vida'},
  {id:'titanplate',name:'Égide do Titã',tier:2,price:1460,icon:'▣',
   recipe:['ward','cell','core'],stats:{hp:230,mana:160,mr:31,haste:.12,regen:1.8},
-  stat:'+230 PV · +160 mana · +12% acel.',desc:'Resistência e regeneração'},
+  stat:'+230 PV · +31 resistência mágica · +160 mana · +12% acel.',desc:'Resistência e regeneração'},
  {id:'swiftboots',name:'Botas do Horizonte',tier:2,price:1360,icon:'🥾',
   recipe:['boots','stride','lens'],stats:{move:.18,ad:20},passive:'pursuit',
   stat:'+18% MOV · +20 AD',desc:'Botas ofensivas: velocidade e dano em perseguições'},
@@ -124,7 +124,7 @@ const ITEMS=[
   stat:'+18% MOV · +15% poder · +8% acel.',desc:'Botas de mago: mobilidade e poderes mais frequentes'},
  {id:'guardianboots',name:'Botas do Guardião',tier:2,price:1340,icon:'🥾',
   recipe:['boots','ward','sprout'],stats:{move:.17,hp:195,mr:21,regen:1.4},
-  stat:'+17% MOV · +195 PV · regeneração',desc:'Botas defensivas para tanques e suportes'},
+  stat:'+17% MOV · +195 PV · +21 resistência mágica',desc:'Botas defensivas para tanques e suportes'},
  {id:'hunterboots',name:'Botas do Explorador',tier:2,price:1350,icon:'🥾',
   recipe:['boots','fang','core'],stats:{move:.20,ad:13,haste:.08},
   stat:'+20% MOV · +13 AD · +8% acel.',desc:'Botas de selva para perseguições e rotação'},
@@ -706,7 +706,11 @@ function start(hero='lyria',summoners=null,selectedRole=null){
   ['varka','sahra','iskha','darian','elowen'],
   ['tharok','sahra','nyra','kaoryn','seris']
  ];
- const red=ROLE_ORDER.map((role,i)=>({id:redSquads[squadIndex][i],role}));
+ const red=ROLE_ORDER.map((role,i)=>{
+  let id=redSquads[squadIndex][i];
+  if(id===state.selectedHero)id=ROLE_BOT_CHOICES[role].find(v=>v!==id)||id;
+  return{id,role};
+ });
  for(const slot of [blue.find(u=>u.controlled),...blue.filter(u=>!u.controlled)]){
   const u=makeHero(slot.id,0,slot.controlled,slot.role);
   state.units.push(u);if(slot.controlled)state.hero=u;
