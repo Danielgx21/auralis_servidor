@@ -63,6 +63,7 @@ const roles={orun:0,nyra:1,lyria:2,seris:2,vexor:1,brax:0,zhira:1,rokar:0,kaelis
 const ROLE_ORDER=['top','jungle','mid','adc','support'];
 const ROLE_LANES={top:0,jungle:1,mid:1,adc:2,support:2};
 // Emblema de suporte automático: não concorre com os seis slots de itens.
+const RECALL_CHANNEL_SECONDS=6.0;
 const SUPPORT_RANGE=440,SUPPORT_CHARGE_INTERVAL=30,SUPPORT_MAX_CHARGES=3;
 const SUPPORT_EXECUTE_THRESHOLD=.65,SUPPORT_QUEST_REWARD=65,SUPPORT_QUEST_GOAL=455;
 const MINION_BOUNTIES={guard:38,caster:30,siege:88};
@@ -1808,8 +1809,8 @@ function botHero(u,dt){
     u.hp/u.maxHp<.42)&&
    u.hp/u.maxHp>.27&&!u.aiRetreat&&
    !living(1-u.side).some(e=>visibleTo(u.side,e)&&dist(e,u)<300)){
-  u.recall=3.2;u.botRecallWait=state.time+48;
-  addEffect(u.x,u.y,'#c5ecfa',48,3.2,'recall');
+  u.recall=RECALL_CHANNEL_SECONDS;u.botRecallWait=state.time+48;
+  addEffect(u.x,u.y,'#c5ecfa',48,RECALL_CHANNEL_SECONDS,'recall');
   return;
  }
  botUseSummoners(u);
@@ -2637,11 +2638,11 @@ function recall(){
  if(state.mode!=='playing'||!p||p.hp<=0)return false;
  if(dist(p,HOME[0])<125){announce('VOCÊ JÁ ESTÁ NA BASE',1.3);return false}
  if(p.casting||p.stun>0||p.dash)return false;
- p.recall=3.2;announce('CANALIZANDO RETORNO · 3s',1.6);
- addEffect(p.x,p.y,'#c5ecfa',70,3.2,'recall');
+ p.recall=RECALL_CHANNEL_SECONDS;announce('CANALIZANDO RETORNO · 6s',1.6);
+ addEffect(p.x,p.y,'#c5ecfa',70,RECALL_CHANNEL_SECONDS,'recall');
  return true;
 }
-window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,SUMMONERS,smiteDamage,castSummoner,hData,skillDef,
+window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,SUMMONERS,RECALL_CHANNEL_SECONDS,smiteDamage,castSummoner,hData,skillDef,
  start,previewBlue,ROLE_ORDER,ROLE_LANES,CHAMPION_ROLES,SUPPORT_RANGE,SUPPORT_MAX_CHARGES,
  SUPPORT_CHARGE_INTERVAL,SUPPORT_QUEST_REWARD,SUPPORT_QUEST_GOAL,MINION_BOUNTIES,supportPartner,canSupportExecute,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,lockAttackTarget,clearAttackLock,isAttackCommandValid,buyItem,sellItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,botTryGank,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,TOWERS_PER_LANE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
  living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
