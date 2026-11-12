@@ -587,7 +587,7 @@ assert.ok(view.includes('if(pointers.aa!==null&&S.hero?.hp>0&&!S.shopOpen&&!aaAi
 
 // 5.4: placa de mana no mundo, K/D/A e farm sempre visiveis.
 assert.ok(view.includes('function manaBar(x,y,r,mana,max,width=55)')&&
- view.includes('manaBar(x,y,barRadius,u.mana,E.maxMana(u),44)'),
+ view.includes('manaBar(x,y-lift,barRadius,u.mana,E.maxMana(u),44)'),
  'A mana deve ser desenhada abaixo da barra de vida de cada campeao');
 assert.ok(view.includes("$('fendaPlayerStats').textContent='K/D/A '")&&
  view.includes("+' · FARM '+h.cs"),
@@ -2121,4 +2121,55 @@ console.log('OK: Fenda 10.1: partilha do suporte, receitas, retorno dos bots e r
  assert.ok(v.includes('heroBodyPath(ctx,u.id,r)'), 'O corpo não usa a nova silhueta');
  assert.ok(!v.includes("ctx.rotate(u.facing||0);circle(0,0,r,'#1b3043'"),
   'O corpo antigo ainda aparece como bolinha');
+}
+
+{
+ // VFX 11.5: todas as 72 habilidades com efeitos; corrente e knockup reais.
+ const v=read('fenda-view.js'),fxSource=read('fenda-vfx.js'),html=read('index.html');
+ assert.ok(html.includes('fenda-vfx.js?v=11.5')&&
+  html.indexOf('fenda-vfx.js?v=11.5')<html.indexOf('fenda-view.js?v=11.5'),
+  'O módulo de VFX precisa carregar antes da câmera');
+ const graphics={};vm.runInNewContext(fxSource,{window:graphics});
+ const fx=graphics.FendaVFX;assert.ok(fx,'FX module missing');
+ assert.deepEqual(Object.keys(fx.FX_TYPES).sort(),Object.keys(skills).sort(),
+  'Auditoria deve cobrir visualmente as 72 habilidades');
+ assert.ok(v.includes('window.FendaVFX?.missile(ctx,p,t,velocity,col,radius)')&&
+  v.includes('window.FendaVFX?.tether(ctx,S,E,t)')&&
+  v.includes('const lift=airborne?'),'Corrente, projéteis e arremessos não integrados');
+ let count=0;
+ const ctx=new Proxy({},{get(target,key){if(key in target)return target[key];return()=>{count++}},
+ set(target,key,value){target[key]=value;return true}});
+ for(const id of Object.keys(skills)){
+  assert.ok(fx.effect(ctx,{kind:'abilityCast',skillId:id,x:100,y:100,r:50,
+   life:.4,maxLife:.5,color:'#aa77ef'},2),id+' não tem animação de conjuração');
+  assert.ok(fx.missile(ctx,{skillId:id,x:100,y:100},2,{x:1,y:0},'#aa77ef',12),
+   id+' não tem silhueta de projétil');
+ }
+ assert.ok(count>500,'Módulo de efeitos não desenhou geometrias suficientes');
+ const setup=id=>{
+  const m=E.start(id),h=m.hero,e=m.units.find(x=>x.kind==='hero'&&x.side!==h.side);
+  m.units=[h,e];m.structures=[];m.walls=[];m.obstacles=[];m.camps=[];m.nextWave=99999;
+  h.x=1700;h.y=1400;e.x=1830;e.y=1400;e.hp=e.maxHp=850;e.stun=30;
+  h.level=7;h.mana=E.maxMana(h);E.refreshVision(true);return{m,h,e};
+ };
+ const c=setup('mirielle');c.h.skillLevels.mirielle_chain=1;
+ assert.ok(E.cast(c.h,'mirielle_chain',{x:1,y:0,distance:180}));
+ for(let i=0;i<12;i++)E.step(.05,{x:0,y:0});
+ assert.ok(c.e.tetherUntil>c.m.time&&c.e.tetherSource===c.h,
+  'Corrente não tem conexão ativa entre conjurador e inimigo');
+ for(let i=0;i<30;i++)E.step(.05,{x:0,y:0});
+ assert.ok(c.e.chainRootUntil>c.m.time,'Corrente conectada não aprisionou o inimigo');
+ const broken=setup('mirielle');broken.h.skillLevels.mirielle_chain=1;
+ assert.ok(E.cast(broken.h,'mirielle_chain',{x:1,y:0,distance:180}));
+ for(let i=0;i<9;i++)E.step(.05,{x:0,y:0});
+ assert.ok(broken.e.tetherUntil>broken.m.time);
+ broken.e.x=broken.h.x+440;E.step(.05,{x:0,y:0});
+ assert.ok(!broken.e.tetherSource,'Corrente não se rompe quando o alvo se afasta');
+ const charge=setup('rokar');charge.h.skillLevels.rokar_charge=1;
+ charge.e.x=charge.h.x+88;
+ assert.ok(E.cast(charge.h,'rokar_charge',{x:1,y:0,distance:120}));
+ for(let i=0;i<6;i++)E.step(.05,{x:0,y:0});
+ assert.ok(charge.e.airborneUntil>charge.m.time,
+  'Investida de tanque não arremessa visualmente o oponente');
+ assert.ok(charge.e.stun>0,'Investida não possui atordoamento real');
 }
