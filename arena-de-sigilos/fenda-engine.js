@@ -2303,6 +2303,26 @@ function tickZones(dt){
     enemy.slow=Math.max(enemy.slow,z.slow);
    }
    addEffect(z.x,z.y,z.color,z.r*.76,.30,'blast');
+  }else if(z.kind==='healinggrove'){
+   if(z.nextPulse>now)continue;
+   z.nextPulse=now+z.period;
+   for(const ally of living(z.side,'hero')){
+    if(dist(z,ally)>z.r+ally.r)continue;
+    const healed=heal(ally,z.heal);
+    if(healed>0)markSupportAid(z.source,ally);
+   }
+   for(const enemy of living(1-z.side,'hero'))
+    if(dist(z,enemy)<z.r+enemy.r)enemy.slow=Math.max(enemy.slow,.75);
+   addEffect(z.x,z.y,z.color,z.r*.83,.36,'wave');
+  }else if(z.kind==='icefield'){
+   if(z.nextPulse>now)continue;
+   z.nextPulse=now+z.period;
+   for(const enemy of living(1-z.side)){
+    if(dist(z,enemy)>z.r+enemy.r)continue;
+    damage(enemy,z.damage,z.source);
+    enemy.slow=Math.max(enemy.slow,z.slow);
+   }
+   addEffect(z.x,z.y,z.color,z.r*.7,.36,'wave');
   }else if(z.kind==='trap'){
    const victims=living(1-z.side).filter(e=>dist(z,e)<z.r+e.r)
     .sort((a,b)=>(a.kind==='hero'?-10:0)-(b.kind==='hero'?-10:0)||dist(a,z)-dist(b,z));
@@ -2466,16 +2486,22 @@ function releaseSkill(u,c){
   grantShield(u,Math.round(38+lv*16),3);
   addEffect(u.x,u.y,'#f6ca85',r,.64,'burst');return;
  }
- if(id==='seris_ult'||id==='seris_aegis'||id==='orun_ult'||id==='orun_guard'||id==='nyra_barrier'||id==='brax_fortify'||id==='kaelis_veil'||id==='rokar_guard'||id==='rokar_ult'){
+ if(['seris_ult','seris_aegis','orun_ult','orun_guard','nyra_barrier','brax_fortify','kaelis_veil',
+  'rokar_guard','rokar_ult','elowen_glade','tharok_bastion','varka_will','iskha_frostguard'].includes(id)){
   for(const friend of living(u.side,'hero')){
-   if((id==='brax_fortify'||id==='orun_guard'||id==='nyra_barrier'||id==='kaelis_veil'||id==='rokar_guard')&&friend!==u)continue;
+   if(['brax_fortify','orun_guard','nyra_barrier','kaelis_veil','rokar_guard','varka_will','iskha_frostguard'].includes(id)&&friend!==u)continue;
   if(dist(friend,u)<r+friend.r||friend===u){
     if(id==='seris_ult')heal(friend,75+lv*20);
     if(id==='orun_ult')heal(friend,25+lv*8);
     if(id==='orun_guard')heal(friend,13+lv*7);
     if(id==='brax_fortify'&&friend===u)heal(friend,22+lv*7);
     if(id==='rokar_guard'&&friend===u)heal(friend,14+lv*5);
-    grantShield(friend,id==='orun_ult'?95:id==='seris_ult'?90:id==='rokar_ult'?82+lv*11:id==='seris_aegis'?40:id==='brax_fortify'?68+lv*11:id==='rokar_guard'?75+lv*11:60,
+    if(id==='varka_will'&&friend===u)
+     heal(friend,Math.round(23+lv*8+(1-u.hp/u.maxHp)*27));
+    grantShield(friend,id==='orun_ult'?95:id==='seris_ult'?90:id==='rokar_ult'?82+lv*11:
+      id==='seris_aegis'?40:id==='brax_fortify'?68+lv*11:id==='rokar_guard'?75+lv*11:
+      id==='elowen_glade'?45+lv*13:id==='tharok_bastion'?50+lv*12:
+      id==='varka_will'?62+lv*16:id==='iskha_frostguard'?72+lv*12:60,
       id==='orun_ult'||id==='seris_ult'?4.2:2.9);
     markSupportAid(u,friend);
    }
@@ -2485,9 +2511,14 @@ function releaseSkill(u,c){
   addEffect(u.x,u.y,hData(u.id).color,r,.69);
   return;
  }
- if(id==='vexor_whirl'||id==='orun_quake'||id==='brax_cleave'||id==='rokar_pulse'){
-  const hits=aoe(u.x,u.y,r,Math.round(((id==='orun_quake'?43:id==='brax_cleave'?38:id==='rokar_pulse'?42:48)+lv*9)*power),u,id==='orun_quake'?.33:0,id==='rokar_pulse'?1.15:0);
+ if(['vexor_whirl','orun_quake','brax_cleave','rokar_pulse','tharok_pulse','tharok_ult','varka_cleave'].includes(id)){
+  const val=id==='orun_quake'?43:id==='brax_cleave'?38:id==='rokar_pulse'?42:
+   id==='tharok_pulse'?35:id==='tharok_ult'?68:id==='varka_cleave'?43:48;
+  const hits=aoe(u.x,u.y,r,Math.round((val+lv*9)*power),u,
+   id==='orun_quake'?.33:id==='tharok_ult'?.65:0,
+   ['rokar_pulse','tharok_pulse'].includes(id)?1.15:0);
   if(id==='brax_cleave'&&hits)heal(u,Math.min(37,6+lv*4+hits*3));
+  if(id==='varka_cleave'&&hits)heal(u,Math.min(45,8+lv*5+hits*5));
   addEffect(u.x,u.y,hData(u.id).color,r,.54);
  }
 }
@@ -2632,6 +2663,7 @@ function tickUnit(u,dt){
  }
  if(u.kind==='hero'){
   if(u.id==='lyria'&&u.windUntil<state.time)u.windStacks=0;
+  if(u.id==='kaoryn'&&u.kaorynUntil<state.time)u.kaorynStacks=0;
   if(u.id==='mirielle'&&u.mirrorReturn?.until<=state.time)u.mirrorReturn=null;
   if(u.id==='sahra'&&u.shroudUntil<state.time)u.shroudCenter=null;
  }
