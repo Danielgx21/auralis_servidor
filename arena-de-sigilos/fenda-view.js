@@ -1171,32 +1171,37 @@ function setScoreboardVisible(visible,viaTab=false){
  }
 }
 const suggestedBuilds={
- lyria:['astralbow','swiftboots','stormblade'],
- nyra:['archmage','deepsea','hourglass'],
- vexor:['stormblade','swiftboots','astralbow'],
- orun:['bulwark','titanplate','swiftboots'],
- seris:['deepsea','titanplate','hourglass'],
- brax:['warheart','bulwark','stormblade'],
- zhira:['huntress','stormblade','astralbow'],
- kaelis:['glacier','archmage','hourglass'],
- rokar:['bulwark','lifebloom','titanplate'],
- tessa:['phantomfang','astralbow','barrage'],
- sahra:['phantomfang','stormblade','swiftboots'],
- mirielle:['archmage','hourglass','glacier']
+ lyria:['boots','swiftboots','astralbow','barrage','stormblade'],
+ nyra:['boots','arcaneboots','archmage','deepsea','hourglass'],
+ vexor:['boots','hunterboots','stormblade','astralbow'],
+ orun:['boots','guardianboots','bulwark','titanplate'],
+ seris:['boots','guardianboots','lifebloom','deepsea','hourglass'],
+ brax:['boots','guardianboots','warheart','bulwark'],
+ zhira:['boots','hunterboots','huntress','stormblade'],
+ kaelis:['boots','arcaneboots','glacier','archmage','hourglass'],
+ rokar:['boots','guardianboots','bulwark','lifebloom'],
+ tessa:['boots','swiftboots','phantomfang','astralbow','barrage'],
+ sahra:['boots','hunterboots','phantomfang','stormblade'],
+ mirielle:['boots','arcaneboots','archmage','hourglass','glacier']
 };
 const itemInfo=id=>E.ITEMS.find(x=>x.id===id);
 const shopKinds={
- lens:'attack',astralbow:'attack',stormblade:'attack',stride:'speed',swiftboots:'speed',
+ lens:'attack',astralbow:'attack',stormblade:'attack',stride:'speed',
+ boots:'speed',swiftboots:'speed',arcaneboots:'speed',guardianboots:'speed',hunterboots:'speed',
  prism:'magic',archmage:'magic',deepsea:'magic',cell:'magic',
  ward:'defense',bulwark:'defense',titanplate:'defense',hourglass:'defense',core:'utility',warheart:'defense',huntress:'attack',fang:'attack',sprout:'defense',phantomfang:'attack',glacier:'magic',lifebloom:'defense',barrage:'attack'
 };
 const kindNames={attack:'DANO',magic:'MAGIA',defense:'DEFESA',speed:'MOBILIDADE',utility:'UTILIDADE'};
-let shopTab='recommended',shopFilter='all',shopSelectedId=null,shopQueuedId=null;
+let shopTab='recommended',shopFilter='all',shopSelectedId=null,shopQueuedId=null,shopInspectBackId=null;
 // Símbolos vetoriais próprios para cada item; sem imagens externas.
 const ITEM_ART={
  lens:'<ellipse cx="32" cy="31" rx="16" ry="19"/><path d="M16 31Q32 9 48 31Q32 52 16 31Z"/><circle cx="32" cy="31" r="7" fill="currentColor" opacity=".48"/><path d="M32 9V4M32 58V54M12 31H6M58 31H52"/>',
  ward:'<path d="M32 5L51 13V34Q48 48 32 57Q16 48 13 34V13Z"/><path d="M32 13L43 19V34L32 46L21 34V19Z"/><path d="M32 16V45M23 30H41"/>',
  stride:'<path d="M17 15L29 12L32 30L42 36L54 36L55 46L48 52H12V43L20 36Z"/><path d="M34 12L44 8M37 18L52 16M38 23L52 27M18 46H53"/>',
+ boots:'<path d="M17 15L29 12L31 31L42 36L54 36L55 48L48 55H11V44L20 36Z"/><path d="M14 49H51M32 30L38 38M40 36V44"/>',
+ arcaneboots:'<path d="M17 15L29 12L31 31L42 36L54 36L55 48L48 55H11V44L20 36Z"/><path d="M14 49H51M34 15L39 26L34 32L29 26Z" fill="currentColor" opacity=".35"/>',
+ guardianboots:'<path d="M17 15L29 12L31 31L42 36L54 36L55 48L48 55H11V44L20 36Z"/><path d="M14 49H51M34 14L44 18V27Q39 34 34 35Q28 32 24 27V18Z" fill="currentColor" opacity=".25"/>',
+ hunterboots:'<path d="M17 15L29 12L31 31L42 36L54 36L55 48L48 55H11V44L20 36Z"/><path d="M14 49H51M37 11L45 21L37 30M40 21H53"/>',
  cell:'<path d="M16 17L32 6L49 17V45L32 57L16 45Z"/><path d="M34 11L25 31H37L29 52L43 27H31Z" fill="currentColor" opacity=".45"/>',
  prism:'<path d="M32 5L48 22L42 47L32 59L21 47L16 22Z"/><path d="M16 22H48M32 5V59M21 47L32 22L42 47M32 22L24 10M32 22L41 10"/>',
  core:'<circle cx="32" cy="32" r="20"/><circle cx="32" cy="32" r="10" fill="currentColor" opacity=".26"/><path d="M32 3V12M32 52V61M3 32H12M52 32H61M11 11L18 18M46 46L53 53M11 53L18 46M46 18L53 11"/>',
@@ -1227,7 +1232,7 @@ function itemGlyph(it,large=false){
 }
 function shopRender(){
  const h=S.hero;if(!h)return;
- const base=dist(h,E.HOME[0])<=240,builds=suggestedBuilds[h.id]||[];
+ const base=E.canShop(h),dead=h.hp<=0,builds=suggestedBuilds[h.id]||[];
  const selectedId=shopSelectedId&&itemInfo(shopSelectedId)?shopSelectedId:
   builds.find(id=>!h.items.includes(id))||builds[0]||E.ITEMS[6].id;
  shopSelectedId=selectedId;
@@ -1235,7 +1240,8 @@ function shopRender(){
  const oldList=$('fendaShopItems'),oldDetail=$('fendaShopDetails');
  const browserScroll=oldList.scrollTop,detailScroll=oldDetail.scrollTop;
  $('fendaShopGold').textContent='✦ '+Math.floor(h.gold)+' OURO';
- $('fendaShopLocation').textContent=base?'● NA BASE · COMPRAS LIBERADAS':'○ LONGE DA BASE · CONSULTAR ITENS';
+ $('fendaShopLocation').textContent=dead?'● ELIMINADO · COMPRAS LIBERADAS':
+  base?'● NA BASE · COMPRAS LIBERADAS':'○ LONGE DA BASE · CONSULTAR ITENS';
  $('fendaShopLocation').className=base?'in-base':'out-base';
  $('fendaShopTabs').innerHTML=[
   ['recommended','★ SUGERIDOS'],['all','TODOS'],['parts','COMPONENTES']
@@ -1249,7 +1255,8 @@ function shopRender(){
   '<span>'+(shopTab==='recommended'?'CAMINHO DE ITENS DO SEU CAMPEÃO':'PRÉ-ITENS PARA COMBINAR')+'</span>';
  const catalogue=shopTab==='recommended'?
    E.ITEMS.filter(it=>builds.includes(it.id)).sort((a,b)=>builds.indexOf(a.id)-builds.indexOf(b.id)):
-   E.ITEMS.filter(it=>shopTab==='parts'?it.tier===1:it.tier===2&&
+   E.ITEMS.filter(it=>shopTab==='parts'?it.tier===1:
+    (it.tier===2||it.id==='boots')&&
     (shopFilter==='all'||shopKinds[it.id]===shopFilter));
  const tile=it=>{
   const r=E.recipeStatus(h,it.id),owned=h.items.filter(x=>x===it.id).length;
@@ -1272,10 +1279,8 @@ function shopRender(){
   const components=selection.recipe.map(id=>{
    const item=itemInfo(id),index=ownedNames.indexOf(id),owned=index>=0;
    if(owned)ownedNames.splice(index,1);
-   const can=!owned&&base&&h.gold>=item.price&&h.items.length<6;
    return '<button type="button" class="fenda-recipe-node'+(owned?' owned':'')+
-    '" data-shop-part="'+id+'" '+(owned||!can?'disabled':'')+
-    ' title="'+(owned?'Já possui':'Comprar '+item.name)+'">'+
+    '" data-shop-part="'+id+'" title="Ver atributos de '+item.name+' (não compra)" aria-label="Inspecionar '+item.name+'">'+
     itemGlyph(item)+'<span>'+item.name+'</span><small>'+
     (owned?'✓ OBTIDO':'✦ '+item.price)+'</small></button>';
   }).join('');
@@ -1292,7 +1297,7 @@ function shopRender(){
  }
  const equipped=h.items.includes(selection.id);
  const next=status.missing[0],part=next&&itemInfo(next);
- const canBuy=base&&(selection.tier===1||!equipped)&&h.hp>0&&status.spacesAfter<=6&&
+ const canBuy=base&&(selection.tier===1||!equipped)&&status.spacesAfter<=6&&
   (status.ready?h.gold>=status.remaining:
    part&&h.items.length<6&&h.gold>=part.price);
  let buyLabel=selection.tier===1?'COMPRAR · ✦ '+selection.price:
@@ -1302,7 +1307,10 @@ function shopRender(){
  if(!base)buyLabel='RETORNE À BASE PARA COMPRAR';
  let suffix=selection.passive?'PASSIVA · '+selection.desc:selection.desc;
  const paid=selection.price-status.remaining,progressPct=Math.round(paid/selection.price*100);
- $('fendaShopDetails').innerHTML='<div class="fenda-shop-detail-top">'+
+ $('fendaShopDetails').innerHTML=(shopInspectBackId&&shopInspectBackId!==selection.id?
+  '<button type="button" class="fenda-shop-back" data-shop-back="'+shopInspectBackId+
+   '">‹ VOLTAR À MONTAGEM</button>':'')+
+  '<div class="fenda-shop-detail-top">'+
   itemGlyph(selection,true)+'<div><h3>'+selection.name+'</h3>'+
   '<span>'+(kindNames[shopKinds[selection.id]]||'UTILIDADE')+' · '+(selection.tier===2?'ITEM COMPLETO':'COMPONENTE')+'</span>'+
   '<strong>✦ '+selection.price+' OURO</strong></div></div>'+
@@ -1322,14 +1330,15 @@ function shopRender(){
   return '<div class="fenda-shop-slot'+(it?' filled':'')+'">'+
    (it?'<button type="button" class="fenda-shop-slot-select" data-shop-select="'+id+'" title="Inspecionar '+it.name+'">'+
      itemGlyph(it)+'</button>':'<span class="fenda-slot-empty">'+(index+1)+'</span>')+
-   (it?'<button data-shop-sell="'+index+'" '+(!base?'disabled':'')+
+   (it?'<button type="button" class="fenda-shop-slot-sell" data-shop-sell="'+index+'" '+(!base?'disabled':'')+
     ' title="Vender '+it.name+'">✕</button>':'')+'</div>';
  }).join('');
  $('fendaShopEquipped').innerHTML='<strong>INVENTÁRIO <small>'+h.items.length+'/6</small></strong>'+
   '<div class="fenda-shop-inventory">'+inventory+'</div>';
- $('fendaShopHint').textContent=base?
-  'Selecione um item, compre as peças e combine. Venda pelo ✕ no inventário.':
-  'Você pode consultar e planejar, mas precisa retornar à base para comprar.';
+ $('fendaShopHint').textContent=dead?
+  'Eliminado: compre e combine normalmente. Os itens estarão equipados ao ressurgir.':
+  base?'Toque nas peças para VER detalhes; use COMPRAR para adquirir. Venda pelo ✕.':
+  'Toque nas peças para ver seus efeitos. Compre na base ou durante a morte.';
  for(const b of shop.querySelectorAll('[data-shop-tab]'))b.onclick=()=>{
   shopTab=b.dataset.shopTab;shopRender();
  };
@@ -1337,12 +1346,15 @@ function shopRender(){
   shopFilter=b.dataset.shopFilter;shopRender();
  };
  for(const b of shop.querySelectorAll('[data-shop-select]'))b.onclick=()=>{
-  shopSelectedId=b.dataset.shopSelect;shopRender();
+  shopSelectedId=b.dataset.shopSelect;shopInspectBackId=null;shopRender();
  };
  for(const b of shop.querySelectorAll('[data-shop-part]'))b.onclick=()=>{
-  const result=E.buyItem(b.dataset.shopPart);
-  if(!result.ok)warn(result.reason);
-  shopRender();hudUpdate();
+  // Um clique num componente SEMPRE abre seus efeitos; só COMPRA compra.
+  shopInspectBackId=shopSelectedId;shopSelectedId=b.dataset.shopPart;
+  shopRender();
+ };
+ for(const b of shop.querySelectorAll('[data-shop-back]'))b.onclick=()=>{
+  shopSelectedId=b.dataset.shopBack;shopInspectBackId=null;shopRender();
  };
  for(const b of shop.querySelectorAll('[data-shop-buy]'))b.onclick=()=>{
   const item=itemInfo(b.dataset.shopBuy),r=E.recipeStatus(S.hero,item.id);
@@ -1363,7 +1375,7 @@ function shopRender(){
  $('fendaShopItems').scrollTop=browserScroll;
  $('fendaShopDetails').scrollTop=detailScroll;
  shopLastPaint=S.time;
- shopHash=[Math.floor(h.gold/20),h.items.join(','),base].join('|');
+ shopHash=[Math.floor(h.gold/20),h.items.join(','),base,dead].join('|');
 }
 function toggleShop(){
  if(S.mode!=='playing')return;
@@ -1461,7 +1473,7 @@ function chooseHero(){
 function startGame(){
  if(!currentLane()){chooseLane(true);return}
  C.suspendClassic?.();
- shopTab='recommended';shopFilter='all';shopSelectedId=null;shopQueuedId=null;
+ shopTab='recommended';shopFilter='all';shopSelectedId=null;shopQueuedId=null;shopInspectBackId=null;
  E.start(C.getHeroChoice(),pickedSummoners,selectedLane);setScoreboardVisible(false);endedShown=false;clickDestination=null;mouseFollow=null;rosterLastUpdate=-1;cameraPeek=null;cameraPeekUntil=0;wardAim=null;keys.clear();
  desktopPointer.over=false;desktopPointer.lastWorld=null;spaceCenterHeld=false;cameraDrag=null;syncCameraControl();
  joy.ptr=null;joy.x=joy.y=0;pointers.aa=null;aaAim=null;S.attackAimActive=false;
