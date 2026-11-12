@@ -2784,9 +2784,13 @@ function tickUnit(u,dt){
   u.mana=clamp(u.mana+dt*((dist(u,HOME[u.side])<160?27:4.2+itemStats(u,'regen'))+
     (state.teamBuffs[u.side].serpe>state.time?2.4:0)),0,maxMana(u));
   u.aiTimer-=dt;
+  // Feridas graves e queimadura reduzem também a regeneração contínua,
+  // não apenas curas de habilidades, itens e feitiços.
+  const healingPenalty=(u.grievousUntil>state.time?.60:1)*
+   (u.burnUntil>state.time?.55:1);
   u.hp=Math.min(u.maxHp,u.hp+dt*(dist(u,HOME[u.side])<150?24:1.15+itemStats(u,'regen')*.35+
     (u.supportQuestComplete?1.2:0)+
-   (state.teamBuffs[u.side].serpe>state.time?1.65:0)));
+   (state.teamBuffs[u.side].serpe>state.time?1.65:0))*healingPenalty);
   if(u.recall>0){
    u.recall-=dt;
    if(u.recall<=0){
