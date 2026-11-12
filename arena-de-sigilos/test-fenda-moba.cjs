@@ -1540,16 +1540,53 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
  E.damage(enemy,enemy.hp,ally);
  assert.equal(sup.assists,before+1,'Suporte não recebeu assistência por escudo no aliado');
 }
-// Fenda 10.1.2: acompanhar o campeão na TOP, MID e BOT sem ocultá-lo
-// debaixo do dedo do joystick flutuante, inclusive nos limites do mundo.
+// Fenda 10.2.1: perímetro físico impede entrar no vazio e limita overscan.
 {
- const view=read('fenda-view.js'),block=view.slice(view.indexOf('const cameraClampX='),
+ const scene=read('fenda-scenery.js'),view=read('fenda-view.js');
+ assert.ok(E.ARENA_BOUNDARY.length>12&&
+  scene.includes('function arenaRim(g,E)')&&scene.includes('path(g,E.ARENA_BOUNDARY)')&&
+  view.includes('E.ARENA_BOUNDARY.forEach('),
+  'O cenário e minimapa precisam desenhar o mesmo perímetro físico');
+ assert.equal(E.isInsideArena({x:30,y:30},18),false,
+  'Canto superior esquerdo ainda está acessível fora da arena');
+ assert.equal(E.isInsideArena({x:E.W-30,y:E.H-30},18),false,
+  'Canto inferior direito ainda está acessível fora da arena');
+ for(const p of [...E.ROUTE_PATHS.flat(),...E.HOME,...E.CORE]){
+  assert.ok(E.isInsideArena(p,21),'Rota ou base ficaram fora da arena: '+JSON.stringify(p));
+ }
+ E.start('orun',null,'top');
+ for(const p of [...state.camps,...state.brushes,...state.walls]){
+  assert.ok(E.isInsideArena(p,12),'Parte da selva inacessível: '+JSON.stringify(p));
+ }
+ // Um campeão tentando sair pelo canto só escorrega pela barreira física.
+ const h=state.hero;
+ for(let i=0;i<160;i++){
+  E.movePhysical(h,-29,-29);
+  assert.ok(E.isInsideArena(h,h.r),'O campeão ultrapassou a borda da arena');
+ }
+ assert.ok(distance(h,{x:30,y:30})>280,
+  'O personagem conseguiu entrar no quadrante vazio da imagem');
+ for(const p of [{x:30,y:30},{x:E.W-30,y:30},{x:30,y:E.H-30}]){
+  const corrected={...p,r:18};
+  E.constrainToArena(corrected);
+  assert.ok(E.isInsideArena(corrected,18),
+   'Teleporte não foi recolocado dentro do perímetro');
+ }
+ const oldView=read('fenda-view.js');
+ assert.ok(oldView.includes('const mobileCameraClampX=(x,heroX,finger=0)=>')&&
+  oldView.includes('Math.min(worldVW*.35,wanted)')&&
+  oldView.includes('const mobileCameraClampY=y=>clamp(y,-worldVH*.15'),
+  'Câmera voltou a permitir áreas vazias muito grandes');
+}
+{
+ const view=read('fenda-view.js');
+ const block=view.slice(view.indexOf('const cameraClampX='),
   view.indexOf('function syncCameraControl()'));
  assert.ok(block.includes('function mobileCameraTarget(hero,observing=false)'));
  assert.ok(view.includes('joy.fx=e.clientX-rect.left;')&&
   view.includes('ctx.fillRect(S.camera.x,S.camera.y,worldVW,worldVH);')&&
   view.includes('Object.assign(S.camera,mobileCameraTarget(S.hero));'),
-  'Câmera ou joystick não acompanham o redimensionamento e o polegar');
+  'Câmera ou joystick não acompanham redimensionamento e o polegar');
  for(const [width,height] of [[800,360],[924,416],[420,300],[1800,830]]){
   const zoom=Math.min(width>=1250?1.5:width>=750?1.35:1.17,height/620),
    worldVW=width/zoom,worldVH=height/zoom;
@@ -1563,30 +1600,24 @@ console.log('OK: V9.8 com dois feitiços compactos no canto e painel de ajuda pr
      'MOBILE_HERO_ANCHOR_Y','MOBILE_THUMB_CLEARANCE_PX',
      block+'return {mobileCameraTarget};'
     )(E,state,worldVW,worldVH,E.clamp,width,height,zoom,joy,null,.54,.48,108);
-    const wanted=cam.mobileCameraTarget(hero);
-    const hx=(hero.x-wanted.x)*zoom,hy=(hero.y-wanted.y)*zoom;
-    assert.ok(Math.abs(hy-height*.48)<.01,'Jogador verticalmente fora do centro útil');
-    assert.ok(hx>=width*.54-.01&&hx<=width*.74+.01,
-     'Jogador horizontalmente fora do centro útil na lane '+lane);
-    if(touchRatio)assert.ok(hx-fx>=Math.min(107,width*.74-fx)-.01,
-     'O polegar do joystick ficou sobre o campeão: '+width+' lane '+lane);
-    assert.ok(Number.isFinite(wanted.x)&&Number.isFinite(wanted.y));
+    const target=cam.mobileCameraTarget(hero);
+    const hx=(hero.x-target.x)*zoom,hy=(hero.y-target.y)*zoom;
+    assert.ok(hx>=width*.30&&hx<=width*.80,
+     'Jogador ficou fora da região útil na lane '+lane);
+    assert.ok(hy>=height*.17&&hy<=height*.82,
+     'Jogador ficou oculto acima/abaixo da tela na lane '+lane);
+    assert.ok(target.x>=-worldVW*(touchRatio?.35:.20)-.01,
+     'A câmera voltou a mostrar muito espaço fora da arena');
+    assert.ok(target.y>=-worldVH*.15-.01,
+     'A câmera ultrapassou demais a borda superior da arena');
+    if(touchRatio)assert.ok(hx-fx>Math.min(75,width*.17),
+     'O polegar voltou a cobrir o jogador na lane '+lane);
+    assert.ok(Number.isFinite(target.x)&&Number.isFinite(target.y));
    }
   }
  }
- const earlyTop=E.pathPos(0,.08),zoom=360/620;
- const example=new Function('E','S','worldVW','worldVH','clamp','vw','vh',
-  'cameraZoom','joy','cameraPeek','MOBILE_HERO_ANCHOR_X',
-  'MOBILE_HERO_ANCHOR_Y','MOBILE_THUMB_CLEARANCE_PX',
-  block+'return {mobileCameraTarget};'
- )(E,state,800/zoom,360/zoom,E.clamp,800,360,zoom,
-  {ptr:5,sx:280,fx:305},null,.54,.48,108);
- const at=example.mobileCameraTarget(earlyTop);
- assert.ok(at.x<0,'Perto da lateral esquerda da TOP a câmera continua travando no mapa');
- assert.ok((earlyTop.x-at.x)*zoom>430,
-  'TOP não afasta o campeão do dedo perto da borda');
 }
-console.log('OK: Fenda 10.1.2 com câmera mobile centralizada na TOP, MID e BOT.');
+console.log('OK: Fenda 10.2.1 com borda fisica, cenario conectado e camera mobile limitada.');
 // Fenda 10.2 — loja durante a morte, inspecionar antes de comprar, botas e selva segura.
 {
  const game=E.start('nyra',null,'mid'),hero=game.hero;
