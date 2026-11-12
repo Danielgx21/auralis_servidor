@@ -813,3 +813,13 @@
  .overlay.picker-open .fenda-hero-list{margin-bottom:4px}
  .fenda-lineup{margin-bottom:4px}
 }
+
+/* Fenda 10.1 — economia do suporte, junto da barra de vida (sem pop-ups). */
+#fendaShareInfo{margin-top:5px;padding:4px 6px;min-width:0;
+ background:#0c2a35;border:1px solid #5eaa9e77;border-radius:6px;
+ font-size:9px;line-height:1.25;font-weight:850;letter-spacing:.015em;color:#aeeacb;
+ white-space:normal;overflow-wrap:anywhere;text-align:left}
+#fendaShareInfo[hidden]{display:none!important}
+#fendaShareInfo.complete{border-color:#e5c97d;color:#ffe3a2;background:#39432d}
+@media(max-height:510px){#fendaShareInfo{font-size:8px;padding:2px 4px;margin-top:3px}}
+@media(pointer:coarse) and (max-width:740px){#fendaShareInfo{font-size:8px}}
