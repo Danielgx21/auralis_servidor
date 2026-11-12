@@ -1952,7 +1952,7 @@ function loop(now){
     // A loja só re-renderiza periodicamente quando inventário/ouro mudou.
     if(S.shopOpen&&S.time-shopLastPaint>1.6){
      const now=[Math.floor(S.hero.gold/20),S.hero.items.join(','),
-      dist(S.hero,E.HOME[0])<=240].join('|');
+      E.canShop(S.hero),S.hero.hp<=0].join('|');
      if(now!==shopHash)shopRender();
     }
    }
