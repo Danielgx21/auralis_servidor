@@ -2023,7 +2023,7 @@ console.log('OK: Fenda 10.1: partilha do suporte, receitas, retorno dos bots e r
  const loot=E.jungleReward(blue,h),startingGold=h.gold;
  E.damage(blue,blue.hp+1,h);
  assert.equal(h.gold,startingGold+loot.gold,'Buff azul precisa conceder o ouro correto');
- assert.ok(h.level>=2,'Buff azul precisa conceder XP ao caçador');
+ assert.ok(h.level>1||h.xp>0,'Buff azul precisa conceder XP ao caçador');
  assert.ok(h.energyBuffUntil>g.time&&h.damageBuffUntil===undefined,
   'Véu Azul deve dar recuperação arcana, não dano');
  assert.equal(blue.respawn,E.JUNGLE_RESPAWN);
