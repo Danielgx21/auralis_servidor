@@ -345,6 +345,63 @@ function routeProjection(lane,pt){
  return {progress,distance:Math.sqrt(best)};
 }
 
+// Limites reais da arena: o retângulo do canvas não é área de jogo.
+// Perímetro convexo envolve as três rotas, selva, bases e entradas; seus
+// limites são usados pela física, pela IA e pela arte, sem paredes fantasmas.
+function arenaHull(){
+ const sources=[...ROUTE_PATHS.flat(),...HOME,...CORE,
+  ...JUNGLE_RIDGES.flatMap(r=>r.pts.flatMap(([x,y])=>
+   [{x,y},rotateHalf({x,y})]))];
+ const padding=LANE_HALF_WIDTH+40;
+ const points=sources.flatMap(p=>Array.from({length:12},(_,i)=>{
+  const angle=i*TAU/12;
+  return{x:p.x+padding*Math.cos(angle),y:p.y+padding*Math.sin(angle)};
+ }));
+ points.sort((a,b)=>a.x-b.x||a.y-b.y);
+ const cross=(a,b,p)=>(b.x-a.x)*(p.y-a.y)-(b.y-a.y)*(p.x-a.x);
+ const low=[],high=[];
+ for(const p of points){
+  while(low.length>1&&cross(low[low.length-2],low[low.length-1],p)<=0)low.pop();
+  low.push(p);
+ }
+ for(let i=points.length-1;i>=0;i--){
+  const p=points[i];
+  while(high.length>1&&cross(high[high.length-2],high[high.length-1],p)<=0)high.pop();
+  high.push(p);
+ }
+ return[...low.slice(0,-1),...high.slice(0,-1)];
+}
+const ARENA_BOUNDARY=arenaHull();
+const ARENA_EDGES=ARENA_BOUNDARY.map((a,i)=>{
+ const b=ARENA_BOUNDARY[(i+1)%ARENA_BOUNDARY.length];
+ const d=norm(-(b.y-a.y),b.x-a.x); // CCW: lado de dentro fica à esquerda.
+ return{x:a.x,y:a.y,nx:d.x,ny:d.y};
+});
+function arenaClearance(point){
+ let nearest=Infinity,nx=0,ny=0;
+ for(const e of ARENA_EDGES){
+  const signed=(point.x-e.x)*e.nx+(point.y-e.y)*e.ny;
+  if(signed<nearest){nearest=signed;nx=e.nx;ny=e.ny;}
+ }
+ return{distance:nearest,nx,ny};
+}
+function isInsideArena(point,radius=0){
+ return arenaClearance(point).distance>=radius-.05;
+}
+function constrainToArena(u){
+ const r=Math.max(9,u.r||18)+1;
+ let changed=false;
+ // Iterar na esquina também preserva a colisão após dash ou empurrões.
+ for(let pass=0;pass<8;pass++){
+  const edge=arenaClearance(u);
+  if(edge.distance>=r-.08)break;
+  const correction=r-edge.distance+.2;
+  u.x=clamp(u.x+edge.nx*correction,30,W-30);
+  u.y=clamp(u.y+edge.ny*correction,30,H-30);
+  changed=true;
+ }
+ return changed;
+}
 
 const VISION_CELL=65,VISION_COLS=Math.ceil(W/VISION_CELL),VISION_ROWS=Math.ceil(H/VISION_CELL);
 function brushAt(pos){
@@ -1238,6 +1295,7 @@ function solidRadius(o){
  return o.r||22;
 }
 function pushOutsideSolids(u,obstacles=nearSolids(u.x,u.y,(u.r||18)+83)){
+ constrainToArena(u);
  const R=u.r||18;
  for(let loop=0;loop<2;loop++){
   let changed=false;
@@ -1267,6 +1325,7 @@ function pushOutsideSolids(u,obstacles=nearSolids(u.x,u.y,(u.r||18)+83)){
   }
   if(!changed)break;
  }
+ constrainToArena(u);
 }
 // Segmentado também para investidas: impede atravessar uma torre num frame longo.
 function movePhysical(u,dx,dy,obstacles=nearSolids(u.x,u.y,(u.r||18)+Math.hypot(dx,dy)+80)){
@@ -1606,8 +1665,8 @@ function findJunglePath(u,goal){
  const cells=new Uint8Array(total),fromNode=new Int32Array(total).fill(-1),score=new Float32Array(total).fill(Infinity);
  const blocked=i=>{
   if(cells[i])return cells[i]===2;
-  const pos=point(i),hit=nearSolids(pos.x,pos.y,100).some(o=>
-   distanceToSolid(pos,o)<u.r+7);
+  const pos=point(i),hit=!isInsideArena(pos,u.r+4)||
+  nearSolids(pos.x,pos.y,100).some(o=>distanceToSolid(pos,o)<u.r+7);
   cells[i]=hit?2:1;return hit;
  };
  const start=from(u.x,u.y),rawGoal=from(goal.x,goal.y);
@@ -2670,5 +2729,5 @@ function recall(){
 window.FendaEngine={state,W,H,TAU,HOME,CORE,BASE_GATE,PATHS,SIDE,ITEMS,canShop,towerCanTarget,SUMMONERS,RECALL_CHANNEL_SECONDS,smiteDamage,castSummoner,hData,skillDef,
  start,previewBlue,ROLE_ORDER,ROLE_LANES,CHAMPION_ROLES,SUPPORT_RANGE,SUPPORT_MAX_CHARGES,
  SUPPORT_CHARGE_INTERVAL,SUPPORT_QUEST_REWARD,SUPPORT_QUEST_GOAL,MINION_BOUNTIES,supportPartner,canSupportExecute,step,cast,autoAttack,focusTower,commandAttack,clearAttackCommand,lockAttackTarget,clearAttackLock,isAttackCommandValid,buyItem,sellItem,recipeStatus,upgradeSkill,skillRank,skillRankCap,botUpgradeSkills,itemStats,recall,damage,heal,announce,makeWave,botTryGank,LANE_HALF_WIDTH,TURRET_RANGE,CORE_RANGE,TOWERS_PER_LANE,WARD_RANGE,maxMana,MOBA_SKILL_RANGES,ROUTE_PATHS,ROUTE_TOTALS,routePoint,routeProjection,JUNGLE_LINKS,pointToWall,distanceToSolid,
- living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,VISION_CELL,VISION_COLS,VISION_ROWS};
+ living,attackRange,moveSpeed,findAA,nearestEnemy,enemyCreep,pathPos,dist,norm,clamp,addEffect,movePhysical,moveToward,botUseSkill,pushOutsideSolids,separateUnits,solidBodies,brushAt,refreshVision,isPointVisible,visibleTo,placeWard,ARENA_BOUNDARY,isInsideArena,constrainToArena,VISION_CELL,VISION_COLS,VISION_ROWS};
 })();
