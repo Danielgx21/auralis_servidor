@@ -19,7 +19,7 @@ const E=sandbox.window.FendaEngine,AI=sandbox.window.FendaTeamAI;
 assert.ok(E&&AI,'Motor ou coordenador tático não inicializado');
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const state=E.start('lyria');
-assert.equal(Object.keys(heroes).length,12,'Elenco precisa ter 12 campeões');
+assert.equal(Object.keys(heroes).length,18,'Elenco precisa ter 12 campeões');
 assert.ok(Object.values(state.hero.skillLevels).every(rank=>rank===0)&&state.hero.skillPoints===1,
  'O jogador deve começar sem habilidades aprendidas, mas com 1 ponto livre');
 assert.ok(state.units.filter(u=>u.kind==='hero'&&!u.controlled).every(u=>
@@ -27,7 +27,7 @@ assert.ok(state.units.filter(u=>u.kind==='hero'&&!u.controlled).every(u=>
  'Os bots devem escolher uma habilidade no nível 1, gastando o ponto disponível');
 assert.ok(E.SUMMONERS.smite&&E.SUMMONERS.freecast,
  'Feitiços de invocador Selo da Caça e Transe Arcano não cadastrados');
-assert.equal(E.ITEMS.filter(item=>item.tier===2).length,17,
+assert.equal(E.ITEMS.filter(item=>item.tier===2).length,25,
  'Itens de lutador e caçador não presentes na loja');
 
 assert.equal(state.units.filter(u=>u.kind==='hero').length,10);
@@ -757,7 +757,7 @@ E.start('lyria');
  const components=E.ITEMS.filter(i=>i.tier===1);
  const completed=E.ITEMS.filter(i=>i.tier===2);
  assert.equal(components.length,9,'Loja agora tem nove pré-itens, incluindo botas');
- assert.equal(completed.length,17,'Loja agora tem dezessete itens completos');
+ assert.equal(completed.length,25,'Loja agora tem dezessete itens completos');
  assert.ok(completed.every(i=>i.recipe.length>=3),'Itens completos exigem componentes reais');
  assert.ok(completed.every(i=>i.recipe.reduce((v,id)=>v+E.ITEMS.find(p=>p.id===id).price,0)<i.price),
   'Custo de combinação deve ser adicional ao custo dos componentes');
@@ -913,8 +913,8 @@ E.start('lyria');
   'Lutador Brax não entra no próprio time');
  assert.ok(fighter.units.some(u=>u.id==='sahra'&&u.side===1),
   'Assassino inimigo deve aparecer como bot');
- assert.ok(fighter.units.some(u=>u.id==='seris'&&u.side===0),
-  'Equipe do lutador deve manter suporte');
+ assert.ok(fighter.units.some(u=>u.roleKey==='support'&&u.side===0),
+  'Equipe do lutador deve manter um suporte de função adequada');
 }
 
 // V9.2 — teste do elenco expandido, controle automático e itens.
@@ -1099,7 +1099,7 @@ console.log('OK: V9.5 — mira segue mouse, dois modos de câmera, minimapa livr
 
 // V9.6 — assassinas de sombra/ilusão e ADCs que não compartilham a mesma jogabilidade.
 {
- assert.equal(Object.keys(heroes).length,12,'Sahra e Mirielle devem ampliar o elenco');
+ assert.equal(Object.keys(heroes).length,18,'Sahra e Mirielle devem ampliar o elenco');
  for(const id of ['sahra','mirielle','lyria','tessa']){
   const m=E.start(id),h=m.hero,kit=heroes[id];
   assert.equal(m.units.filter(u=>u.kind==='hero'&&u.side===0).length,5);
