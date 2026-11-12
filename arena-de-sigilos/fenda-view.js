@@ -1258,6 +1258,23 @@ const suggestedBuilds={
  varka:['boots','guardianboots','warheart','ruinblade','stoneheart'],
  iskha:['boots','arcaneboots','stormcrown','voidstaff','glacier']
 };
+// Recomendação dinâmica considera os adversários realmente selecionados,
+// sem substituir as builds sugeridas por itens sem atributos úteis à classe.
+function recommendedFor(hero){
+ const base=suggestedBuilds[hero.id]||[],enemy=S.units.filter(u=>u.kind==='hero'&&u.side!==hero.side);
+ const hasHeal=enemy.some(e=>['seris','elowen','varka'].includes(e.id)||
+   e.items?.some(id=>['lifebloom','incensario','warheart'].includes(id)));
+ const tanks=enemy.filter(e=>['orun','rokar','tharok','brax','varka'].includes(e.id)||e.items?.includes('stoneheart')).length;
+ const physical=['lyria','tessa','kaoryn','darian','vexor','zhira','sahra','brax','varka'].includes(hero.id);
+ const magic=['nyra','kaelis','iskha','mirielle','seris','elowen'].includes(hero.id);
+ const counters=[];
+ if(tanks>=2)counters.push(physical?'ruinblade':magic?'voidstaff':'stoneheart');
+ if(hasHeal&&magic)counters.push('corruptmask');
+ if(enemy.filter(e=>['lyria','tessa','kaoryn','darian'].includes(e.id)).length>=2&&
+    ['orun','rokar','tharok','varka','brax'].includes(hero.id))counters.push('stoneheart');
+ if(hero.roleKey==='support'&&hero.id==='elowen')counters.push('incensario');
+ return [...new Set([...base.slice(0,2),...counters,...base.slice(2)])].filter(id=>E.ITEMS.some(it=>it.id===id)).slice(0,8);
+}
 const itemInfo=id=>E.ITEMS.find(x=>x.id===id);
 const shopKinds={
  lens:'attack',astralbow:'attack',stormblade:'attack',stride:'speed',
@@ -1315,7 +1332,7 @@ function itemGlyph(it,large=false){
 }
 function shopRender(){
  const h=S.hero;if(!h)return;
- const base=E.canShop(h),dead=h.hp<=0,builds=suggestedBuilds[h.id]||[];
+ const base=E.canShop(h),dead=h.hp<=0,builds=recommendedFor(h);
  const selectedId=shopSelectedId&&itemInfo(shopSelectedId)?shopSelectedId:
   builds.find(id=>!h.items.includes(id))||builds[0]||E.ITEMS[6].id;
  shopSelectedId=selectedId;
@@ -1335,7 +1352,7 @@ function shopRender(){
  $('fendaShopCategories').innerHTML=shopTab==='all'?
   filterOptions.map(([id,label])=>'<button data-shop-filter="'+id+'" class="'+
   (shopFilter===id?'selected':'')+'">'+label+'</button>').join(''):
-  '<span>'+(shopTab==='recommended'?'CAMINHO DE ITENS DO SEU CAMPEÃO':'PRÉ-ITENS PARA COMBINAR')+'</span>';
+  '<span>'+(shopTab==='recommended'?'RECOMENDADOS · ADAPTADOS AO TIME INIMIGO':'PRÉ-ITENS PARA COMBINAR')+'</span>';
  const catalogue=shopTab==='recommended'?
    E.ITEMS.filter(it=>builds.includes(it.id)).sort((a,b)=>builds.indexOf(a.id)-builds.indexOf(b.id)):
    E.ITEMS.filter(it=>shopTab==='parts'?it.tier===1:
