@@ -173,13 +173,16 @@ let cameraZoom=1.30,worldVW=vw/cameraZoom,worldVH=vh/cameraZoom;
 // A escala visual do campeão não altera o seu raio de colisão.
 let HERO_RENDER_SCALE=1.0;
 const CAMERA_MIN_WORLD_HEIGHT=620;
-const THREAT_CAMERA_LEAD=125,LANE_CAMERA_LEAD=140;
+// No celular, antecipar a rota deslocava o campeão para baixo do polegar
+// (sobretudo na TOP). Usamos o centro útil da tela, longe do joystick.
+const MOBILE_HERO_ANCHOR_X=.54,MOBILE_HERO_ANCHOR_Y=.48;
+const MOBILE_THUMB_CLEARANCE_PX=108;
 // Não há texturas, atlas ou sprites nesta arena. Toda a paisagem é Canvas procedural.
 // Fenda 6.3: paisagem 100% procedural, com geometria e camera próprias.
  // Somente três rotas; paredes/obstáculos provêm das hitboxes do motor.
 const fogCanvas=document.createElement('canvas'),fogContext=fogCanvas.getContext('2d');
 let fogAt=-1,fogCamX=-99999,fogCamY=-99999;
-const keys=new Set(),joy={ptr:null,x:0,y:0,sx:0,sy:0},pointers={aa:null,skill:null};
+const keys=new Set(),joy={ptr:null,x:0,y:0,sx:0,sy:0,fx:0},pointers={aa:null,skill:null};
 let aaAim=null; // Alvo marcado ao arrastar o botão ATACAR.
 let aimPreview=null,desktopScheme='arrows',clickDestination=null,mouseFollow=null;
 let wardAim=null,cameraPeek=null,cameraPeekUntil=0;
@@ -192,6 +195,20 @@ const cameraClampY=y=>clamp(y,0,Math.max(0,E.H-worldVH));
 function cameraCenterAt(x,y){
  S.camera.x=cameraClampX(x-worldVW/2);
  S.camera.y=cameraClampY(y-worldVH/2);
+}
+// Enquadramento mobile: campeão numa posição estável e o polegar separado.
+// As bordas podem mostrar uma faixa de terreno fora da arena para não
+// prender o jogador embaixo do joystick quando a TOP margeia o mapa.
+function mobileCameraTarget(hero,observing=false){
+ if(observing){
+  return{x:cameraClampX(cameraPeek.x-worldVW/2),
+   y:cameraClampY(cameraPeek.y-worldVH/2)};
+ }
+ const finger=joy.ptr!==null?Math.max(joy.sx,joy.fx):0;
+ const x=Math.min(vw*.74,Math.max(vw*MOBILE_HERO_ANCHOR_X,
+  finger+MOBILE_THUMB_CLEARANCE_PX));
+ const y=vh*MOBILE_HERO_ANCHOR_Y;
+ return{x:hero.x-x/cameraZoom,y:hero.y-y/cameraZoom};
 }
 function syncCameraControl(){
  const b=$('fendaCameraBtn');if(!b)return;
@@ -242,6 +259,10 @@ function resize(){
  HERO_RENDER_SCALE=vw>=1250?1.11:1.19;
  cameraZoom=Math.min(comfortableZoom,vh/CAMERA_MIN_WORLD_HEIGHT);
  worldVW=vw/cameraZoom;worldVH=vh/cameraZoom;
+ // Orientação, fullscreen e troca de dimensões não deixam a câmera no
+ // posicionamento antigo enquanto o dedo já está andando.
+ if(S.mode==='playing'&&S.hero&&!desktopCamera()&&!cameraPeek)
+  Object.assign(S.camera,mobileCameraTarget(S.hero));
  fogCanvas.width=Math.ceil(vw*.64);fogCanvas.height=Math.ceil(vh*.64);fogAt=-1;
 }
 function circle(x,y,r,fill,stroke='',w=1){
@@ -786,42 +807,28 @@ function view(dt){
     panFreeCamera(dt);
    }
   }else{
-   // Mobile preserva a antecipação suave para ameaças e torres.
-   const focus=observing?{x:cameraPeek.x,y:cameraPeek.y}:{x:h.x,y:h.y};
-   if(!observing&&h.hp>0){
-    const lane=h.lane??2,projection=E.routeProjection(lane,h);
-    if(projection.distance<E.LANE_HALF_WIDTH+35){
-     const t=projection.progress/E.ROUTE_TOTALS[lane],step=.006;
-     const prev=E.pathPos(lane,clamp(t-step,0,1));
-     const next=E.pathPos(lane,clamp(t+step,0,1));
-     const dir=E.norm(next.x-prev.x,next.y-prev.y),forward=h.side===0?1:-1;
-     focus.x+=dir.x*forward*LANE_CAMERA_LEAD;
-     focus.y+=dir.y*forward*LANE_CAMERA_LEAD;
-    }
-    const threat=S.structures.filter(t=>t.hp>0&&t.side!==h.side&&
-     E.dist(t,h)<700).sort((a,b)=>E.dist(a,h)-E.dist(b,h))[0];
-    if(threat){
-     const d=Math.max(1,E.dist(h,threat));
-     const ahead=THREAT_CAMERA_LEAD*clamp((700-d)/320,0,1);
-     focus.x+=(threat.x-h.x)/d*ahead;
-     focus.y+=(threat.y-h.y)/d*ahead;
-    }
-    const forwardX=focus.x-h.x,forwardY=focus.y-h.y,magnitude=Math.hypot(forwardX,forwardY);
-    if(magnitude>185){focus.x=h.x+forwardX/magnitude*185;focus.y=h.y+forwardY/magnitude*185}
-   }
-   const wantX=cameraClampX(focus.x-worldVW*.44),wantY=cameraClampY(focus.y-worldVH*.55);
+   // Follow realmente centrado no celular, sem empurrar o herói para o lado
+   // oposto da rota. Espaço livre à esquerda para o dedo em movimento.
+   const target=mobileCameraTarget(h,observing);
    const snap=h.cameraSnapAt&&S.time-h.cameraSnapAt<.23&&!observing;
-   if(snap){S.camera.x=wantX;S.camera.y=wantY;}
-   else{
-    S.camera.x+=(wantX-S.camera.x)*Math.min(1,dt*(observing?18:12));
-    S.camera.y+=(wantY-S.camera.y)*Math.min(1,dt*(observing?18:12));
+   if(snap){
+    S.camera.x=target.x;S.camera.y=target.y;
+   }else{
+    const follow=Math.min(1,dt*(observing?18:14));
+    S.camera.x+=(target.x-S.camera.x)*follow;
+    S.camera.y+=(target.y-S.camera.y)*follow;
    }
   }
   if(cameraPeek&&cameraPeek.ptr===null&&S.time>=cameraPeekUntil)cameraPeek=null;
  }
  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,vw,vh);
  ctx.save();ctx.scale(cameraZoom,cameraZoom);
- ctx.translate(-S.camera.x,-S.camera.y);ctx.drawImage(terrain,0,0);
+ ctx.translate(-S.camera.x,-S.camera.y);
+ // Na borda do mundo a câmera continua centralizando o campeão: o vazio
+ // além dos limites é fundo não atravessável, não um mapa inventado.
+ ctx.fillStyle='#091c2a';
+ ctx.fillRect(S.camera.x,S.camera.y,worldVW,worldVH);
+ ctx.drawImage(terrain,0,0);
  drawFog();
  drawWards(S.time);
  for(const o of S.camps)if(E.isPointVisible(0,o))drawCreep(o,S.time);
@@ -1461,6 +1468,7 @@ function startGame(){
  pointers.skill=null;aimPreview=null;stage.classList.add('fenda-on');cv.style.display='block';
  shop.classList.remove('open');$('overlay').classList.add('hidden');$('missionShelf').hidden=true;
  resize();if(desktopCamera())cameraCenterAt(S.hero.x,S.hero.y);
+ else Object.assign(S.camera,mobileCameraTarget(S.hero));
  drawTerrain();last=performance.now();hudCountdown=0;hudUpdate();
  if(stage.requestFullscreen&&!document.fullscreenElement){
   try{Promise.resolve(stage.requestFullscreen()).catch(()=>{})}catch(_){}
@@ -1710,7 +1718,7 @@ function worldDown(e){
  const rect=cv.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;
  e.preventDefault();
  if(x<vw*.47&&joy.ptr===null){
-  joy.ptr=e.pointerId;joy.sx=x;joy.sy=y;joy.x=joy.y=0;
+  joy.ptr=e.pointerId;joy.sx=x;joy.sy=y;joy.fx=x;joy.x=joy.y=0;
   $('joy').style.left=clamp(x,45,vw*.46)+'px';
   $('joy').style.top=clamp(y,50,vh-50)+'px';
   $('joy').classList.add('active');
@@ -1751,6 +1759,7 @@ function worldMove(e){
  e.preventDefault();
  const rect=cv.getBoundingClientRect();
  const dx=e.clientX-rect.left-joy.sx,dy=e.clientY-rect.top-joy.sy,n=Math.hypot(dx,dy);
+ joy.fx=e.clientX-rect.left;
  const a=Math.min(1,n/42);
  joy.x=n?dx/n*a:0;joy.y=n?dy/n*a:0;
  $('joyKnob').style.transform='translate(calc(-50% + '+(joy.x*27)+'px),calc(-50% + '+(joy.y*27)+'px))';
