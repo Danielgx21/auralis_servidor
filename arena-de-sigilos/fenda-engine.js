@@ -154,6 +154,15 @@ const ITEMS=[
  {id:'barrage',name:'Mecanismo de Rajada',tier:2,price:1530,icon:'➶',
  recipe:['lens','fang','core'],stats:{ad:35,haste:.10},passive:'tempo',
  stat:'+35 AD · +10% acel.',desc:'Cada terceiro ataque básico causa dano extra'}
+,
+ {"id":"ruinblade","name":"Lâmina da Ruína","tier":2,"price":1650,"icon":"⚔","recipe":["lens","fang","cell"],"stats":{"ad":31,"haste":0.07,"mana":70},"passive":"ruin","stat":"+31 AD · +7% acel. · +70 mana","desc":"AAs causam dano adicional proporcional à vida máxima do campeão inimigo"},
+ {"id":"bloodedge","name":"Gume Sangrento","tier":2,"price":1610,"icon":"✵","recipe":["lens","lens","fang"],"stats":{"ad":48,"haste":0.03},"passive":"critical","stat":"+48 AD · crítico ritmado","desc":"A cada 3 ataques, o terceiro provoca 45% mais dano"},
+ {"id":"eclipseknife","name":"Adaga do Eclipse","tier":2,"price":1540,"icon":"☾","recipe":["fang","fang","core"],"stats":{"ad":34,"haste":0.12},"passive":"pierceArmor","stat":"+34 AD · +12% acel.","desc":"AAs ignoram 35% da armadura adicional do alvo"},
+ {"id":"corruptmask","name":"Máscara Corruptora","tier":2,"price":1500,"icon":"◈","recipe":["prism","cell","sprout"],"stats":{"ap":0.27,"hp":120,"mana":110},"passive":"wounds","stat":"+27% poder · +120 PV · +110 mana","desc":"Feridas graves reduzem em 40% a cura recebida pelos adversários"},
+ {"id":"voidstaff","name":"Cajado do Vazio","tier":2,"price":1590,"icon":"✧","recipe":["prism","prism","core"],"stats":{"ap":0.39,"haste":0.07},"passive":"voidPen","stat":"+39% poder · +7% acel.","desc":"Feitiços ignoram 35% da defesa mágica adicional"},
+ {"id":"stormcrown","name":"Coroa da Tempestade","tier":2,"price":1630,"icon":"✶","recipe":["prism","core","cell"],"stats":{"ap":0.33,"mana":120,"haste":0.1},"passive":"arcBurst","stat":"+33% poder · +120 mana · +10% acel.","desc":"Primeiro feitiço que atinge um campeão causa explosão extra (8 s de recarga)"},
+ {"id":"stoneheart","name":"Coração de Pedra","tier":2,"price":1540,"icon":"⬡","recipe":["ward","ward","sprout"],"stats":{"hp":335,"armor":46,"regen":1.8},"passive":"stoneGuard","stat":"+335 PV · +46 armadura","desc":"Reduz dano físico de ataques básicos; resistência para tanques"},
+ {"id":"incensario","name":"Incensário Celeste","tier":2,"price":1510,"icon":"❀","recipe":["prism","sprout","core"],"stats":{"ap":0.23,"hp":110,"haste":0.11},"passive":"inspire","stat":"+23% poder · +110 PV · +11% acel.","desc":"Cura ou escudo em aliado fortalece seus ataques básicos por 4 s"}
 ];
 const ITEM_BY_ID=Object.fromEntries(ITEMS.map(i=>[i.id,i]));
 const itemStats=(unit,key)=>(unit?.items||[]).reduce((total,id)=>
