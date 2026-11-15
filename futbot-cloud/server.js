@@ -7,7 +7,7 @@ import pg from 'pg';
 import {WebSocketServer,WebSocket} from 'ws';
 
 const root=path.dirname(fileURLToPath(import.meta.url)),port=Number(process.env.PORT||3000),pool=process.env.DATABASE_URL?new pg.Pool({connectionString:process.env.DATABASE_URL,max:5,connectionTimeoutMillis:10000}):null;
-const rooms=new Map(),sessions=new Map(),queue=[],matches=new Map(),RATE_MS=45000;
+const rooms=new Map(),sessions=new Map(),queue=[],matches=new Map(),RATE_MS=45000,READY_MS=10000,MATCH_MS=600000;
 const names=['Brisa da Colina','Vila Cedro','Horizonte Baixo','Jardim Aurora','Raposas do Campo','Pedra Branca FC','Atlético do Farol','Lobos do Pinhal','União dos Trilhos','Sol de Inverno','Maresia Clube','Águias do Norte','Vale do Aço','Trovão da Serra','Estrela do Porto','Rubro da Ilha','Guardiões da Ponte','Aurora Urbana','Ferroviários do Sul','Náutico das Nuvens','Cinco Pontes FC','Círculo Azul','Serpentes Verdes','Leões da Escarpa','Vanguarda FC','Atlético Esmeralda','Tucanos da Serra','Império do Vento','Sentinelas do Vale','Cavaleiros do Sol','Dínamo Celeste','Legião de Cristal','Falcões da Alvorada','Tempestade Boreal','Elite das Quadras','Titãs do Horizonte','Dragões de Cobre','Cometas do Oeste','Ordem do Eclipse','Fênix Imperial'];
 const codeChars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const validColor=s=>typeof s==='string'&&/^#[a-f0-9]{6}$/i.test(s),safe=s=>String(s||'').replace(/[<>\x00-\x1f]/g,'').trim(),sha=s=>createHash('sha256').update(String(s)).digest('hex'),uid=()=>randomBytes(24).toString('base64url');
@@ -48,19 +48,64 @@ const v=ws.room;if(!v||v.seat.ws!==ws)return;v.r.updated=Date.now();if(m.type===
 const BOT_CATALOG=names.map((name,i)=>({id:'clube-'+String(i+1).padStart(2,'0'),name,manager:'Técnico',rating:Math.round(790+i*34),level:i+2,formation:['muralha','controle','pressao','contra','ataque','ultra','dominio'][i%7],style:['Defensivo','Posse','Pressão','Contra-ataque','Ofensivo'][i%5],kit:{base:['#d4dde6','#efdbf8','#fef6c5','#eedbd0','#e9f3ff','#d8eaff','#fff3de','#c5f1e3'][i%8],accent:['#364b68','#824a99','#a67d17','#85542b','#2262ad','#154786','#a53746','#197c69'][i%8],pattern:patterns[i%8]}}));
 function botFor(rating){const weights=BOT_CATALOG.map(b=>Math.exp(-.5*((b.rating-rating)/175)**2));let ticket=Math.random()*weights.reduce((a,b)=>a+b,0);for(let i=0;i<weights.length;i++){ticket-=weights[i];if(ticket<=0)return BOT_CATALOG[i]}return BOT_CATALOG.at(-1)}
 function cleanQueue(id){for(let i=queue.length-1;i>=0;i--)if(queue[i].id===id)queue.splice(i,1)}
-function makeMatch(a,b){cleanQueue(a.id);if(b)cleanQueue(b.id);const m={id:randomUUID(),players:b?[a,b]:[a],bot:!b,botData:b?null:botFor(a.user.rating),shard:'S'+randomInt(1,4),state:null,paused:false,down:new Map(),ended:false,created:Date.now()};matches.set(m.id,m);if(m.bot){a.match=m.id;send(a.ws,{type:'bot',matchId:m.id,shard:m.shard,bot:m.botData});return}const host=randomInt(2);for(let i=0;i<2;i++){const x=m.players[i],y=m.players[1-i];x.match=m.id;x.team=i===host?0:1;x.role=i===host?'host':'guest';send(x.ws,{type:'matched',matchId:m.id,shard:m.shard,role:x.role,opponent:y.user.profile.playerName,opponentTeam:y.user.profile.teamName,opponentRating:y.user.rating,opponentKit1:y.user.profile.kits[0],opponentKit2:y.user.profile.kits[1]})}}
-async function endMatch(m,win,why){if(m.ended)return;m.ended=true;for(const s of m.players){const opp=m.bot?m.botData.rating:m.players.find(x=>x!==s).user.rating,expect=1/(1+10**((opp-s.user.rating)/400)),score=win===-1?.5:win===s.team?1:0,delta=Math.round(24*(score-expect));const q=await pool.query('UPDATE futbot_users SET rating=greatest(100,rating+$1),wins=wins+$2,losses=losses+$3,draws=draws+$4 WHERE id=$5 RETURNING rating,wins,losses,draws',[delta,score===1?1:0,score===0?1:0,score===.5?1:0,s.id]);s.user.rating=q.rows[0].rating;send(s.ws,{type:'result',won:score===1,draw:score===.5,reason:why,delta,rating:q.rows[0].rating,record:q.rows[0]});s.match=null}setTimeout(()=>matches.delete(m.id),90000).unref()}
+function makeMatch(a,b){
+ cleanQueue(a.id);if(b)cleanQueue(b.id);const now=Date.now();
+ const m={id:randomUUID(),players:b?[a,b]:[a],bot:!b,botData:b?null:botFor(a.user.rating),shard:'S'+randomInt(1,4),state:null,paused:false,down:new Map(),ended:false,created:now,phase:'prematch',ready:new Set(),readyDeadline:now+READY_MS,startedAt:0,endsAt:0};
+ matches.set(m.id,m);const info={phase:'prematch',readyDeadline:m.readyDeadline,serverTime:Date.now()};
+ if(m.bot){a.team=0;a.role='host';a.match=m.id;send(a.ws,{type:'bot',matchId:m.id,shard:m.shard,bot:m.botData,...info});return}
+ const host=randomInt(2);for(let i=0;i<2;i++){const x=m.players[i],y=m.players[1-i];x.match=m.id;x.team=i===host?0:1;x.role=i===host?'host':'guest';send(x.ws,{type:'matched',matchId:m.id,shard:m.shard,role:x.role,opponent:y.user.profile.playerName,opponentTeam:y.user.profile.teamName,opponentRating:y.user.rating,opponentKit1:y.user.profile.kits[0],opponentKit2:y.user.profile.kits[1],...info})}
+}
+async function endMatch(m,win,why,doubleForfeit=false){
+ if(m.ended)return;m.ended=true;m.phase='ended';
+ for(const s of m.players){
+  const opp=m.bot?m.botData.rating:m.players.find(x=>x!==s).user.rating;
+  const expect=1/(1+10**((opp-s.user.rating)/400)),score=doubleForfeit?0:win===-1?.5:win===s.team?1:0,delta=Math.round(24*(score-expect));
+  const q=await pool.query('UPDATE futbot_users SET rating=greatest(100,rating+$1),wins=wins+$2,losses=losses+$3,draws=draws+$4 WHERE id=$5 RETURNING rating,wins,losses,draws',[delta,score===1?1:0,score===0?1:0,score===.5?1:0,s.id]);
+  s.user.rating=q.rows[0].rating;send(s.ws,{type:'result',won:score===1,draw:score===.5,reason:why,delta,rating:q.rows[0].rating,record:q.rows[0]});s.match=null
+ }setTimeout(()=>matches.delete(m.id),90000).unref()
+}
+function startRankedMatch(m){
+ if(m.ended||m.phase!=='prematch'||m.ready.size!==m.players.length)return;
+ m.phase='playing';m.startedAt=Date.now();m.endsAt=m.startedAt+MATCH_MS;
+ for(const s of m.players)send(s.ws,{type:'start',matchId:m.id,endsAt:m.endsAt,serverTime:Date.now(),maxSeconds:600})
+}
+function timeLimitWinner(m){
+ const scores=m.state?.scores,a=Array.isArray(scores)&&Number.isFinite(scores[0])?Math.max(0,Math.floor(scores[0])):0,b=Array.isArray(scores)&&Number.isFinite(scores[1])?Math.max(0,Math.floor(scores[1])):0;
+ return a===b?-1:a>b?0:1
+}
 async function rankedMsg(ws,m){if(!pool){send(ws,{type:'error',message:'Ranqueada aguardando ligação com o banco de dados.'});return}
-if(m.type==='hello'){const u=await sessionUser(m.authToken);if(!u){send(ws,{type:'error',message:'É preciso entrar na conta FutBot'});ws.close();return}u.profile=profile(u.profile);const s={id:u.id,user:u,ws,match:null,team:0,role:''};sessions.set(s.id,s);ws.ranked=s;send(ws,{type:'profile',rating:u.rating,record:{wins:u.wins,losses:u.losses,draws:u.draws}});if(m.matchId){const match=matches.get(String(m.matchId)),seat=match?.players.find(x=>x.id===s.id);if(seat&&!match.ended){seat.ws=ws;seat.user=u;seat.match=match.id;s.match=match.id;s.team=seat.team;s.role=seat.role;match.down.delete(s.id);if(match.bot){send(ws,{type:'botResume',matchId:match.id,shard:match.shard,bot:match.botData,snapshot:match.state});return}const o=match.players.find(x=>x.id!==s.id);send(ws,{type:'matched',matchId:match.id,shard:match.shard,reconnect:true,snapshot:match.state,role:s.role,opponent:o.user.profile.playerName,opponentTeam:o.user.profile.teamName,opponentRating:o.user.rating,opponentKit1:o.user.profile.kits[0],opponentKit2:o.user.profile.kits[1]});if(!match.down.size){match.paused=false;send(ws,{type:'resume',snapshot:match.state});send(o.ws,{type:'resume',snapshot:match.state})}return}}return}
+if(m.type==='hello'){const u=await sessionUser(m.authToken);if(!u){send(ws,{type:'error',message:'É preciso entrar na conta FutBot'});ws.close();return}u.profile=profile(u.profile);const s={id:u.id,user:u,ws,match:null,team:0,role:''};sessions.set(s.id,s);ws.ranked=s;send(ws,{type:'profile',rating:u.rating,record:{wins:u.wins,losses:u.losses,draws:u.draws}});if(m.matchId){const match=matches.get(String(m.matchId)),seat=match?.players.find(x=>x.id===s.id);if(seat&&!match.ended){seat.ws=ws;seat.user=u;seat.match=match.id;s.match=match.id;s.team=seat.team;s.role=seat.role;match.down.delete(s.id);if(match.bot){send(ws,{type:'botResume',matchId:match.id,shard:match.shard,bot:match.botData,snapshot:match.state,phase:match.phase,readyDeadline:match.readyDeadline,endsAt:match.endsAt,serverTime:Date.now()});if(match.ready.has(s.id)&&match.phase==='prematch')send(ws,{type:'readyAck'});return}const o=match.players.find(x=>x.id!==s.id);send(ws,{type:'matched',matchId:match.id,shard:match.shard,reconnect:true,snapshot:match.state,role:s.role,opponent:o.user.profile.playerName,opponentTeam:o.user.profile.teamName,opponentRating:o.user.rating,opponentKit1:o.user.profile.kits[0],opponentKit2:o.user.profile.kits[1],phase:match.phase,readyDeadline:match.readyDeadline,endsAt:match.endsAt,serverTime:Date.now()});if(match.ready.has(s.id)&&match.phase==='prematch')send(ws,{type:'readyAck'});if(match.phase==='playing'&&!match.down.size){match.paused=false;send(ws,{type:'resume',snapshot:match.state});send(o.ws,{type:'resume',snapshot:match.state})}return}}return}
 const s=ws.ranked;if(!s)return;if(m.type==='queue'){if(s.match)return;cleanQueue(s.id);queue.push({id:s.id,at:Date.now()});send(ws,{type:'queued'});return}if(m.type==='cancel'){cleanQueue(s.id);return}const match=matches.get(s.match);if(!match||match.ended)return;
-if(m.type==='botState'&&match.bot&&m.data?.type==='state'){match.state=m.data;return}
-if(m.type==='relay'&&!match.bot&&!match.paused){if(!m.data||typeof m.data.type!=='string')return;if(m.data.type==='state'){if(s.role!=='host')return;match.state=m.data}send(match.players.find(x=>x.id!==s.id)?.ws,{type:'relay',data:m.data});return}
-if(m.type==='finish'){const win=Number(m.winningTeam);if(win!==0&&win!==1||Date.now()-match.created<10000)return;if(!match.bot){if(s.role!=='host'||!match.state?.gameOver)return}if(match.bot&&!match.state?.gameOver)return;await endMatch(match,win,'Fim da partida');return}
+if(m.type==='ready'){
+ if(match.phase==='playing'){send(ws,{type:'start',matchId:match.id,endsAt:match.endsAt,serverTime:Date.now()});return}
+ if(match.phase!=='prematch'||Date.now()>=match.readyDeadline)return;
+ match.ready.add(s.id);send(ws,{type:'readyAck'});startRankedMatch(match);return
+}
+if(m.type==='botState'&&match.bot&&match.phase==='playing'&&m.data?.type==='state'){match.state=m.data;return}
+if(m.type==='relay'&&!match.bot&&match.phase==='playing'&&!match.paused){if(!m.data||typeof m.data.type!=='string')return;if(m.data.type==='state'){if(s.role!=='host')return;match.state=m.data}send(match.players.find(x=>x.id!==s.id)?.ws,{type:'relay',data:m.data});return}
+if(m.type==='finish'){const win=Number(m.winningTeam);if(match.phase!=='playing'||(win!==0&&win!==1)||Date.now()-match.startedAt<10000)return;
+ if(!match.bot&&s.role!=='host')return;if(!match.state?.gameOver||!Array.isArray(match.state.scores))return;
+ const[a,b]=match.state.scores;if(!Number.isFinite(a)||!Number.isFinite(b)||a<0||b<0||a>3||b>3||(win===0&&!(a>=3&&a>b))||(win===1&&!(b>=3&&b>a)))return;await endMatch(match,win,'3 gols');return}
 if(m.type==='abandon'){await endMatch(match,match.bot?1:1-s.team,'Abandono')}}
-function disconnect(ws){if(ws.room?.seat.ws===ws){const v=ws.room;v.seat.downAt=Date.now();send(v.r.seats[1-v.seat.side]?.ws,{type:'peerDisconnected',reconnectSeconds:45})}const s=ws.ranked;if(s&&sessions.get(s.id)?.ws===ws){cleanQueue(s.id);const m=matches.get(s.match);if(m&&!m.ended){m.paused=true;m.down.set(s.id,Date.now());if(!m.bot)send(m.players.find(x=>x.id!==s.id)?.ws,{type:'paused',deadlineMs:RATE_MS})}}}
+function disconnect(ws){if(ws.room?.seat.ws===ws){const v=ws.room;v.seat.downAt=Date.now();send(v.r.seats[1-v.seat.side]?.ws,{type:'peerDisconnected',reconnectSeconds:45})}const s=ws.ranked;if(s&&sessions.get(s.id)?.ws===ws){cleanQueue(s.id);const m=matches.get(s.match);if(m&&!m.ended&&m.phase==='playing'){m.paused=true;m.down.set(s.id,Date.now());if(!m.bot)send(m.players.find(x=>x.id!==s.id)?.ws,{type:'paused',deadlineMs:RATE_MS})}}}
 const wss=new WebSocketServer({noServer:true,maxPayload:170000});
 server.on('upgrade',(req,socket,head)=>{const url=new URL(req.url||'/', 'http://localhost');if(!['/room','/ranked'].includes(url.pathname)){socket.destroy();return}wss.handleUpgrade(req,socket,head,ws=>{ws.kind=url.pathname;wss.emit('connection',ws)})});
 wss.on('connection',ws=>{ws.on('message',async raw=>{let m;try{m=JSON.parse(String(raw))}catch{return}try{if(ws.kind==='/room')roomMsg(ws,m);else await rankedMsg(ws,m)}catch(e){console.error(e.message);send(ws,{type:'error',message:'Falha de servidor'})}});ws.on('close',()=>disconnect(ws));ws.on('error',()=>disconnect(ws))});
-setInterval(()=>{const now=Date.now();for(let i=0;i<queue.length;i++){const a=sessions.get(queue[i].id);if(!a||a.ws.readyState!==1||a.match){queue.splice(i--,1);continue}for(let j=i+1;j<queue.length;j++){const b=sessions.get(queue[j].id);if(b&&b.ws.readyState===1&&!b.match&&Math.abs(a.user.rating-b.user.rating)<400){makeMatch(a,b);break}}}for(const q of [...queue])if(now-q.at>=12000){const s=sessions.get(q.id);if(s&&!s.match)makeMatch(s,null)}for(const m of matches.values())if(!m.ended&&m.down.size){if(m.bot){if([...m.down.values()].some(t=>now-t>=RATE_MS))endMatch(m,1,'Derrota por desconexão')}else if(m.down.size===2){if([...m.down.values()].every(t=>now-t>=RATE_MS))endMatch(m,-1,'Ambos desconectados')}else for(const[id,t]of m.down)if(now-t>=RATE_MS){endMatch(m,1-m.players.find(x=>x.id===id).team,'Vitória por desconexão');break}}for(const[code,r]of rooms)for(const seat of r.seats)if(seat?.downAt&&now-seat.downAt>=RATE_MS){send(r.seats[1-seat.side]?.ws,{type:'peerLeft'});rooms.delete(code);break}},500).unref();
+setInterval(()=>{const now=Date.now();for(let i=0;i<queue.length;i++){const a=sessions.get(queue[i].id);if(!a||a.ws.readyState!==1||a.match){queue.splice(i--,1);continue}for(let j=i+1;j<queue.length;j++){const b=sessions.get(queue[j].id);if(b&&b.ws.readyState===1&&!b.match&&Math.abs(a.user.rating-b.user.rating)<400){makeMatch(a,b);break}}}for(const q of [...queue])if(now-q.at>=12000){const s=sessions.get(q.id);if(s&&!s.match)makeMatch(s,null)}for(const m of matches.values()){
+ if(m.ended)continue;
+ if(m.phase==='prematch'&&now>=m.readyDeadline){
+  if(m.ready.size===m.players.length){startRankedMatch(m);continue}
+  if(m.bot)endMatch(m,1,'Desistência: não entrou em campo em 10s');
+  else if(m.ready.size===0)endMatch(m,-1,'Ambos desistiram: 10s sem confirmação',true);
+  else{const quitter=m.players.find(s=>!m.ready.has(s.id));endMatch(m,1-quitter.team,'Desistência: 10s sem confirmar entrada')}
+  continue
+ }
+ if(m.phase==='playing'&&now>=m.endsAt){endMatch(m,timeLimitWinner(m),'Tempo esgotado (10 minutos)');continue}
+ if(m.phase==='playing'&&m.down.size){
+  if(m.bot){if([...m.down.values()].some(t=>now-t>=RATE_MS))endMatch(m,1,'Derrota por desconexão')}
+  else if(m.down.size===2){if([...m.down.values()].every(t=>now-t>=RATE_MS))endMatch(m,-1,'Ambos desconectados')}
+  else for(const[id,t]of m.down)if(now-t>=RATE_MS){endMatch(m,1-m.players.find(x=>x.id===id).team,'Vitória por desconexão');break}
+ }
+}for(const[code,r]of rooms)for(const seat of r.seats)if(seat?.downAt&&now-seat.downAt>=RATE_MS){send(r.seats[1-seat.side]?.ws,{type:'peerLeft'});rooms.delete(code);break}},500).unref();
 async function boot(){if(!pool){server.listen(port,'0.0.0.0',()=>console.log('FutBot room relay ready; DATABASE_URL not yet configured'));return}await pool.query("CREATE TABLE IF NOT EXISTS futbot_users (id uuid PRIMARY KEY,email text UNIQUE NOT NULL,pass_hash text NOT NULL,salt text NOT NULL,profile jsonb NOT NULL,rating integer NOT NULL DEFAULT 1000,wins integer NOT NULL DEFAULT 0,losses integer NOT NULL DEFAULT 0,draws integer NOT NULL DEFAULT 0,updated_at timestamptz NOT NULL DEFAULT now())");await pool.query("CREATE TABLE IF NOT EXISTS futbot_sessions (token_hash text PRIMARY KEY,user_id uuid NOT NULL REFERENCES futbot_users(id) ON DELETE CASCADE,expires_at timestamptz NOT NULL)");server.listen(port,'0.0.0.0',()=>console.log('FutBot Cloud ready'))}
 boot().catch(e=>{console.error('Database initialization failed',e);process.exit(1)});
