@@ -25,7 +25,7 @@ async function createSession(user){const token=uid()+uid();await pool.query("INS
 const server=http.createServer(async(req,res)=>{let url=new URL(req.url||'/', 'http://localhost');try{
 if(req.method==='OPTIONS'){j(res,204,{});return}
 if(url.pathname==='/health'){j(res,200,{name:'FutBot Cloud',database:!!pool,status:'ok',rooms:rooms.size,queue:queue.length,matches:matches.size,reconnectSeconds:45});return}
-if(url.pathname==='/'){j(res,200,{name:'FutBot Cloud',message:'Backend online. Abra o HTML do jogo ou um site FutBot publicado.',reconnectSeconds:45});return}
+if((url.pathname==='/'||url.pathname==='/index.html')&&req.method==='GET'){const file=path.join(root,'public','index.html');if(existsSync(file)){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(readFileSync(file));return}j(res,503,{error:'Interface do FutBot não instalada'});return}
 if(!url.pathname.startsWith('/api/')){j(res,404,{error:'Rota não encontrada'});return}if(!pool){j(res,503,{error:'O banco ainda não está ligado ao serviço. Salas por código estão disponíveis.'});return}
 if((url.pathname==='/api/register'||url.pathname==='/api/login')&&req.method==='POST'){
 const o=await body(req),email=String(o.email||'').trim().toLowerCase(),pw=String(o.password||'');if(!/^\S+@\S+\.\S+$/.test(email)||email.length>180||pw.length<8||pw.length>160){j(res,400,{error:'Informe um e-mail válido e senha com 8 a 160 caracteres.'});return}
