@@ -788,6 +788,59 @@ html.futMotionOff .futPreviewScene .futPreviewImage{opacity:1}
 .cloudOverlay[hidden]{display:none!important}.cloudOverlay{position:fixed;inset:0;z-index:150;display:flex;align-items:center;justify-content:center;background:#001a25e8;backdrop-filter:blur(9px);padding:12px}
 .cloudSheet{width:min(440px,96vw);max-height:94dvh;overflow:auto;background:linear-gradient(150deg,#123943,#08212f);border:1px solid #69b7ac;border-radius:20px;padding:19px;display:grid;gap:11px;box-shadow:0 18px 65px #000c;color:#e5fff8}
 .cloudSheet h3{margin:0;font-size:23px}.cloudSheet p{margin:0;color:#a8cfca;font-size:12px;line-height:1.45}.cloudSheet label{display:grid;gap:5px;font-size:12px;font-weight:850;color:#c7e9df}.cloudSheet input{background:#071e2a;border:1px solid #4f8287;border-radius:9px;color:white;padding:12px;font-size:14px;min-width:0}.cloudSheet button{border:1px solid #53a99f;background:#173c46;color:#e6fff9;font-weight:900;border-radius:10px;padding:12px}.cloudSheet button.primary{background:#84e9be;color:#10332f}.cloudButtons{display:grid;grid-template-columns:1fr 1fr;gap:7px}.cloudMessage{min-height:20px;font-size:12px;color:#ffc8ab}.cloudClose{justify-self:end;padding:7px 12px!important}
+
+/* V45 - tutorial de partida local. Página fixa; somente o corpo do guia rola. */
+#introStep.futHome .futLocalChoices{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+#introStep.futHome .futLocalChoice{font-size:clamp(10px,2.85vw,12px);padding:8px 4px;gap:4px;white-space:nowrap}
+#introStep.futHome .futLocalChoice span{font-size:15px}
+#futTutorialOverlay[hidden],.futTutorialPage[hidden]{display:none!important}
+#futTutorialOverlay{position:fixed;inset:0;z-index:6000;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:max(9px,env(safe-area-inset-top)) max(9px,env(safe-area-inset-right)) max(9px,env(safe-area-inset-bottom)) max(9px,env(safe-area-inset-left));background:rgba(2,14,20,.87);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.futTutorialShell{width:min(650px,100%);max-height:calc(100dvh - 18px);height:min(720px,calc(100dvh - 18px));min-height:0;box-sizing:border-box;display:flex;flex-direction:column;border:1px solid #62b8a0;border-radius:20px;background:linear-gradient(160deg,#123b40,#08252c 56%,#071b24);box-shadow:0 25px 65px #000d;color:#effff9;overflow:hidden}
+.futTutorialTop{display:flex;flex:none;align-items:center;justify-content:space-between;gap:12px;padding:15px 16px 11px;background:linear-gradient(110deg,#1b6052,#103d45);border-bottom:1px solid #5cac9c5a}
+.futTutorialTop small{font-size:10px;letter-spacing:1.9px;color:#b5e3d4;font-weight:900}
+.futTutorialTop h2{font-size:22px;margin:3px 0 0;font-weight:950;line-height:1.2;color:#fff}
+.futTutorialClose{border:1px solid #83ceb9;background:#0b3440;border-radius:11px;color:#f1fffa;font-weight:850;font-size:13px;padding:10px 12px;white-space:nowrap}
+.futTutorialTabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;flex:none;padding:9px 10px;background:#07242b;border-bottom:1px solid #395e5d}
+.futTutorialTab{min-width:0;min-height:39px;display:grid;place-items:center;gap:1px;padding:5px 3px;background:#143a42;border:1px solid #2f6266;border-radius:10px;color:#b3d6d5;font-size:10px;font-weight:900;cursor:pointer;line-height:1.1}
+.futTutorialTab span{font-size:15px;line-height:1.15}
+.futTutorialTab[aria-selected=true]{color:#082825;border-color:#d9fd99;background:linear-gradient(120deg,#b6f58b,#75debd)}
+.futTutorialBody{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;padding:15px 15px 24px;scrollbar-width:thin;scrollbar-color:#4a9b89 #0b2930}
+.futTutorialPage{display:grid;gap:12px;align-content:start;animation:futTutorialIn .18s ease-out}
+@keyframes futTutorialIn{from{opacity:.5;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.futTutorialTitle{font-size:17px;margin:0;font-weight:950;color:#eaffdc}
+.futTutorialLead{font-size:13px;color:#bcd9d2;line-height:1.5;margin:0}
+.futTutorialWin{display:flex;align-items:center;gap:12px;padding:13px;border-radius:14px;border:1px solid #a6ed8a60;background:linear-gradient(120deg,#224a34,#154045)}
+.futTutorialWin strong{font-size:21px;color:#d1ff9a;white-space:nowrap}
+.futTutorialWin p{margin:0;font-size:12px;color:#d6eee3;line-height:1.45}
+.futTutorialStep{display:flex;align-items:flex-start;gap:11px;padding:12px;background:#113740;border:1px solid #2c6264;border-radius:13px}
+.futTutorialStepNum{flex:none;width:27px;height:27px;border-radius:50%;display:grid;place-items:center;background:#b6f18f;color:#092a24;font-size:14px;font-weight:1000}
+.futTutorialStep strong{display:block;color:#f4fff4;font-size:13px;margin-bottom:3px}
+.futTutorialStep p{font-size:12px;color:#bfddd6;margin:0;line-height:1.45}
+.futTutorialPitch{position:relative;height:110px;border:2px solid #b5e4b462;border-radius:12px;overflow:hidden;background:repeating-linear-gradient(90deg,#156c50 0 19%,#1a7955 19% 38%);display:flex;align-items:center;justify-content:center}
+.futTutorialPitch:before{content:'';position:absolute;width:95px;height:95px;border:2px solid #c9f0c069;border-radius:50%}
+.futTutorialToken{position:absolute;left:28%;top:35px;width:39px;height:39px;border:3px solid #e1fff8;border-radius:50%;background:repeating-linear-gradient(90deg,#19ced0 0 8px,#fff 8px 13px);box-shadow:0 4px 8px #03251b88;display:grid;place-items:center;color:#103a42;font-weight:900}
+.futTutorialBall{position:absolute;left:60%;top:45px;width:20px;height:20px;border-radius:50%;border:2px solid #a6bbc1;background:radial-gradient(circle at 35% 30%,#fff,#cad5d8);box-shadow:0 3px 7px #0007}
+.futTutorialAim{position:absolute;left:14%;top:54px;width:80px;height:3px;background:#f2e889;transform:rotate(180deg);border-radius:3px;box-shadow:0 0 6px #eef27f77}
+.futTutorialAim::after{content:'';position:absolute;right:-2px;top:-6px;border-left:12px solid #f2e889;border-top:7px solid transparent;border-bottom:7px solid transparent}
+.futTutorialPitchLabel{position:absolute;bottom:7px;left:10px;font-size:10px;background:#052b2acc;padding:3px 7px;border-radius:7px;color:#eafff1}
+.futTutorialNote{padding:11px 12px;border-radius:11px;background:#0c3036;border-left:3px solid #8ff1ca;font-size:12px;color:#d1e5dd;line-height:1.5}
+.futTutorialSkills{display:grid;grid-template-columns:1fr;gap:9px}
+.futTutorialSkill{display:grid;grid-template-columns:36px 1fr;gap:11px;align-items:start;background:#113640;border:1px solid #2e6868;border-radius:13px;padding:11px}
+.futTutorialSkillIcon{width:36px;height:36px;display:grid;place-items:center;border:2px solid var(--fut-skill,#7ac);background:#082b37;border-radius:50%;color:var(--fut-skill,#eaffff);font-weight:1000;font-size:16px}
+.futTutorialSkill strong{display:block;color:#f7fff9;font-size:13px}
+.futTutorialSkill small{display:block;font-weight:850;color:var(--fut-skill,#a1e4cf);font-size:10px;margin-top:2px}
+.futTutorialSkill p{margin:5px 0 0;font-size:12px;line-height:1.5;color:#c0d9d9}
+.futTutorialRule{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:12px;background:#0e343c;border:1px solid #2d595e}
+.futTutorialRule>span{flex:none;font-size:23px}
+.futTutorialRule strong{display:block;font-size:13px;color:#f1ffef}
+.futTutorialRule p{margin:3px 0 0;font-size:12px;line-height:1.48;color:#bbd9d8}
+.futTutorialBottom{display:flex;gap:9px;justify-content:space-between;flex:none;padding:9px 14px;background:#0a252b;border-top:1px solid #335c5b}
+.futTutorialBottom button{min-height:39px;border:1px solid #5b9a8a;border-radius:10px;background:#154149;color:#e9fffa;font-weight:850;font-size:12px;padding:7px 13px}
+.futTutorialBottom .futTutorialNext{background:#c7f6a1;color:#08382e;border-color:#c7f6a1}
+.futTutorialBottom button:disabled{opacity:.35}
+@media(min-width:550px){.futTutorialSkills{grid-template-columns:1fr 1fr}}
+@media(max-height:520px){.futTutorialShell{height:calc(100dvh - 12px);max-height:calc(100dvh - 12px)}.futTutorialTop{padding:7px 13px}.futTutorialTop h2{font-size:17px}.futTutorialTabs{padding:5px 9px}.futTutorialTab{min-height:31px}.futTutorialBody{padding:10px}.futTutorialBottom{padding:6px 12px}.futTutorialWin strong{font-size:16px}}
+
 </style>
 </head>
 <body>
@@ -860,6 +913,7 @@ html.futMotionOff .futPreviewScene .futPreviewImage{opacity:1}
            <div class="futLocalChoices" id="localChoices" hidden aria-label="Tipo de partida local">
              <button type="button" class="futLocalChoice" id="menuAI"><span>◉</span> Contra a IA</button>
              <button type="button" class="futLocalChoice" id="menuPVP"><span>♙♙</span> Dois jogadores</button>
+             <button type="button" class="futLocalChoice" id="futTutorialOpen" aria-haspopup="dialog"><span>?</span> Como jogar</button>
            </div>
            <button type="button" class="futModeCard futOnlineCard" id="menuOnline"><span class="futModeIcon">◎</span><strong>Online</strong><span class="futChevron">›</span></button>
          </div>
@@ -3144,6 +3198,80 @@ document.getElementById('cloudClose').addEventListener('click',cloudClosePanel);
 document.getElementById('cloudLogin').addEventListener('click',()=>cloudAuth(false));document.getElementById('cloudRegister').addEventListener('click',()=>cloudAuth(true));document.getElementById('cloudLogout').addEventListener('click',cloudLogout);
 
 cloudAutoLogin();rankedResumeFromStorage();
+})();
+</script>
+
+<div id="futTutorialOverlay" role="dialog" aria-modal="true" aria-label="Como jogar FutBot" hidden>
+ <div class="futTutorialShell">
+  <header class="futTutorialTop"><div><small>PARTIDA LOCAL · GUIA</small><h2>⚽ Como jogar FutBot</h2></div><button class="futTutorialClose" id="futTutorialClose" type="button">✕ Fechar</button></header>
+  <nav class="futTutorialTabs" role="tablist" aria-label="Seções do tutorial">
+   <button class="futTutorialTab" type="button" role="tab" id="futTutTab0" aria-controls="futTutPage0" aria-selected="true"><span>☝</span>Controles</button>
+   <button class="futTutorialTab" type="button" role="tab" id="futTutTab1" aria-controls="futTutPage1" aria-selected="false"><span>⚡</span>Habilidades</button>
+   <button class="futTutorialTab" type="button" role="tab" id="futTutTab2" aria-controls="futTutPage2" aria-selected="false"><span>📋</span>Regras</button>
+   <button class="futTutorialTab" type="button" role="tab" id="futTutTab3" aria-controls="futTutPage3" aria-selected="false"><span>🏆</span>Dicas</button>
+  </nav>
+  <div class="futTutorialBody" id="futTutorialBody">
+   <section class="futTutorialPage" id="futTutPage0" role="tabpanel" aria-labelledby="futTutTab0">
+    <div class="futTutorialWin"><strong>3 GOLS</strong><p>Marque três gols antes do adversário para vencer. Cada equipe joga com seis botões, numerados de 1 a 6.</p></div>
+    <h3 class="futTutorialTitle">Como fazer uma tacada</h3>
+    <div class="futTutorialStep"><div class="futTutorialStepNum">1</div><div><strong>Toque para selecionar</strong><p>Toque uma vez no seu botão para ver a ficha do jogador e a habilidade especial dele.</p></div></div>
+    <div class="futTutorialStep"><div class="futTutorialStepNum">2</div><div><strong>Toque novamente e arraste para trás</strong><p>Com o botão já selecionado, encoste nele, arraste na direção oposta ao chute desejado e ajuste a força.</p></div></div>
+    <div class="futTutorialPitch" aria-label="Exemplo: arraste para trás para lançar o botão em direção à bola"><span class="futTutorialToken">3</span><span class="futTutorialAim"></span><span class="futTutorialBall"></span><span class="futTutorialPitchLabel">Arraste para trás → botão avança</span></div>
+    <div class="futTutorialStep"><div class="futTutorialStepNum">3</div><div><strong>Solte para chutar</strong><p>Ao soltar, o botão é impulsionado. Arrastar mais aumenta a força. Um simples toque não dispara a tacada.</p></div></div>
+    <div class="futTutorialNote">💡 Para preparar um especial, selecione o botão e toque no ícone da habilidade na ficha do jogador <strong>antes</strong> de chutar. O botão nº 2 é a exceção: seu Carrinho é ativado na vez do adversário.</div>
+   </section>
+   <section class="futTutorialPage" id="futTutPage1" role="tabpanel" aria-labelledby="futTutTab1" hidden>
+    <h3 class="futTutorialTitle">Cada número tem uma função</h3>
+    <p class="futTutorialLead">Os ícones coloridos ao lado dos botões indicam habilidades. Quando a barra estiver pronta, você pode ativá-las pela ficha do jogador.</p>
+    <div class="futTutorialSkills">
+     <div class="futTutorialSkill" style="--fut-skill:#58b8ff"><span class="futTutorialSkillIcon">1</span><div><strong>Pipoqueiro II · Cobertura ↟</strong><small>Recarga: 5 jogadas</small><p>Faz a bola passar por cima do primeiro adversário que encontraria no lance. Útil para ultrapassar a marcação.</p></div></div>
+     <div class="futTutorialSkill" style="--fut-skill:#b989ff"><span class="futTutorialSkillIcon">2</span><div><strong>Defensor · Carrinho 🛡</strong><small>Recarga: 6 jogadas</small><p>Na vez rival, toque no defensor e ative o Carrinho para interromper a jogada. Você ganha 12 segundos para chutar usando apenas o nº 2.</p></div></div>
+     <div class="futTutorialSkill" style="--fut-skill:#ff9256"><span class="futTutorialSkillIcon">3</span><div><strong>Canhão · Chute forte ⚡</strong><small>Recarga: 4 jogadas</small><p>Aumenta em 39% a potência da próxima tacada feita por esse botão.</p></div></div>
+     <div class="futTutorialSkill" style="--fut-skill:#55df9b"><span class="futTutorialSkillIcon">4</span><div><strong>Maestro · Domínio ↦</strong><small>Recarga: 3 jogadas</small><p>Arme o Domínio e tente um passe com outro jogador. Se o Maestro receber a bola, você poderá posicioná-la à frente dele em um arco livre. A habilidade entra em recarga mesmo se o passe falhar.</p></div></div>
+     <div class="futTutorialSkill" style="--fut-skill:#58b8ff"><span class="futTutorialSkillIcon">5</span><div><strong>Pipoqueiro · Cobertura ↟</strong><small>Recarga: 5 jogadas</small><p>Assim como o nº 1, faz a bola ignorar o primeiro adversário atingido.</p></div></div>
+     <div class="futTutorialSkill" style="--fut-skill:#c3d9db"><span class="futTutorialSkillIcon">6</span><div><strong>Volante · Sem especial</strong><small>Disponível a qualquer momento</small><p>Peça de apoio e marcação. Não possui habilidade especial.</p></div></div>
+    </div>
+    <div class="futTutorialNote">⏳ As habilidades recarregam conforme as jogadas acontecem, não pelo tempo. Elas começam parcialmente carregadas e não podem ser usadas na saída de bola.</div>
+   </section>
+   <section class="futTutorialPage" id="futTutPage2" role="tabpanel" aria-labelledby="futTutTab2" hidden>
+    <h3 class="futTutorialTitle">Regras da partida</h3>
+    <div class="futTutorialRule"><span>⏱</span><div><strong>12 segundos por tacada</strong><p>É o tempo para escolher o botão e chutar quando chega sua vez. Observe o cronômetro.</p></div></div>
+    <div class="futTutorialRule"><span>⑤</span><div><strong>Até cinco toques na bola</strong><p>Os contatos da sua equipe com a bola são contados no placar. Ao chegar a 5, a próxima posse vai para o adversário, mas a bola termina de rolar normalmente.</p></div></div>
+    <div class="futTutorialRule"><span>⚽</span><div><strong>Saída após o gol</strong><p>O time que sofreu o gol reinicia no centro do campo. A partida termina quando alguém marca o terceiro gol.</p></div></div>
+    <div class="futTutorialRule"><span>🧱</span><div><strong>Faltas e barreira</strong><p>Em uma falta, a defesa pode posicionar até três botões na barreira durante 8 segundos; o ataque prepara o cobrador. Depois há 12 segundos para finalizar a cobrança.</p></div></div>
+    <div class="futTutorialRule"><span>🎯</span><div><strong>Cobranças especiais</strong><p>Use os controles apresentados na tela para escolher o cobrador, reposicioná-lo e confirmar. Em falta dentro da área, a cobrança é direta e não tem barreira.</p></div></div>
+    <div class="futTutorialRule"><span>👥</span><div><strong>Modos locais</strong><p>Em Contra a IA você controla uma equipe; em Dois jogadores, vocês se alternam no mesmo aparelho.</p></div></div>
+   </section>
+   <section class="futTutorialPage" id="futTutPage3" role="tabpanel" aria-labelledby="futTutTab3" hidden>
+    <h3 class="futTutorialTitle">Estratégia para começar melhor</h3>
+    <div class="futTutorialStep"><div class="futTutorialStepNum">1</div><div><strong>Escolha uma formação</strong><p>Antes de entrar em campo, distribua os seis botões. Há formações defensivas, equilibradas e ofensivas.</p></div></div>
+    <div class="futTutorialStep"><div class="futTutorialStepNum">2</div><div><strong>Prefira passes com espaço livre</strong><p>Observe o caminho da bola e use os botões de apoio para preparar o chute, em vez de tentar acertar o gol de longe toda hora.</p></div></div>
+    <div class="futTutorialStep"><div class="futTutorialStepNum">3</div><div><strong>Combine Maestro e Canhão</strong><p>O Domínio pode deixar a bola em uma posição melhor para um chute posterior. O Canhão ajuda a finalizar com potência.</p></div></div>
+    <div class="futTutorialStep"><div class="futTutorialStepNum">4</div><div><strong>Guarde o Carrinho para a hora certa</strong><p>O nº 2 consegue interromper uma jogada perigosa do rival, mas só quando a habilidade está pronta.</p></div></div>
+    <div class="futTutorialNote">🏁 Pronto? Feche este guia, escolha <strong>Contra a IA</strong> para treinar ou <strong>Dois jogadores</strong> para disputar com alguém no mesmo aparelho.</div>
+   </section>
+  </div>
+  <footer class="futTutorialBottom"><button type="button" id="futTutorialPrevious">← Anterior</button><button type="button" id="futTutorialNext" class="futTutorialNext">Próxima →</button></footer>
+ </div>
+</div>
+
+<script>
+/* V45 · Guia local, isolado da simulação para não modificar regras do jogo. */
+(()=>{
+ const overlay=document.getElementById('futTutorialOverlay'),open=document.getElementById('futTutorialOpen'),close=document.getElementById('futTutorialClose'),body=document.getElementById('futTutorialBody');
+ const tabs=Array.from({length:4},(_,i)=>document.getElementById('futTutTab'+i));
+ const pages=Array.from({length:4},(_,i)=>document.getElementById('futTutPage'+i));
+ const previous=document.getElementById('futTutorialPrevious'),next=document.getElementById('futTutorialNext');
+ let index=0,returnFocus=null;
+ function show(i){index=Math.max(0,Math.min(3,i));tabs.forEach((b,j)=>{b.setAttribute('aria-selected',String(j===index));b.tabIndex=j===index?0:-1});pages.forEach((p,j)=>p.hidden=j!==index);previous.disabled=index===0;next.textContent=index===3?'✓ Entendi!':'Próxima →';body.scrollTop=0}
+ function openGuide(){returnFocus=document.activeElement;show(0);overlay.hidden=false;close.focus()}
+ function closeGuide(){overlay.hidden=true;returnFocus?.focus?.()}
+ open?.addEventListener('click',openGuide);close?.addEventListener('click',closeGuide);
+ tabs.forEach((b,i)=>b.addEventListener('click',()=>show(i)));
+ previous.addEventListener('click',()=>show(index-1));
+ next.addEventListener('click',()=>index===3?closeGuide():show(index+1));
+ overlay.addEventListener('click',e=>{if(e.target===overlay)closeGuide()});
+ document.addEventListener('keydown',e=>{if(overlay.hidden)return;if(e.key==='Escape'){e.preventDefault();closeGuide()}else if(e.key==='Tab'){const focusable=Array.from(overlay.querySelectorAll('button:not(:disabled)')).filter(x=>x.offsetParent!==null);const start=focusable[0],last=focusable[focusable.length-1];if(e.shiftKey&&document.activeElement===start){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();start.focus()}}});
 })();
 </script>
 </body></html>
